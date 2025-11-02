@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,9 +12,9 @@
 		6F6E7F712C4A9B0500AA00AA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F702C4A9B0500AA00AA /* ContentView.swift */; };
 		6F6E7F712C4A9B0500AA00AB /* BaiduAuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F702C4A9B0500AA00AB /* BaiduAuthViewModel.swift */; };
 		6F6E7F732C4A9B0500AA00AA /* AudioPlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F722C4A9B0500AA00AA /* AudioPlayerViewModel.swift */; };
+		6F6E7F792C4A9B0500AA00AA /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6E7F782C4A9B0500AA00AA /* AVFoundation.framework */; };
 		6F6E7F7A2C4A9B0500AA00AA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F6E7F742C4A9B0500AA00AA /* Assets.xcassets */; };
 		6F6E7F7B2C4A9B0500AA00AA /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F6E7F762C4A9B0500AA00AA /* Preview Assets.xcassets */; };
-		6F6E7F792C4A9B0500AA00AA /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6E7F782C4A9B0500AA00AA /* AVFoundation.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -179,7 +179,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 285P3M6846;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AudiobookPlayer/Info.plist;
@@ -190,9 +190,12 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.senaca.AudiobookPlayer;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.audiobook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -208,7 +211,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 285P3M6846;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AudiobookPlayer/Info.plist;
@@ -219,9 +222,12 @@
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.senaca.AudiobookPlayer;
+				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.audiobook;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -363,7 +369,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
 	};
 	rootObject = 6F6E7F652C4A9B0500AA00AA /* Project object */;
 }

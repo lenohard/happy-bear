@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>BaiduClientId</key>
-	<string>REPLACE_WITH_CLIENT_ID</string>
+	<string>37MPKvV2gjL7SKHTwoErDDlOEWCO9Pi4</string>
 	<key>BaiduClientSecret</key>
-	<string>REPLACE_WITH_CLIENT_SECRET</string>
+	<string>cUTK7dZv9HCTCuNuD362xGZqueyGmwPD</string>
 	<key>BaiduRedirectURI</key>
-	<string>audiobookplayer://oauth-callback</string>
+	<string>com.wdh.audiobook://oauth-callback</string>
 	<key>BaiduScope</key>
 	<string>basic netdisk</string>
 	<key>CFBundleDevelopmentRegion</key>
@@ -31,7 +31,7 @@
 			<string>com.senaca.AudiobookPlayer.baidu</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>audiobookplayer</string>
+				<string>com.wdh.audiobook</string>
 			</array>
 		</dict>
 	</array>
