@@ -3,14 +3,20 @@ import SwiftUI
 struct BaiduNetdiskBrowserView: View {
     @StateObject private var viewModel: BaiduNetdiskBrowserViewModel
     @State private var searchText = ""
-    var onSelectFile: (BaiduNetdiskEntry) -> Void
+
+    var onSelectFile: ((BaiduNetdiskEntry) -> Void)?
+    var onSelectFolder: ((String) -> Void)?
+
+    private let audioExtensions: Set<String> = ["mp3", "m4a", "m4b", "aac", "flac", "wav"]
 
     init(
         tokenProvider: @escaping () -> BaiduOAuthToken?,
-        onSelectFile: @escaping (BaiduNetdiskEntry) -> Void
+        onSelectFile: ((BaiduNetdiskEntry) -> Void)? = nil,
+        onSelectFolder: ((String) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: BaiduNetdiskBrowserViewModel(tokenProvider: tokenProvider))
         self.onSelectFile = onSelectFile
+        self.onSelectFolder = onSelectFolder
     }
 
     var body: some View {
@@ -49,8 +55,32 @@ struct BaiduNetdiskBrowserView: View {
                 }
                 .disabled(viewModel.isLoading)
             }
+
+            if let onSelectFolder {
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        onSelectFolder(viewModel.currentPath)
+                    } label: {
+                        Label {
+                            let count = audioEntryCount
+                            if count > 0 {
+                                Text("Use This Folder (\(count))")
+                            } else {
+                                Text("Use This Folder")
+                            }
+                        } icon: {
+                            Image(systemName: "folder.badge.plus")
+                        }
+                    }
+                    .disabled(audioEntryCount == 0 || viewModel.isLoading)
+                }
+            }
         }
-        .searchable(text: $searchText, prompt: "Search in folder")
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .always),
+            prompt: "Search in folder"
+        )
         .onAppear {
             if viewModel.entries.isEmpty && !viewModel.isLoading {
                 viewModel.refresh()
@@ -87,7 +117,7 @@ struct BaiduNetdiskBrowserView: View {
                         searchText = ""  // Clear search when entering a folder
                         viewModel.enter(entry)
                     } else {
-                        onSelectFile(entry)
+                        onSelectFile?(entry)
                     }
                 } label: {
                     HStack {
@@ -126,6 +156,16 @@ struct BaiduNetdiskBrowserView: View {
         }
         return viewModel.entries.filter { entry in
             entry.serverFilename.localizedCaseInsensitiveContains(query)
+        }
+    }
+
+    private var audioEntryCount: Int {
+        viewModel.entries.reduce(into: 0) { partialResult, entry in
+            guard !entry.isDir else { return }
+            let ext = entry.serverFilename.split(separator: ".").last?.lowercased() ?? ""
+            if audioExtensions.contains(ext) {
+                partialResult += 1
+            }
         }
     }
 

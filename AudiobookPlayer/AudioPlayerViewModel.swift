@@ -7,6 +7,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var currentTime: Double = 0
     @Published var duration: Double = 0
     @Published var statusMessage: String?
+    @Published private(set) var activeCollection: AudiobookCollection?
 
     private var player: AVPlayer?
     private var timeObserverToken: Any?
@@ -80,13 +81,30 @@ final class AudioPlayerViewModel: ObservableObject {
         }
     }
 
-    func reset() {
+    func loadCollection(_ collection: AudiobookCollection) {
+        stopPlayback()
+        activeCollection = collection
+
+        if collection.tracks.isEmpty {
+            statusMessage = "\"\(collection.title)\" has no audio tracks yet."
+        } else {
+            statusMessage = "Loaded \"\(collection.title)\" with \(collection.tracks.count) tracks. Playback integration is coming soon."
+        }
+    }
+
+    private func stopPlayback() {
+        player?.pause()
+        removeObservers()
+        player = nil
         isPlaying = false
         currentTime = 0
         duration = 0
+    }
+
+    func reset() {
+        stopPlayback()
         statusMessage = nil
-        removeObservers()
-        player = nil
+        activeCollection = nil
     }
 
     @MainActor deinit {
