@@ -22,8 +22,8 @@ struct LibraryView: View {
                     List {
                         Section("Collections") {
                             ForEach(library.collections) { collection in
-                                Button {
-                                    audioPlayer.loadCollection(collection)
+                                NavigationLink {
+                                    CollectionDetailView(collectionID: collection.id)
                                 } label: {
                                     LibraryCollectionRow(collection: collection)
                                 }
@@ -190,9 +190,6 @@ private struct LibraryCollectionRow: View {
             }
 
             Spacer()
-
-            Image(systemName: "chevron.right")
-                .foregroundStyle(.tertiary)
         }
         .contentShape(Rectangle())
     }
