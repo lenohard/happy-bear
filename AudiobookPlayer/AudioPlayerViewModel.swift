@@ -63,6 +63,14 @@ final class AudioPlayerViewModel: ObservableObject {
         isPlaying.toggle()
     }
 
+    func skipForward(by seconds: Double = 30) {
+        skip(by: seconds)
+    }
+
+    func skipBackward(by seconds: Double = 15) {
+        skip(by: -seconds)
+    }
+
     func seek(to time: Double) {
         guard let player else { return }
         let target = CMTime(seconds: time, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
@@ -126,6 +134,17 @@ private extension AudioPlayerViewModel {
             NotificationCenter.default.removeObserver(observer)
             endPlaybackObserver = nil
         }
+    }
+
+    func skip(by delta: Double) {
+        guard let player, let currentItem = player.currentItem else { return }
+        let currentSeconds = player.currentTime().seconds
+
+        let itemDuration = currentItem.duration.seconds.isFinite ? currentItem.duration.seconds : duration
+        guard currentSeconds.isFinite, itemDuration.isFinite else { return }
+
+        let clamped = max(0, min(currentSeconds + delta, itemDuration))
+        seek(to: clamped)
     }
 }
 

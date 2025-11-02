@@ -7,9 +7,9 @@
 	<key>BaiduClientSecret</key>
 	<string>cUTK7dZv9HCTCuNuD362xGZqueyGmwPD</string>
 	<key>BaiduRedirectURI</key>
-	<string>com.wdh.audiobook://oauth-callback</string>
+	<string>bd120615406://oauth-callback</string>
 	<key>BaiduScope</key>
-	<string>basic netdisk</string>
+	<string>basic,netdisk</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
@@ -31,6 +31,7 @@
 			<string>com.senaca.AudiobookPlayer.baidu</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>bd120615406</string>
 				<string>com.wdh.audiobook</string>
 			</array>
 		</dict>

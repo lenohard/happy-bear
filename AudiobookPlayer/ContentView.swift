@@ -4,8 +4,12 @@ struct ContentView: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @StateObject private var authViewModel = BaiduAuthViewModel()
     @State private var hasLoadedSample = false
+    @State private var selectedNetdiskEntry: BaiduNetdiskEntry?
+    @State private var sampleLoadError: String?
 
-    private let sampleURL = URL(string: "https://cdn.simplecast.com/audio/2cf6dcce-238f-4df5-b285-dc59b9c8db05/episodes/1e4f2b88-9e7e-4c43-8687-0a7cba1cc403/audio/9c1b7d1a-b4f6-44ef-9b59-4cdc61814fdb/default.mp3")!
+    private var sampleURL: URL? {
+        Bundle.main.url(forResource: "test", withExtension: "mp3")
+    }
 
     var body: some View {
         NavigationStack {
@@ -19,6 +23,42 @@ struct ContentView: View {
             .navigationTitle("Audiobook Player")
         }
         .onDisappear { audioPlayer.reset() }
+        .sheet(item: $selectedNetdiskEntry) { entry in
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 16) {
+                    Label("File Details", systemImage: "doc.text.magnifyingglass")
+                        .font(.headline)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(entry.serverFilename)
+                            .font(.title3)
+                            .bold()
+
+                        Text(entry.path)
+                            .font(.caption.monospaced())
+                            .foregroundColor(.secondary)
+                    }
+
+                    Text("Select \"Close\" and use the toolbar actions in the browser to download or stream once implemented.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    Button("Close", role: .cancel) { selectedNetdiskEntry = nil }
+                        .frame(maxWidth: .infinity)
+                        .buttonStyle(.borderedProminent)
+                }
+                .padding()
+                .navigationTitle("Netdisk File")
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Done") { selectedNetdiskEntry = nil }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
     }
 
     @ViewBuilder
@@ -34,18 +74,43 @@ struct ContentView: View {
                 }
                 .font(.caption.monospacedDigit())
 
-                Button {
-                    audioPlayer.togglePlayback()
-                } label: {
-                    Label(audioPlayer.isPlaying ? "Pause" : "Play", systemImage: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.title2)
-                        .frame(maxWidth: .infinity)
+                HStack(spacing: 24) {
+                    Button {
+                        audioPlayer.skipBackward()
+                    } label: {
+                        Label("Back", systemImage: "gobackward.15")
+                            .labelStyle(.iconOnly)
+                            .font(.title2)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button {
+                        audioPlayer.togglePlayback()
+                    } label: {
+                        Label(audioPlayer.isPlaying ? "Pause" : "Play", systemImage: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.title2)
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button {
+                        audioPlayer.skipForward()
+                    } label: {
+                        Label("Forward", systemImage: "goforward.30")
+                            .labelStyle(.iconOnly)
+                            .font(.title2)
+                    }
+                    .buttonStyle(.bordered)
                 }
-                .buttonStyle(.borderedProminent)
+                .frame(maxWidth: .infinity)
             } else {
                 Button {
-                    audioPlayer.prepare(with: sampleURL)
-                    hasLoadedSample = true
+                    if let url = sampleURL {
+                        audioPlayer.prepare(with: url)
+                        hasLoadedSample = true
+                        sampleLoadError = nil
+                    } else {
+                        sampleLoadError = "Missing bundled audio file test.mp3."
+                    }
                 } label: {
                     Label("Load Sample Audio", systemImage: "waveform.circle.fill")
                         .font(.title3)
@@ -89,6 +154,13 @@ struct ContentView: View {
                     .foregroundColor(.orange)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
+
+            if let sampleLoadError {
+                Label(sampleLoadError, systemImage: "exclamationmark.circle")
+                    .font(.footnote)
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
@@ -127,6 +199,19 @@ struct ContentView: View {
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
+
+                    NavigationLink {
+                        BaiduNetdiskBrowserView(
+                            tokenProvider: { authViewModel.token },
+                            onSelectFile: { entry in
+                                selectedNetdiskEntry = entry
+                            }
+                        )
+                    } label: {
+                        Label("Browse Baidu Netdisk", systemImage: "folder.badge.gear")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
                 } else {
                     Button {
                         authViewModel.signIn()

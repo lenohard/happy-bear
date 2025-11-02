@@ -8,11 +8,17 @@ final class BaiduAuthViewModel: ObservableObject {
 
     private let serviceFactory: @MainActor () -> Result<BaiduOAuthAuthorizing, BaiduOAuthService.Error>
     private var service: BaiduOAuthAuthorizing?
+    private let tokenStore: BaiduOAuthTokenStore
 
-    init(serviceFactory: @escaping @MainActor () -> Result<BaiduOAuthAuthorizing, BaiduOAuthService.Error> = {
-        BaiduOAuthService.makeFromBundle().map { $0 as BaiduOAuthAuthorizing }
-    }) {
+    init(
+        serviceFactory: @escaping @MainActor () -> Result<BaiduOAuthAuthorizing, BaiduOAuthService.Error> = {
+            BaiduOAuthService.makeFromBundle().map { $0 as BaiduOAuthAuthorizing }
+        },
+        tokenStore: BaiduOAuthTokenStore = KeychainBaiduOAuthTokenStore()
+    ) {
         self.serviceFactory = serviceFactory
+        self.tokenStore = tokenStore
+        loadPersistedToken()
     }
 
     func signIn() {
@@ -24,6 +30,10 @@ final class BaiduAuthViewModel: ObservableObject {
             do {
                 let service = try await resolveService()
                 let token = try await service.authorize()
+                if token.isExpired {
+                    throw BaiduOAuthService.Error.authorizationFailed(details: "Received expired access token from Baidu.")
+                }
+                try tokenStore.saveToken(token)
                 self.token = token
             } catch let error as BaiduOAuthService.Error {
                 errorMessage = error.localizedDescription
@@ -37,6 +47,7 @@ final class BaiduAuthViewModel: ObservableObject {
     func signOut() {
         token = nil
         errorMessage = nil
+        try? tokenStore.clearToken()
     }
 
     private func resolveService() async throws -> BaiduOAuthAuthorizing {
@@ -50,6 +61,18 @@ final class BaiduAuthViewModel: ObservableObject {
             return resolved
         case .failure(let error):
             throw error
+        }
+    }
+
+    private func loadPersistedToken() {
+        do {
+            if let stored = try tokenStore.loadToken(), !stored.isExpired {
+                token = stored
+            } else {
+                try? tokenStore.clearToken()
+            }
+        } catch {
+            errorMessage = "Failed to load saved Baidu session."
         }
     }
 }

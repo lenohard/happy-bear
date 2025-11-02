@@ -16,7 +16,7 @@ struct BaiduOAuthConfig: Equatable {
     let scope: String
 
     static let authorizationEndpoint = URL(string: "https://openapi.baidu.com/oauth/2.0/authorize")!
-    static let tokenEndpoint = URL(string: "https://aip.baidubce.com/oauth/2.0/token")!
+    static let tokenEndpoint = URL(string: "https://openapi.baidu.com/oauth/2.0/token")!
 }
 
 extension BaiduOAuthConfig {
@@ -70,14 +70,14 @@ extension BaiduOAuthConfig {
     }
 }
 
-struct BaiduOAuthToken: Decodable, Equatable {
+struct BaiduOAuthToken: Codable, Equatable {
     let accessToken: String
     let expiresIn: TimeInterval
     let refreshToken: String?
     let scope: String?
     let sessionKey: String?
     let sessionSecret: String?
-    let receivedAt = Date()
+    let receivedAt: Date
 
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
@@ -86,6 +86,46 @@ struct BaiduOAuthToken: Decodable, Equatable {
         case scope
         case sessionKey = "session_key"
         case sessionSecret = "session_secret"
+        case receivedAt
+    }
+
+    init(
+        accessToken: String,
+        expiresIn: TimeInterval,
+        refreshToken: String?,
+        scope: String?,
+        sessionKey: String?,
+        sessionSecret: String?,
+        receivedAt: Date = Date()
+    ) {
+        self.accessToken = accessToken
+        self.expiresIn = expiresIn
+        self.refreshToken = refreshToken
+        self.scope = scope
+        self.sessionKey = sessionKey
+        self.sessionSecret = sessionSecret
+        self.receivedAt = receivedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let accessToken = try container.decode(String.self, forKey: .accessToken)
+        let expiresIn = try container.decode(TimeInterval.self, forKey: .expiresIn)
+        let refreshToken = try container.decodeIfPresent(String.self, forKey: .refreshToken)
+        let scope = try container.decodeIfPresent(String.self, forKey: .scope)
+        let sessionKey = try container.decodeIfPresent(String.self, forKey: .sessionKey)
+        let sessionSecret = try container.decodeIfPresent(String.self, forKey: .sessionSecret)
+        let receivedAt = try container.decodeIfPresent(Date.self, forKey: .receivedAt) ?? Date()
+
+        self.init(
+            accessToken: accessToken,
+            expiresIn: expiresIn,
+            refreshToken: refreshToken,
+            scope: scope,
+            sessionKey: sessionKey,
+            sessionSecret: sessionSecret,
+            receivedAt: receivedAt
+        )
     }
 
     var expiresAt: Date {
@@ -97,6 +137,10 @@ struct BaiduOAuthToken: Decodable, Equatable {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: expiresAt)
+    }
+
+    var isExpired: Bool {
+        Date() >= expiresAt
     }
 }
 
