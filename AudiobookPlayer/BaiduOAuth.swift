@@ -220,12 +220,12 @@ final class BaiduOAuthService: BaiduOAuthAuthorizing {
         config: BaiduOAuthConfig,
         httpClient: HTTPClient = URLSession.shared,
         jsonDecoder: JSONDecoder = JSONDecoder(),
-        presentationContextProvider: ASWebAuthenticationPresentationContextProviding = DefaultPresentationContextProvider()
+        presentationContextProvider: ASWebAuthenticationPresentationContextProviding? = nil
     ) {
         self.config = config
         self.httpClient = httpClient
         self.jsonDecoder = jsonDecoder
-        self.presentationContextProvider = presentationContextProvider
+        self.presentationContextProvider = presentationContextProvider ?? DefaultPresentationContextProvider()
     }
 
     static func makeFromBundle() -> Result<BaiduOAuthService, Error> {

@@ -251,7 +251,6 @@ actor LibraryPersistence {
     ) {
         self.fileManager = fileManager
         self.fileURL = fileURL ?? LibraryPersistence.makeDefaultURL(fileManager: fileManager)
-        ensureDirectoryExists()
     }
 
     func load() throws -> LibraryFile {
@@ -266,6 +265,7 @@ actor LibraryPersistence {
     }
 
     func save(_ file: LibraryFile) throws {
+        ensureDirectoryExists()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
