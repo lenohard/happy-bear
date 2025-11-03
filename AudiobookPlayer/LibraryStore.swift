@@ -10,6 +10,7 @@ protocol LibrarySyncing: AnyObject {
 final class LibraryStore: ObservableObject {
     @Published private(set) var collections: [AudiobookCollection] = []
     @Published private(set) var lastError: Error?
+    @Published private(set) var isLoading = false
 
     private let persistence: LibraryPersistence
     private let syncEngine: LibrarySyncing?
@@ -30,6 +31,9 @@ final class LibraryStore: ObservableObject {
     }
 
     func load() async {
+        isLoading = true
+        defer { isLoading = false }
+
         do {
             let file = try await persistence.load()
             guard file.schemaVersion <= schemaVersion else {

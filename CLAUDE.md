@@ -4,7 +4,7 @@
 local/PROD.md:
 @local/PROD.md
 
-
+- Background audio + enhanced playback controls completed 2025-11-03
 
 ## Project Overview
 An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云盘), with seamless integration for importing, managing, and playing audio files.
@@ -97,12 +97,12 @@ UI (display & user interaction)
 - [x] Project setup with SwiftUI + AVFoundation
 - [x] Baidu OAuth2 authentication flow (authorization code + token exchange skeleton)
 - [x] Basic file listing from Baidu Cloud
-- [ ] Simple audio player with basic controls (play/pause/skip)
-- [ ] Playback progress tracking
-- [ ] Basic UI (now playing screen, library view)
+- [x] Simple audio player with basic controls (play/pause/skip)
+- [x] Playback progress tracking
+- [x] Basic UI (now playing screen, library view)
 
 ### Phase 2: Core Features
-- [ ] Bookmarking/resuming playback position
+- [x] Bookmarking/resuming playback position
 - [ ] Local library management
 - [ ] Metadata display (title, artist, duration)
 - [ ] Playlist/collection organization
@@ -205,6 +205,13 @@ UI (display & user interaction)
 
 ## Progress Tracking
 
+### Session: 2025-11-03
+- [x] Enabled background audio playback via Info.plist `UIBackgroundModes=audio` and refined audio session configuration.
+- [x] Hardened now playing commands to resume idle playback, improve previous/next fallbacks, and keep Baidu token refresh handling.
+- [x] Surfaced saved track progress with progress bars, timestamps, and percent labels derived from `playbackStates`.
+- [x] Removed collection-level "Play All" in favor of per-track controls and new library quick-play buttons that resume from stored positions.
+- [x] Added dedicated Playing tab that restores the active or last-played collection with persisted playback state and shared transport controls.
+
 ### Session: 2025-11-02
 - [x] Project directory created
 - [x] PROD.md initialized with architecture & planning
@@ -235,3 +242,11 @@ UI (display & user interaction)
 - **Key Finding**: OAuth2 allows user approval to grant app access to Baidu Pan files
 - **Token Endpoint**: `https://aip.baidubce.com/oauth/2.0/token`
 - **Next Steps**: Verify Baidu Pan API availability, find authorization endpoint, document scopes
+
+## Qwen Added Memories
+- 用户数据存储架构：
+1. 播放进度和图书馆数据 - 存储在本地JSON文件（~/Library/Application Support/AudiobookPlayer/library.json），使用LibraryStore和LibraryPersistence类管理
+2. 百度认证Token - 存储在iOS Keychain中，使用KeychainBaiduOAuthTokenStore类安全存储
+3. 数据同步 - 通过CloudKitLibrarySync支持多设备同步，基于时间戳的冲突解决
+4. 存储特点 - 离线优先、自动保存、版本控制（schemaVersion=2）
+5. 数据模型 - AudiobookCollection（有声书集合）、TrackPlaybackState（播放状态）、支持百度网盘/本地/外部链接三种来源

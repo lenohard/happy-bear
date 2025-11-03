@@ -16,7 +16,9 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if library.collections.isEmpty {
+                if library.isLoading {
+                    LoadingLibraryView()
+                } else if library.collections.isEmpty {
                     EmptyLibraryView()
                 } else {
                     List {
@@ -167,11 +169,26 @@ private struct EmptyLibraryView: View {
                 .font(.title3)
                 .bold()
 
-            Text("Tap “Import” to choose a source and add your first audiobook collection.")
+            Text("Tap \"Import\" to choose a source and add your first audiobook collection.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color(uiColor: .secondarySystemBackground))
+    }
+}
+
+private struct LoadingLibraryView: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .progressViewStyle(.circular)
+
+            Text("Loading your library...")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .secondarySystemBackground))
