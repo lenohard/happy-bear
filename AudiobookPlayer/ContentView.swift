@@ -389,22 +389,38 @@ struct PlayingView: View {
         let activeCollectionID = audioPlayer.activeCollection?.id
         let activeTrackID = audioPlayer.currentTrack?.id
 
-        return library.collections
-            .flatMap { collection in
-                collection.playbackStates.compactMap { trackID, state in
-                    guard
-                        let track = collection.tracks.first(where: { $0.id == trackID })
-                    else { return nil }
+        // For each collection, find the most recent track
+        var historyByCollection: [ListeningHistoryEntry] = []
 
-                    return ListeningHistoryEntry(
-                        id: trackID,
-                        collection: collection,
-                        track: track,
-                        state: state,
-                        isActive: collection.id == activeCollectionID && trackID == activeTrackID
-                    )
+        for collection in library.collections {
+            // Find the most recently updated track in this collection
+            var mostRecentEntry: (trackID: UUID, track: AudiobookTrack, state: TrackPlaybackState)? = nil
+            var mostRecentDate: Date? = nil
+
+            for (trackID, state) in collection.playbackStates {
+                guard let track = collection.tracks.first(where: { $0.id == trackID }) else { continue }
+
+                if mostRecentDate == nil || state.updatedAt > mostRecentDate! {
+                    mostRecentDate = state.updatedAt
+                    mostRecentEntry = (trackID: trackID, track: track, state: state)
                 }
             }
+
+            if let entry = mostRecentEntry {
+                historyByCollection.append(
+                    ListeningHistoryEntry(
+                        id: entry.trackID,
+                        collection: collection,
+                        track: entry.track,
+                        state: entry.state,
+                        isActive: collection.id == activeCollectionID && entry.trackID == activeTrackID
+                    )
+                )
+            }
+        }
+
+        // Sort by most recent and take top 5
+        return historyByCollection
             .sorted { $0.state.updatedAt > $1.state.updatedAt }
             .prefix(5)
             .map { $0 }
