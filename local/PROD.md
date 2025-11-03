@@ -1,6 +1,114 @@
 # Bugs & Enhancements
 2025-11-04 星期二
 
+## ✅ Enhancement 4 – Improved Baidu Netdisk Search UX (COMPLETED)
+**Status:** ✅ Completed (pending commit)
+**Date:** 2025-11-04
+
+### Changes
+1. **Search on submit instead of per-character**
+   - Search now triggers only when user presses Return/Search button (using `.onSubmit(of: .search)`)
+   - Previously triggered on every keystroke, causing excessive API calls
+   - Improves performance and reduces unnecessary network traffic
+
+2. **Search all files by default**
+   - Removed hardcoded audio-only filter (`category=2`)
+   - Added new "Audio Files Only" toggle in Search Options
+   - Users can now search for any file type and optionally filter to audio files
+   - More flexible and matches general file browser expectations
+
+3. **Updated UI text**
+   - Search prompt changed from "Search audio files" → "Search files"
+   - Added "Audio Files Only" toggle in Search Options section
+
+### Technical Implementation
+**Files Modified:**
+- `AudiobookPlayer/BaiduNetdiskClient.swift`:
+  - Added `audioOnly: Bool` parameter to `search()` method
+  - Made category filter conditional based on `audioOnly` flag
+  - Updated protocol `BaiduNetdiskListing`
+
+- `AudiobookPlayer/BaiduNetdiskBrowserViewModel.swift`:
+  - Added `@Published var audioOnly = false` (defaults to all files)
+  - Pass `audioOnly` parameter to client.search()
+
+- `AudiobookPlayer/BaiduNetdiskBrowserView.swift`:
+  - Replaced `.onChange(of: searchText)` with `.onSubmit(of: .search)` for search trigger
+  - Added "Audio Files Only" toggle in Search Options section
+  - Both toggles (Recursive Search & Audio Files Only) trigger re-search when changed
+  - Updated search prompt text
+
+### API Changes
+```swift
+// Before:
+func search(keyword: String, directory: String, recursive: Bool, token: BaiduOAuthToken)
+
+// After:
+func search(keyword: String, directory: String, recursive: Bool, audioOnly: Bool, token: BaiduOAuthToken)
+```
+
+### User Experience Improvements
+| Aspect | Before | After |
+|--------|--------|-------|
+| Search Trigger | Every keystroke | Press Return/Search button |
+| File Types | Audio only (hardcoded) | All files (with optional audio filter) |
+| API Calls | Many (per character) | One (per search) |
+| User Control | Limited | Full control via toggle |
+
+---
+
+## ✅ Bug 5 – App freezes when opening Baidu Netdisk browser (FIXED)
+**Status:** ✅ Completed (pending commit)
+**Date:** 2025-11-04
+
+### Problem
+- App freezes/hangs when trying to open Baidu Netdisk file browser
+- UI becomes completely unresponsive
+- Caused by infinite update loop in Enhancement 3 implementation
+
+### Root Cause
+The bug was introduced in Enhancement 3 when implementing iOS 16 compatibility:
+- Used `onReceive(Just(searchText))` and `onReceive(Just(viewModel.useRecursiveSearch))` modifiers (lines 40 and 98-106 in `BaiduNetdiskBrowserView.swift`)
+- `Just` publisher fires immediately on every view render
+- Created recursive update cycle: state change → view render → onReceive fires → state change → repeat
+- This infinite loop froze the main thread
+
+### Solution
+Replaced problematic `onReceive(Just(_))` modifiers with proper SwiftUI state observation:
+- Changed `onReceive(Just(viewModel.useRecursiveSearch))` to `.onChange(of: viewModel.useRecursiveSearch)`
+- Changed `onReceive(Just(searchText))` to `.onChange(of: searchText)`
+- Removed unnecessary `import Combine` statement
+- These `.onChange` modifiers only fire when the value actually changes, not on every render
+
+**Files Modified:**
+- `AudiobookPlayer/BaiduNetdiskBrowserView.swift` - Replaced `onReceive(Just(_))` with `.onChange(of:)` modifiers
+
+### Technical Details
+```swift
+// ❌ BEFORE (causes infinite loop):
+.onReceive(Just(searchText)) { newValue in
+    // Fires on every render
+}
+
+// ✅ AFTER (fires only on change):
+.onChange(of: searchText) { newValue in
+    // Only fires when searchText actually changes
+}
+```
+
+### Lessons Learned
+1. ⚠️ **Avoid `onReceive(Just(_))` pattern** - it fires on every view render, not just on state changes
+2. ✅ **Use `.onChange(of:)` for state observation** - only triggers when values actually change
+3. ✅ **iOS 16 compatibility note**: `.onChange(of:)` works on iOS 16+ (no need for workarounds)
+4. ⚠️ **Watch for infinite update cycles**: Always verify state observation patterns don't create render loops
+
+### Testing
+- ✅ Build succeeded without errors
+- User should verify: Can now open Baidu Netdisk browser without freezing
+- User should verify: Search and recursive toggle still work correctly
+
+---
+
 ## ✅ Enhancement 3 – Baidu Netdisk Search Function Improvements (COMPLETED)
 **Status:** ✅ Completed (commit `e6f6c2f`)
 **Date:** 2025-11-04
@@ -27,7 +135,7 @@ Implemented **server-side recursive search** using Baidu's native Search API:
 - ✅ Toggle to switch between current folder / recursive modes
 - ✅ Auto re-search when toggle changes
 - ✅ Clear search automatically when navigating folders
-- ✅ iOS 16 compatible (uses `onReceive(Just(_))` instead of iOS 17+ `onChange`)
+- ✅ iOS 16 compatible (using `.onChange(of:)` modifier after Bug 5 fix)
 
 **Implementation Details:**
 ```swift

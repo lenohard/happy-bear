@@ -81,7 +81,7 @@ struct BaiduNetdiskListResponse: Decodable {
 
 protocol BaiduNetdiskListing {
     func listDirectory(path: String, token: BaiduOAuthToken) async throws -> [BaiduNetdiskEntry]
-    func search(keyword: String, directory: String, recursive: Bool, token: BaiduOAuthToken) async throws -> [BaiduNetdiskEntry]
+    func search(keyword: String, directory: String, recursive: Bool, audioOnly: Bool, token: BaiduOAuthToken) async throws -> [BaiduNetdiskEntry]
 }
 
 final class BaiduNetdiskClient: BaiduNetdiskListing {
@@ -137,7 +137,7 @@ final class BaiduNetdiskClient: BaiduNetdiskListing {
         return decoded.list
     }
 
-    func search(keyword: String, directory: String, recursive: Bool, token: BaiduOAuthToken) async throws -> [BaiduNetdiskEntry] {
+    func search(keyword: String, directory: String, recursive: Bool, audioOnly: Bool, token: BaiduOAuthToken) async throws -> [BaiduNetdiskEntry] {
         guard !token.isExpired else {
             throw NetdiskError.expiredToken
         }
@@ -147,9 +147,12 @@ final class BaiduNetdiskClient: BaiduNetdiskListing {
             URLQueryItem(name: "method", value: "search"),
             URLQueryItem(name: "key", value: keyword),
             URLQueryItem(name: "dir", value: directory),
-            URLQueryItem(name: "access_token", value: token.accessToken),
-            URLQueryItem(name: "category", value: "2")  // Category 2 = audio files
+            URLQueryItem(name: "access_token", value: token.accessToken)
         ]
+
+        if audioOnly {
+            queryItems.append(URLQueryItem(name: "category", value: "2"))  // Category 2 = audio files
+        }
 
         if recursive {
             queryItems.append(URLQueryItem(name: "recursion", value: "1"))

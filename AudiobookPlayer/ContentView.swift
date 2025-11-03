@@ -1,23 +1,66 @@
 import SwiftUI
 
+@MainActor
+final class TabSelectionManager: ObservableObject {
+    @Published var selectedTab: Tab = .library
+    
+    enum Tab: Int, CaseIterable {
+        case library = 0
+        case playing = 1
+        case sources = 2
+        
+        var title: String {
+            switch self {
+            case .library:
+                return NSLocalizedString("library_tab", comment: "Tab for library")
+            case .playing:
+                return NSLocalizedString("playing_tab", comment: "Tab for now playing")
+            case .sources:
+                return NSLocalizedString("sources_tab", comment: "Tab for sources")
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .library:
+                return "books.vertical"
+            case .playing:
+                return "play.circle"
+            case .sources:
+                return "externaldrive.badge.icloud"
+            }
+        }
+    }
+    
+    func switchToPlayingTab() {
+        selectedTab = .playing
+    }
+}
+
 struct ContentView: View {
+    @StateObject private var tabSelection = TabSelectionManager()
+    
     var body: some View {
-        TabView {
+        TabView(selection: $tabSelection.selectedTab) {
             LibraryView()
                 .tabItem {
                     Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
                 }
+                .tag(TabSelectionManager.Tab.library)
 
             PlayingView()
                 .tabItem {
                     Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
                 }
+                .tag(TabSelectionManager.Tab.playing)
 
             SourcesView()
                 .tabItem {
                     Label(NSLocalizedString("sources_tab", comment: "Tab for sources"), systemImage: "externaldrive.badge.icloud")
                 }
+                .tag(TabSelectionManager.Tab.sources)
         }
+        .environmentObject(tabSelection)
     }
 }
 

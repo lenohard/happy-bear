@@ -7,6 +7,7 @@ struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
+    @EnvironmentObject private var tabSelection: TabSelectionManager
 
     @State private var activeSource: ImportSource?
     @State private var pendingImport: PendingImport?
@@ -150,6 +151,9 @@ struct LibraryView: View {
         } else {
             audioPlayer.play(track: track, in: collection, token: nil)
         }
+        
+        // Switch to Playing tab after starting playback
+        tabSelection.switchToPlayingTab()
     }
 
     private func delete(at offsets: IndexSet) {

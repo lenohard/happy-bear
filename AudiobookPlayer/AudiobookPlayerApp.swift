@@ -5,6 +5,7 @@ struct AudiobookPlayerApp: App {
     @StateObject private var audioPlayer = AudioPlayerViewModel()
     @StateObject private var libraryStore = LibraryStore()
     @StateObject private var baiduAuth = BaiduAuthViewModel()
+    @StateObject private var tabSelection = TabSelectionManager()
     @State private var showSplash = true
 
     var body: some Scene {
@@ -14,6 +15,7 @@ struct AudiobookPlayerApp: App {
                     .environmentObject(audioPlayer)
                     .environmentObject(libraryStore)
                     .environmentObject(baiduAuth)
+                    .environmentObject(tabSelection)
 
                 if showSplash {
                     SplashScreenView {

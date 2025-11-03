@@ -1,5 +1,4 @@
 import SwiftUI
-import Combine
 
 struct BaiduNetdiskBrowserView: View {
     @StateObject private var viewModel: BaiduNetdiskBrowserViewModel
@@ -37,7 +36,14 @@ struct BaiduNetdiskBrowserView: View {
             if isSearching && !searchTextTrimmed.isEmpty {
                 Section("Search Options") {
                     Toggle("Recursive Search", isOn: $viewModel.useRecursiveSearch)
-                        .onReceive(Just(viewModel.useRecursiveSearch)) { _ in
+                        .onChange(of: viewModel.useRecursiveSearch) { _ in
+                            if !searchTextTrimmed.isEmpty {
+                                viewModel.search(keyword: searchTextTrimmed)
+                            }
+                        }
+
+                    Toggle("Audio Files Only", isOn: $viewModel.audioOnly)
+                        .onChange(of: viewModel.audioOnly) { _ in
                             if !searchTextTrimmed.isEmpty {
                                 viewModel.search(keyword: searchTextTrimmed)
                             }
@@ -93,15 +99,18 @@ struct BaiduNetdiskBrowserView: View {
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Search audio files"
+            prompt: "Search files"
         )
-        .onReceive(Just(searchText)) { newValue in
+        .onSubmit(of: .search) {
+            if !searchTextTrimmed.isEmpty {
+                isSearching = true
+                viewModel.search(keyword: searchTextTrimmed)
+            }
+        }
+        .onChange(of: searchText) { newValue in
             if newValue.isEmpty {
                 isSearching = false
                 viewModel.refresh()
-            } else {
-                isSearching = true
-                viewModel.search(keyword: newValue)
             }
         }
         .onAppear {
