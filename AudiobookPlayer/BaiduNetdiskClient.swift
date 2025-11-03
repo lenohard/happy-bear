@@ -85,6 +85,7 @@ protocol BaiduNetdiskListing {
 
 final class BaiduNetdiskClient: BaiduNetdiskListing {
     private let baseURL = URL(string: "https://pan.baidu.com/rest/2.0/xpan/file")!
+    private let downloadBaseURL = URL(string: "https://d.pcs.baidu.com/rest/2.0/pcs/file")!
     private let jsonDecoder: JSONDecoder
     private let urlSession: URLSession
 
@@ -133,6 +134,25 @@ final class BaiduNetdiskClient: BaiduNetdiskListing {
         }
 
         return decoded.list
+    }
+
+    func downloadURL(forPath path: String, token: BaiduOAuthToken) throws -> URL {
+        guard !token.isExpired else {
+            throw NetdiskError.expiredToken
+        }
+
+        var components = URLComponents(url: downloadBaseURL, resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "method", value: "download"),
+            URLQueryItem(name: "access_token", value: token.accessToken),
+            URLQueryItem(name: "path", value: path)
+        ]
+
+        guard let url = components.url else {
+            throw NetdiskError.invalidRequest
+        }
+
+        return url
     }
 }
 

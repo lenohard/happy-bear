@@ -11,6 +11,36 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 
 ---
 
+## Development Scripts
+
+### App Icon Generation
+**Script**: `./scripts/generate-app-icons.sh`
+
+Generates all required iOS app icon sizes from a single source image.
+
+**Usage**:
+```bash
+./scripts/generate-app-icons.sh <source-image-path>
+```
+
+**Example**:
+```bash
+./scripts/generate-app-icons.sh ~/Downloads/new-logo.png
+```
+
+**What it does**:
+- Generates icons in sizes: 80, 120, 152, 167, 180, 1024 pixels
+- Outputs to `AudiobookPlayer/Assets.xcassets/AppIcon.appiconset/`
+- Uses macOS `sips` command for image resizing
+- Provides git workflow instructions after completion
+
+**After running**:
+1. Review icons in Xcode
+2. `git add AudiobookPlayer/Assets.xcassets/AppIcon.appiconset/*.png`
+3. `git commit -m "Update app icon"`
+
+---
+
 ## Architecture Suggestions
 
 ### Tech Stack (Proposed)

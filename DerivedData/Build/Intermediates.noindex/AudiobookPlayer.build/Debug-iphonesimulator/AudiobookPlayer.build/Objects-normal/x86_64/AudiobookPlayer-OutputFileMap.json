@@ -1,0 +1,189 @@
+{
+  "" : {
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayer-primary.dia",
+    "emit-module-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayer-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayer-primary-emit-module.dia",
+    "pch" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayer-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayer-primary.swiftdeps"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudioPlayerViewModel.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudioPlayerViewModel.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudioPlayerViewModel.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudioPlayerViewModel.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudioPlayerViewModel.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudioPlayerViewModel.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudioPlayerViewModel.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudioPlayerViewModel~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudiobookPlayerApp.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayerApp.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayerApp.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayerApp.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayerApp.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayerApp.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayerApp.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayerApp.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/AudiobookPlayerApp~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/BaiduAuthViewModel.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduAuthViewModel.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduAuthViewModel.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduAuthViewModel.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduAuthViewModel.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduAuthViewModel.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduAuthViewModel.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduAuthViewModel.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduAuthViewModel~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/BaiduNetdiskBrowserView.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserView.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserView.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserView.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserView.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserView.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserView.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserView.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserView~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/BaiduNetdiskBrowserViewModel.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserViewModel.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserViewModel.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserViewModel.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserViewModel.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserViewModel.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserViewModel.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserViewModel.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskBrowserViewModel~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/BaiduNetdiskClient.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskClient.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskClient.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskClient.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskClient.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskClient.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskClient.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskClient.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduNetdiskClient~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/BaiduOAuth.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduOAuth.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduOAuth.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduOAuth.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduOAuth.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduOAuth.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduOAuth.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduOAuth.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduOAuth~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/BaiduTokenStore.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduTokenStore.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduTokenStore.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduTokenStore.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduTokenStore.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduTokenStore.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduTokenStore.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduTokenStore.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/BaiduTokenStore~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/CloudKitLibrarySync.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CloudKitLibrarySync.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CloudKitLibrarySync.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CloudKitLibrarySync.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CloudKitLibrarySync.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CloudKitLibrarySync.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CloudKitLibrarySync.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CloudKitLibrarySync.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CloudKitLibrarySync~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionBuilderViewModel.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionBuilderViewModel.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionBuilderViewModel.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionBuilderViewModel.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionBuilderViewModel.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionBuilderViewModel.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionBuilderViewModel.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionBuilderViewModel.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionBuilderViewModel~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionDetailView.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionDetailView.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionDetailView.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionDetailView.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionDetailView.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionDetailView.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionDetailView.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CollectionDetailView~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/ContentView.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/ContentView.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/ContentView.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/ContentView~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateCollectionView.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CreateCollectionView.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CreateCollectionView.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CreateCollectionView.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CreateCollectionView.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CreateCollectionView.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CreateCollectionView.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CreateCollectionView.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/CreateCollectionView~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryModels.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryModels.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryModels.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryModels.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryModels.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryModels.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryModels.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryModels.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryModels~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryStore.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryStore.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryStore.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryStore.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryStore.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryStore.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryStore.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryStore.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryStore~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryView.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryView.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryView.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryView.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryView.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryView.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryView.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryView.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/LibraryView~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/AudiobookPlayer/SourcesView.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/SourcesView.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/SourcesView.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/SourcesView.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/SourcesView.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/SourcesView.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/SourcesView.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/SourcesView.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/SourcesView~partial.swiftmodule"
+  },
+  "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/senaca/projects/audiobook-player/DerivedData/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/x86_64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

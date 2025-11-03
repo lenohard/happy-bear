@@ -200,7 +200,7 @@ struct CreateCollectionView: View {
             ),
             tracks: draft.tracks,
             lastPlayedTrackId: nil,
-            lastPlaybackPosition: nil,
+            playbackStates: [:],
             tags: []
         )
 

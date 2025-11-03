@@ -10,6 +10,8 @@
 	<string>bd120615406://oauth-callback</string>
 	<key>BaiduScope</key>
 	<string>basic,netdisk</string>
+	<key>CloudKitSyncEnabled</key>
+	<false/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>

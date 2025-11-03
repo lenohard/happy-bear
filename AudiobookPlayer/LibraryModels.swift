@@ -1,5 +1,11 @@
 import Foundation
 
+struct TrackPlaybackState: Codable, Equatable {
+    var position: TimeInterval
+    var duration: TimeInterval?
+    var updatedAt: Date
+}
+
 struct AudiobookCollection: Identifiable, Codable, Equatable {
     enum Source: Codable, Equatable {
         case baiduNetdisk(folderPath: String, tokenScope: String)
@@ -66,8 +72,103 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
     var source: Source
     var tracks: [AudiobookTrack]
     var lastPlayedTrackId: UUID?
-    var lastPlaybackPosition: TimeInterval?
+    var playbackStates: [UUID: TrackPlaybackState]
     var tags: [String]
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case author
+        case description
+        case coverAsset
+        case createdAt
+        case updatedAt
+        case source
+        case tracks
+        case lastPlayedTrackId
+        case playbackStates
+        case legacyLastPlaybackPosition = "lastPlaybackPosition"
+        case tags
+    }
+
+    init(
+        id: UUID,
+        title: String,
+        author: String?,
+        description: String?,
+        coverAsset: CollectionCover,
+        createdAt: Date,
+        updatedAt: Date,
+        source: Source,
+        tracks: [AudiobookTrack],
+        lastPlayedTrackId: UUID?,
+        playbackStates: [UUID: TrackPlaybackState],
+        tags: [String]
+    ) {
+        self.id = id
+        self.title = title
+        self.author = author
+        self.description = description
+        self.coverAsset = coverAsset
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.source = source
+        self.tracks = tracks
+        self.lastPlayedTrackId = lastPlayedTrackId
+        self.playbackStates = playbackStates
+        self.tags = tags
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        author = try container.decodeIfPresent(String.self, forKey: .author)
+        description = try container.decodeIfPresent(String.self, forKey: .description)
+        coverAsset = try container.decode(CollectionCover.self, forKey: .coverAsset)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        source = try container.decode(Source.self, forKey: .source)
+        tracks = try container.decode([AudiobookTrack].self, forKey: .tracks)
+        lastPlayedTrackId = try container.decodeIfPresent(UUID.self, forKey: .lastPlayedTrackId)
+        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+
+        let decodedStates = try container.decodeIfPresent([UUID: TrackPlaybackState].self, forKey: .playbackStates) ?? [:]
+        if decodedStates.isEmpty,
+           let legacyPosition = try container.decodeIfPresent(TimeInterval.self, forKey: .legacyLastPlaybackPosition),
+           let lastId = lastPlayedTrackId {
+            playbackStates = [
+                lastId: TrackPlaybackState(
+                    position: legacyPosition,
+                    duration: nil,
+                    updatedAt: updatedAt
+                )
+            ]
+        } else {
+            playbackStates = decodedStates
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(title, forKey: .title)
+        try container.encodeIfPresent(author, forKey: .author)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(coverAsset, forKey: .coverAsset)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(source, forKey: .source)
+        try container.encode(tracks, forKey: .tracks)
+        try container.encodeIfPresent(lastPlayedTrackId, forKey: .lastPlayedTrackId)
+        try container.encode(playbackStates, forKey: .playbackStates)
+        try container.encode(tags, forKey: .tags)
+    }
+
+    func playbackState(for trackId: UUID) -> TrackPlaybackState? {
+        playbackStates[trackId]
+    }
 }
 
 struct AudiobookTrack: Identifiable, Codable, Equatable {
@@ -207,7 +308,7 @@ extension AudiobookCollection {
             source: source,
             tracks: [],
             lastPlayedTrackId: nil,
-            lastPlaybackPosition: nil,
+            playbackStates: [:],
             tags: []
         )
     }

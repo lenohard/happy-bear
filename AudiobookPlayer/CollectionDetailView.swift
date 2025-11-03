@@ -32,27 +32,7 @@ struct CollectionDetailView: View {
     }
 
     var body: some View {
-        Group {
-            if let collection {
-                listContent(collection)
-            } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.triangle")
-                        .font(.system(size: 48))
-                        .foregroundStyle(.secondary)
-
-                    Text("Collection Not Found")
-                        .font(.headline)
-
-                    Text("This audiobook collection could not be located in your library.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding()
-            }
-        }
+        content
         .navigationTitle(collection?.title ?? "Collection")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "Search tracks")
@@ -61,15 +41,9 @@ struct CollectionDetailView: View {
         } message: {
             Text("Sign in on the Sources tab before streaming from Baidu Netdisk.")
         }
-        .onAppear {
-            if let collection {
-                audioPlayer.prepareCollection(collection)
-            }
-        }
-        .onChange(of: collection?.tracks ?? []) { _ in
-            if let collection {
-                audioPlayer.prepareCollection(collection)
-            }
+        .task(id: collection?.updatedAt) {
+            guard let collection = collection else { return }
+            audioPlayer.prepareCollection(collection)
         }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             guard
@@ -78,11 +52,16 @@ struct CollectionDetailView: View {
                 let track = audioPlayer.currentTrack
             else { return }
 
-            var updated = collection
-            updated.lastPlayedTrackId = track.id
-            updated.lastPlaybackPosition = audioPlayer.currentTime
-            updated.updatedAt = Date()
-            library.save(updated)
+            recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
+        }
+        .onChange(of: audioPlayer.currentTime) { newValue in
+            guard
+                audioPlayer.activeCollection?.id == collectionID,
+                let collection,
+                let track = audioPlayer.currentTrack
+            else { return }
+
+            recordPlayback(for: collection, track: track, position: newValue)
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -95,6 +74,29 @@ struct CollectionDetailView: View {
                     .disabled(sortedTracks.isEmpty)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let collection {
+            listContent(collection)
+        } else {
+            VStack(spacing: 12) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: 48))
+                    .foregroundStyle(.secondary)
+
+                Text("Collection Not Found")
+                    .font(.headline)
+
+                Text("This audiobook collection could not be located in your library.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
         }
     }
 
@@ -208,12 +210,7 @@ struct CollectionDetailView: View {
         }
 
         audioPlayer.play(track: track, in: collection, token: token)
-
-        var updated = collection
-        updated.lastPlayedTrackId = track.id
-        updated.lastPlaybackPosition = 0
-        updated.updatedAt = Date()
-        library.save(updated)
+        recordPlayback(for: collection, track: track, position: 0)
     }
 
     private func isCurrentTrack(track: AudiobookTrack) -> Bool {
@@ -239,6 +236,15 @@ struct CollectionDetailView: View {
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
+    }
+
+    private func recordPlayback(for collection: AudiobookCollection, track: AudiobookTrack, position: Double) {
+        library.recordPlaybackProgress(
+            collectionID: collection.id,
+            trackID: track.id,
+            position: position,
+            duration: audioPlayer.duration
+        )
     }
 }
 
