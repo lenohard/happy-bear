@@ -230,37 +230,36 @@ struct PlayingView: View {
             }
             .buttonStyle(.plain)
 
+            if let collection = audioPlayer.activeCollection {
+                NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
+                    HStack {
+                        Image(systemName: "books.vertical")
+                        Text("Open Collection")
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+
             HStack(spacing: 24) {
                 Button {
                     audioPlayer.playPreviousTrack()
                 } label: {
-                    Label("Previous Track", systemImage: "backward.end.alt")
-                        .labelStyle(.iconOnly)
+                    Image(systemName: "backward.end.alt")
                         .font(.title3)
                 }
                 .disabled(!hasPreviousTrack)
 
-                if let collection = audioPlayer.activeCollection {
-                    NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
-                        Label("Open Collection", systemImage: "books.vertical")
-                    }
-                    .buttonStyle(.bordered)
-                } else {
-                    Label("Open Collection", systemImage: "books.vertical")
-                        .foregroundStyle(.secondary)
-                        .opacity(0.6)
-                }
-
                 Button {
                     audioPlayer.playNextTrack()
                 } label: {
-                    Label("Next Track", systemImage: "forward.end.alt")
-                        .labelStyle(.iconOnly)
+                    Image(systemName: "forward.end.alt")
                         .font(.title3)
                 }
                 .disabled(!hasNextTrack)
             }
             .buttonStyle(.bordered)
+            .frame(maxWidth: .infinity)
         }
     }
 
