@@ -39,21 +39,12 @@ struct SplashScreenView: View {
             Color(uiColor: .systemBackground)
                 .ignoresSafeArea()
 
-            VStack(spacing: 24) {
-                Image(systemName: "book.circle.fill")
-                    .font(.system(size: 80))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [.blue, .purple]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+            VStack {
+                Image("AppIcon-512")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 200, height: 200)
                     .scaleEffect(iconScale)
-                    .opacity(iconOpacity)
-
-                ProgressView()
-                    .progressViewStyle(.circular)
                     .opacity(iconOpacity)
             }
         }

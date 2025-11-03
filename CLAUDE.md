@@ -113,45 +113,30 @@ Generates all required iOS app icon sizes from a single source image.
 ---
 
 ## Key Clarifications Needed
-
 ### 1. **Authentication & Access**
-- [ ] Will you use Baidu's official OAuth2 flow, or do you have an existing Baidu account token?
-- [ ] Should the app support multiple Baidu accounts?
-- [ ] Do you need secure credential storage (Keychain)?
+- [x] Do you need secure credential storage (Keychain)?
+Yes
 
 ### 2. **Audio File Support**
-- [ ] What audio formats do you primarily use? (MP3, M4A, FLAC, OGG, etc.)
-- [ ] Are files single tracks or do you have folders/playlists on Baidu?
-- [ ] Max audio file size you expect to handle?
-
-### 3. **Playback Features Priority**
-- [ ] Must-have features (rank by importance):
-  - [ ] Play/pause/skip
-  - [ ] Bookmark/resume position
-  - [ ] Speed control
-  - [ ] Sleep timer
-  - [ ] Offline download
-  - [ ] Metadata display
+- [x] What audio formats do you primarily use? (MP3, M4A, FLAC, OGG, etc.) 
+MP3, M4A, FLAC
 
 ### 4. **Data Storage & Sync**
 - [ ] Should playback progress sync across iOS devices? (requires iCloud or server backend)
 - [ ] Do you want local caching of frequently played audiobooks?
+Yes
 - [ ] Preferred local storage approach: SwiftData vs Core Data?
+目前使用 JSON 后续需要更改
 
 ### 5. **UI/UX Preferences**
-- [ ] Preferred app design style/inspiration?
-- [ ] Dark mode support required?
-- [ ] Minimum iOS version? (iOS 15, 16, 17?)
-- [ ] Support iPad as well?
+- [x] Minimum iOS version? 
+IOS 16
+- [x] Support iPad as well?
+YES
 
 ### 6. **Performance & Streaming**
 - [ ] Should audio stream directly from Baidu, or require local download?
 - [ ] Expected offline usage percentage?
-- [ ] Cellular data restrictions needed?
-
-### 7. **Testing & Distribution**
-- [ ] Will you publish to App Store, TestFlight beta, or personal use only?
-- [ ] Do you have an Apple Developer account?
 
 ---
 
