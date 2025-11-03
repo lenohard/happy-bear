@@ -25,22 +25,30 @@ struct LibraryView: View {
                     List {
                         Section(NSLocalizedString("collections_section", comment: "Collections section title")) {
                             ForEach(library.collections) { collection in
-                                HStack(spacing: 12) {
+                                ZStack {
                                     NavigationLink {
                                         CollectionDetailView(collectionID: collection.id)
                                     } label: {
-                                        LibraryCollectionRow(collection: collection)
+                                        EmptyView()
                                     }
-                                    .buttonStyle(.plain)
+                                    .opacity(0)
 
-                                    Button {
-                                        resumeCollectionPlayback(collection)
-                                    } label: {
-                                        Image(systemName: "play.circle.fill")
-                                            .font(.title3)
+                                    HStack(spacing: 12) {
+                                        LibraryCollectionRow(collection: collection)
+                                            .contentShape(Rectangle())
+                                            .onTapGesture {
+                                                // Navigation handled by hidden NavigationLink above
+                                            }
+
+                                        Button {
+                                            resumeCollectionPlayback(collection)
+                                        } label: {
+                                            Image(systemName: "play.circle.fill")
+                                                .font(.title3)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .accessibilityLabel(String(format: NSLocalizedString("play_collection_accessibility", comment: "Play collection accessibility label"), collection.title))
                                     }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel(String(format: NSLocalizedString("play_collection_accessibility", comment: "Play collection accessibility label"), collection.title))
                                 }
                             }
                             .onDelete(perform: delete)
