@@ -35,13 +35,6 @@ struct BaiduNetdiskBrowserView: View {
             // Search options section (only shown during search)
             if isSearching && !searchTextTrimmed.isEmpty {
                 Section("Search Options") {
-                    Toggle("Recursive Search", isOn: $viewModel.useRecursiveSearch)
-                        .onChange(of: viewModel.useRecursiveSearch) { _ in
-                            if !searchTextTrimmed.isEmpty {
-                                viewModel.search(keyword: searchTextTrimmed)
-                            }
-                        }
-
                     Toggle("Audio Files Only", isOn: $viewModel.audioOnly)
                         .onChange(of: viewModel.audioOnly) { _ in
                             if !searchTextTrimmed.isEmpty {

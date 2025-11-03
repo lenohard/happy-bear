@@ -1,6 +1,55 @@
 # Bugs & Enhancements
 2025-11-04 星期二
 
+## ✅ Bug 6 – Recursive Search Toggle Not Working (FIXED)
+**Status:** ✅ Completed (pending commit)
+**Date:** 2025-11-04
+
+### Problem
+- The "Recursive Search" toggle in Baidu Netdisk search was not functioning correctly
+- Users reported the toggle didn't work as expected
+- This feature was causing confusion and poor user experience
+
+### Solution
+- **Removed the recursive search toggle entirely** from the UI to eliminate confusion
+- **Always use Baidu's recursive API** for comprehensive search across all subdirectories
+- This provides the most useful search behavior while simplifying the UI
+
+### Changes Made
+**Files Modified:**
+- `AudiobookPlayer/BaiduNetdiskBrowserView.swift` - Removed recursive search toggle UI
+- `AudiobookPlayer/BaiduNetdiskBrowserViewModel.swift` - Removed `useRecursiveSearch` property and hardcoded `recursive: true`
+
+**Technical Details:**
+```swift
+// REMOVED from BaiduNetdiskBrowserView.swift:
+Toggle("Recursive Search", isOn: $viewModel.useRecursiveSearch)
+    .onChange(of: viewModel.useRecursiveSearch) { _ in
+        if !searchTextTrimmed.isEmpty {
+            viewModel.search(keyword: searchTextTrimmed)
+        }
+    }
+
+// REMOVED from BaiduNetdiskBrowserViewModel.swift:
+@Published var useRecursiveSearch = false
+
+// UPDATED in BaiduNetdiskBrowserViewModel.swift:
+recursive: true,  // Always use recursive search for comprehensive results
+```
+
+### User Experience Impact
+- **Before**: Confusing toggle that didn't work properly, limited to current directory
+- **After**: Seamless recursive search that finds files in all subdirectories
+- **Benefit**: Users can find audio files anywhere in their Baidu Netdisk folder structure
+
+### Rationale
+- **Bug elimination**: Removes non-functional toggle that was causing user frustration
+- **Enhanced functionality**: Recursive search is more useful for finding scattered audio files
+- **Simplicity**: Clean UI with powerful default behavior
+- **Performance**: Baidu's server-side recursive search is optimized for this use case
+
+---
+
 ## ✅ Enhancement 4 – Improved Baidu Netdisk Search UX (COMPLETED)
 **Status:** ✅ Completed (pending commit)
 **Date:** 2025-11-04

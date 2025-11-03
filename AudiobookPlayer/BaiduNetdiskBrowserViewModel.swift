@@ -6,7 +6,6 @@ final class BaiduNetdiskBrowserViewModel: ObservableObject {
     @Published private(set) var currentPath: String
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
-    @Published var useRecursiveSearch = false
     @Published var audioOnly = false  // Default to all files
 
     private let tokenProvider: () -> BaiduOAuthToken?
@@ -78,7 +77,7 @@ final class BaiduNetdiskBrowserViewModel: ObservableObject {
                 let result = try await client.search(
                     keyword: keyword,
                     directory: currentPath,
-                    recursive: useRecursiveSearch,
+                    recursive: true,  // Always use recursive search
                     audioOnly: audioOnly,
                     token: token
                 )
