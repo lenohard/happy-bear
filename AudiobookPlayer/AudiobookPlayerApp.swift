@@ -64,9 +64,9 @@ struct SplashScreenView: View {
                 iconOpacity = 1.0
             }
 
-            // Dismiss after minimum 1 second
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                withAnimation(.easeOut(duration: 0.3)) {
+            // Dismiss after 2 seconds
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                withAnimation(.easeOut(duration: 0.6)) {
                     onDismiss()
                 }
             }
