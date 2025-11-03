@@ -30,7 +30,7 @@ struct AudiobookPlayerApp: App {
 
 struct SplashScreenView: View {
     @State private var iconScale: CGFloat = 0.8
-    @State private var iconOpacity: Double = 0
+    @State private var iconOpacity: Double = 1.0
 
     var onDismiss: () -> Void
 
@@ -57,12 +57,12 @@ struct SplashScreenView: View {
             // Fade in animation (0.4s)
             withAnimation(.easeIn(duration: 0.4)) {
                 iconScale = 1.0
-                iconOpacity = 1.0
             }
 
             // Dismiss after 2 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 withAnimation(.easeOut(duration: 0.6)) {
+                    iconOpacity = 0
                     onDismiss()
                 }
             }
