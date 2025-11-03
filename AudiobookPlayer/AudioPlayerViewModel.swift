@@ -1,5 +1,8 @@
 import AVFoundation
 import Foundation
+#if os(iOS)
+import MediaPlayer
+#endif
 
 @MainActor
 final class AudioPlayerViewModel: ObservableObject {
@@ -17,10 +20,17 @@ final class AudioPlayerViewModel: ObservableObject {
     private var currentToken: BaiduOAuthToken?
     private var pendingInitialSeek: Double?
     private let netdiskClient: BaiduNetdiskClient
+#if os(iOS)
+    private var remoteCommandTargets: [(MPRemoteCommand, Any)] = []
+    private var nowPlayingInfo: [String: Any] = [:]
+#endif
 
     init(netdiskClient: BaiduNetdiskClient = BaiduNetdiskClient()) {
         self.netdiskClient = netdiskClient
         configureAudioSession()
+#if os(iOS)
+        configureRemoteCommands()
+#endif
     }
 
     var hasActivePlayer: Bool {
@@ -32,6 +42,9 @@ final class AudioPlayerViewModel: ObservableObject {
         pendingInitialSeek = nil
         preparePlayer(with: url, autoPlay: false)
         statusMessage = nil
+#if os(iOS)
+        updateNowPlayingInfo()
+#endif
     }
 
     func prepareCollection(_ collection: AudiobookCollection) {
@@ -67,6 +80,9 @@ final class AudioPlayerViewModel: ObservableObject {
                 duration = 0
             }
         }
+#if os(iOS)
+        updateNowPlayingInfo()
+#endif
 
         if sortedTracks.isEmpty {
             statusMessage = "\"\(collection.title)\" has no audio tracks yet."
@@ -106,6 +122,9 @@ final class AudioPlayerViewModel: ObservableObject {
             preparePlayer(with: url, autoPlay: true)
             currentTrack = track
             statusMessage = "Playing \"\(track.displayName)\"."
+#if os(iOS)
+            updateNowPlayingInfo()
+#endif
         } catch {
             statusMessage = "Playback error: \(error.localizedDescription)"
         }
@@ -123,6 +142,9 @@ final class AudioPlayerViewModel: ObservableObject {
             statusMessage = "Reached the end of \"\(collection.title)\"."
             isPlaying = false
             self.currentTrack = nil
+#if os(iOS)
+            resetNowPlayingInfo()
+#endif
             return
         }
 
@@ -159,6 +181,9 @@ final class AudioPlayerViewModel: ObservableObject {
         }
 
         isPlaying.toggle()
+#if os(iOS)
+        updateNowPlayingPlaybackRate()
+#endif
     }
 
     func skipForward(by seconds: Double = 30) {
@@ -175,6 +200,9 @@ final class AudioPlayerViewModel: ObservableObject {
         player.seek(to: target) { [weak self] _ in
             guard let self else { return }
             self.currentTime = time
+#if os(iOS)
+            self.updateNowPlayingElapsedTime()
+#endif
         }
     }
 
@@ -187,6 +215,10 @@ final class AudioPlayerViewModel: ObservableObject {
 
     @MainActor deinit {
         removeObservers()
+#if os(iOS)
+        clearRemoteCommandTargets()
+        resetNowPlayingInfo()
+#endif
     }
 }
 
@@ -240,16 +272,28 @@ private extension AudioPlayerViewModel {
                 if autoPlay {
                     self.player?.play()
                     self.isPlaying = true
+#if os(iOS)
+                    self.updateNowPlayingPlaybackRate()
+#endif
                 }
             }
             if !autoPlay {
                 isPlaying = false
+#if os(iOS)
+                updateNowPlayingPlaybackRate()
+#endif
             }
         } else if autoPlay {
             player?.play()
             isPlaying = true
+#if os(iOS)
+            updateNowPlayingPlaybackRate()
+#endif
         } else {
             isPlaying = false
+#if os(iOS)
+            updateNowPlayingPlaybackRate()
+#endif
         }
 
         pendingInitialSeek = nil
@@ -282,6 +326,9 @@ private extension AudioPlayerViewModel {
         guard playlist.indices.contains(nextIndex) else {
             statusMessage = "Finished playing \"\(collection.title)\"."
             currentTrack = nil
+#if os(iOS)
+            resetNowPlayingInfo()
+#endif
             return
         }
 
@@ -301,6 +348,9 @@ private extension AudioPlayerViewModel {
             if let itemDuration = self.player?.currentItem?.duration.seconds, itemDuration.isFinite {
                 self.duration = max(self.duration, itemDuration)
             }
+#if os(iOS)
+            self.updateNowPlayingElapsedTime()
+#endif
         }
     }
 
@@ -335,6 +385,9 @@ private extension AudioPlayerViewModel {
         currentTime = 0
         duration = 0
         pendingInitialSeek = nil
+#if os(iOS)
+        resetNowPlayingInfo()
+#endif
 
         if clearQueue {
             currentTrack = nil
@@ -367,6 +420,146 @@ private extension AudioPlayerViewModel {
     }
 }
 
+#if os(iOS)
+private extension AudioPlayerViewModel {
+    func configureRemoteCommands() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.togglePlayPauseCommand.isEnabled = true
+        commandCenter.nextTrackCommand.isEnabled = true
+        commandCenter.previousTrackCommand.isEnabled = true
+
+        let playTarget = commandCenter.playCommand.addTarget { [weak self] _ in
+            self?.handleRemotePlayCommand() ?? .commandFailed
+        }
+        remoteCommandTargets.append((commandCenter.playCommand, playTarget))
+
+        let pauseTarget = commandCenter.pauseCommand.addTarget { [weak self] _ in
+            self?.handleRemotePauseCommand() ?? .commandFailed
+        }
+        remoteCommandTargets.append((commandCenter.pauseCommand, pauseTarget))
+
+        let toggleTarget = commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
+            self?.handleRemoteToggleCommand() ?? .commandFailed
+        }
+        remoteCommandTargets.append((commandCenter.togglePlayPauseCommand, toggleTarget))
+
+        let nextTarget = commandCenter.nextTrackCommand.addTarget { [weak self] _ in
+            self?.handleRemoteNextCommand() ?? .commandFailed
+        }
+        remoteCommandTargets.append((commandCenter.nextTrackCommand, nextTarget))
+
+        let previousTarget = commandCenter.previousTrackCommand.addTarget { [weak self] _ in
+            self?.handleRemotePreviousCommand() ?? .commandFailed
+        }
+        remoteCommandTargets.append((commandCenter.previousTrackCommand, previousTarget))
+    }
+
+    func clearRemoteCommandTargets() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+        remoteCommandTargets.forEach { command, target in
+            command.removeTarget(target)
+        }
+        remoteCommandTargets.removeAll()
+    }
+
+    func handleRemotePlayCommand() -> MPRemoteCommandHandlerStatus {
+        guard let player, !isPlaying else {
+            return isPlaying ? .success : .commandFailed
+        }
+        player.play()
+        isPlaying = true
+        updateNowPlayingPlaybackRate()
+        return .success
+    }
+
+    func handleRemotePauseCommand() -> MPRemoteCommandHandlerStatus {
+        guard let player, isPlaying else {
+            return !isPlaying ? .success : .commandFailed
+        }
+        player.pause()
+        isPlaying = false
+        updateNowPlayingPlaybackRate()
+        return .success
+    }
+
+    func handleRemoteToggleCommand() -> MPRemoteCommandHandlerStatus {
+        guard player != nil else { return .commandFailed }
+        togglePlayback()
+        return .success
+    }
+
+    func handleRemoteNextCommand() -> MPRemoteCommandHandlerStatus {
+        guard player != nil else { return .commandFailed }
+        let previousTrack = currentTrack
+        playNextTrack()
+        let didAdvance = previousTrack?.id != currentTrack?.id
+        return didAdvance ? .success : .noActionableNowPlayingItem
+    }
+
+    func handleRemotePreviousCommand() -> MPRemoteCommandHandlerStatus {
+        guard player != nil else { return .commandFailed }
+        let previousTrack = currentTrack
+        playPreviousTrack()
+        let didMove = previousTrack?.id != currentTrack?.id
+        return didMove ? .success : .noActionableNowPlayingItem
+    }
+
+    func updateNowPlayingInfo() {
+        guard let collection = activeCollection, let track = currentTrack else {
+            resetNowPlayingInfo()
+            return
+        }
+
+        var info: [String: Any] = [
+            MPMediaItemPropertyTitle: track.displayName,
+            MPMediaItemPropertyAlbumTitle: collection.title,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
+            MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0
+        ]
+
+        if let author = collection.author {
+            info[MPMediaItemPropertyArtist] = author
+        }
+
+        let durationValue: Double
+        if duration > 0 {
+            durationValue = duration
+        } else if let recorded = collection.playbackStates[track.id]?.duration {
+            durationValue = recorded
+        } else {
+            durationValue = 0
+        }
+
+        if durationValue > 0 {
+            info[MPMediaItemPropertyPlaybackDuration] = durationValue
+        }
+
+        nowPlayingInfo = info
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+
+    func updateNowPlayingElapsedTime() {
+        guard !nowPlayingInfo.isEmpty else { return }
+        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+
+    func updateNowPlayingPlaybackRate() {
+        guard !nowPlayingInfo.isEmpty else { return }
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+
+    func resetNowPlayingInfo() {
+        nowPlayingInfo.removeAll()
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+}
+#endif
 private extension CMTime {
     var isNumeric: Bool {
         flags.contains(.valid) && !flags.contains(.indefinite) && seconds.isFinite

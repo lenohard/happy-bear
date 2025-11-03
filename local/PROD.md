@@ -33,21 +33,24 @@
 
 ---
 
-## Bug 2 – Lock screen controls & Bluetooth headset actions
+## ✅ Bug 2 – Lock screen controls & Bluetooth headset actions (FIXED)
+**Status:** ✅ Completed (commit `e502ba5`)
 
 ### Problem
-- Lock screen never displayed the current track.
-- Headset play/pause/next buttons controlled a different app because we never registered remote commands.
-- Pausing from the headset usually resumed playback in another media app instead of Audiobook Player.
+- Lock screen never displayed the current track
+- Headset play/pause/next buttons controlled a different app because we never registered remote commands
+- Pausing from the headset usually resumed playback in another media app instead of Audiobook Player
 
-### Fix (2025-11-03)
-- Configure `MPRemoteCommandCenter` handlers for play/pause/toggle/next/previous in `AudioPlayerViewModel`.
-- Publish now playing metadata through `MPNowPlayingInfoCenter` (title, album, author, progress, playback rate).
-- Keep lock-screen state in sync on play/pause, seek, track changes, playlist completion, and stop/reset flows.
+### Solution
+- Added `MPRemoteCommandCenter` handlers for play/pause/toggle/next/previous in `AudioPlayerViewModel`
+- Implemented `MPNowPlayingInfoCenter` integration to display track metadata on lock screen (title, album, author, progress, playback rate)
+- Added remote command handlers that properly control app playback instead of other media apps
+- Updated playback state synchronization for lock screen display on play/pause, seek, track changes, playlist completion, and stop/reset flows
+- Added iOS-specific conditional compilation for MediaPlayer framework
 
 ### Follow-up / Testing
-- Need on-device run to verify headset controls and lock-screen UI (simulator does not expose these hardware integrations).
-- Double-check artwork update once collection covers become available.
+- Need on-device run to verify headset controls and lock-screen UI (simulator does not expose these hardware integrations)
+- Double-check artwork update once collection covers become available
 
 ### Files
 - `AudiobookPlayer/AudioPlayerViewModel.swift`
