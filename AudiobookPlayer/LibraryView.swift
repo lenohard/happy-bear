@@ -22,7 +22,7 @@ struct LibraryView: View {
                     EmptyLibraryView()
                 } else {
                     List {
-                        Section("Collections") {
+                        Section(NSLocalizedString("collections_section", comment: "Collections section title")) {
                             ForEach(library.collections) { collection in
                                 HStack(spacing: 12) {
                                     NavigationLink {
@@ -38,7 +38,7 @@ struct LibraryView: View {
                                             .font(.title3)
                                     }
                                     .buttonStyle(.plain)
-                                    .accessibilityLabel("Play \(collection.title)")
+                                    .accessibilityLabel(String(format: NSLocalizedString("play_collection_accessibility", comment: "Play collection accessibility label"), collection.title))
                                 }
                             }
                             .onDelete(perform: delete)
@@ -47,11 +47,11 @@ struct LibraryView: View {
                     .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle("Library")
+            .navigationTitle(NSLocalizedString("library_title", comment: "Library view title"))
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Menu {
-                        Button("Baidu Netdisk") {
+                        Button(NSLocalizedString("baidu_netdisk", comment: "Baidu netdisk source")) {
                             guard authViewModel.token != nil else {
                                 missingAuthAlert = true
                                 return
@@ -59,13 +59,13 @@ struct LibraryView: View {
                             activeSource = .baidu
                         }
                     } label: {
-                        Label("Import", systemImage: "tray.and.arrow.down")
+                        Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "tray.and.arrow.down")
                     }
 
                     Button {
                         Task { await library.load() }
                     } label: {
-                        Label("Reload", systemImage: "arrow.clockwise")
+                        Label(NSLocalizedString("reload_button", comment: "Reload button"), systemImage: "arrow.clockwise")
                     }
                 }
             }
@@ -81,20 +81,20 @@ struct LibraryView: View {
                 }
             }
         }
-        .alert("Connect Baidu First", isPresented: $missingAuthAlert) {
-            Button("OK", role: .cancel) { }
+        .alert(NSLocalizedString("connect_baidu_first", comment: "Connect Baidu First alert title"), isPresented: $missingAuthAlert) {
+            Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
         } message: {
-            Text("Open the Sources tab to sign in with your Baidu account before importing or streaming audio.")
+            Text(NSLocalizedString("connect_baidu_alert_message", comment: "Alert message to sign in before importing"))
         }
         .alert(item: $duplicateImport) { duplicate in
             Alert(
-                title: Text("Already Imported"),
-                message: Text("“\(duplicate.collection.title)” already uses this folder. What would you like to do?"),
-                primaryButton: .default(Text("View Collection")) {
+                title: Text(NSLocalizedString("duplicate_import_title", comment: "Duplicate import alert title")),
+                message: Text(String(format: NSLocalizedString("duplicate_import_message", comment: "Duplicate import message"), duplicate.collection.title)),
+                primaryButton: .default(Text(NSLocalizedString("view_collection_button", comment: "View collection button"))) {
                     duplicateImport = nil
                     audioPlayer.loadCollection(duplicate.collection)
                 },
-                secondaryButton: .default(Text("Import Again")) {
+                secondaryButton: .default(Text(NSLocalizedString("import_again_button", comment: "Import again button"))) {
                     duplicateImport = nil
                     pendingImport = PendingImport(path: duplicate.path)
                 }
@@ -165,11 +165,11 @@ private struct EmptyLibraryView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
 
-            Text("Your library is empty")
+            Text(NSLocalizedString("empty_library_message", comment: "Empty library message"))
                 .font(.title3)
                 .bold()
 
-            Text("Tap \"Import\" to choose a source and add your first audiobook collection.")
+            Text(NSLocalizedString("empty_library_hint", comment: "Empty library hint"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -186,7 +186,7 @@ private struct LoadingLibraryView: View {
             ProgressView()
                 .progressViewStyle(.circular)
 
-            Text("Loading your library...")
+            Text(NSLocalizedString("loading_library", comment: "Loading library message"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }

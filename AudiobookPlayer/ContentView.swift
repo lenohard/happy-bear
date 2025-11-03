@@ -5,17 +5,17 @@ struct ContentView: View {
         TabView {
             LibraryView()
                 .tabItem {
-                    Label("Library", systemImage: "books.vertical")
+                    Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
                 }
 
             PlayingView()
                 .tabItem {
-                    Label("Playing", systemImage: "play.circle")
+                    Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
                 }
 
             SourcesView()
                 .tabItem {
-                    Label("Sources", systemImage: "externaldrive.badge.icloud")
+                    Label(NSLocalizedString("sources_tab", comment: "Tab for sources"), systemImage: "externaldrive.badge.icloud")
                 }
         }
     }
@@ -74,12 +74,12 @@ struct PlayingView: View {
                     EmptyPlayingView()
                 }
             }
-            .navigationTitle("Playing")
+            .navigationTitle(NSLocalizedString("playing_title", comment: "Playing tab title"))
         }
-        .alert("Connect Baidu First", isPresented: $missingAuthAlert) {
-            Button("OK", role: .cancel) { }
+        .alert(NSLocalizedString("connect_baidu_first", comment: "Alert title"), isPresented: $missingAuthAlert) {
+            Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
         } message: {
-            Text("Open the Sources tab to sign in with your Baidu account before streaming audio.")
+            Text(NSLocalizedString("connect_baidu_before_stream", comment: "Alert message to sign in before streaming"))
         }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             syncPlaybackState()
@@ -129,7 +129,7 @@ struct PlayingView: View {
     private func resumeCard(snapshot: PlaybackSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Resume Listening")
+                Text(NSLocalizedString("resume_listening", comment: "Resume listening label"))
                     .font(.headline)
 
                 Text(snapshot.collection.title)
@@ -171,12 +171,12 @@ struct PlayingView: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
             } else {
-                Text("Last position: \(state.position.formattedTimestamp)")
+                Text(String(format: NSLocalizedString("last_position", comment: "Last position label"), state.position.formattedTimestamp))
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
         } else {
-            Text("No listening progress recorded yet.")
+            Text(NSLocalizedString("no_listening_progress", comment: "No listening progress message"))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
         }
@@ -234,7 +234,7 @@ struct PlayingView: View {
                 NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
                     HStack {
                         Image(systemName: "books.vertical")
-                        Text("Open Collection")
+                        Text(NSLocalizedString("open_collection", comment: "Open collection button"))
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -300,7 +300,7 @@ struct PlayingView: View {
         Button {
             resumePlayback(collection: collection, track: track)
         } label: {
-            Label("Play from Last Position", systemImage: "play.circle")
+            Label(NSLocalizedString("play_last_position", comment: "Play from last position button"), systemImage: "play.circle")
         }
         .buttonStyle(.borderedProminent)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -341,7 +341,7 @@ struct PlayingView: View {
 
     private func listeningHistorySection(entries: [ListeningHistoryEntry]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Listening History")
+            Text(NSLocalizedString("listening_history", comment: "Listening history section title"))
                 .font(.headline)
 
             VStack(spacing: 8) {
@@ -451,11 +451,11 @@ private struct EmptyPlayingView: View {
                 .font(.system(size: 48))
                 .foregroundStyle(.secondary)
 
-            Text("Nothing playing yet")
+            Text(NSLocalizedString("nothing_playing_yet", comment: "Empty playing view title"))
                 .font(.title3)
                 .bold()
 
-            Text("Select an audiobook from your library to start listening. Your most recent progress will appear here.")
+            Text(NSLocalizedString("nothing_playing_message", comment: "Empty playing view message"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

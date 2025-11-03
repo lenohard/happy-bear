@@ -21,7 +21,7 @@ struct SourcesView: View {
                 }
                 .padding()
             }
-            .navigationTitle("Sources")
+            .navigationTitle(NSLocalizedString("sources_title", comment: "Sources view title"))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
@@ -30,18 +30,18 @@ struct SourcesView: View {
                                 showingBaiduImport = true
                             }
                         } label: {
-                            Label("Baidu Netdisk", systemImage: "icloud.and.arrow.down")
+                            Label(NSLocalizedString("baidu_netdisk", comment: "Baidu netdisk"), systemImage: "icloud.and.arrow.down")
                         }
                         .disabled(authViewModel.token == nil)
 
                         Button {
                             // Placeholder for future import sources
                         } label: {
-                            Label("Local Files (Coming Soon)", systemImage: "folder")
+                            Label(NSLocalizedString("local_files_coming_soon", comment: "Local files coming soon"), systemImage: "folder")
                         }
                         .disabled(true)
                     } label: {
-                        Label("Import", systemImage: "plus.circle.fill")
+                        Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "plus.circle.fill")
                             .labelStyle(.titleAndIcon)
                     }
                     .menuStyle(.button)
@@ -51,7 +51,7 @@ struct SourcesView: View {
         .sheet(item: $selectedNetdiskEntry) { entry in
             NavigationStack {
                 VStack(alignment: .leading, spacing: 16) {
-                    Label("File Details", systemImage: "doc.text.magnifyingglass")
+                    Label(NSLocalizedString("file_details", comment: "File details"), systemImage: "doc.text.magnifyingglass")
                         .font(.headline)
 
                     VStack(alignment: .leading, spacing: 8) {
@@ -64,18 +64,18 @@ struct SourcesView: View {
                             .foregroundColor(.secondary)
                     }
 
-                    Text("Select \"Close\" and use the toolbar actions in the browser to download or stream once implemented.")
+                    Text(NSLocalizedString("file_details_hint", comment: "File details hint"))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
 
                     Spacer()
 
-                    Button("Close", role: .cancel) { selectedNetdiskEntry = nil }
+                    Button(NSLocalizedString("close_button", comment: "Close button"), role: .cancel) { selectedNetdiskEntry = nil }
                         .frame(maxWidth: .infinity)
                         .buttonStyle(.borderedProminent)
                 }
                 .padding()
-                .navigationTitle("Netdisk File")
+                .navigationTitle(NSLocalizedString("netdisk_file_title", comment: "Netdisk file sheet title"))
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Done") { selectedNetdiskEntry = nil }
@@ -116,26 +116,26 @@ private extension SourcesView {
     var baiduAuthSection: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 12) {
-                Label("Baidu Cloud Sign-In", systemImage: "icloud.and.arrow.down")
+                Label(NSLocalizedString("baidu_auth_section", comment: "Baidu auth section title"), systemImage: "icloud.and.arrow.down")
                     .font(.headline)
 
-                Text("Connect your Baidu Netdisk account to browse and download audiobooks.")
+                Text(NSLocalizedString("connect_baidu_message", comment: "Connect Baidu message"))
                     .font(.subheadline)
                     .foregroundColor(.secondary)
 
                 if let token = authViewModel.token {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Access token acquired.")
+                        Text(NSLocalizedString("access_token_acquired", comment: "Access token acquired"))
                             .font(.subheadline)
                             .bold()
 
                         if let scope = token.scope, !scope.isEmpty {
-                            Text("Scopes: \(scope)")
+                            Text(String(format: NSLocalizedString("scopes_label", comment: "Scopes label"), scope))
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
 
-                        Text("Expires \(token.formattedExpiry)")
+                        Text(String(format: NSLocalizedString("expires_label", comment: "Expires label"), token.formattedExpiry))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -148,7 +148,7 @@ private extension SourcesView {
                             }
                         )
                     } label: {
-                        Label("Browse Baidu Netdisk", systemImage: "folder.badge.gear")
+                        Label(NSLocalizedString("browse_baidu_netdisk", comment: "Browse Baidu netdisk"), systemImage: "folder.badge.gear")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
@@ -156,7 +156,7 @@ private extension SourcesView {
                     Button {
                         authViewModel.signOut()
                     } label: {
-                        Label("Sign Out", systemImage: "arrow.uturn.left")
+                        Label(NSLocalizedString("sign_out_button", comment: "Sign out button"), systemImage: "arrow.uturn.left")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.bordered)
@@ -164,7 +164,7 @@ private extension SourcesView {
                     Button {
                         authViewModel.signIn()
                     } label: {
-                        Label("Sign in with Baidu", systemImage: "person.crop.circle.badge.checkmark")
+                        Label(NSLocalizedString("sign_in_with_baidu", comment: "Sign in with Baidu"), systemImage: "person.crop.circle.badge.checkmark")
                             .frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)

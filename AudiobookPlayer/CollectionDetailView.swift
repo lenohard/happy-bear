@@ -36,10 +36,10 @@ struct CollectionDetailView: View {
         .navigationTitle(collection?.title ?? "Collection")
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $searchText, prompt: "Search tracks")
-        .alert("Connect Baidu First", isPresented: $missingAuthAlert) {
-            Button("OK", role: .cancel) { }
+        .alert(NSLocalizedString("connect_baidu_first", comment: "Connect Baidu First alert"), isPresented: $missingAuthAlert) {
+            Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
         } message: {
-            Text("Sign in on the Sources tab before streaming from Baidu Netdisk.")
+            Text(NSLocalizedString("sign_in_on_sources_tab", comment: "Sign in on sources tab message"))
         }
         .task(id: collection?.updatedAt) {
             guard let collection = collection else { return }
@@ -75,10 +75,10 @@ struct CollectionDetailView: View {
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
 
-                Text("Collection Not Found")
+                Text(NSLocalizedString("collection_not_found", comment: "Collection not found"))
                     .font(.headline)
 
-                Text("This audiobook collection could not be located in your library.")
+                Text(NSLocalizedString("collection_not_found_message", comment: "Collection not found message"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -112,7 +112,7 @@ struct CollectionDetailView: View {
                 }
 
                 let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
-                Text("\(collection.tracks.count) tracks • \(formatBytes(totalSize)) total")
+                Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.tracks.count, formatBytes(totalSize)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -164,9 +164,9 @@ struct CollectionDetailView: View {
 
     @ViewBuilder
     private func tracksSection(_ collection: AudiobookCollection) -> some View {
-        Section("Tracks") {
+        Section {
             if filteredTracks.isEmpty {
-                Text(searchText.isEmpty ? "No audio tracks found." : "No results for \"\(searchText)\".")
+                Text(searchText.isEmpty ? NSLocalizedString("no_audio_tracks", comment: "No audio tracks") : String(format: NSLocalizedString("no_search_results", comment: "No search results"), searchText))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .padding(.vertical, 4)
