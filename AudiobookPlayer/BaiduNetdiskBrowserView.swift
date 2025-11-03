@@ -1,8 +1,10 @@
 import SwiftUI
+import Combine
 
 struct BaiduNetdiskBrowserView: View {
     @StateObject private var viewModel: BaiduNetdiskBrowserViewModel
     @State private var searchText = ""
+    @State private var isSearching = false
 
     var onSelectFile: ((BaiduNetdiskEntry) -> Void)?
     var onSelectFolder: ((String) -> Void)?
@@ -28,6 +30,18 @@ struct BaiduNetdiskBrowserView: View {
                     Text(viewModel.currentPath)
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
+                }
+            }
+
+            // Search options section (only shown during search)
+            if isSearching && !searchTextTrimmed.isEmpty {
+                Section("Search Options") {
+                    Toggle("Recursive Search", isOn: $viewModel.useRecursiveSearch)
+                        .onReceive(Just(viewModel.useRecursiveSearch)) { _ in
+                            if !searchTextTrimmed.isEmpty {
+                                viewModel.search(keyword: searchTextTrimmed)
+                            }
+                        }
                 }
             }
 
@@ -79,8 +93,17 @@ struct BaiduNetdiskBrowserView: View {
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .always),
-            prompt: "Search in folder"
+            prompt: "Search audio files"
         )
+        .onReceive(Just(searchText)) { newValue in
+            if newValue.isEmpty {
+                isSearching = false
+                viewModel.refresh()
+            } else {
+                isSearching = true
+                viewModel.search(keyword: newValue)
+            }
+        }
         .onAppear {
             if viewModel.entries.isEmpty && !viewModel.isLoading {
                 viewModel.refresh()
@@ -150,13 +173,9 @@ struct BaiduNetdiskBrowserView: View {
     }
 
     private var filteredEntries: [BaiduNetdiskEntry] {
-        let query = searchTextTrimmed
-        guard !query.isEmpty else {
-            return viewModel.entries
-        }
-        return viewModel.entries.filter { entry in
-            entry.serverFilename.localizedCaseInsensitiveContains(query)
-        }
+        // During search, entries are already filtered by the API
+        // Otherwise, we're showing the directory contents
+        viewModel.entries
     }
 
     private var audioEntryCount: Int {

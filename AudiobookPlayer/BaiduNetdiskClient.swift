@@ -81,6 +81,7 @@ struct BaiduNetdiskListResponse: Decodable {
 
 protocol BaiduNetdiskListing {
     func listDirectory(path: String, token: BaiduOAuthToken) async throws -> [BaiduNetdiskEntry]
+    func search(keyword: String, directory: String, recursive: Bool, token: BaiduOAuthToken) async throws -> [BaiduNetdiskEntry]
 }
 
 final class BaiduNetdiskClient: BaiduNetdiskListing {
@@ -111,6 +112,50 @@ final class BaiduNetdiskClient: BaiduNetdiskListing {
             URLQueryItem(name: "dir", value: path),
             URLQueryItem(name: "access_token", value: token.accessToken)
         ]
+
+        guard let url = components.url else {
+            throw NetdiskError.invalidRequest
+        }
+
+        let (data, response) = try await urlSession.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetdiskError.unexpectedResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            throw NetdiskError.httpStatus(httpResponse.statusCode, body: body)
+        }
+
+        let decoded = try jsonDecoder.decode(BaiduNetdiskListResponse.self, from: data)
+
+        guard decoded.errno == 0 else {
+            throw NetdiskError.apiError(decoded.errno)
+        }
+
+        return decoded.list
+    }
+
+    func search(keyword: String, directory: String, recursive: Bool, token: BaiduOAuthToken) async throws -> [BaiduNetdiskEntry] {
+        guard !token.isExpired else {
+            throw NetdiskError.expiredToken
+        }
+
+        var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
+        var queryItems = [
+            URLQueryItem(name: "method", value: "search"),
+            URLQueryItem(name: "key", value: keyword),
+            URLQueryItem(name: "dir", value: directory),
+            URLQueryItem(name: "access_token", value: token.accessToken),
+            URLQueryItem(name: "category", value: "2")  // Category 2 = audio files
+        ]
+
+        if recursive {
+            queryItems.append(URLQueryItem(name: "recursion", value: "1"))
+        }
+
+        components.queryItems = queryItems
 
         guard let url = components.url else {
             throw NetdiskError.invalidRequest

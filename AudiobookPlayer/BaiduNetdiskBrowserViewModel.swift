@@ -6,6 +6,7 @@ final class BaiduNetdiskBrowserViewModel: ObservableObject {
     @Published private(set) var currentPath: String
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
+    @Published var useRecursiveSearch = false
 
     private let tokenProvider: () -> BaiduOAuthToken?
     private let client: BaiduNetdiskListing
@@ -35,6 +36,50 @@ final class BaiduNetdiskBrowserViewModel: ObservableObject {
         Task {
             do {
                 let result = try await client.listDirectory(path: currentPath, token: token)
+                let sorted = result.sorted { lhs, rhs in
+                    if lhs.isDir != rhs.isDir {
+                        return lhs.isDir && !rhs.isDir
+                    }
+                    return lhs.serverFilename.localizedCaseInsensitiveCompare(rhs.serverFilename) == .orderedAscending
+                }
+
+                await MainActor.run {
+                    self.entries = sorted
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.entries = []
+                    self.errorMessage = error.localizedDescription
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+
+    func search(keyword: String) {
+        guard !keyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            refresh()
+            return
+        }
+
+        guard let token = tokenProvider() else {
+            errorMessage = "Missing Baidu access token."
+            entries = []
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let result = try await client.search(
+                    keyword: keyword,
+                    directory: currentPath,
+                    recursive: useRecursiveSearch,
+                    token: token
+                )
                 let sorted = result.sorted { lhs, rhs in
                     if lhs.isDir != rhs.isDir {
                         return lhs.isDir && !rhs.isDir
