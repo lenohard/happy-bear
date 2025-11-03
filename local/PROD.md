@@ -25,7 +25,7 @@
 
 ---
 
-2. Currentlly,  I can't see the playing status in lock sreen and can't use earphone to stop/pauas/next track control to contronl. and when I pause the using earphone it start the audin another app and that app's audio cauase the stop of this app instead stop the audio in this app. 
+2. ✅ Currentlly,  I can't see the playing status in lock sreen and can't use earphone to stop/pauas/next track control to contronl. and when I pause the using earphone it start the audin another app and that app's audio cauase the stop of this app instead stop the audio in this app. 
 
 3. I want to invesgite the search function in baidu netdisk does it have the search in the current folder (rescurly) function.
 
@@ -49,8 +49,8 @@
 - Added iOS-specific conditional compilation for MediaPlayer framework
 
 ### Follow-up / Testing
-- Need on-device run to verify headset controls and lock-screen UI (simulator does not expose these hardware integrations)
-- Double-check artwork update once collection covers become available
+- ✅ On-device verification confirmed lock-screen metadata and earphone transport controls operate correctly
+- TODO: add cover artwork to `MPNowPlayingInfoCenter` entries once collection art is available in the app
 
 ### Files
 - `AudiobookPlayer/AudioPlayerViewModel.swift`
