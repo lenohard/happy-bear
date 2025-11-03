@@ -40,10 +40,15 @@ struct SplashScreenView: View {
                 .ignoresSafeArea()
 
             VStack {
-                Image("Logo")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 200, height: 200)
+                Image(systemName: "book.circle.fill")
+                    .font(.system(size: 120))
+                    .foregroundStyle(
+                        LinearGradient(
+                            gradient: Gradient(colors: [.blue, .purple]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .scaleEffect(iconScale)
                     .opacity(iconOpacity)
             }
