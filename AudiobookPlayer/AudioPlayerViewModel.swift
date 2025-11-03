@@ -176,11 +176,11 @@ final class AudioPlayerViewModel: ObservableObject {
 
         if isPlaying {
             player.pause()
+            isPlaying = false
         } else {
-            player.play()
+            startPlaybackImmediately()
+            isPlaying = true
         }
-
-        isPlaying.toggle()
 #if os(iOS)
         updateNowPlayingPlaybackRate()
 #endif
@@ -244,6 +244,7 @@ private extension AudioPlayerViewModel {
         let asset = AVURLAsset(url: url)
         let playerItem = AVPlayerItem(asset: asset)
         player = AVPlayer(playerItem: playerItem)
+        player?.automaticallyWaitsToMinimizeStalling = false
 
         addPeriodicTimeObserver()
         observeEnd(of: playerItem)
@@ -270,7 +271,7 @@ private extension AudioPlayerViewModel {
                 guard let self else { return }
                 self.currentTime = initialPosition
                 if autoPlay {
-                    self.player?.play()
+                    self.startPlaybackImmediately()
                     self.isPlaying = true
 #if os(iOS)
                     self.updateNowPlayingPlaybackRate()
@@ -284,7 +285,7 @@ private extension AudioPlayerViewModel {
 #endif
             }
         } else if autoPlay {
-            player?.play()
+            startPlaybackImmediately()
             isPlaying = true
 #if os(iOS)
             updateNowPlayingPlaybackRate()
@@ -377,6 +378,15 @@ private extension AudioPlayerViewModel {
         seek(to: clamped)
     }
 
+    func startPlaybackImmediately() {
+        guard let player else { return }
+        if player.currentItem != nil {
+            player.playImmediately(atRate: 1.0)
+        } else {
+            player.play()
+        }
+    }
+
     func stopPlayback(clearQueue: Bool) {
         player?.pause()
         removeObservers()
@@ -421,6 +431,39 @@ private extension AudioPlayerViewModel {
 }
 
 #if os(iOS)
+// MARK: - UIImage Extension for Lock Screen Artwork
+private extension UIImage {
+    static func from(color: UIColor, size: CGSize = CGSize(width: 512, height: 512)) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            color.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }
+    }
+}
+
+private extension UIColor {
+    convenience init?(hex: String) {
+        let sanitized = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int = UInt64()
+        guard Scanner(string: sanitized).scanHexInt64(&int) else { return nil }
+        let a, r, g, b: UInt64
+        
+        switch sanitized.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            return nil
+        }
+        
+        self.init(red: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: CGFloat(a) / 255)
+    }
+}
+
 private extension AudioPlayerViewModel {
     func configureRemoteCommands() {
         let commandCenter = MPRemoteCommandCenter.shared()
@@ -466,10 +509,10 @@ private extension AudioPlayerViewModel {
     }
 
     func handleRemotePlayCommand() -> MPRemoteCommandHandlerStatus {
-        guard let player, !isPlaying else {
+        guard player != nil, !isPlaying else {
             return isPlaying ? .success : .commandFailed
         }
-        player.play()
+        startPlaybackImmediately()
         isPlaying = true
         updateNowPlayingPlaybackRate()
         return .success
@@ -538,6 +581,33 @@ private extension AudioPlayerViewModel {
             info[MPMediaItemPropertyPlaybackDuration] = durationValue
         }
 
+        // Add artwork based on collection cover type
+        switch collection.coverAsset.kind {
+        case .solid(let colorHex):
+            // Create artwork from solid color
+            if let color = UIColor(hex: colorHex) {
+                let image = UIImage.from(color: color)
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                info[MPMediaItemPropertyArtwork] = artwork
+            }
+            
+        case .image(let relativePath):
+            // Load local image file
+            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+            let imageURL = documentsPath.appendingPathComponent(relativePath)
+            
+            if FileManager.default.fileExists(atPath: imageURL.path),
+               let imageData = try? Data(contentsOf: imageURL),
+               let image = UIImage(data: imageData) {
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                info[MPMediaItemPropertyArtwork] = artwork
+            }
+            
+        case .remote(let url):
+            // Handle remote images asynchronously
+            loadRemoteArtwork(url: url)
+        }
+
         nowPlayingInfo = info
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
@@ -546,6 +616,26 @@ private extension AudioPlayerViewModel {
         guard !nowPlayingInfo.isEmpty else { return }
         nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = currentTime
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+
+    func loadRemoteArtwork(url: URL) {
+        Task {
+            do {
+                let imageData = try await URLSession.shared.data(from: url).0
+                if let image = UIImage(data: imageData) {
+                    await MainActor.run {
+                        var updatedInfo = self.nowPlayingInfo
+                        let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                        updatedInfo[MPMediaItemPropertyArtwork] = artwork
+                        self.nowPlayingInfo = updatedInfo
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = updatedInfo
+                    }
+                }
+            } catch {
+                // Silently fail - artwork is optional
+                print("Failed to load remote artwork: \(error)")
+            }
+        }
     }
 
     func updateNowPlayingPlaybackRate() {
