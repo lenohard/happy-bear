@@ -206,13 +206,21 @@ struct PlayingView: View {
     @ViewBuilder
     private func controlButtons() -> some View {
         VStack(spacing: 16) {
-            HStack(spacing: 32) {
+            HStack(spacing: 24) {
                 Button {
                     audioPlayer.skipBackward(by: 15)
                 } label: {
                     Image(systemName: "gobackward.15")
-                        .font(.title2)
+                        .font(.title3)
                 }
+
+                Button {
+                    audioPlayer.playPreviousTrack()
+                } label: {
+                    Image(systemName: "backward.end.alt")
+                        .font(.title3)
+                }
+                .disabled(!hasPreviousTrack)
 
                 Button {
                     audioPlayer.togglePlayback()
@@ -222,10 +230,18 @@ struct PlayingView: View {
                 }
 
                 Button {
+                    audioPlayer.playNextTrack()
+                } label: {
+                    Image(systemName: "forward.end.alt")
+                        .font(.title3)
+                }
+                .disabled(!hasNextTrack)
+
+                Button {
                     audioPlayer.skipForward(by: 30)
                 } label: {
                     Image(systemName: "goforward.30")
-                        .font(.title2)
+                        .font(.title3)
                 }
             }
             .buttonStyle(.plain)
@@ -240,26 +256,6 @@ struct PlayingView: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
-
-            HStack(spacing: 24) {
-                Button {
-                    audioPlayer.playPreviousTrack()
-                } label: {
-                    Image(systemName: "backward.end.alt")
-                        .font(.title3)
-                }
-                .disabled(!hasPreviousTrack)
-
-                Button {
-                    audioPlayer.playNextTrack()
-                } label: {
-                    Image(systemName: "forward.end.alt")
-                        .font(.title3)
-                }
-                .disabled(!hasNextTrack)
-            }
-            .buttonStyle(.bordered)
-            .frame(maxWidth: .infinity)
         }
     }
 

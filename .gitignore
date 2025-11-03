@@ -1,2 +1,6 @@
 debug.log
 DerivedData/
+.DS_Store
+xcuserdata/
+*.xcuserstate
+*.pbxproj.bak

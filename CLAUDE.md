@@ -158,6 +158,12 @@ YES
 2. **Audio Streaming Reliability**: Handle network interruptions, buffering
 3. **OAuth Token Refresh**: Implement automatic token refresh before expiry
 4. **Battery & Data Usage**: Streaming can consume significant resources
+
+---
+
+## Xcode Project Tips
+
+- **Adding localized strings without Xcode UI**: update `project.pbxproj` by creating a `PBXVariantGroup` named `Localizable.strings`, add language `PBXFileReference` entries (for example `en.lproj/Localizable.strings`, `zh-Hans.lproj/Localizable.strings`), include the group under the main app group, add a `PBXBuildFile`, and list it in the target’s Resources build phase so Xcode picks up the localized bundles automatically.
 5. **Privacy**: Securely store Baidu credentials in Keychain
 6. **App Store Policy**: Verify app complies with Apple's guidelines for cloud storage integration
 
@@ -174,6 +180,24 @@ YES
 ---
 
 ## Progress Tracking
+
+### Session: 2025-11-03 (Continued - Multi-Language Phase 2)
+**Multi-Language Support Localization Setup** 📝
+- [x] Generated `.strings` files from `Localizable.xcstrings`:
+  - Created `AudiobookPlayer/en.lproj/Localizable.strings` with 62 English strings
+  - Created `AudiobookPlayer/zh-Hans.lproj/Localizable.strings` with 62 Chinese strings
+- [x] Verified all Chinese translations for accuracy and cultural appropriateness
+- [x] Built and verified app compiles without errors
+- ⚠️ **PENDING - Manual Xcode Setup Required**:
+  - Localization folders exist on filesystem but need to be added to Xcode project
+  - User must open project in Xcode and add `en.lproj` & `zh-Hans.lproj` to Build Phases > Copy Bundle Resources
+  - Once added: clean build, test in Chinese device language setting
+
+**Important Lesson - Xcode Project File Handling**:
+- ❌ DO NOT attempt to edit `project.pbxproj` via bash/Python scripts
+- ✅ Instead: Generate content files (`.strings`, assets, etc.) programmatically, then let user manually add to Xcode via UI
+- ✅ This approach is more reliable and avoids pbxproj corruption
+- For localization tasks: Generate `.lproj` directories + `.strings` files, then ask user to add via Xcode UI
 
 ### Session: 2025-11-03
 - [x] Enabled background audio playback via Info.plist `UIBackgroundModes=audio` and refined audio session configuration.
@@ -195,19 +219,11 @@ YES
 - [x] Added starter `AudioPlayerViewModel` and `ContentView` scaffolding
 - [x] Documented run instructions in README
 
-## Research & Documentation
-### Baidu OAuth2 & Baidu Pan Integration
-- **Location**: ./`local/docs/baidu-oauth2-research.md`
-- **Status**: Initial Research
-- **Purpose**: iOS app integration with Baidu Pan (cloud storage) for file access
-- **Key Finding**: OAuth2 allows user approval to grant app access to Baidu Pan files
-- **Token Endpoint**: `https://aip.baidubce.com/oauth/2.0/token`
-- **Next Steps**: Verify Baidu Pan API availability, find authorization endpoint, document scopes
-
-## Qwen Added Memories
-- 用户数据存储架构：
-1. 播放进度和图书馆数据 - 存储在本地JSON文件（~/Library/Application Support/AudiobookPlayer/library.json），使用LibraryStore和LibraryPersistence类管理
-2. 百度认证Token - 存储在iOS Keychain中，使用KeychainBaiduOAuthTokenStore类安全存储
-3. 数据同步 - 通过CloudKitLibrarySync支持多设备同步，基于时间戳的冲突解决
-4. 存储特点 - 离线优先、自动保存、版本控制（schemaVersion=2）
-5. 数据模型 - AudiobookCollection（有声书集合）、TrackPlaybackState（播放状态）、支持百度网盘/本地/外部链接三种来源
+# Notes
+1. Don't run to run the simulator, leave the test to me, but you should use cmd to build project to see the warnings and errors and try to fix them.
+2. **Xcode Project File Editing**: Never attempt to programmatically edit `project.pbxproj`. Instead:
+   - Generate required resource files (`.strings`, `.xcassets`, etc.) using scripts
+   - Create necessary directory structure (`*.lproj`, etc.)
+   - Ask user to manually add files/folders to Xcode project via UI (Build Phases > Copy Bundle Resources, etc.)
+   - User then builds and tests in Xcode
+   This prevents pbxproj corruption and ensures proper project configuration.

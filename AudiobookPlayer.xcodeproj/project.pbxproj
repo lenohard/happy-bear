@@ -27,6 +27,7 @@
 		6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */; };
 		6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */; };
 		E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */; };
+		6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6FC0200A2C5B0C0000AA00AA /* Localizable.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -166,7 +167,7 @@
 			};
 			buildConfigurationList = 6F6E7F832C4A9B0500AA00AA /* Build configuration list for PBXProject "AudiobookPlayer" */;
 			compatibilityVersion = "Xcode 15.0";
-			developmentRegion = en;
+			developmentRegion = "zh-Hans";
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
@@ -188,6 +189,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6F6E7F7A2C4A9B0500AA00AA /* Assets.xcassets in Resources */,
+				6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */,
 				6F6E7F7B2C4A9B0500AA00AA /* Preview Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
