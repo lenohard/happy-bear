@@ -28,6 +28,8 @@
 "listening_history" = "收听历史";
 "loading_library" = "正在加载您的图书馆...";
 "local_files_coming_soon" = "本地文件（即将推出）";
+"local_files_message" = "从设备的本地存储导入有声书。";
+"local_files_section" = "本地文件";
 "more_tracks_notice" = "...还有 %d 个音轨";
 "netdisk_file_title" = "网盘文件";
 "no_audio_tracks" = "找不到音频音轨。";

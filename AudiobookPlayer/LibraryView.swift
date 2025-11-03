@@ -60,8 +60,10 @@ struct LibraryView: View {
                             activeSource = .baidu
                         }
                     } label: {
-                        Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "tray.and.arrow.down")
+                        Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "plus.circle.fill")
+                            .labelStyle(.titleAndIcon)
                     }
+                    .menuStyle(.button)
 
                     Button {
                         Task { await library.load() }

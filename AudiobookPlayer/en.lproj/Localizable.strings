@@ -28,6 +28,8 @@
 "listening_history" = "Listening History";
 "loading_library" = "Loading your library...";
 "local_files_coming_soon" = "Local Files (Coming Soon)";
+"local_files_message" = "Import audiobooks from your device's local storage.";
+"local_files_section" = "Local Files";
 "more_tracks_notice" = "... and %d more tracks";
 "netdisk_file_title" = "Netdisk File";
 "no_audio_tracks" = "No audio tracks found.";

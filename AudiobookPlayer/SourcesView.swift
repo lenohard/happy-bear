@@ -18,35 +18,11 @@ struct SourcesView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     baiduAuthSection
+                    localFilesSection
                 }
                 .padding()
             }
             .navigationTitle(NSLocalizedString("sources_title", comment: "Sources view title"))
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Menu {
-                        Button {
-                            if authViewModel.token != nil {
-                                showingBaiduImport = true
-                            }
-                        } label: {
-                            Label(NSLocalizedString("baidu_netdisk", comment: "Baidu netdisk"), systemImage: "icloud.and.arrow.down")
-                        }
-                        .disabled(authViewModel.token == nil)
-
-                        Button {
-                            // Placeholder for future import sources
-                        } label: {
-                            Label(NSLocalizedString("local_files_coming_soon", comment: "Local files coming soon"), systemImage: "folder")
-                        }
-                        .disabled(true)
-                    } label: {
-                        Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "plus.circle.fill")
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .menuStyle(.button)
-                }
-            }
         }
         .sheet(item: $selectedNetdiskEntry) { entry in
             NavigationStack {
@@ -112,6 +88,30 @@ struct SourcesView: View {
 }
 
 private extension SourcesView {
+    @ViewBuilder
+    var localFilesSection: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 12) {
+                Label(NSLocalizedString("local_files_section", comment: "Local files section title"), systemImage: "folder")
+                    .font(.headline)
+
+                Text(NSLocalizedString("local_files_message", comment: "Local files message"))
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Button {
+                    // Placeholder for future local files implementation
+                } label: {
+                    Label(NSLocalizedString("local_files_coming_soon", comment: "Local files coming soon"), systemImage: "folder.badge.plus")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     @ViewBuilder
     var baiduAuthSection: some View {
         GroupBox {
