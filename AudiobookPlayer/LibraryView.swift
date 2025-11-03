@@ -22,10 +22,21 @@ struct LibraryView: View {
                     List {
                         Section("Collections") {
                             ForEach(library.collections) { collection in
-                                NavigationLink {
-                                    CollectionDetailView(collectionID: collection.id)
-                                } label: {
-                                    LibraryCollectionRow(collection: collection)
+                                HStack(spacing: 12) {
+                                    NavigationLink {
+                                        CollectionDetailView(collectionID: collection.id)
+                                    } label: {
+                                        LibraryCollectionRow(collection: collection)
+                                    }
+
+                                    Button {
+                                        resumeCollectionPlayback(collection)
+                                    } label: {
+                                        Image(systemName: "play.circle.fill")
+                                            .font(.title3)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("Play \(collection.title)")
                                 }
                             }
                             .onDelete(perform: delete)
@@ -71,7 +82,7 @@ struct LibraryView: View {
         .alert("Connect Baidu First", isPresented: $missingAuthAlert) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Open the Sources tab to sign in with your Baidu account before importing.")
+            Text("Open the Sources tab to sign in with your Baidu account before importing or streaming audio.")
         }
         .alert(item: $duplicateImport) { duplicate in
             Alert(
@@ -119,6 +130,21 @@ struct LibraryView: View {
     private var libraryErrorMessage: String? {
         guard let error = library.lastError else { return nil }
         return error.localizedDescription
+    }
+
+    private func resumeCollectionPlayback(_ collection: AudiobookCollection) {
+        guard !collection.tracks.isEmpty else { return }
+        guard let track = collection.resumeTrack() else { return }
+
+        if case .baiduNetdisk(_, _) = collection.source {
+            guard let token = authViewModel.token else {
+                missingAuthAlert = true
+                return
+            }
+            audioPlayer.play(track: track, in: collection, token: token)
+        } else {
+            audioPlayer.play(track: track, in: collection, token: nil)
+        }
     }
 
     private func delete(at offsets: IndexSet) {

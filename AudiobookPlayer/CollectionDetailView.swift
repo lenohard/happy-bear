@@ -63,18 +63,6 @@ struct CollectionDetailView: View {
 
             recordPlayback(for: collection, track: track, position: newValue)
         }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                if let collection {
-                    Button {
-                        playFirstTrack(in: collection)
-                    } label: {
-                        Label("Play All", systemImage: "play.fill")
-                    }
-                    .disabled(sortedTracks.isEmpty)
-                }
-            }
-        }
     }
 
     @ViewBuilder
@@ -147,21 +135,21 @@ struct CollectionDetailView: View {
 
                     HStack(spacing: 24) {
                         Button {
-                            audioPlayer.playPreviousTrack()
+                            handlePreviousButton(for: track, in: collection)
                         } label: {
                             Image(systemName: "backward.fill")
                         }
                         .disabled(!hasPreviousTrack(track))
 
                         Button {
-                            audioPlayer.togglePlayback()
+                            handlePlayPause(for: track, in: collection)
                         } label: {
                             Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                                 .font(.title2)
                         }
 
                         Button {
-                            audioPlayer.playNextTrack()
+                            handleNextButton(for: track, in: collection)
                         } label: {
                             Image(systemName: "forward.fill")
                         }
@@ -190,17 +178,13 @@ struct CollectionDetailView: View {
                         TrackRow(
                             index: index,
                             track: track,
-                            isActive: isCurrentTrack(track: track)
+                            isActive: isCurrentTrack(track: track),
+                            playbackState: collection.playbackState(for: track.id)
                         )
                     }
                 }
             }
         }
-    }
-
-    private func playFirstTrack(in collection: AudiobookCollection) {
-        guard let first = sortedTracks.first else { return }
-        startPlayback(first, in: collection)
     }
 
     private func startPlayback(_ track: AudiobookTrack, in collection: AudiobookCollection) {
@@ -210,7 +194,7 @@ struct CollectionDetailView: View {
         }
 
         audioPlayer.play(track: track, in: collection, token: token)
-        recordPlayback(for: collection, track: track, position: 0)
+        recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
     }
 
     private func isCurrentTrack(track: AudiobookTrack) -> Bool {
@@ -218,17 +202,11 @@ struct CollectionDetailView: View {
     }
 
     private func hasNextTrack(_ track: AudiobookTrack) -> Bool {
-        guard let index = sortedTracks.firstIndex(where: { $0.id == track.id }) else {
-            return false
-        }
-        return sortedTracks.index(after: index) < sortedTracks.endIndex
+        nextTrack(after: track) != nil
     }
 
     private func hasPreviousTrack(_ track: AudiobookTrack) -> Bool {
-        guard let index = sortedTracks.firstIndex(where: { $0.id == track.id }) else {
-            return false
-        }
-        return index > sortedTracks.startIndex
+        previousTrack(before: track) != nil
     }
 
     private func formatBytes(_ bytes: Int64) -> String {
@@ -246,12 +224,61 @@ struct CollectionDetailView: View {
             duration: audioPlayer.duration
         )
     }
+
+    private func handlePlayPause(for track: AudiobookTrack, in collection: AudiobookCollection) {
+        if audioPlayer.hasActivePlayer, audioPlayer.currentTrack?.id == track.id {
+            audioPlayer.togglePlayback()
+        } else {
+            startPlayback(track, in: collection)
+        }
+    }
+
+    private func handlePreviousButton(for track: AudiobookTrack, in collection: AudiobookCollection) {
+        guard let target = previousTrack(before: track) else { return }
+        if audioPlayer.hasActivePlayer, audioPlayer.currentTrack?.id == track.id {
+            audioPlayer.playPreviousTrack()
+        } else {
+            startPlayback(target, in: collection)
+        }
+    }
+
+    private func handleNextButton(for track: AudiobookTrack, in collection: AudiobookCollection) {
+        guard let target = nextTrack(after: track) else { return }
+        if audioPlayer.hasActivePlayer, audioPlayer.currentTrack?.id == track.id {
+            audioPlayer.playNextTrack()
+        } else {
+            startPlayback(target, in: collection)
+        }
+    }
+
+    private func previousTrack(before track: AudiobookTrack) -> AudiobookTrack? {
+        guard let index = sortedTracks.firstIndex(where: { $0.id == track.id }) else {
+            return nil
+        }
+        guard index > sortedTracks.startIndex else {
+            return nil
+        }
+        let previousIndex = sortedTracks.index(before: index)
+        return sortedTracks[previousIndex]
+    }
+
+    private func nextTrack(after track: AudiobookTrack) -> AudiobookTrack? {
+        guard let index = sortedTracks.firstIndex(where: { $0.id == track.id }) else {
+            return nil
+        }
+        let nextIndex = sortedTracks.index(after: index)
+        guard sortedTracks.indices.contains(nextIndex) else {
+            return nil
+        }
+        return sortedTracks[nextIndex]
+    }
 }
 
 private struct TrackRow: View {
     let index: Int
     let track: AudiobookTrack
     let isActive: Bool
+    let playbackState: TrackPlaybackState?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -260,13 +287,15 @@ private struct TrackRow: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 32, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(track.displayName)
                     .font(.body)
                     .lineLimit(2)
 
+                playbackSummary
+
                 Text(formatBytes(track.fileSize))
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
             }
 
@@ -281,6 +310,38 @@ private struct TrackRow: View {
             }
         }
         .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var playbackSummary: some View {
+        if let state = playbackState, state.position > 1 {
+            if let duration = state.duration, duration > 0 {
+                let clampedPosition = min(state.position, duration)
+                ProgressView(value: clampedPosition, total: duration)
+                    .progressViewStyle(.linear)
+
+                HStack {
+                    Text("\(clampedPosition.formattedTimestamp) / \(duration.formattedTimestamp)")
+                    Spacer()
+                    Text(percentString(position: clampedPosition, duration: duration))
+                }
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+            } else {
+                Text("Last position: \(state.position.formattedTimestamp)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+        } else {
+            EmptyView()
+        }
+    }
+
+    private func percentString(position: TimeInterval, duration: TimeInterval) -> String {
+        guard duration > 0 else { return "--" }
+        let clamped = max(0, min(position / duration, 1))
+        let percent = Int(round(clamped * 100))
+        return "\(percent)%"
     }
 
     private func formatBytes(_ bytes: Int64) -> String {
@@ -313,16 +374,5 @@ private struct PlaybackTimeline: View {
             .font(.caption.monospacedDigit())
             .foregroundStyle(.secondary)
         }
-    }
-}
-
-private extension Double {
-    var formattedTimestamp: String {
-        guard isFinite else { return "--:--" }
-
-        let totalSeconds = Int(self)
-        let minutes = totalSeconds / 60
-        let seconds = totalSeconds % 60
-        return String(format: "%02d:%02d", minutes, seconds)
     }
 }

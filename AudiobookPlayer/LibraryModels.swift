@@ -313,3 +313,33 @@ extension AudiobookCollection {
         )
     }
 }
+
+extension TimeInterval {
+    var formattedTimestamp: String {
+        guard isFinite else { return "--:--" }
+
+        let totalSeconds = Int(self)
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02d:%02d", minutes, seconds)
+    }
+}
+
+extension AudiobookCollection {
+    var tracksSortedByFilename: [AudiobookTrack] {
+        tracks.sorted {
+            $0.filename.localizedCaseInsensitiveCompare($1.filename) == .orderedAscending
+        }
+    }
+
+    func resumeTrack() -> AudiobookTrack? {
+        let sorted = tracksSortedByFilename
+
+        if let lastPlayedTrackId,
+           let match = sorted.first(where: { $0.id == lastPlayedTrackId }) {
+            return match
+        }
+
+        return sorted.first
+    }
+}

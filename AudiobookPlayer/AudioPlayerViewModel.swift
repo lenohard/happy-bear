@@ -23,6 +23,10 @@ final class AudioPlayerViewModel: ObservableObject {
         configureAudioSession()
     }
 
+    var hasActivePlayer: Bool {
+        player != nil
+    }
+
     func prepare(with url: URL) {
         stopPlayback(clearQueue: true)
         pendingInitialSeek = nil
@@ -80,7 +84,7 @@ final class AudioPlayerViewModel: ObservableObject {
         prepareCollection(collection)
     }
 
-    func play(track: AudiobookTrack, in collection: AudiobookCollection, token: BaiduOAuthToken) {
+    func play(track: AudiobookTrack, in collection: AudiobookCollection, token: BaiduOAuthToken?) {
         prepareCollection(collection)
         currentToken = token
 
@@ -111,7 +115,6 @@ final class AudioPlayerViewModel: ObservableObject {
         guard
             let collection = activeCollection,
             let currentTrack,
-            let token = currentToken,
             let index = playlist.firstIndex(where: { $0.id == currentTrack.id })
         else { return }
 
@@ -124,14 +127,13 @@ final class AudioPlayerViewModel: ObservableObject {
         }
 
         let nextTrack = playlist[nextIndex]
-        play(track: nextTrack, in: collection, token: token)
+        play(track: nextTrack, in: collection, token: currentToken)
     }
 
     func playPreviousTrack() {
         guard
             let collection = activeCollection,
             let currentTrack,
-            let token = currentToken,
             let index = playlist.firstIndex(where: { $0.id == currentTrack.id })
         else { return }
 
@@ -141,7 +143,7 @@ final class AudioPlayerViewModel: ObservableObject {
         guard playlist.indices.contains(previousIndex) else { return }
 
         let previousTrack = playlist[previousIndex]
-        play(track: previousTrack, in: collection, token: token)
+        play(track: previousTrack, in: collection, token: currentToken)
     }
 
     func togglePlayback() {
@@ -195,8 +197,9 @@ private extension AudioPlayerViewModel {
 #if os(iOS)
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.allowBluetooth])
-            try session.setActive(true)
+            let options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
+            try session.setCategory(.playback, mode: .spokenAudio, options: options)
+            try session.setActive(true, options: [])
         } catch {
             statusMessage = "Audio session error: \(error.localizedDescription)"
         }
@@ -268,7 +271,6 @@ private extension AudioPlayerViewModel {
         pendingInitialSeek = nil
 
         guard
-            let token = currentToken,
             let collection = activeCollection,
             let track = currentTrack,
             let index = playlist.firstIndex(where: { $0.id == track.id })
@@ -284,27 +286,7 @@ private extension AudioPlayerViewModel {
         }
 
         let nextTrack = playlist[nextIndex]
-        do {
-            let url = try streamURL(for: nextTrack, token: token)
-            let resumeState = collection.playbackStates[nextTrack.id]
-            if let resumePosition = resumeState?.position, resumePosition > 1 {
-                pendingInitialSeek = resumePosition
-                currentTime = resumePosition
-            } else {
-                pendingInitialSeek = nil
-                currentTime = 0
-            }
-
-            if let recordedDuration = resumeState?.duration {
-                duration = max(duration, recordedDuration)
-            }
-
-            preparePlayer(with: url, autoPlay: true)
-            currentTrack = nextTrack
-            statusMessage = "Playing \"\(nextTrack.displayName)\"."
-        } catch {
-            statusMessage = "Playback error: \(error.localizedDescription)"
-        }
+        play(track: nextTrack, in: collection, token: currentToken)
     }
 
     func addPeriodicTimeObserver() {
@@ -361,9 +343,12 @@ private extension AudioPlayerViewModel {
         }
     }
 
-    func streamURL(for track: AudiobookTrack, token: BaiduOAuthToken) throws -> URL {
+    func streamURL(for track: AudiobookTrack, token: BaiduOAuthToken?) throws -> URL {
         switch track.location {
         case let .baidu(_, path):
+            guard let token else {
+                throw NSError(domain: "AudiobookPlayer", code: 2, userInfo: [NSLocalizedDescriptionKey: "Missing Baidu token for streaming."])
+            }
             return try netdiskClient.downloadURL(forPath: path, token: token)
         case let .local(bookmark):
             var isStale = false

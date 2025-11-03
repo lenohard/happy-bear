@@ -4,14 +4,14 @@
 local/PROD.md:
 @local/PROD.md
 
+
+
 ## Project Overview
 An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云盘), with seamless integration for importing, managing, and playing audio files.
 
 **Project Root**: `~/projects/audiobook-player`
 
 ---
-
-## Development Scripts
 
 ### App Icon Generation
 **Script**: `./scripts/generate-app-icons.sh`
