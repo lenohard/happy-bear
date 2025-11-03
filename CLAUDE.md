@@ -77,22 +77,6 @@ Generates all required iOS app icon sizes from a single source image.
    - Settings & preferences
 
 ### Data Flow
-```
-Baidu Cloud API
-      ↓
-BaiduCloudModule (fetch files, stream URLs)
-      ↓
-AudioPlaybackModule (play audio)
-      ↓
-LibraryModule (store progress, metadata)
-      ↓
-UI (display & user interaction)
-```
-
----
-
-## Implementation Plan
-
 ### Phase 1: Foundation (MVP)
 - [x] Project setup with SwiftUI + AVFoundation
 - [x] Baidu OAuth2 authentication flow (authorization code + token exchange skeleton)
@@ -103,7 +87,8 @@ UI (display & user interaction)
 
 ### Phase 2: Core Features
 - [x] Bookmarking/resuming playback position
-- [ ] Local library management
+- []  Bookmarking for Netdisk path
+- [x] Local library management
 - [ ] Metadata display (title, artist, duration)
 - [ ] Playlist/collection organization
 - [ ] Speed control (0.75x, 1x, 1.25x, 1.5x, etc.)
@@ -215,7 +200,6 @@ UI (display & user interaction)
 ### Session: 2025-11-02
 - [x] Project directory created
 - [x] PROD.md initialized with architecture & planning
-- [ ] Awaiting user clarification on above questions
 - [x] Integrated Baidu OAuth sign-in UI backed by `ASWebAuthenticationSession` and token exchange service
 - [x] Added Info.plist placeholders for Baidu credentials and custom URL scheme registration
 - [x] Verified simulator build locally via `xcodebuild -project AudiobookPlayer.xcodeproj -scheme AudiobookPlayer -destination 'generic/platform=iOS Simulator' build`
@@ -225,14 +209,6 @@ UI (display & user interaction)
 - [x] Initialized `AudiobookPlayer.xcodeproj` with SwiftUI target and AVFoundation dependency
 - [x] Added starter `AudioPlayerViewModel` and `ContentView` scaffolding
 - [x] Documented run instructions in README
-
-### Commits Log
-*(To be updated as development progresses)*
-
-### Notes
-- Will use this PROD.md as central documentation for decisions and progress
-- Commit history will be logged here for future reference
-- Questions and blockers will be tracked in this file
 
 ## Research & Documentation
 ### Baidu OAuth2 & Baidu Pan Integration
