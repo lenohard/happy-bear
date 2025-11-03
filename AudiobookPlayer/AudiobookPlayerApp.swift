@@ -40,7 +40,7 @@ struct SplashScreenView: View {
                 .ignoresSafeArea()
 
             VStack {
-                Image("AppIcon-512")
+                Image("Logo")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 200, height: 200)
