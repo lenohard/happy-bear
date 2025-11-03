@@ -1,2 +1,0 @@
-Target dependency graph (1 target)
-Target 'AudiobookPlayer' in project 'AudiobookPlayer' (no dependencies)
