@@ -30,6 +30,7 @@ struct LibraryView: View {
                                     } label: {
                                         LibraryCollectionRow(collection: collection)
                                     }
+                                    .buttonStyle(.plain)
 
                                     Button {
                                         resumeCollectionPlayback(collection)

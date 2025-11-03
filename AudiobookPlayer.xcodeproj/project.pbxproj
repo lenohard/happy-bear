@@ -7,11 +7,15 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5699532872F14F318BCED8CE /* CollectionBuilderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */; };
 		6F6E7F6F2C4A9B0500AA00AA /* AudiobookPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F6E2C4A9B0500AA00AA /* AudiobookPlayerApp.swift */; };
 		6F6E7F6F2C4A9B0500AA00AB /* BaiduOAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F6E2C4A9B0500AA00AB /* BaiduOAuth.swift */; };
 		6F6E7F712C4A9B0500AA00AA /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F702C4A9B0500AA00AA /* ContentView.swift */; };
 		6F6E7F712C4A9B0500AA00AB /* BaiduAuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F702C4A9B0500AA00AB /* BaiduAuthViewModel.swift */; };
 		6F6E7F732C4A9B0500AA00AA /* AudioPlayerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F722C4A9B0500AA00AA /* AudioPlayerViewModel.swift */; };
+		6F6E7F792C4A9B0500AA00AA /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6E7F782C4A9B0500AA00AA /* AVFoundation.framework */; };
+		6F6E7F7A2C4A9B0500AA00AA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F6E7F742C4A9B0500AA00AA /* Assets.xcassets */; };
+		6F6E7F7B2C4A9B0500AA00AA /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F6E7F762C4A9B0500AA00AA /* Preview Assets.xcassets */; };
 		6F99A0012C4C200000AA00AA /* BaiduTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F99A0002C4C200000AA00AA /* BaiduTokenStore.swift */; };
 		6F99A0032C4C200000AA00AA /* BaiduNetdiskClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F99A0022C4C200000AA00AA /* BaiduNetdiskClient.swift */; };
 		6F99A0052C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F99A0042C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift */; };
@@ -19,39 +23,37 @@
 		6FC010012C5B0C0000AA00AA /* LibraryModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010002C5B0C0000AA00AA /* LibraryModels.swift */; };
 		6FC010032C5B0C0000AA00AA /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010022C5B0C0000AA00AA /* LibraryStore.swift */; };
 		6FC010052C5B0C0000AA00AA /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010042C5B0C0000AA00AA /* LibraryView.swift */; };
-		6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */; };
-		6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */; };
 		6FC010072C5B0C0000AA00AA /* SourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010062C5B0C0000AA00AA /* SourcesView.swift */; };
-		6F6E7F792C4A9B0500AA00AA /* AVFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F6E7F782C4A9B0500AA00AA /* AVFoundation.framework */; };
-		6F6E7F7A2C4A9B0500AA00AA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F6E7F742C4A9B0500AA00AA /* Assets.xcassets */; };
-		6F6E7F7B2C4A9B0500AA00AA /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6F6E7F762C4A9B0500AA00AA /* Preview Assets.xcassets */; };
-		5699532872F14F318BCED8CE /* CollectionBuilderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */; };
+		6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */; };
+		6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */; };
 		E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateCollectionView.swift; sourceTree = "<group>"; };
 		6F6E7F6E2C4A9B0500AA00AA /* AudiobookPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayerApp.swift; sourceTree = "<group>"; };
 		6F6E7F6E2C4A9B0500AA00AB /* BaiduOAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduOAuth.swift; sourceTree = "<group>"; };
 		6F6E7F702C4A9B0500AA00AA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		6F6E7F702C4A9B0500AA00AB /* BaiduAuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduAuthViewModel.swift; sourceTree = "<group>"; };
 		6F6E7F722C4A9B0500AA00AA /* AudioPlayerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioPlayerViewModel.swift; sourceTree = "<group>"; };
-		6F99A0002C4C200000AA00AA /* BaiduTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduTokenStore.swift; sourceTree = "<group>"; };
-		6F99A0022C4C200000AA00AA /* BaiduNetdiskClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduNetdiskClient.swift; sourceTree = "<group>"; };
-		6F99A0042C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduNetdiskBrowserViewModel.swift; sourceTree = "<group>"; };
-		6F99A0062C4C200000AA00AA /* BaiduNetdiskBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduNetdiskBrowserView.swift; sourceTree = "<group>"; };
 		6F6E7F742C4A9B0500AA00AA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6F6E7F762C4A9B0500AA00AA /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		6F6E7F772C4A9B0500AA00AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6F6E7F782C4A9B0500AA00AA /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		6F6E7F802C4A9B0500AA00AA /* AudiobookPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AudiobookPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6F99A0002C4C200000AA00AA /* BaiduTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduTokenStore.swift; sourceTree = "<group>"; };
+		6F99A0022C4C200000AA00AA /* BaiduNetdiskClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduNetdiskClient.swift; sourceTree = "<group>"; };
+		6F99A0042C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduNetdiskBrowserViewModel.swift; sourceTree = "<group>"; };
+		6F99A0062C4C200000AA00AA /* BaiduNetdiskBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduNetdiskBrowserView.swift; sourceTree = "<group>"; };
 		6FC010002C5B0C0000AA00AA /* LibraryModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryModels.swift; sourceTree = "<group>"; };
 		6FC010022C5B0C0000AA00AA /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
 		6FC010042C5B0C0000AA00AA /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
-		6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitLibrarySync.swift; sourceTree = "<group>"; };
-		6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionDetailView.swift; sourceTree = "<group>"; };
 		6FC010062C5B0C0000AA00AA /* SourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcesView.swift; sourceTree = "<group>"; };
+		6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionDetailView.swift; sourceTree = "<group>"; };
+		6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitLibrarySync.swift; sourceTree = "<group>"; };
+		6FC0200B2C5B0C0000AA00AA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		6FC0200C2C5B0C0000AA00AA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionBuilderViewModel.swift; sourceTree = "<group>"; };
-		2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateCollectionView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,6 +97,7 @@
 				F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */,
 				6FC010062C5B0C0000AA00AA /* SourcesView.swift */,
 				6F99A0002C4C200000AA00AA /* BaiduTokenStore.swift */,
+				6FC0200A2C5B0C0000AA00AA /* Localizable.strings */,
 				6F6E7F742C4A9B0500AA00AA /* Assets.xcassets */,
 				6F6E7F752C4A9B0500AA00AA /* Preview Content */,
 				6F6E7F772C4A9B0500AA00AA /* Info.plist */,
@@ -167,7 +170,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
-				Base,
+				"zh-Hans",
 			);
 			mainGroup = 6F6E7F662C4A9B0500AA00AA;
 			productRefGroup = 6F6E7F7C2C4A9B0500AA00AA /* Products */;
@@ -217,6 +220,18 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		6FC0200A2C5B0C0000AA00AA /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				6FC0200B2C5B0C0000AA00AA /* en */,
+				6FC0200C2C5B0C0000AA00AA /* zh-Hans */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		6F6E7F852C4A9B0500AA00AA /* Debug */ = {
