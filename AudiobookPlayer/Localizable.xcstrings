@@ -993,18 +993,66 @@
         }
       }
     },
-    "local_files_message": {
+    "fully_cached": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Import audiobooks from your device's local storage."
+            "value": "Fully Cached"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "从设备的本地存储导入有声书。"
+            "value": "完全缓存"
+          }
+        }
+      }
+    },
+    "partially_cached": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Partially Cached"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分缓存"
+          }
+        }
+      }
+    },
+    "not_cached": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not Cached"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未缓存"
+          }
+        }
+      }
+    },
+    "local_file": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Local File"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地文件"
           }
         }
       }

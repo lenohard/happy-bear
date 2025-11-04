@@ -83,6 +83,15 @@ STRINGS = {
     "no_audio_tracks": ("No audio tracks found.", "找不到音频音轨。"),
     "no_search_results": ('No results for "%@".', '找不到"%@"的结果。'),
     "sign_in_on_sources_tab": ("Sign in on the Sources tab before streaming from Baidu Netdisk.", '在"来源"标签中登录，然后从百度网盘流式传输。'),
+
+    # Cache Status
+    "fully_cached": ("Fully Cached", "完全缓存"),
+    "partially_cached": ("Partially Cached", "部分缓存"),
+    "not_cached": ("Not Cached", "未缓存"),
+    "local_file": ("Local File", "本地文件"),
+
+    # Local Files Section
+    "local_files_section": ("Local Files", "本地文件"),
 }
 
 def generate_xcstrings():

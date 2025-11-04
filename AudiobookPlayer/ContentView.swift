@@ -71,6 +71,7 @@ struct PlayingView: View {
 
     @State private var missingAuthAlert = false
     @State private var showingCacheManagement = false
+    @State private var showCacheTools = false
 
     private var currentPlayback: PlaybackSnapshot? {
         guard
@@ -223,50 +224,57 @@ struct PlayingView: View {
             let status = audioPlayer.cacheStatus(for: track)
 
             GroupBox {
-                VStack(alignment: .leading, spacing: 10) {
+                DisclosureGroup(isExpanded: $showCacheTools) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        if let status {
+                            ProgressView(value: status.percentage, total: 1.0)
+                                .progressViewStyle(.linear)
+
+                            HStack {
+                                Text(cacheAmountText(for: status))
+                                Spacer()
+                                Text(percentageString(status.percentage))
+                            }
+                            .font(.caption.monospacedDigit())
+                            .foregroundStyle(.secondary)
+
+                            if status.state == .partiallyCached {
+                                Text(NSLocalizedString("cache_tools_status_warning", comment: "Warning when partially cached"))
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text(String(
+                                format: NSLocalizedString("cache_tools_retention", comment: "Cache retention description"),
+                                status.retentionDays,
+                                status.retentionDays == 1 ? NSLocalizedString("cache_tools_day", comment: "Singular day") : NSLocalizedString("cache_tools_days", comment: "Plural days")
+                            ))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text(NSLocalizedString("cache_tools_status_streaming", comment: "Streaming fallback message"))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Button {
+                            showingCacheManagement = true
+                        } label: {
+                            Label(NSLocalizedString("cache_tools_manage_button", comment: "Manage cache button"), systemImage: "slider.horizontal.3")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .padding(.top, 6)
+                } label: {
                     HStack {
-                        Label("Cache Status", systemImage: "internaldrive")
+                        Label(NSLocalizedString("cache_tools_label", comment: "Cache tools section"), systemImage: "internaldrive")
                             .font(.headline)
                         Spacer()
                         Text(statusTitle(for: status))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
-
-                    if let status {
-                        ProgressView(value: status.percentage, total: 1.0)
-                            .progressViewStyle(.linear)
-
-                        HStack {
-                            Text(cacheAmountText(for: status))
-                            Spacer()
-                            Text(percentageString(status.percentage))
-                        }
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.secondary)
-
-                        if status.state == .partiallyCached {
-                            Text("Seeking outside the cached range will resume streaming.")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Text("Retention: \(status.retentionDays) \(status.retentionDays == 1 ? "day" : "days")")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("Streaming directly from Baidu Netdisk.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Button {
-                        showingCacheManagement = true
-                    } label: {
-                        Label("Manage Cache", systemImage: "slider.horizontal.3")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
                 }
             }
         }
@@ -444,13 +452,13 @@ struct PlayingView: View {
 
         switch status.state {
         case .fullyCached:
-            return "Fully Cached"
+            return NSLocalizedString("fully_cached", comment: "Cache status when fully cached")
         case .partiallyCached:
-            return "Partially Cached"
+            return NSLocalizedString("partially_cached", comment: "Cache status when partially cached")
         case .notCached:
-            return "Not Cached"
+            return NSLocalizedString("not_cached", comment: "Cache status when not cached")
         case .local:
-            return "Local File"
+            return NSLocalizedString("local_file", comment: "Cache status for local file")
         }
     }
 
@@ -758,13 +766,13 @@ private struct CacheManagementView: View {
     private func statusTitle(for status: AudioPlayerViewModel.CacheStatusSnapshot) -> String {
         switch status.state {
         case .fullyCached:
-            return "Fully Cached"
+            return NSLocalizedString("fully_cached", comment: "Cache status when fully cached")
         case .partiallyCached:
-            return "Partially Cached"
+            return NSLocalizedString("partially_cached", comment: "Cache status when partially cached")
         case .notCached:
-            return "Not Cached"
+            return NSLocalizedString("not_cached", comment: "Cache status when not cached")
         case .local:
-            return "Local File"
+            return NSLocalizedString("local_file", comment: "Cache status for local file")
         }
     }
 
