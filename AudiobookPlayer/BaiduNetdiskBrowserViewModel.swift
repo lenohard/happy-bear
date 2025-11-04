@@ -6,7 +6,7 @@ final class BaiduNetdiskBrowserViewModel: ObservableObject {
     @Published private(set) var currentPath: String
     @Published private(set) var isLoading = false
     @Published var errorMessage: String?
-    @Published var audioOnly = true  // Default to audio files only for audiobook imports
+    @Published var audioOnly = false  // Default to all files, users can enable audio-only when needed
 
     private let tokenProvider: () -> BaiduOAuthToken?
     private let client: BaiduNetdiskListing
