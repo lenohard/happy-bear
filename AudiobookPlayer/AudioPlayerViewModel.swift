@@ -279,7 +279,7 @@ final class AudioPlayerViewModel: ObservableObject {
 
     func removeCache(for track: AudiobookTrack) {
         guard case let .baidu(fsId, _) = track.location else { return }
-        cacheManager.removeCacheFile(trackId: track.id.uuidString, baiduFileId: String(fsId))
+        cacheManager.removeCacheFile(trackId: track.id.uuidString, baiduFileId: String(fsId), filename: track.filename)
         progressTracker.clearProgress(for: track.id.uuidString)
         progressTracker.stopTracking(for: track.id.uuidString)
         refreshActiveCacheStatus()
@@ -618,24 +618,27 @@ private extension AudioPlayerViewModel {
         }
     }
 
+    private enum CacheResolutionError: Error {
+        case missingStreamingURL
+    }
+
     func streamURL(for track: AudiobookTrack, token: BaiduOAuthToken?) throws -> URL {
         switch track.location {
         case let .baidu(fsId, path):
-            guard let token else {
-                throw NSError(domain: "AudiobookPlayer", code: 2, userInfo: [NSLocalizedDescriptionKey: "Missing Baidu token for streaming."])
-            }
-
             let baiduFileId = String(fsId)
-            if let cachedURL = cacheManager.getCachedAssetURL(for: track.id.uuidString, baiduFileId: baiduFileId) {
+
+            if let cachedURL = cacheManager.getCachedAssetURL(for: track.id.uuidString, baiduFileId: baiduFileId, filename: track.filename) {
                 progressTracker.markAsComplete(for: track.id.uuidString, fileSizeBytes: Int(clamping: track.fileSize))
                 refreshActiveCacheStatus()
                 return cachedURL
             }
 
-            // Get streaming URL from Baidu
+            guard let token else {
+                throw NSError(domain: "AudiobookPlayer", code: 2, userInfo: [NSLocalizedDescriptionKey: "Missing Baidu token for streaming."])
+            }
+
             let streamingURL = try netdiskClient.downloadURL(forPath: path, token: token)
 
-            // Start background caching in a Task (non-blocking)
             Task {
                 await self.startBackgroundCaching(track: track, baiduFileId: baiduFileId, fileSize: track.fileSize)
             }
@@ -672,6 +675,7 @@ private extension AudioPlayerViewModel {
         _ = cacheManager.createCacheFile(
             trackId: trackId,
             baiduFileId: baiduFileId,
+            filename: track.filename,
             durationMs: track.duration.map { Int($0 * 1000) },
             fileSizeBytes: Int(fileSize)
         )
@@ -689,6 +693,7 @@ private extension AudioPlayerViewModel {
             await downloadManager.startCaching(
                 trackId: trackId,
                 baiduFileId: baiduFileId,
+                filename: track.filename,
                 streamingURL: streamingURL,
                 cacheSizeBytes: Int(fileSize)
             ) { [weak self] info in

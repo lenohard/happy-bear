@@ -46,8 +46,8 @@ final class AudioCacheManager {
         }
     }
 
-    func getCachedAssetURL(for trackId: String, baiduFileId: String) -> URL? {
-        let cachedURL = cacheFilePath(trackId: trackId, baiduFileId: baiduFileId)
+    func getCachedAssetURL(for trackId: String, baiduFileId: String, filename: String) -> URL? {
+        let cachedURL = cacheFilePath(trackId: trackId, baiduFileId: baiduFileId, filename: filename)
 
         guard fileManager.fileExists(atPath: cachedURL.path) else {
             return nil
@@ -64,13 +64,13 @@ final class AudioCacheManager {
         }
     }
 
-    func isCached(trackId: String, baiduFileId: String) -> Bool {
-        let cachedURL = cacheFilePath(trackId: trackId, baiduFileId: baiduFileId)
+    func isCached(trackId: String, baiduFileId: String, filename: String) -> Bool {
+        let cachedURL = cacheFilePath(trackId: trackId, baiduFileId: baiduFileId, filename: filename)
         return fileManager.fileExists(atPath: cachedURL.path)
     }
 
-    func createCacheFile(trackId: String, baiduFileId: String, durationMs: Int? = nil, fileSizeBytes: Int? = nil) -> URL {
-        let cachedURL = cacheFilePath(trackId: trackId, baiduFileId: baiduFileId)
+    func createCacheFile(trackId: String, baiduFileId: String, filename: String, durationMs: Int? = nil, fileSizeBytes: Int? = nil) -> URL {
+        let cachedURL = cacheFilePath(trackId: trackId, baiduFileId: baiduFileId, filename: filename)
         fileManager.createFile(atPath: cachedURL.path, contents: nil, attributes: nil)
 
         let metadata = CacheMetadata(
@@ -123,8 +123,8 @@ final class AudioCacheManager {
         }
     }
 
-    func removeCacheFile(trackId: String, baiduFileId: String) {
-        let fileURL = cacheFilePath(trackId: trackId, baiduFileId: baiduFileId)
+    func removeCacheFile(trackId: String, baiduFileId: String, filename: String) {
+        let fileURL = cacheFilePath(trackId: trackId, baiduFileId: baiduFileId, filename: filename)
         let metadataURL = metadataFilePath(trackId: trackId, baiduFileId: baiduFileId)
 
         try? fileManager.removeItem(at: fileURL)
@@ -228,9 +228,11 @@ final class AudioCacheManager {
         }
     }
 
-    private func cacheFilePath(trackId: String, baiduFileId: String) -> URL {
-        let filename = "\(baiduFileId)_\(trackId).cache"
-        return cacheDirectory.appendingPathComponent(filename)
+    private func cacheFilePath(trackId: String, baiduFileId: String, filename: String) -> URL {
+        let fileExtension = (filename as NSString).pathExtension
+        let ext = fileExtension.isEmpty ? "cache" : fileExtension
+        let cacheFilename = "\(baiduFileId)_\(trackId).\(ext)"
+        return cacheDirectory.appendingPathComponent(cacheFilename)
     }
 
     private func metadataFilePath(trackId: String, baiduFileId: String) -> URL {

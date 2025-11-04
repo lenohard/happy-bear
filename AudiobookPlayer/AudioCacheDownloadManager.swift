@@ -29,6 +29,7 @@ final class AudioCacheDownloadManager {
     func startCaching(
         trackId: String,
         baiduFileId: String,
+        filename: String,
         streamingURL: URL,
         cacheSizeBytes: Int,
         progressCallback: @escaping ProgressCallback
@@ -40,6 +41,7 @@ final class AudioCacheDownloadManager {
         let cacheURL = cacheManager.createCacheFile(
             trackId: trackId,
             baiduFileId: baiduFileId,
+            filename: filename,
             fileSizeBytes: cacheSizeBytes
         )
 
