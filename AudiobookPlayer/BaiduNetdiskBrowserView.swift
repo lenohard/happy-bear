@@ -32,8 +32,8 @@ struct BaiduNetdiskBrowserView: View {
                 }
             }
 
-            // Search options section (only shown during search)
-            if isSearching && !searchTextTrimmed.isEmpty {
+            // Search options section (shown when search field is active)
+            if !searchText.isEmpty || isSearching {
                 Section("Search Options") {
                     Toggle("Audio Files Only", isOn: $viewModel.audioOnly)
                         .onChange(of: viewModel.audioOnly) { _ in
