@@ -90,6 +90,21 @@ STRINGS = {
     "not_cached": ("Not Cached", "未缓存"),
     "local_file": ("Local File", "本地文件"),
 
+    # Cache Tools
+    "cache_tools_label": ("Cache Status", "缓存状态"),
+    "cache_tools_status_warning": (
+        "Seeking outside the cached range will resume streaming.",
+        "超出缓存范围的拖动将恢复流式播放。"
+    ),
+    "cache_tools_retention": ("Retention: %d %@", "保留：%d %@"),
+    "cache_tools_day": ("day", "天"),
+    "cache_tools_days": ("days", "天"),
+    "cache_tools_status_streaming": (
+        "Streaming directly from Baidu Netdisk.",
+        "正在直接从百度网盘流式播放。"
+    ),
+    "cache_tools_manage_button": ("Manage Cache", "管理缓存"),
+
     # Local Files Section
     "local_files_section": ("Local Files", "本地文件"),
 }
