@@ -32,17 +32,7 @@ struct BaiduNetdiskBrowserView: View {
                 }
             }
 
-            // Search options section (shown when search field is focused/active)
-            if isSearching {
-                Section("Search Options") {
-                    Toggle("Audio Files Only", isOn: $viewModel.audioOnly)
-                        .onChange(of: viewModel.audioOnly) { _ in
-                            if !searchTextTrimmed.isEmpty {
-                                viewModel.search(keyword: searchTextTrimmed)
-                            }
-                        }
-                }
-            }
+
 
             Section {
                 contentList
@@ -101,11 +91,8 @@ struct BaiduNetdiskBrowserView: View {
             }
         }
         .onChange(of: searchText) { newValue in
-            // Show toggle immediately when user interacts with search (field is focused)
-            if !isSearching {
-                isSearching = true
-            }
-            if newValue.isEmpty && isSearching {
+            if newValue.isEmpty {
+                isSearching = false
                 viewModel.refresh()
             }
         }
