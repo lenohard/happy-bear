@@ -91,7 +91,6 @@ struct CollectionDetailView: View {
     private func listContent(_ collection: AudiobookCollection) -> some View {
         List {
             summarySection(collection)
-            nowPlayingSection()
             tracksSection(collection)
         }
         .listStyle(.insetGrouped)
@@ -117,48 +116,6 @@ struct CollectionDetailView: View {
                     .foregroundStyle(.secondary)
             }
             .padding(.vertical, 4)
-        }
-    }
-
-    @ViewBuilder
-    private func nowPlayingSection() -> some View {
-        if let track = audioPlayer.currentTrack, let collection = audioPlayer.activeCollection, collection.id == collectionID {
-            Section("Now Playing") {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(track.displayName)
-                        .font(.headline)
-                        .lineLimit(2)
-
-                    if audioPlayer.duration > 0 {
-                        PlaybackTimeline()
-                    }
-
-                    HStack(spacing: 24) {
-                        Button {
-                            handlePreviousButton(for: track, in: collection)
-                        } label: {
-                            Image(systemName: "backward.fill")
-                        }
-                        .disabled(!hasPreviousTrack(track))
-
-                        Button {
-                            handlePlayPause(for: track, in: collection)
-                        } label: {
-                            Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                                .font(.title2)
-                        }
-
-                        Button {
-                            handleNextButton(for: track, in: collection)
-                        } label: {
-                            Image(systemName: "forward.fill")
-                        }
-                        .disabled(!hasNextTrack(track))
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .padding(.vertical, 4)
-            }
         }
     }
 
