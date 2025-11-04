@@ -13,6 +13,7 @@ struct LibraryView: View {
     @State private var pendingImport: PendingImport?
     @State private var missingAuthAlert = false
     @State private var duplicateImport: DuplicateImportAlert?
+    @State private var selectedCollectionID: UUID?
 
     var body: some View {
         NavigationStack {
@@ -26,18 +27,30 @@ struct LibraryView: View {
                         Section(NSLocalizedString("collections_section", comment: "Collections section title")) {
                             ForEach(library.collections) { collection in
                                 ZStack {
-                                    NavigationLink {
+                                    // Hidden NavigationLink for isActive binding
+                                    NavigationLink(
+                                        isActive: Binding(
+                                            get: { selectedCollectionID == collection.id },
+                                            set: { isActive in
+                                                if isActive {
+                                                    selectedCollectionID = collection.id
+                                                } else {
+                                                    selectedCollectionID = nil
+                                                }
+                                            }
+                                        )
+                                    ) {
                                         CollectionDetailView(collectionID: collection.id)
                                     } label: {
                                         EmptyView()
                                     }
-                                    .opacity(0)
+                                    .hidden()
 
                                     HStack(spacing: 12) {
                                         LibraryCollectionRow(collection: collection)
                                             .contentShape(Rectangle())
                                             .onTapGesture {
-                                                // Navigation handled by hidden NavigationLink above
+                                                selectedCollectionID = collection.id
                                             }
 
                                         Button {
