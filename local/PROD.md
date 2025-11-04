@@ -86,15 +86,15 @@ Local Cache Layer (FileManager-based)
   - ⚠️ Both files need manual Xcode addition (same process as Phase 1)
 
 **Phase 3: UI & User Feedback** (Working By Codex)
-- [ ] Add cache status indicators:
-  - Show cache percentage in now playing screen (e.g., "47% cached")
-  - Visual progress bar showing cached vs. streaming portions
-  - Indicator when seeking beyond cache requires network fetch
+- [x] Add cache status indicators:
+  - Cache status card in `PlayingView` shows percentage, cached bytes, and warns when playback will stream outside cached range (`ContentView.swift`)
+  - Progress indicator reflects download progress sourced from `CacheProgressTracker` even before cache completion
+  - Toolbar shortcut opens cache controls; partial-cache seeks now surface a network warning message
 
-- [ ] Add cache management UI:
-  - Settings screen to view cache size, clear cache, adjust retention period
-  - Per-track option to "Offline Cache" (prioritize caching this audiobook)
-  - Auto-cleanup notification
+- [x] Add cache management UI:
+  - New cache management sheet with retention stepper, total cache usage, and cache directory info (`ContentView.swift`)
+  - Per-track offline caching trigger plus per-track clear button wired to `AudioPlayerViewModel.cacheTrackIfNeeded` / `removeCache`
+  - Global "Clear All Cached Audio" control issued through `AudioPlayerViewModel.clearAllCache()` (cancels active downloads)
 
 **Phase 4: Optimization & Testing**
 - [ ] Performance optimization:

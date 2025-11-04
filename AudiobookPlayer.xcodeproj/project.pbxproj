@@ -26,8 +26,12 @@
 		6FC010072C5B0C0000AA00AA /* SourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010062C5B0C0000AA00AA /* SourcesView.swift */; };
 		6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */; };
 		6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */; };
-		E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */; };
 		6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6FC0200A2C5B0C0000AA00AA /* Localizable.strings */; };
+		6FD0A0022C5B0C0000AA00AB /* AudioCacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0012C5B0C0000AA00AB /* AudioCacheManager.swift */; };
+		6FD0A0042C5B0C0000AA00AB /* CachedAudioAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */; };
+		86AD83AC2EB9AD5200FAB6DF /* CacheProgressTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */; };
+		86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */; };
+		E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -54,6 +58,10 @@
 		6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitLibrarySync.swift; sourceTree = "<group>"; };
 		6FC0200B2C5B0C0000AA00AA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		6FC0200C2C5B0C0000AA00AA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		6FD0A0012C5B0C0000AA00AB /* AudioCacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheManager.swift; sourceTree = "<group>"; };
+		6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedAudioAsset.swift; sourceTree = "<group>"; };
+		86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheDownloadManager.swift; sourceTree = "<group>"; };
+		86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheProgressTracker.swift; sourceTree = "<group>"; };
 		F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionBuilderViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -81,12 +89,16 @@
 		6F6E7F672C4A9B0500AA00AA /* AudiobookPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */,
+				86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */,
 				6F6E7F6E2C4A9B0500AA00AA /* AudiobookPlayerApp.swift */,
 				6F6E7F6E2C4A9B0500AA00AB /* BaiduOAuth.swift */,
 				6F99A0022C4C200000AA00AA /* BaiduNetdiskClient.swift */,
 				6F99A0042C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift */,
 				6F99A0062C4C200000AA00AA /* BaiduNetdiskBrowserView.swift */,
 				6F6E7F722C4A9B0500AA00AA /* AudioPlayerViewModel.swift */,
+				6FD0A0012C5B0C0000AA00AB /* AudioCacheManager.swift */,
+				6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */,
 				6F6E7F702C4A9B0500AA00AB /* BaiduAuthViewModel.swift */,
 				6F6E7F702C4A9B0500AA00AA /* ContentView.swift */,
 				6FC010002C5B0C0000AA00AA /* LibraryModels.swift */,
@@ -202,6 +214,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				6F99A0072C4C200000AA00AA /* BaiduNetdiskBrowserView.swift in Sources */,
+				86AD83AC2EB9AD5200FAB6DF /* CacheProgressTracker.swift in Sources */,
+				86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */,
 				6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */,
 				6FC010052C5B0C0000AA00AA /* LibraryView.swift in Sources */,
 				E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */,
@@ -217,6 +231,8 @@
 				6FC010012C5B0C0000AA00AA /* LibraryModels.swift in Sources */,
 				6F6E7F712C4A9B0500AA00AB /* BaiduAuthViewModel.swift in Sources */,
 				6F6E7F732C4A9B0500AA00AA /* AudioPlayerViewModel.swift in Sources */,
+				6FD0A0022C5B0C0000AA00AB /* AudioCacheManager.swift in Sources */,
+				6FD0A0042C5B0C0000AA00AB /* CachedAudioAsset.swift in Sources */,
 				6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

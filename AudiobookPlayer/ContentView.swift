@@ -70,6 +70,7 @@ struct PlayingView: View {
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
 
     @State private var missingAuthAlert = false
+    @State private var showingCacheManagement = false
 
     private var currentPlayback: PlaybackSnapshot? {
         guard
@@ -119,10 +120,24 @@ struct PlayingView: View {
             }
             .navigationTitle(NSLocalizedString("playing_title", comment: "Playing tab title"))
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingCacheManagement = true
+                } label: {
+                    Image(systemName: "internaldrive")
+                }
+                .accessibilityLabel("Open Cache Settings")
+            }
+        }
         .alert(NSLocalizedString("connect_baidu_first", comment: "Alert title"), isPresented: $missingAuthAlert) {
             Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
         } message: {
             Text(NSLocalizedString("connect_baidu_before_stream", comment: "Alert message to sign in before streaming"))
+        }
+        .sheet(isPresented: $showingCacheManagement) {
+            CacheManagementView()
+                .environmentObject(audioPlayer)
         }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             syncPlaybackState()
@@ -159,6 +174,8 @@ struct PlayingView: View {
             liveTimeline()
 
             controlButtons()
+
+            cacheStatusSection(for: snapshot.track)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -189,6 +206,8 @@ struct PlayingView: View {
             savedProgressView(state: snapshot.state)
 
             resumeButton(collection: snapshot.collection, track: snapshot.track)
+
+            cacheStatusSection(for: snapshot.track)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -196,6 +215,61 @@ struct PlayingView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.accentColor.opacity(0.2))
         )
+    }
+
+    @ViewBuilder
+    private func cacheStatusSection(for track: AudiobookTrack) -> some View {
+        if case .baidu = track.location {
+            let status = audioPlayer.cacheStatus(for: track)
+
+            GroupBox {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Label("Cache Status", systemImage: "internaldrive")
+                            .font(.headline)
+                        Spacer()
+                        Text(statusTitle(for: status))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let status {
+                        ProgressView(value: status.percentage, total: 1.0)
+                            .progressViewStyle(.linear)
+
+                        HStack {
+                            Text(cacheAmountText(for: status))
+                            Spacer()
+                            Text(percentageString(status.percentage))
+                        }
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+
+                        if status.state == .partiallyCached {
+                            Text("Seeking outside the cached range will resume streaming.")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        Text("Retention: \(status.retentionDays) \(status.retentionDays == 1 ? "day" : "days")")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text("Streaming directly from Baidu Netdisk.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Button {
+                        showingCacheManagement = true
+                    } label: {
+                        Label("Manage Cache", systemImage: "slider.horizontal.3")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+        }
     }
 
     @ViewBuilder
@@ -350,6 +424,42 @@ struct PlayingView: View {
         let clamped = max(0, min(position / duration, 1))
         let percent = Int(round(clamped * 100))
         return "\(percent)%"
+    }
+
+    private func percentageString(_ value: Double) -> String {
+        let percent = Int((value * 100).rounded())
+        return "\(percent)%"
+    }
+
+    private func cacheAmountText(for status: AudioPlayerViewModel.CacheStatusSnapshot) -> String {
+        let cached = bytesString(status.cachedBytes)
+        let total = status.totalBytes.map(bytesString) ?? "--"
+        return "\(cached) of \(total) cached"
+    }
+
+    private func statusTitle(for status: AudioPlayerViewModel.CacheStatusSnapshot?) -> String {
+        guard let status else {
+            return "Streaming"
+        }
+
+        switch status.state {
+        case .fullyCached:
+            return "Fully Cached"
+        case .partiallyCached:
+            return "Partially Cached"
+        case .notCached:
+            return "Not Cached"
+        case .local:
+            return "Local File"
+        }
+    }
+
+    private func bytesString(_ value: Int) -> String {
+        guard value > 0 else { return "0 B" }
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(value))
     }
 
     private func resumePlayback(collection: AudiobookCollection, track: AudiobookTrack) {
@@ -518,6 +628,152 @@ private struct EmptyPlayingView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .secondarySystemBackground))
+    }
+}
+
+private struct CacheManagementView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
+
+    @State private var retentionDays: Int = 0
+    @State private var showClearAllConfirmation = false
+    @State private var showClearTrackConfirmation = false
+
+    private var currentTrack: AudiobookTrack? {
+        audioPlayer.currentTrack
+    }
+
+    private var currentTrackStatus: AudioPlayerViewModel.CacheStatusSnapshot? {
+        guard let track = currentTrack else { return nil }
+        return audioPlayer.cacheStatus(for: track)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Storage") {
+                    HStack {
+                        Text("Total Cache")
+                        Spacer()
+                        Text(audioPlayer.formattedCacheSize())
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Cache Folder")
+                        Text(audioPlayer.cacheDirectoryPath())
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+
+                    Stepper(value: $retentionDays, in: 1...30, step: 1) {
+                        Text("Retention: \(retentionDays) \(retentionDays == 1 ? "day" : "days")")
+                    }
+                    .onChange(of: retentionDays) { newValue in
+                        audioPlayer.updateCacheRetention(days: newValue)
+                    }
+                }
+
+                if let track = currentTrack {
+                    Section("Current Track") {
+                        Text(track.displayName)
+                            .font(.headline)
+
+                        if let status = currentTrackStatus {
+                            Text(statusTitle(for: status))
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            Text(cacheAmountText(for: status))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+
+                            if status.state != .fullyCached {
+                                Button {
+                                    audioPlayer.cacheTrackIfNeeded(track)
+                                } label: {
+                                    Label("Download for Offline Listening", systemImage: "arrow.down.circle")
+                                }
+                            }
+
+                            if status.state != .notCached {
+                                Button(role: .destructive) {
+                                    showClearTrackConfirmation = true
+                                } label: {
+                                    Label("Clear This Track", systemImage: "trash")
+                                }
+                            }
+                        } else {
+                            Text("Streaming directly from Baidu Netdisk.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        showClearAllConfirmation = true
+                    } label: {
+                        Label("Clear All Cached Audio", systemImage: "trash.slash")
+                    }
+                }
+            }
+            .navigationTitle("Cache Settings")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+            .confirmationDialog("Clear cached audio?", isPresented: $showClearAllConfirmation, titleVisibility: .visible) {
+                Button("Delete All Cached Audio", role: .destructive) {
+                    audioPlayer.clearAllCache()
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This removes every cached audiobook file from your device.")
+            }
+            .confirmationDialog("Remove cached copy of this track?", isPresented: $showClearTrackConfirmation, titleVisibility: .visible) {
+                Button("Remove Track Cache", role: .destructive) {
+                    if let track = currentTrack {
+                        audioPlayer.removeCache(for: track)
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("Only the cached data for this track will be deleted. Streaming remains available.")
+            }
+            .onAppear {
+                retentionDays = audioPlayer.cacheRetentionDays()
+            }
+        }
+    }
+
+    private func cacheAmountText(for status: AudioPlayerViewModel.CacheStatusSnapshot) -> String {
+        let cached = bytesString(status.cachedBytes)
+        let total = status.totalBytes.map(bytesString) ?? "--"
+        return "\(cached) of \(total) cached"
+    }
+
+    private func statusTitle(for status: AudioPlayerViewModel.CacheStatusSnapshot) -> String {
+        switch status.state {
+        case .fullyCached:
+            return "Fully Cached"
+        case .partiallyCached:
+            return "Partially Cached"
+        case .notCached:
+            return "Not Cached"
+        case .local:
+            return "Local File"
+        }
+    }
+
+    private func bytesString(_ value: Int) -> String {
+        guard value > 0 else { return "0 B" }
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: Int64(value))
     }
 }
 

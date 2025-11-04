@@ -9,7 +9,8 @@ final class AudioCacheDownloadManager {
 
     typealias ProgressCallback = (DownloadProgress) -> Void
 
-    private var activeDownloads: [String: URLSessionDataTask] = [:]
+    private var activeDownloads: [String: URLSessionTask] = [:]
+    private var progressObservers: [String: NSKeyValueObservation] = [:]
     private let session: URLSession
     private let cacheManager: AudioCacheManager
 
@@ -51,6 +52,17 @@ final class AudioCacheDownloadManager {
             progressCallback: progressCallback
         )
 
+        let observation = task.progress.observe(\.fractionCompleted, options: [.new]) { progress, _ in
+            guard cacheSizeBytes > 0 else { return }
+            let clamped = max(0.0, min(1.0, progress.fractionCompleted))
+            let bytes = Int((Double(cacheSizeBytes) * clamped).rounded())
+            let range = AudioCacheManager.CacheMetadata.ByteRange(start: 0, end: bytes)
+            Task { @MainActor in
+                progressCallback(DownloadProgress(trackId: trackId, downloadedRange: range, totalBytes: cacheSizeBytes))
+            }
+        }
+
+        progressObservers[trackId] = observation
         activeDownloads[trackId] = task
         task.resume()
     }
@@ -58,6 +70,8 @@ final class AudioCacheDownloadManager {
     func cancelCaching(for trackId: String) {
         activeDownloads[trackId]?.cancel()
         activeDownloads.removeValue(forKey: trackId)
+        progressObservers[trackId]?.invalidate()
+        progressObservers.removeValue(forKey: trackId)
     }
 
     func pauseCaching(for trackId: String) {
@@ -68,6 +82,13 @@ final class AudioCacheDownloadManager {
         activeDownloads[trackId]?.resume()
     }
 
+    func cancelAll() {
+        activeDownloads.values.forEach { $0.cancel() }
+        activeDownloads.removeAll()
+        progressObservers.values.forEach { $0.invalidate() }
+        progressObservers.removeAll()
+    }
+
     private func downloadAudio(
         from url: URL,
         to destinationURL: URL,
@@ -75,7 +96,7 @@ final class AudioCacheDownloadManager {
         baiduFileId: String,
         totalBytes: Int,
         progressCallback: @escaping ProgressCallback
-    ) -> URLSessionDataTask {
+    ) -> URLSessionDownloadTask {
         let request = URLRequest(url: url)
 
         let task = session.downloadTask(with: request) { [weak self] tempURL, response, error in
@@ -108,6 +129,8 @@ final class AudioCacheDownloadManager {
     ) async {
         defer {
             activeDownloads.removeValue(forKey: trackId)
+            progressObservers[trackId]?.invalidate()
+            progressObservers.removeValue(forKey: trackId)
         }
 
         if let error = error {
@@ -150,5 +173,6 @@ final class AudioCacheDownloadManager {
     deinit {
         activeDownloads.values.forEach { $0.cancel() }
         session.invalidateAndCancel()
+        progressObservers.values.forEach { $0.invalidate() }
     }
 }

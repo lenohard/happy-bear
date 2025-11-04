@@ -12,8 +12,6 @@ final class CacheProgressTracker: ObservableObject {
         self.cacheManager = cacheManager
     }
 
-    // MARK: - Public API
-
     func getCachedPercentage(for trackId: String, fileSizeBytes: Int?) -> Double {
         guard let ranges = cachedRanges[trackId], !ranges.isEmpty else { return 0 }
         guard let fileSize = fileSizeBytes, fileSize > 0 else { return 0 }
@@ -37,7 +35,11 @@ final class CacheProgressTracker: ObservableObject {
         downloadProgress[trackId] ?? 0
     }
 
-    func updateProgress(for trackId: String, downloadedRange: AudioCacheManager.CacheMetadata.ByteRange, totalBytes: Int) {
+    func updateProgress(
+        for trackId: String,
+        downloadedRange: AudioCacheManager.CacheMetadata.ByteRange,
+        totalBytes: Int
+    ) {
         let progress = totalBytes > 0 ? Double(downloadedRange.end) / Double(totalBytes) : 0
         downloadProgress[trackId] = min(1.0, progress)
 
@@ -49,6 +51,8 @@ final class CacheProgressTracker: ObservableObject {
     func clearProgress(for trackId: String) {
         downloadProgress.removeValue(forKey: trackId)
         cachedRanges.removeValue(forKey: trackId)
+        downloadTasks[trackId]?.cancel()
+        downloadTasks.removeValue(forKey: trackId)
     }
 
     func markAsComplete(for trackId: String, fileSizeBytes: Int) {
@@ -56,7 +60,12 @@ final class CacheProgressTracker: ObservableObject {
         downloadProgress[trackId] = 1.0
     }
 
-    // MARK: - Background Tracking
+    func resetAll() {
+        downloadTasks.values.forEach { $0.cancel() }
+        downloadTasks.removeAll()
+        downloadProgress.removeAll()
+        cachedRanges.removeAll()
+    }
 
     func startTracking(
         for trackId: String,
@@ -87,17 +96,18 @@ final class CacheProgressTracker: ObservableObject {
         downloadTasks.removeValue(forKey: trackId)
     }
 
-    // MARK: - Private Helpers
-
-    private func mergeOverlappingRanges(_ ranges: [AudioCacheManager.CacheMetadata.ByteRange]) -> [AudioCacheManager.CacheMetadata.ByteRange] {
+    private func mergeOverlappingRanges(
+        _ ranges: [AudioCacheManager.CacheMetadata.ByteRange]
+    ) -> [AudioCacheManager.CacheMetadata.ByteRange] {
         guard !ranges.isEmpty else { return [] }
 
         let sortedRanges = ranges.sorted { $0.start < $1.start }
         var merged: [AudioCacheManager.CacheMetadata.ByteRange] = []
 
         for range in sortedRanges {
-            if let last = merged.last, last.end >= range.start {
-                merged[merged.count - 1].end = max(last.end, range.end)
+            if var last = merged.last, last.end >= range.start {
+                last.end = max(last.end, range.end)
+                merged[merged.count - 1] = last
             } else {
                 merged.append(range)
             }
