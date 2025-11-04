@@ -225,7 +225,7 @@ struct PlayingView: View {
 
             GroupBox {
                 DisclosureGroup(isExpanded: $showCacheTools) {
-                    VStack(alignment: .leading, spacing: 10) {
+                    VStack(alignment: .leading, spacing: 6) {
                         if let status {
                             ProgressView(value: status.percentage, total: 1.0)
                                 .progressViewStyle(.linear)
@@ -242,6 +242,7 @@ struct PlayingView: View {
                                 Text(NSLocalizedString("cache_tools_status_warning", comment: "Warning when partially cached"))
                                     .font(.caption2)
                                     .foregroundStyle(.secondary)
+                                    .padding(.top, 2)
                             }
 
                             Text(String(
@@ -251,6 +252,7 @@ struct PlayingView: View {
                             ))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .padding(.top, 2)
                         } else {
                             Text(NSLocalizedString("cache_tools_status_streaming", comment: "Streaming fallback message"))
                                 .font(.caption)
@@ -263,20 +265,23 @@ struct PlayingView: View {
                             Label(NSLocalizedString("cache_tools_manage_button", comment: "Manage cache button"), systemImage: "slider.horizontal.3")
                                 .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                    .padding(.top, 6)
+                    .padding(.top, 4)
                 } label: {
                     HStack {
                         Label(NSLocalizedString("cache_tools_label", comment: "Cache tools section"), systemImage: "internaldrive")
-                            .font(.headline)
+                            .font(.subheadline)
                         Spacer()
                         Text(statusTitle(for: status))
-                            .font(.subheadline)
+                            .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
+                    .padding(.vertical, 2)
                 }
             }
+            .groupBoxStyle(CompactGroupBoxStyle())
         }
     }
 
@@ -790,4 +795,22 @@ private struct CacheManagementView: View {
         .environmentObject(AudioPlayerViewModel())
         .environmentObject(LibraryStore())
         .environmentObject(BaiduAuthViewModel())
+}
+
+private struct CompactGroupBoxStyle: GroupBoxStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            configuration.label
+            configuration.content
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.accentColor.opacity(0.12), lineWidth: 1)
+        )
+    }
 }
