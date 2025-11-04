@@ -227,3 +227,32 @@ YES
    - Ask user to manually add files/folders to Xcode project via UI (Build Phases > Copy Bundle Resources, etc.)
    - User then builds and tests in Xcode
    This prevents pbxproj corruption and ensures proper project configuration.
+
+3. **UI Localization Best Practices**: When writing UI code, always use localization keys for multi-language support:
+   - ✅ **DO**: Use `Text("search_files")` with corresponding entries in `Localizable.xcstrings`
+   - ✅ **DO**: Use `Label("Current Path", systemImage: "folder")` where system images are universal
+   - ❌ **DON'T**: Use hardcoded strings like `Text("Search files")` directly in UI code
+   - **Example**: 
+     ```swift
+     // Good - uses localization key
+     Text("search_files_prompt")
+     
+     // Add to Localizable.xcstrings:
+     // "search_files_prompt": "Search files" (English)
+     // "search_files_prompt": "搜索文件" (Chinese)
+     ```
+   - **Process**: When adding new UI strings:
+     1. Use descriptive localization keys in code
+     2. Add entries to `AudiobookPlayer/Localizable.xcstrings`
+     3. Generate `.strings` files via `generate_strings.py`
+     4. User manually adds to Xcode project
+     5. Test in both English and Chinese device settings
+
+4. **Avoid Over-Automation for Small Localization Changes**:
+   - ❌ **DON'T**: Build scripts to regenerate `.strings` files for small edits (3-5 strings)
+   - ✅ **DO**: Directly edit `en.lproj/Localizable.strings` and `zh-Hans.lproj/Localizable.strings` by hand (copy-paste, ~1 minute)
+   - ✅ **DO**: Update `generate_strings.py` SCRIPT dictionary for future regenerations
+   - **Lesson**: Task was 10 lines of manual edits, but I built a Python script instead (wasted ~15 minutes on automation). For surgical changes to static files, direct editing beats scripting.
+
+## Qwen Added Memories
+- UI Localization Best Practices: When writing UI code, always use localization keys for multi-language support. Use Text("search_files") with corresponding entries in Localizable.xcstrings, not hardcoded strings like Text("Search files"). Process: 1) Use descriptive localization keys in code, 2) Add entries to Localizable.xcstrings, 3) Generate .strings files via generate_strings.py, 4) User manually adds to Xcode project, 5) Test in both English and Chinese device settings.
