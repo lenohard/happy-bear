@@ -8,7 +8,7 @@ struct TrackPickerView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
 
-    @State private var selectedEntries: OrderedSet<BaiduNetdiskEntry> = []
+    @State private var selectedEntries: OrderedSet<BaiduNetdiskEntry> = OrderedSet()
     @State private var browsePath: String = "/"
     @State private var isPresentingBrowser = false
     @State private var errorMessage: String?
@@ -240,12 +240,17 @@ private struct OrderedSet<Element: Equatable>: RandomAccessCollection, MutableCo
     var endIndex: Int { storage.endIndex }
 
     init() {}
+
     init(_ elements: [Element]) {
         storage = elements.reduce(into: []) { result, element in
             if !result.contains(element) {
                 result.append(element)
             }
         }
+    }
+
+    init<S: Sequence>(_ sequence: S) where S.Element == Element {
+        self.init(Array(sequence))
     }
 
     subscript(position: Int) -> Element {
@@ -278,6 +283,10 @@ private struct OrderedSet<Element: Equatable>: RandomAccessCollection, MutableCo
 
     func enumerated() -> EnumeratedSequence<[Element]> {
         storage.enumerated()
+    }
+
+    mutating func replaceSubrange<C>(_ subrange: Range<Int>, with newElements: C) where C: Collection, Element == C.Element {
+        storage.replaceSubrange(subrange, with: newElements)
     }
 }
 

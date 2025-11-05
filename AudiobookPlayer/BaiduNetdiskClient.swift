@@ -1,6 +1,6 @@
 import Foundation
 
-struct BaiduNetdiskEntry: Decodable, Identifiable {
+struct BaiduNetdiskEntry: Decodable, Identifiable, Equatable {
     let fsId: Int64
     let path: String
     let serverFilename: String
