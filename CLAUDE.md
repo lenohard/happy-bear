@@ -181,6 +181,21 @@ YES
 
 ## Progress Tracking
 
+### Session: 2025-11-05 (App Intents Investigation & WIP)
+**Siri/App Intents Exploration** 🔍
+- [x] Analyzed App Intents architecture and implementation plan
+- [x] Created complete App Intents infrastructure (Phase 1 & 2):
+  - AudiobookCollectionEntity, AudiobookCollectionQuery, PlayCollectionIntent, AudiobookShortcuts
+  - IntentPlaybackController, LibrarySnapshotStore, AudiobookCollectionSummary
+- [x] Added 13 Siri localization keys (English + Chinese) to Localizable.xcstrings
+- [x] Upgraded iOS deployment target from 16.0 → 17.0 (App Intents requirement)
+- [x] Configured entitlements with `com.apple.developer.appintents` flag
+- ❌ **BLOCKED**: Free/Team Apple Developer accounts cannot provision App Intents entitlements
+  - Error: "iOS Team Provisioning Profile doesn't include the com.apple.developer.appintents entitlement"
+  - Only paid ($99/year) Apple Developer accounts can create provisioning profiles with App Intents support
+  - Solution: Saved all work in `feature/siri-control-wip` branch (commit: `ba67470`)
+  - Action: When account upgraded to paid, restore from WIP branch and proceed with Phase 4 device testing
+
 ### Session: 2025-11-03 (Continued - Multi-Language Phase 2)
 **Multi-Language Support Localization Setup** 📝
 - [x] Generated `.strings` files from `Localizable.xcstrings`:
@@ -253,6 +268,13 @@ YES
    - ✅ **DO**: Directly edit `en.lproj/Localizable.strings` and `zh-Hans.lproj/Localizable.strings` by hand (copy-paste, ~1 minute)
    - ✅ **DO**: Update `generate_strings.py` SCRIPT dictionary for future regenerations
    - **Lesson**: Task was 10 lines of manual edits, but I built a Python script instead (wasted ~15 minutes on automation). For surgical changes to static files, direct editing beats scripting.
+
+5. **App Intents & Siri Support - Requires Paid Developer Account**:
+   - ❌ **FREE accounts cannot use App Intents**: Free and Team provisioning profiles lack `com.apple.developer.appintents` entitlement support
+   - ❌ **Paid accounts only**: Only Apple Developer Program members ($99/year) can create App Intents-enabled provisioning profiles
+   - ✅ **Workaround**: Save complete implementation in WIP branch, restore when account is upgraded
+   - ✅ **All other features** (background audio, cache, playback controls, lock screen) work fine on free accounts
+   - **Lesson**: Always verify account limitations before implementing platform-specific features. App Intents was fully architected before discovering the blocker.
 
 ## Documentation Index
 - `local/docs/siri-collection-playback.md`: Siri/App Intents setup for triggering collection playback via voice and Shortcuts.
