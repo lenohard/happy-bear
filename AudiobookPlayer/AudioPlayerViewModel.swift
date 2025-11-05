@@ -135,6 +135,14 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func play(track: AudiobookTrack, in collection: AudiobookCollection, token: BaiduOAuthToken?) {
+        // 如果点击的是当前正在播放的音轨，则暂停播放
+        if let currentTrack = currentTrack, 
+           currentTrack.id == track.id, 
+           isPlaying {
+            togglePlayback()
+            return
+        }
+        
         prepareCollection(collection)
         currentToken = token
 
@@ -243,6 +251,10 @@ final class AudioPlayerViewModel: ObservableObject {
 
     func cacheStatus(for track: AudiobookTrack) -> CacheStatusSnapshot? {
         computeCacheStatus(for: track)
+    }
+    
+    func isCurrentlyPlaying(track: AudiobookTrack) -> Bool {
+        return currentTrack?.id == track.id && isPlaying
     }
 
     func cacheRetentionDays() -> Int {
