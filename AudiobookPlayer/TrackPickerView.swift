@@ -59,10 +59,8 @@ struct TrackPickerView: View {
                 NavigationStack {
                     BaiduNetdiskBrowserView(
                         tokenProvider: { authViewModel.token },
-                        onSelectFile: toggleSelection,
-                        onSelectFolder: { path in
-                            browsePath = path
-                        }
+                        selectedEntryIDs: Set(selectedEntries.map(\.fsId)),
+                        onToggleSelection: toggleSelection
                     )
                 }
             }
@@ -183,8 +181,6 @@ struct TrackPickerView: View {
     }
 
     private func toggleSelection(_ entry: BaiduNetdiskEntry) {
-        guard !entry.isDir else { return }
-
         if let index = selectedEntries.firstIndex(of: entry) {
             selectedEntries.remove(at: index)
         } else {

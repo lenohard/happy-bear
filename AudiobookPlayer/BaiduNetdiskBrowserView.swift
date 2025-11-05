@@ -209,40 +209,72 @@ struct BaiduNetdiskBrowserView: View {
             .padding(.vertical, 16)
         } else {
             ForEach(filteredEntries) { entry in
-                Button {
-                    if entry.isDir {
-                        searchText = ""
-                        viewModel.enter(entry)
-                    } else if let onToggleSelection {
-                        onToggleSelection(entry)
-                    } else {
-                        onSelectFile?(entry)
-                    }
-                } label: {
-                    HStack {
-                        if onToggleSelection != nil {
+                HStack {
+                    if let onToggleSelection = onToggleSelection {
+                        // Multi-select mode: show checkbox
+                        Button {
+                            onToggleSelection(entry)
+                        } label: {
                             Image(systemName: selectedEntryIDs.contains(entry.fsId) ? "checkmark.circle.fill" : "circle")
                                 .foregroundStyle(selectedEntryIDs.contains(entry.fsId) ? Color.accentColor : Color.secondary)
                         }
+                        .buttonStyle(.borderless)
+                    }
 
-                        Image(systemName: entry.isDir ? "folder.fill" : "doc.waveform")
-                            .foregroundStyle(entry.isDir ? Color.accentColor : Color.blue)
+                    if entry.isDir {
+                        // Folder: navigable
+                        Button {
+                            searchText = ""
+                            viewModel.enter(entry)
+                        } label: {
+                            HStack {
+                                Image(systemName: "folder.fill")
+                                    .foregroundStyle(Color.accentColor)
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(entry.serverFilename)
-                                .font(.body)
-                                .lineLimit(2)
-                            Text(detailText(for: entry))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(entry.serverFilename)
+                                        .font(.body)
+                                        .lineLimit(2)
+                                    Text(detailText(for: entry))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
+                        .buttonStyle(.borderless)
+                        .foregroundColor(.primary)
+                    } else {
+                        // File: selectable
+                        Button {
+                            if let onToggleSelection {
+                                onToggleSelection(entry)
+                            } else {
+                                onSelectFile?(entry)
+                            }
+                        } label: {
+                            HStack {
+                                Image(systemName: "doc.waveform")
+                                    .foregroundStyle(Color.blue)
 
-                        Spacer()
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(entry.serverFilename)
+                                        .font(.body)
+                                        .lineLimit(2)
+                                    Text(detailText(for: entry))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
 
-                        if entry.isDir {
-                            Image(systemName: "chevron.right")
-                                .foregroundStyle(.tertiary)
+                                Spacer()
+                            }
                         }
+                        .buttonStyle(.borderless)
+                        .foregroundColor(.primary)
                     }
                 }
             }
