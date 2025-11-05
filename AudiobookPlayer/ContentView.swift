@@ -71,7 +71,6 @@ struct PlayingView: View {
 
     @State private var missingAuthAlert = false
     @State private var showingCacheManagement = false
-    @State private var showCacheTools = false
 
     private var currentPlayback: PlaybackSnapshot? {
         guard
@@ -215,8 +214,6 @@ struct PlayingView: View {
             savedProgressView(state: snapshot.state)
 
             resumeButton(collection: snapshot.collection, track: snapshot.track)
-
-            cacheStatusSection(for: snapshot.track)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -224,73 +221,6 @@ struct PlayingView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.accentColor.opacity(0.2))
         )
-    }
-
-    @ViewBuilder
-    private func cacheStatusSection(for track: AudiobookTrack) -> some View {
-        if case .baidu = track.location {
-            let status = audioPlayer.cacheStatus(for: track)
-
-            GroupBox {
-                DisclosureGroup(isExpanded: $showCacheTools) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if let status {
-                            ProgressView(value: status.percentage, total: 1.0)
-                                .progressViewStyle(.linear)
-
-                            HStack {
-                                Text(cacheAmountText(for: status))
-                                Spacer()
-                                Text(percentageString(status.percentage))
-                            }
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(.secondary)
-
-                            if status.state == .partiallyCached {
-                                Text(NSLocalizedString("cache_tools_status_warning", comment: "Warning when partially cached"))
-                                    .font(.caption2)
-                                    .foregroundStyle(.secondary)
-                                    .padding(.top, 2)
-                            }
-
-                            Text(String(
-                                format: NSLocalizedString("cache_tools_retention", comment: "Cache retention description"),
-                                status.retentionDays,
-                                status.retentionDays == 1 ? NSLocalizedString("cache_tools_day", comment: "Singular day") : NSLocalizedString("cache_tools_days", comment: "Plural days")
-                            ))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .padding(.top, 2)
-                        } else {
-                            Text(NSLocalizedString("cache_tools_status_streaming", comment: "Streaming fallback message"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        Button {
-                            showingCacheManagement = true
-                        } label: {
-                            Label(NSLocalizedString("cache_tools_manage_button", comment: "Manage cache button"), systemImage: "slider.horizontal.3")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
-                    .padding(.top, 4)
-                } label: {
-                    HStack {
-                        Label(NSLocalizedString("cache_tools_label", comment: "Cache tools section"), systemImage: "internaldrive")
-                            .font(.subheadline)
-                        Spacer()
-                        Text(statusTitle(for: status))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 2)
-                }
-            }
-            .groupBoxStyle(CompactGroupBoxStyle())
-        }
     }
 
     @ViewBuilder
