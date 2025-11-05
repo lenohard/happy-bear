@@ -27,6 +27,10 @@
 "expires_label" = "Expires %@";
 "file_details" = "File Details";
 "file_details_hint" = "Select \"Close\" and use the toolbar actions in the browser to download or stream once implemented.";
+"add_to_favorites" = "Add to Favorites";
+"favorite_tracks_empty" = "No favorite tracks yet";
+"favorite_tracks_title" = "Favorite Tracks";
+"favorites_section" = "Favorites";
 "folder_empty" = "This folder is empty.";
 "fully_cached" = "Fully Cached";
 "import_again_button" = "Import Again";
@@ -59,6 +63,7 @@
 "preparing" = "Preparing...";
 "refresh_button" = "Refresh";
 "reload_button" = "Reload";
+"remove_from_favorites" = "Remove from Favorites";
 "resume_listening" = "Resume Listening";
 "scanning_folder" = "Scanning folder...";
 "scopes_label" = "Scopes: %@";

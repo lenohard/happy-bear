@@ -27,6 +27,10 @@
 "expires_label" = "过期时间 %@";
 "file_details" = "文件详情";
 "file_details_hint" = "选择\"关闭\"并使用浏览器中的工具栏操作以在实现后下载或流式传输。";
+"add_to_favorites" = "添加到收藏";
+"favorite_tracks_empty" = "还没有收藏任何音轨";
+"favorite_tracks_title" = "收藏音轨";
+"favorites_section" = "收藏";
 "folder_empty" = "此文件夹为空。";
 "fully_cached" = "完全缓存";
 "import_again_button" = "再次导入";
@@ -59,6 +63,7 @@
 "preparing" = "准备中...";
 "refresh_button" = "刷新";
 "reload_button" = "重新加载";
+"remove_from_favorites" = "从收藏中移除";
 "resume_listening" = "继续收听";
 "scanning_folder" = "正在扫描文件夹...";
 "scopes_label" = "作用域：%@";

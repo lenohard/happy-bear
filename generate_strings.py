@@ -137,6 +137,13 @@ STRINGS = {
     "track_picker_remove_selected": ("Remove from selection", "从选择中移除"),
     "track_picker_add_selected": ("Add Selected", "添加所选"),
     "track_picker_collection_readonly": ("This collection cannot be modified", "无法修改此合集"),
+
+    # Favorites Feature
+    "favorite_tracks_title": ("Favorite Tracks", "收藏音轨"),
+    "favorite_tracks_empty": ("No favorite tracks yet", "还没有收藏任何音轨"),
+    "add_to_favorites": ("Add to Favorites", "添加到收藏"),
+    "remove_from_favorites": ("Remove from Favorites", "从收藏中移除"),
+    "favorites_section": ("Favorites", "收藏"),
 }
 
 def generate_xcstrings():
