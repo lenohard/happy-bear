@@ -91,8 +91,8 @@ struct LibraryView: View {
                         FavoriteTracksView()
                     } label: {
                         Label(NSLocalizedString("favorite_tracks_title", comment: "Favorite tracks view title"), systemImage: "heart.fill")
-                            .foregroundStyle(.red)
                     }
+                    .tint(.red)
 
                     Button {
                         Task { await library.load() }
