@@ -45,6 +45,7 @@ final class AudioPlayerViewModel: ObservableObject {
 
         var isFullyCached: Bool { state == .fullyCached || state == .local }
     }
+}
 #if os(iOS)
     private var remoteCommandTargets: [(MPRemoteCommand, Any)] = []
     private var nowPlayingInfo: [String: Any] = [:]
