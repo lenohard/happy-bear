@@ -24,8 +24,6 @@ struct LibraryView: View {
                     EmptyLibraryView()
                 } else {
                     List {
-                        favoritesSection
-
                         Section(NSLocalizedString("collections_section", comment: "Collections section title")) {
                             ForEach(library.collections) { collection in
                                 ZStack {
@@ -88,6 +86,13 @@ struct LibraryView: View {
                             .labelStyle(.titleAndIcon)
                     }
                     .menuStyle(.button)
+
+                    NavigationLink {
+                        FavoriteTracksView()
+                    } label: {
+                        Label(NSLocalizedString("favorite_tracks_title", comment: "Favorite tracks view title"), systemImage: "heart.fill")
+                            .foregroundStyle(.red)
+                    }
 
                     Button {
                         Task { await library.load() }
@@ -160,28 +165,6 @@ struct LibraryView: View {
         guard let error = library.lastError else { return nil }
         return error.localizedDescription
     }
-    
-    @ViewBuilder
-    private var favoritesSection: some View {
-        let entries = library.favoriteTrackEntries()
-        Section(NSLocalizedString("favorites_section", comment: "Favorites section title")) {
-            if entries.isEmpty {
-                Text(NSLocalizedString("favorite_tracks_empty", comment: "Empty favorites message"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 6)
-            } else {
-                ForEach(entries) { entry in
-                    FavoriteTrackRow(
-                        entry: entry,
-                        isActive: isTrackActive(entry),
-                        onPlay: { playFavorite(entry) },
-                        onToggleFavorite: { library.toggleFavorite(for: entry.track.id, in: entry.collection.id) }
-                    )
-                }
-            }
-        }
-    }
 
     private func resumeCollectionPlayback(_ collection: AudiobookCollection) {
         guard !collection.tracks.isEmpty else { return }
@@ -197,10 +180,6 @@ struct LibraryView: View {
         }
     }
     
-    private func playFavorite(_ entry: LibraryStore.FavoriteTrackEntry) {
-        playTrack(entry.track, in: entry.collection)
-    }
-    
     private func playTrack(_ track: AudiobookTrack, in collection: AudiobookCollection) {
         if case .baiduNetdisk(_, _) = collection.source {
             guard let token = authViewModel.token else {
@@ -214,13 +193,7 @@ struct LibraryView: View {
         
         tabSelection.switchToPlayingTab()
     }
-    
-    private func isTrackActive(_ entry: LibraryStore.FavoriteTrackEntry) -> Bool {
-        audioPlayer.activeCollection?.id == entry.collection.id &&
-        audioPlayer.currentTrack?.id == entry.track.id
-    }
 }
-
 private struct EmptyLibraryView: View {
     var body: some View {
         VStack(spacing: 16) {
@@ -255,57 +228,6 @@ private struct LoadingLibraryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .secondarySystemBackground))
-    }
-}
-
-private struct FavoriteTrackRow: View {
-    let entry: LibraryStore.FavoriteTrackEntry
-    let isActive: Bool
-    let onPlay: () -> Void
-    let onToggleFavorite: () -> Void
-    
-    private var favoritedDateString: String? {
-        guard let date = entry.track.favoritedAt else { return nil }
-        return date.formatted(date: .abbreviated, time: .shortened)
-    }
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(entry.track.displayName)
-                        .font(.body)
-                        .lineLimit(1)
-                    
-                    if isActive {
-                        Image(systemName: "waveform.circle.fill")
-                            .foregroundStyle(Color.accentColor)
-                            .accessibilityHidden(true)
-                    }
-                }
-                
-                Text(entry.collection.title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                
-                if let favoritedDateString {
-                    Text(favoritedDateString)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-            }
-            
-            Spacer()
-            
-            FavoriteToggleButton(isFavorite: true) {
-                onToggleFavorite()
-            }
-        }
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onPlay)
-        .accessibilityElement(children: .combine)
     }
 }
 

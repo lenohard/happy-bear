@@ -177,8 +177,6 @@ struct PlayingView: View {
             liveTimeline()
 
             controlButtons(collection: snapshot.collection, track: snapshot.track)
-
-            cacheStatusSection(for: snapshot.track)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -386,20 +384,50 @@ struct PlayingView: View {
             }
             .buttonStyle(.plain)
 
-            FavoriteToggleButton(isFavorite: track.isFavorite, style: .bordered) {
-                library.toggleFavorite(for: track.id, in: collection.id)
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            
+            compactActionRow(collection: collection, track: track)
+        }
+    }
+
+    @ViewBuilder
+    private func compactActionRow(collection: AudiobookCollection, track: AudiobookTrack) -> some View {
+        HStack(spacing: 12) {
             NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
-                HStack {
+                HStack(spacing: 6) {
                     Image(systemName: "books.vertical")
                     Text(NSLocalizedString("open_collection", comment: "Open collection button"))
                 }
-                .frame(maxWidth: .infinity)
+                .font(.subheadline)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.bordered)
+
+            Spacer()
+
+            Button {
+                library.toggleFavorite(for: track.id, in: collection.id)
+            } label: {
+                Image(systemName: track.isFavorite ? "heart.fill" : "heart")
+                    .foregroundStyle(track.isFavorite ? .pink : .gray)
+            }
+            .buttonStyle(.plain)
+
+            if case .baidu = track.location {
+                let status = audioPlayer.cacheStatus(for: track)
+                Button {
+                    showingCacheManagement = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(statusTitle(for: status))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
         }
+        .padding(.horizontal, 4)
     }
 
     private var hasPreviousTrack: Bool {

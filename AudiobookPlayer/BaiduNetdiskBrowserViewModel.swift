@@ -118,6 +118,19 @@ final class BaiduNetdiskBrowserViewModel: ObservableObject {
         }
     }
 
+    func navigate(to path: String) {
+        guard path != currentPath else { return }
+
+        if let index = pathHistory.firstIndex(of: path) {
+            pathHistory = Array(pathHistory.prefix(through: index))
+        } else {
+            pathHistory.append(path)
+        }
+
+        currentPath = path
+        refresh()
+    }
+
     var canNavigateUp: Bool {
         pathHistory.count > 1
     }

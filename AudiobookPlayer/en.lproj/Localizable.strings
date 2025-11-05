@@ -30,6 +30,7 @@
 "add_to_favorites" = "Add to Favorites";
 "favorite_tracks_empty" = "No favorite tracks yet";
 "favorite_tracks_title" = "Favorite Tracks";
+"favorite_tracks_summary_suffix" = "and %d more";
 "favorites_section" = "Favorites";
 "folder_empty" = "This folder is empty.";
 "fully_cached" = "Fully Cached";

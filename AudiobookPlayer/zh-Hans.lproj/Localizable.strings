@@ -28,8 +28,9 @@
 "file_details" = "文件详情";
 "file_details_hint" = "选择\"关闭\"并使用浏览器中的工具栏操作以在实现后下载或流式传输。";
 "add_to_favorites" = "添加到收藏";
-"favorite_tracks_empty" = "还没有收藏任何音轨";
-"favorite_tracks_title" = "收藏音轨";
+"favorite_tracks_empty" = "还没有收藏任何音频";
+"favorite_tracks_title" = "收藏音频";
+"favorite_tracks_summary_suffix" = "等另外 %d 条";
 "favorites_section" = "收藏";
 "folder_empty" = "此文件夹为空。";
 "fully_cached" = "完全缓存";
@@ -43,9 +44,9 @@
 "local_file" = "本地文件";
 "local_files_coming_soon" = "本地文件（即将推出）";
 "local_files_section" = "本地文件";
-"more_tracks_notice" = "...还有 %d 个音轨";
+"more_tracks_notice" = "...还有 %d 个音频";
 "netdisk_file_title" = "网盘文件";
-"no_audio_tracks" = "找不到音频音轨。";
+"no_audio_tracks" = "找不到音频。";
 "no_listening_progress" = "尚未记录任何收听进度。";
 "no_results_for" = "找不到\"%@\"的结果";
 "no_search_results" = "找不到\"%@\"的结果。";
