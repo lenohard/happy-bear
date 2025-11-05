@@ -60,10 +60,6 @@ struct CollectionDetailView: View {
         } message: {
             Text(NSLocalizedString("sign_in_on_sources_tab", comment: "Sign in on sources tab message"))
         }
-        .task(id: collection?.updatedAt) {
-            guard let collection = collection else { return }
-            audioPlayer.prepareCollection(collection)
-        }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             guard
                 audioPlayer.activeCollection?.id == collectionID,

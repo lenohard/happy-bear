@@ -73,17 +73,28 @@ struct PlayingView: View {
     @State private var showingCacheManagement = false
 
     private var currentPlayback: PlaybackSnapshot? {
-        guard
-            let collectionID = audioPlayer.activeCollection?.id,
-            let trackID = audioPlayer.currentTrack?.id,
-            let collection = library.collections.first(where: { $0.id == collectionID }),
-            let track = collection.tracks.first(where: { $0.id == trackID })
-        else {
+        guard let trackID = audioPlayer.currentTrack?.id else {
             return nil
         }
 
-        let state = collection.playbackState(for: track.id)
-        return PlaybackSnapshot(collection: collection, track: track, state: state, isLive: true)
+        // First, try to find the track in activeCollection (the normal case)
+        if let collectionID = audioPlayer.activeCollection?.id,
+           let collection = library.collections.first(where: { $0.id == collectionID }),
+           let track = collection.tracks.first(where: { $0.id == trackID }) {
+            let state = collection.playbackState(for: track.id)
+            return PlaybackSnapshot(collection: collection, track: track, state: state, isLive: true)
+        }
+
+        // Defensive fallback: if track not in activeCollection, search all collections
+        // This handles the case where activeCollection got out of sync with actual playback
+        for collection in library.collections {
+            if let track = collection.tracks.first(where: { $0.id == trackID }) {
+                let state = collection.playbackState(for: track.id)
+                return PlaybackSnapshot(collection: collection, track: track, state: state, isLive: true)
+            }
+        }
+
+        return nil
     }
 
     private var fallbackPlayback: PlaybackSnapshot? {
