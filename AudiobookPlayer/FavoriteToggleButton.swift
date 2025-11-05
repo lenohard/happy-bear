@@ -19,7 +19,7 @@ struct FavoriteToggleButton: View {
     
     var body: some View {
         styledButton
-            .tint(isFavorite ? .pink : .accentColor)
+            .tint(isFavorite ? .red : .accentColor)
             .accessibilityLabel(Text(accessibilityLabel))
             .accessibilityAddTraits(isFavorite ? [.isSelected] : [])
     }
@@ -31,7 +31,7 @@ struct FavoriteToggleButton: View {
             Button(action: action) {
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
                     .font(.title3)
-                    .foregroundStyle(isFavorite ? .pink : .secondary)
+                    .foregroundStyle(isFavorite ? .red : .secondary)
             }
             .buttonStyle(.plain)
         case .bordered:
