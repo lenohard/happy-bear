@@ -175,15 +175,21 @@ struct CollectionDetailView: View {
                     .padding(.vertical, 4)
             } else {
                 ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
-                    Button {
-                        startPlayback(track, in: collection)
-                    } label: {
-                        TrackRow(
-                            index: index,
-                            track: track,
-                            isActive: isCurrentTrack(track: track),
-                            playbackState: collection.playbackState(for: track.id)
-                        )
+                    TrackRow(
+                        index: index,
+                        track: track,
+                        isActive: isCurrentTrack(track: track),
+                        playbackState: collection.playbackState(for: track.id),
+                        isFavorite: track.isFavorite,
+                        onSelect: {
+                            startPlayback(track, in: collection)
+                        },
+                        onToggleFavorite: {
+                            library.toggleFavorite(for: track.id, in: collection.id)
+                        }
+                    )
+                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                        favoriteSwipeButton(for: track, in: collection)
                     }
                     .swipeActions(edge: .trailing) {
                         if library.canModifyCollection(collectionID) {
@@ -283,6 +289,21 @@ struct CollectionDetailView: View {
     private func addTracksAction() {
         showTrackPicker = true
     }
+    
+    @ViewBuilder
+    private func favoriteSwipeButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
+        Button {
+            library.toggleFavorite(for: track.id, in: collection.id)
+        } label: {
+            Label(
+                track.isFavorite
+                ? NSLocalizedString("remove_from_favorites", comment: "Remove from favorites")
+                : NSLocalizedString("add_to_favorites", comment: "Add to favorites"),
+                systemImage: track.isFavorite ? "heart.slash" : "heart"
+            )
+        }
+        .tint(track.isFavorite ? .pink : .accentColor)
+    }
 
     private func removePrompt(for track: AudiobookTrack) -> String {
         let template = NSLocalizedString("remove_track_prompt", comment: "Remove track confirmation prompt")
@@ -317,6 +338,9 @@ private struct TrackRow: View {
     let track: AudiobookTrack
     let isActive: Bool
     let playbackState: TrackPlaybackState?
+    let isFavorite: Bool
+    let onSelect: () -> Void
+    let onToggleFavorite: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -339,15 +363,28 @@ private struct TrackRow: View {
 
             Spacer()
 
+            FavoriteToggleButton(isFavorite: isFavorite) {
+                onToggleFavorite()
+            }
+
+            statusIcon
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onSelect)
+    }
+    
+    private var statusIcon: some View {
+        Group {
             if isActive {
                 Image(systemName: "waveform.circle.fill")
                     .foregroundStyle(Color.accentColor)
+                    .accessibilityLabel(NSLocalizedString("now_playing_indicator", comment: "Indicator for currently playing track"))
             } else {
                 Image(systemName: "play.fill")
                     .foregroundStyle(.tertiary)
+                    .accessibilityHidden(true)
             }
         }
-        .contentShape(Rectangle())
     }
 
     @ViewBuilder

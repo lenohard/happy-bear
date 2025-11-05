@@ -236,6 +236,15 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
     var trackNumber: Int
     var checksum: String?
     var metadata: [String: String]
+    
+    // NEW: Favorite properties
+    var isFavorite: Bool = false
+    var favoritedAt: Date?
+    
+    private enum CodingKeys: String, CodingKey {
+        case id, displayName, filename, location, fileSize, duration, trackNumber, checksum, metadata
+        case isFavorite, favoritedAt
+    }
 }
 
 struct CollectionCover: Codable, Equatable {

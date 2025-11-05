@@ -75,8 +75,10 @@ struct PlayingView: View {
 
     private var currentPlayback: PlaybackSnapshot? {
         guard
-            let collection = audioPlayer.activeCollection,
-            let track = audioPlayer.currentTrack
+            let collectionID = audioPlayer.activeCollection?.id,
+            let trackID = audioPlayer.currentTrack?.id,
+            let collection = library.collections.first(where: { $0.id == collectionID }),
+            let track = collection.tracks.first(where: { $0.id == trackID })
         else {
             return nil
         }
@@ -174,7 +176,7 @@ struct PlayingView: View {
 
             liveTimeline()
 
-            controlButtons()
+            controlButtons(collection: snapshot.collection, track: snapshot.track)
 
             cacheStatusSection(for: snapshot.track)
         }
@@ -189,19 +191,27 @@ struct PlayingView: View {
     @ViewBuilder
     private func resumeCard(snapshot: PlaybackSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(NSLocalizedString("resume_listening", comment: "Resume listening label"))
-                    .font(.headline)
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(NSLocalizedString("resume_listening", comment: "Resume listening label"))
+                        .font(.headline)
 
-                Text(snapshot.collection.title)
-                    .font(.subheadline)
-                    .bold()
-                    .lineLimit(2)
+                    Text(snapshot.collection.title)
+                        .font(.subheadline)
+                        .bold()
+                        .lineLimit(2)
 
-                Text(snapshot.track.displayName)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    Text(snapshot.track.displayName)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                
+                Spacer()
+                
+                FavoriteToggleButton(isFavorite: snapshot.track.isFavorite) {
+                    library.toggleFavorite(for: snapshot.track.id, in: snapshot.collection.id)
+                }
             }
 
             savedProgressView(state: snapshot.state)
@@ -334,7 +344,7 @@ struct PlayingView: View {
     }
 
     @ViewBuilder
-    private func controlButtons() -> some View {
+    private func controlButtons(collection: AudiobookCollection, track: AudiobookTrack) -> some View {
         VStack(spacing: 16) {
             HStack(spacing: 24) {
                 Button {
@@ -376,16 +386,19 @@ struct PlayingView: View {
             }
             .buttonStyle(.plain)
 
-            if let collection = audioPlayer.activeCollection {
-                NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
-                    HStack {
-                        Image(systemName: "books.vertical")
-                        Text(NSLocalizedString("open_collection", comment: "Open collection button"))
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
+            FavoriteToggleButton(isFavorite: track.isFavorite, style: .bordered) {
+                library.toggleFavorite(for: track.id, in: collection.id)
             }
+            .frame(maxWidth: .infinity, alignment: .center)
+            
+            NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
+                HStack {
+                    Image(systemName: "books.vertical")
+                    Text(NSLocalizedString("open_collection", comment: "Open collection button"))
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
 
@@ -518,10 +531,19 @@ struct PlayingView: View {
                                     .bold()
                                     .lineLimit(1)
 
-                                Text(entry.track.displayName)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                                HStack(spacing: 4) {
+                                    Text(entry.track.displayName)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                    
+                                    if entry.track.isFavorite {
+                                        Image(systemName: "heart.fill")
+                                            .foregroundStyle(.pink)
+                                            .font(.caption)
+                                            .accessibilityHidden(true)
+                                    }
+                                }
                             }
 
                             Spacer()

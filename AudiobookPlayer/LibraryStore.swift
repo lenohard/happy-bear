@@ -14,7 +14,7 @@ final class LibraryStore: ObservableObject {
 
     private let persistence: LibraryPersistence
     private let syncEngine: LibrarySyncing?
-    private let schemaVersion = 2
+    private let schemaVersion = 3
 
     init(
         persistence: LibraryPersistence = .default,
@@ -219,6 +219,74 @@ final class LibraryStore: ObservableObject {
             return true
         case .external:
             return false
+        }
+    }
+    
+    // MARK: - Favorite Management
+    
+    func toggleFavorite(for trackID: UUID, in collectionID: UUID) {
+        guard let collectionIndex = collections.firstIndex(where: { $0.id == collectionID }) else { return }
+        guard let trackIndex = collections[collectionIndex].tracks.firstIndex(where: { $0.id == trackID }) else { return }
+        
+        var collection = collections[collectionIndex]
+        var track = collection.tracks[trackIndex]
+        
+        track.isFavorite.toggle()
+        track.favoritedAt = track.isFavorite ? Date() : nil
+        
+        collection.tracks[trackIndex] = track
+        collection.updatedAt = Date()
+        
+        collections[collectionIndex] = collection
+        collections.sort { $0.updatedAt > $1.updatedAt }
+        persistCurrentSnapshot()
+        
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(collection)
+            }
+        }
+    }
+}
+
+extension LibraryStore {
+    struct FavoriteTrackEntry: Identifiable, Equatable {
+        let collection: AudiobookCollection
+        let track: AudiobookTrack
+        
+        var id: UUID { track.id }
+    }
+    
+    struct FavoriteTracksGroup: Identifiable, Equatable {
+        let collection: AudiobookCollection
+        let tracks: [AudiobookTrack]
+        
+        var id: UUID { collection.id }
+    }
+    
+    func favoriteTracks() -> [AudiobookTrack] {
+        collections
+            .flatMap { $0.tracks.filter(\.isFavorite) }
+            .sorted { ($0.favoritedAt ?? .distantPast) > ($1.favoritedAt ?? .distantPast) }
+    }
+    
+    func favoriteTrackEntries() -> [FavoriteTrackEntry] {
+        collections.flatMap { collection in
+            collection.tracks
+                .filter(\.isFavorite)
+                .map { FavoriteTrackEntry(collection: collection, track: $0) }
+        }
+        .sorted { ($0.track.favoritedAt ?? .distantPast) > ($1.track.favoritedAt ?? .distantPast) }
+    }
+    
+    func favoriteTracksByCollection() -> [FavoriteTracksGroup] {
+        collections.compactMap { collection in
+            let favorites = collection.tracks.filter(\.isFavorite)
+            guard !favorites.isEmpty else { return nil }
+            let sortedFavorites = favorites.sorted {
+                ($0.favoritedAt ?? .distantPast) > ($1.favoritedAt ?? .distantPast)
+            }
+            return FavoriteTracksGroup(collection: collection, tracks: sortedFavorites)
         }
     }
 
