@@ -154,8 +154,9 @@ struct LibraryView: View {
             CreateCollectionView(
                 folderPath: importSelection.path,
                 tokenProvider: { authViewModel.token },
-                onComplete: { collection in
-                    audioPlayer.loadCollection(collection)
+                onComplete: { _ in
+                    // Collection is automatically added to library,
+                    // don't interrupt current playback
                 }
             )
         }

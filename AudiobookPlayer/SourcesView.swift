@@ -78,9 +78,9 @@ struct SourcesView: View {
             CreateCollectionView(
                 folderPath: identifiablePath.value,
                 tokenProvider: { authViewModel.token },
-                onComplete: { collection in
-                    // Optionally load the collection immediately
-                    audioPlayer.loadCollection(collection)
+                onComplete: { _ in
+                    // Collection is automatically added to library,
+                    // don't interrupt current playback
                 }
             )
         }

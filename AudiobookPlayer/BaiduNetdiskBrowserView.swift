@@ -162,20 +162,17 @@ struct BaiduNetdiskBrowserView: View {
                                 Image(systemName: "folder.fill")
                                     .foregroundStyle(Color.accentColor)
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(entry.serverFilename)
-                                        .font(.body)
-                                        .lineLimit(2)
-                                    Text(detailText(for: entry))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
+                                Text(entry.serverFilename)
+                                    .font(.body)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
 
                                 Spacer()
 
                                 Image(systemName: "chevron.right")
                                     .foregroundStyle(.tertiary)
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.borderless)
                         .foregroundColor(.primary)
@@ -196,13 +193,17 @@ struct BaiduNetdiskBrowserView: View {
                                     Text(entry.serverFilename)
                                         .font(.body)
                                         .lineLimit(2)
-                                    Text(detailText(for: entry))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .multilineTextAlignment(.leading)
+                                    if let detail = detailText(for: entry) {
+                                        Text(detail)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
                                 }
 
                                 Spacer()
                             }
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.borderless)
                         .foregroundColor(.primary)
@@ -232,9 +233,9 @@ struct BaiduNetdiskBrowserView: View {
         }
     }
 
-    private func detailText(for entry: BaiduNetdiskEntry) -> String {
+    private func detailText(for entry: BaiduNetdiskEntry) -> String? {
         if entry.isDir {
-            return "Folder"
+            return nil
         }
 
         let sizeFormatter = ByteCountFormatter()
