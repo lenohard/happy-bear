@@ -908,7 +908,7 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "未找到藏书集合"
+            "value": "找不到合集"
           }
         }
       }
@@ -918,13 +918,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "This audiobook collection could not be located in your library."
+            "value": "This collection appears to have been deleted or is no longer available."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "找不到您的图书馆中的这个有声书集合。"
+            "value": "此合集似乎已被删除或不再可用。"
           }
         }
       }
@@ -934,13 +934,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%d tracks • %@ total"
+            "value": "%d tracks • %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "%d 个音轨 • 总计 %@"
+            "value": "%d 首曲目 • %@"
           }
         }
       }
@@ -950,13 +950,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No audio tracks found."
+            "value": "No audio tracks"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "找不到音频音轨。"
+            "value": "无音频曲目"
           }
         }
       }
@@ -966,13 +966,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No results for \"%@\"."
+            "value": "No results found for \"%@\""
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "找不到\"%@\"的结果。"
+            "value": "未找到 \"%@\" 的结果"
           }
         }
       }
@@ -1185,27 +1185,7 @@
         }
       }
     },
-    "select_all_button": {},
-    "deselect_all_button": {},
-    "select_tracks_section": {},
-    "no_tracks_selected_error": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Please select at least one track"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请至少选择一首曲目"
-          }
-        }
-      }
-    },
     "add_tracks_button": {
-      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1222,7 +1202,6 @@
       }
     },
     "remove_track_action": {
-      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1239,41 +1218,134 @@
       }
     },
     "remove_track_prompt": {
-      "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remove Track"
+            "value": "Remove '{{name}}' from this collection?"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "删除曲目"
+            "value": "从此合集中删除 '{{name}}'？"
           }
         }
       }
     },
-    "remove_track_message": {
-      "extractionState": "manual",
+    "search_tracks_prompt": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Remove '%@' from this collection?"
+            "value": "Search tracks"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "从此合集中删除 '%@'？"
+            "value": "搜索曲目"
           }
         }
       }
     },
-    "add_selected_button": {
-      "extractionState": "manual",
+    "track_picker_selected_count": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d selected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已选择 %d"
+          }
+        }
+      }
+    },
+    "track_picker_selection_summary": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected files will be added to this collection"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选文件将添加到此合集"
+          }
+        }
+      }
+    },
+    "track_picker_placeholder_title": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No Tracks Selected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未选择曲目"
+          }
+        }
+      }
+    },
+    "track_picker_placeholder_message": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse Baidu Netdisk to select audio files to add"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浏览百度网盘以选择要添加的音频文件"
+          }
+        }
+      }
+    },
+    "track_picker_browse_button": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Browse Netdisk"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "浏览网盘"
+          }
+        }
+      }
+    },
+    "track_picker_remove_selected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from selection"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从选择中移除"
+          }
+        }
+      }
+    },
+    "track_picker_add_selected": {
       "localizations": {
         "en": {
           "stringUnit": {
@@ -1289,88 +1361,18 @@
         }
       }
     },
-    "cancel_button": {
-      "extractionState": "manual",
+    "track_picker_collection_readonly": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cancel"
+            "value": "This collection cannot be modified"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "取消"
-          }
-        }
-      }
-    },
-    "track_picker_placeholder_title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Track picker coming soon"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "曲目选择即将推出"
-          }
-        }
-      }
-    },
-    "track_picker_placeholder_message": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "We are building a richer browser for Baidu Netdisk tracks. For now, use the desktop app to manage files."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "我们正在构建更丰富的百度网盘曲目浏览器。目前请使用桌面应用管理文件。"
-          }
-        }
-      }
-    },
-    "track_count_selected": {},
-    "track_row_track_number": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "#{{number}}"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "第 {{number}} 首"
-          }
-        }
-      }
-    },
-    "search_tracks_prompt": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search tracks"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索曲目"
+            "value": "无法修改此合集"
           }
         }
       }

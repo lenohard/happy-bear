@@ -107,6 +107,36 @@ STRINGS = {
 
     # Local Files Section
     "local_files_section": ("Local Files", "本地文件"),
+
+    # Collection Detail & Track Management
+    "add_tracks_button": ("Add Tracks", "添加曲目"),
+    "remove_track_action": ("Remove", "删除"),
+    "remove_track_prompt": ("Remove '{{name}}' from this collection?", "从此合集中删除 '{{name}}'？"),
+    "search_tracks_prompt": ("Search tracks", "搜索曲目"),
+    "collection_not_found": ("Collection Not Found", "找不到合集"),
+    "collection_not_found_message": (
+        "This collection appears to have been deleted or is no longer available.",
+        "此合集似乎已被删除或不再可用。"
+    ),
+    "no_audio_tracks": ("No audio tracks", "无音频曲目"),
+    "no_search_results": ("No results found for \"%@\"", "未找到 \"%@\" 的结果"),
+    "track_count_and_size": ("%d tracks • %@", "%d 首曲目 • %@"),
+
+    # Track Picker View
+    "track_picker_selected_count": ("%d selected", "已选择 %d"),
+    "track_picker_selection_summary": (
+        "Selected files will be added to this collection",
+        "所选文件将添加到此合集"
+    ),
+    "track_picker_placeholder_title": ("No Tracks Selected", "未选择曲目"),
+    "track_picker_placeholder_message": (
+        "Browse Baidu Netdisk to select audio files to add",
+        "浏览百度网盘以选择要添加的音频文件"
+    ),
+    "track_picker_browse_button": ("Browse Netdisk", "浏览网盘"),
+    "track_picker_remove_selected": ("Remove from selection", "从选择中移除"),
+    "track_picker_add_selected": ("Add Selected", "添加所选"),
+    "track_picker_collection_readonly": ("This collection cannot be modified", "无法修改此合集"),
 }
 
 def generate_xcstrings():

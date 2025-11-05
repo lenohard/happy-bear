@@ -144,6 +144,84 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    // MARK: - Track Management (Phase 2)
+
+    func addTracksToCollection(
+        collectionID: UUID,
+        newTracks: [AudiobookTrack]
+    ) {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
+            return
+        }
+
+        var collection = collections[index]
+        let existingIds = Set(collection.tracks.map { $0.id })
+        let tracksToAdd = newTracks.filter { !existingIds.contains($0.id) }
+
+        guard !tracksToAdd.isEmpty else {
+            return
+        }
+
+        collection.tracks.append(contentsOf: tracksToAdd)
+        collection.updatedAt = Date()
+
+        collections[index] = collection
+        collections.sort { $0.updatedAt > $1.updatedAt }
+        persistCurrentSnapshot()
+
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(collection)
+            }
+        }
+    }
+
+    func removeTrackFromCollection(
+        collectionID: UUID,
+        trackID: UUID
+    ) {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
+            return
+        }
+
+        var collection = collections[index]
+        let originalCount = collection.tracks.count
+
+        collection.tracks.removeAll { $0.id == trackID }
+
+        guard collection.tracks.count < originalCount else {
+            return
+        }
+
+        collection.playbackStates.removeValue(forKey: trackID)
+        collection.updatedAt = Date()
+
+        collections[index] = collection
+        collections.sort { $0.updatedAt > $1.updatedAt }
+        persistCurrentSnapshot()
+
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(collection)
+            }
+        }
+    }
+
+    func canModifyCollection(_ collectionID: UUID) -> Bool {
+        guard let collection = collections.first(where: { $0.id == collectionID }) else {
+            return false
+        }
+
+        switch collection.source {
+        case .local:
+            return true
+        case .baiduNetdisk:
+            return true
+        case .external:
+            return false
+        }
+    }
+
     private func persistCurrentSnapshot() {
         let snapshot = LibraryFile(schemaVersion: schemaVersion, collections: collections)
         Task(priority: .utility) {

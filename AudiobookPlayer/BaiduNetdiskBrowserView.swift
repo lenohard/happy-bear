@@ -7,17 +7,23 @@ struct BaiduNetdiskBrowserView: View {
 
     var onSelectFile: ((BaiduNetdiskEntry) -> Void)?
     var onSelectFolder: ((String) -> Void)?
+    var selectedEntryIDs: Set<Int64>
+    var onToggleSelection: ((BaiduNetdiskEntry) -> Void)?
 
     private let audioExtensions: Set<String> = ["mp3", "m4a", "m4b", "aac", "flac", "wav"]
 
     init(
         tokenProvider: @escaping () -> BaiduOAuthToken?,
         onSelectFile: ((BaiduNetdiskEntry) -> Void)? = nil,
-        onSelectFolder: ((String) -> Void)? = nil
+        onSelectFolder: ((String) -> Void)? = nil,
+        selectedEntryIDs: Set<Int64> = [],
+        onToggleSelection: ((BaiduNetdiskEntry) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: BaiduNetdiskBrowserViewModel(tokenProvider: tokenProvider))
         self.onSelectFile = onSelectFile
         self.onSelectFolder = onSelectFolder
+        self.selectedEntryIDs = selectedEntryIDs
+        self.onToggleSelection = onToggleSelection
     }
 
     var body: some View {
@@ -134,13 +140,20 @@ struct BaiduNetdiskBrowserView: View {
             ForEach(filteredEntries) { entry in
                 Button {
                     if entry.isDir {
-                        searchText = ""  // Clear search when entering a folder
+                        searchText = ""
                         viewModel.enter(entry)
+                    } else if let onToggleSelection {
+                        onToggleSelection(entry)
                     } else {
                         onSelectFile?(entry)
                     }
                 } label: {
                     HStack {
+                        if onToggleSelection != nil {
+                            Image(systemName: selectedEntryIDs.contains(entry.fsId) ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(selectedEntryIDs.contains(entry.fsId) ? Color.accentColor : Color.secondary)
+                        }
+
                         Image(systemName: entry.isDir ? "folder.fill" : "doc.waveform")
                             .foregroundStyle(entry.isDir ? Color.accentColor : Color.blue)
 
