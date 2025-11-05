@@ -16,8 +16,6 @@ struct TrackPickerView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                selectionHeader
-
                 if selectedEntries.isEmpty {
                     emptyState
                 } else {
@@ -69,21 +67,9 @@ struct TrackPickerView: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.fraction(0.8), .large])
         .presentationDragIndicator(.visible)
         .onAppear(perform: validateState)
-    }
-
-    private var selectionHeader: some View {
-        VStack(spacing: 4) {
-            Text(String(format: NSLocalizedString("track_picker_selected_count", comment: "Selected count"), selectedEntries.count))
-                .font(.title3.weight(.semibold))
-            Text(NSLocalizedString("track_picker_selection_summary", comment: "Selection summary"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
     }
 
     private var emptyState: some View {

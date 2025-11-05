@@ -29,16 +29,18 @@ struct BaiduNetdiskBrowserView: View {
     var body: some View {
         List {
             Section {
-                HStack {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Label("Current Path", systemImage: "folder")
-                    Spacer()
+                        .font(.subheadline.weight(.semibold))
                     Text(viewModel.currentPath)
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
             }
-
-
 
             Section {
                 contentList
