@@ -4,7 +4,6 @@ struct BaiduNetdiskBrowserView: View {
     @StateObject private var viewModel: BaiduNetdiskBrowserViewModel
     @State private var searchText = ""
     @State private var isSearching = false
-    @State private var isShowingPathNavigator = false
 
     var onSelectFile: ((BaiduNetdiskEntry) -> Void)?
     var onSelectFolder: ((String) -> Void)?
@@ -12,10 +11,6 @@ struct BaiduNetdiskBrowserView: View {
     var onToggleSelection: ((BaiduNetdiskEntry) -> Void)?
 
     private let audioExtensions: Set<String> = ["mp3", "m4a", "m4b", "aac", "flac", "wav"]
-    private struct PathSegment: Identifiable {
-        let id: String
-        let title: String
-    }
 
     init(
         tokenProvider: @escaping () -> BaiduOAuthToken?,
@@ -33,11 +28,16 @@ struct BaiduNetdiskBrowserView: View {
 
     var body: some View {
         List {
-            Section {
-                contentList
-            } header: {
-                currentPathHeader
+            if !viewModel.currentPath.isEmpty {
+                Text(viewModel.currentPath)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .listRowInsets(.init(top: 4, leading: 16, bottom: 4, trailing: 16))
             }
+
+            contentList
         }
         .navigationTitle("Baidu Netdisk")
         .toolbar {
@@ -110,20 +110,6 @@ struct BaiduNetdiskBrowserView: View {
         .refreshable {
             viewModel.refresh()
         }
-        .confirmationDialog(
-            "Jump to folder",
-            isPresented: $isShowingPathNavigator,
-            titleVisibility: .visible
-        ) {
-            ForEach(breadcrumbSegments) { segment in
-                Button(segment.title) {
-                    viewModel.navigate(to: segment.id)
-                }
-                .disabled(segment.id == viewModel.currentPath)
-            }
-        } message: {
-            Text("Quickly switch to any parent folder in the current path.")
-        }
     }
 
 #Preview("Baidu Netdisk Browser") {
@@ -132,61 +118,6 @@ struct BaiduNetdiskBrowserView: View {
             .navigationBarTitleDisplayMode(.inline)
     }
 }
-
-    private var currentPathHeader: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: "folder")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-
-            Text("Current Path")
-                .font(.caption.weight(.semibold))
-
-            Text(viewModel.currentPath)
-                .font(.caption.monospaced())
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-
-            Spacer(minLength: 4)
-
-            Image(systemName: "chevron.down")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .textCase(nil)
-        .padding(.bottom, 2)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            isShowingPathNavigator = true
-        }
-    }
-
-    private var breadcrumbSegments: [PathSegment] {
-        var segments: [PathSegment] = [PathSegment(id: "/", title: "Root (/)")]
-
-        let components = viewModel.currentPath
-            .split(separator: "/")
-            .map(String.init)
-
-        var current = ""
-        for part in components where !part.isEmpty {
-            current += "/\(part)"
-            segments.append(PathSegment(id: current, title: "\(part) (\(current))"))
-        }
-
-        // Ensure we only show unique paths to avoid duplicate actions
-        var unique: [PathSegment] = []
-        var seen = Set<String>()
-        for segment in segments {
-            if !seen.contains(segment.id) {
-                unique.append(segment)
-                seen.insert(segment.id)
-            }
-        }
-        return unique
-    }
 
     @ViewBuilder
     private var contentList: some View {
