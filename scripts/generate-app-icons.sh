@@ -36,11 +36,15 @@ echo ""
 
 # iOS App Icon sizes (based on Contents.json requirements)
 declare -a SIZES=(
-    "120:AppIcon-120.png"    # iPhone 2x (60pt)
-    "180:AppIcon-180.png"    # iPhone 3x (60pt)
-    "80:AppIcon-80.png"      # iPad 2x (40pt)
-    "152:AppIcon-152.png"    # iPad 2x (76pt)
+    "40:AppIcon-40.png"      # Notification 2x (20pt)
+    "58:AppIcon-58.png"      # Settings 2x (29pt)
+    "60:AppIcon-60.png"      # Notification 3x (20pt)
+    "80:AppIcon-80.png"      # Spotlight 2x (40pt)
+    "87:AppIcon-87.png"      # Settings 3x (29pt)
+    "120:AppIcon-120.png"    # Spotlight 3x (40pt)
+    "152:AppIcon-152.png"    # iPad App 2x (76pt)
     "167:AppIcon-167.png"    # iPad Pro 2x (83.5pt)
+    "180:AppIcon-180.png"    # iPhone App 3x (60pt)
     "1024:AppIcon-1024.png"  # App Store
 )
 
