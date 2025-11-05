@@ -10,6 +10,7 @@
 "cache_tools_retention" = "保留：%d %@";
 "cache_tools_status_streaming" = "正在直接从百度网盘流式播放。";
 "cache_tools_status_warning" = "超出缓存范围的拖动将恢复流式播放。";
+"cancel_button" = "取消";
 "close_button" = "关闭";
 "collection_not_found" = "未找到藏书集合";
 "collection_not_found_message" = "找不到您的图书馆中的这个有声书集合。";

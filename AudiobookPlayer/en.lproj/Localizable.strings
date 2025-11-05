@@ -10,6 +10,7 @@
 "cache_tools_retention" = "Retention: %d %@";
 "cache_tools_status_streaming" = "Streaming directly from Baidu Netdisk.";
 "cache_tools_status_warning" = "Seeking outside the cached range will resume streaming.";
+"cancel_button" = "Cancel";
 "close_button" = "Close";
 "collection_not_found" = "Collection Not Found";
 "collection_not_found_message" = "This audiobook collection could not be located in your library.";

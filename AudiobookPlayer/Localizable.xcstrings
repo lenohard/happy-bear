@@ -1089,6 +1089,22 @@
         }
       }
     },
+    "cancel_button": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
     "cache_tools_retention": {
       "localizations": {
         "en": {
