@@ -30,12 +30,26 @@ enum CollectionBuildError: LocalizedError {
 struct CollectionDraft {
     var title: String
     var folderPath: String
-    var tracks: [AudiobookTrack]
+    var tracks: [AudiobookTrack]           // ALL discovered tracks
+    var selectedTrackIds: Set<UUID>        // Phase 1: tracks user selected
     var nonAudioFiles: [String]
     var totalSize: Int64
     var coverSuggestion: CollectionCover
 
-    var trackCount: Int { tracks.count }
+    /// Returns only SELECTED tracks (what gets saved to collection)
+    var selectedTracks: [AudiobookTrack] {
+        tracks.filter { selectedTrackIds.contains($0.id) }
+    }
+
+    /// Returns count of selected tracks (for UI display)
+    var selectedTrackCount: Int {
+        selectedTrackIds.count
+    }
+
+    /// Returns total discovered track count (for UI "X of Y" display)
+    var totalTrackCount: Int {
+        tracks.count
+    }
 }
 
 @MainActor
@@ -129,6 +143,7 @@ final class CollectionBuilderViewModel: ObservableObject {
                 title: defaultTitle,
                 folderPath: path,
                 tracks: tracks,
+                selectedTrackIds: Set(tracks.map(\.id)),          // ALL selected by default
                 nonAudioFiles: nonAudioFiles,
                 totalSize: totalSize,
                 coverSuggestion: coverSuggestion

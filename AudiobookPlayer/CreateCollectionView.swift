@@ -11,7 +11,9 @@ struct CreateCollectionView: View {
 
     @State private var editedTitle: String = ""
     @State private var editedDescription: String = ""
+    @State private var selectedTrackIds: Set<UUID> = []    // Phase 1: track selection state
     @State private var showingError = false
+    @State private var errorMessage: String = ""
 
     init(
         folderPath: String,
@@ -53,6 +55,11 @@ struct CreateCollectionView: View {
                 tokenProvider: tokenProvider
             )
         }
+        .alert("Error", isPresented: $showingError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(errorMessage)
+        }
     }
 
     private var loadingView: some View {
@@ -93,7 +100,7 @@ struct CreateCollectionView: View {
             }
 
             Section("Content") {
-                LabeledContent("Tracks", value: "\(draft.trackCount)")
+                LabeledContent("Tracks", value: "\(draft.totalTrackCount)")
                 LabeledContent("Total Size", value: formatBytes(draft.totalSize))
 
                 if !draft.nonAudioFiles.isEmpty {
@@ -112,28 +119,70 @@ struct CreateCollectionView: View {
                 }
             }
 
-            Section("Tracks Preview") {
-                ForEach(draft.tracks.prefix(10)) { track in
-                    HStack {
-                        Text("\(track.trackNumber)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .frame(width: 30)
+            Section("Select Tracks") {
+                if case .ready(let draft) = viewModel.state {
+                    VStack(spacing: 12) {
+                        HStack(spacing: 8) {
+                            Button(action: {
+                                selectedTrackIds = Set(draft.tracks.map(\.id))
+                            }) {
+                                Text("Select All")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.bordered)
 
-                        VStack(alignment: .leading) {
-                            Text(track.displayName)
-                                .font(.body)
-                            Text(formatBytes(track.fileSize))
+                            Spacer()
+
+                            Button(action: {
+                                selectedTrackIds.removeAll()
+                            }) {
+                                Text("Deselect All")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.bordered)
+
+                            Spacer()
+
+                            Text("\(selectedTrackIds.count) of \(draft.totalTrackCount)")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                    }
-                }
+                        .padding(.bottom, 8)
 
-                if draft.trackCount > 10 {
-                    Text("... and \(draft.trackCount - 10) more tracks")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        List {
+                            ForEach(draft.tracks) { track in
+                                HStack(spacing: 12) {
+                                    Image(systemName: selectedTrackIds.contains(track.id) ? "checkmark.square.fill" : "square")
+                                        .foregroundColor(selectedTrackIds.contains(track.id) ? .blue : .gray)
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(track.displayName)
+                                            .font(.body)
+                                            .lineLimit(2)
+
+                                        Text(formatBytes(track.fileSize))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    Text("\(track.trackNumber)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if selectedTrackIds.contains(track.id) {
+                                        selectedTrackIds.remove(track.id)
+                                    } else {
+                                        selectedTrackIds.insert(track.id)
+                                    }
+                                }
+                            }
+                        }
+                        .frame(maxHeight: 300)
+                    }
                 }
             }
 
@@ -186,6 +235,17 @@ struct CreateCollectionView: View {
     private func saveCollection() {
         guard case .ready(let draft) = viewModel.state else { return }
 
+        // Filter to only selected tracks
+        let selectedTracks = draft.tracks.filter {
+            selectedTrackIds.contains($0.id)
+        }
+
+        guard !selectedTracks.isEmpty else {
+            errorMessage = NSLocalizedString("no_tracks_selected_error", comment: "Must select at least one track")
+            showingError = true
+            return
+        }
+
         let collection = AudiobookCollection(
             id: UUID(),
             title: editedTitle.isEmpty ? draft.title : editedTitle,
@@ -198,7 +258,7 @@ struct CreateCollectionView: View {
                 folderPath: draft.folderPath,
                 tokenScope: tokenProvider()?.scope ?? "netdisk"
             ),
-            tracks: draft.tracks,
+            tracks: selectedTracks,  // Only selected tracks
             lastPlayedTrackId: nil,
             playbackStates: [:],
             tags: []
