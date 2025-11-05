@@ -105,12 +105,36 @@ struct TrackPickerView: View {
                         .foregroundStyle(.secondary)
                         .frame(width: 32, alignment: .leading)
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(entry.serverFilename)
+                    // Folder/File icon
+                    if entry.isDir {
+                        Image(systemName: "folder.fill")
+                            .foregroundStyle(Color.accentColor)
                             .font(.body)
-                            .lineLimit(2)
+                    } else {
+                        Image(systemName: "doc.waveform")
+                            .foregroundStyle(Color.blue)
+                            .font(.body)
+                    }
 
-                        Text(formatBytes(entry.size))
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 8) {
+                            Text(entry.serverFilename)
+                                .font(.body)
+                                .lineLimit(2)
+
+                            if entry.isDir {
+                                Text("Folder")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(Color.accentColor)
+                                    .cornerRadius(4)
+                            }
+                        }
+
+                        Text(entry.isDir ? "\(entry.serverFilename) folder" : formatBytes(entry.size))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
 
