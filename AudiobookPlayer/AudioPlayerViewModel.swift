@@ -45,11 +45,10 @@ final class AudioPlayerViewModel: ObservableObject {
 
         var isFullyCached: Bool { state == .fullyCached || state == .local }
     }
-}
-#if os(iOS)
+    #if os(iOS)
     private var remoteCommandTargets: [(MPRemoteCommand, Any)] = []
     private var nowPlayingInfo: [String: Any] = [:]
-#endif
+    #endif
 
     init(
         netdiskClient: BaiduNetdiskClient = BaiduNetdiskClient(),
@@ -136,14 +135,6 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func play(track: AudiobookTrack, in collection: AudiobookCollection, token: BaiduOAuthToken?) {
-        // 如果点击的是当前正在播放的音轨，则暂停播放
-        if let currentTrack = currentTrack, 
-           currentTrack.id == track.id, 
-           isPlaying {
-            togglePlayback()
-            return
-        }
-        
         prepareCollection(collection)
         currentToken = token
 
@@ -318,18 +309,8 @@ final class AudioPlayerViewModel: ObservableObject {
         playlist = []
     }
 
-    @MainActor deinit {
-        removeObservers()
-#if os(iOS)
-        clearRemoteCommandTargets()
-        resetNowPlayingInfo()
-#endif
-    }
-}
+    // MARK: - Private helpers
 
-// MARK: - Private helpers
-
-private extension AudioPlayerViewModel {
     func observeCacheProgress() {
         progressTracker.$cachedRanges
             .receive(on: RunLoop.main)
@@ -758,7 +739,7 @@ private extension UIColor {
         var int = UInt64()
         guard Scanner(string: sanitized).scanHexInt64(&int) else { return nil }
         let a, r, g, b: UInt64
-        
+
         switch sanitized.count {
         case 3: // RGB (12-bit)
             (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
@@ -769,7 +750,7 @@ private extension UIColor {
         default:
             return nil
         }
-        
+
         self.init(red: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: CGFloat(a) / 255)
     }
 }

@@ -171,10 +171,12 @@ struct CollectionDetailView: View {
                     .padding(.vertical, 4)
             } else {
                 ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
+                    let trackIsActive = isCurrentTrack(track: track)
                     TrackRow(
                         index: index,
                         track: track,
-                        isActive: isCurrentTrack(track: track),
+                        isActive: trackIsActive,
+                        isPlaying: trackIsActive && audioPlayer.isPlaying,
                         playbackState: collection.playbackState(for: track.id),
                         isFavorite: track.isFavorite,
                         onSelect: {
@@ -210,8 +212,12 @@ struct CollectionDetailView: View {
             return
         }
 
+        if audioPlayer.currentTrack?.id == track.id, audioPlayer.isPlaying {
+            audioPlayer.togglePlayback()
+        } else {
         audioPlayer.play(track: track, in: collection, token: token)
         recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
+        }
     }
 
     private func isCurrentTrack(track: AudiobookTrack) -> Bool {
@@ -333,6 +339,7 @@ private struct TrackRow: View {
     let index: Int
     let track: AudiobookTrack
     let isActive: Bool
+    let isPlaying: Bool
     let playbackState: TrackPlaybackState?
     let isFavorite: Bool
     let onSelect: () -> Void
@@ -372,9 +379,9 @@ private struct TrackRow: View {
     private var statusIcon: some View {
         Group {
             if isActive {
-                Image(systemName: "waveform.circle.fill")
+                Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                     .foregroundStyle(Color.accentColor)
-                    .accessibilityLabel(NSLocalizedString("now_playing_indicator", comment: "Indicator for currently playing track"))
+                    .accessibilityHidden(true)
             } else {
                 Image(systemName: "play.fill")
                     .foregroundStyle(.tertiary)
