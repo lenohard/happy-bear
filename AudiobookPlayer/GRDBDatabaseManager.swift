@@ -504,6 +504,15 @@ actor GRDBDatabaseManager {
 
     // MARK: - Helper Methods
 
+    /// SQLite DATETIME formatter: "YYYY-MM-DD HH:MM:SS.mmm"
+    private static let sqliteDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
     private func reconstructCollection(
         collectionRow: Row,
         trackRows: [Row],
@@ -539,9 +548,8 @@ actor GRDBDatabaseManager {
         if let date = createdAtValue as? Date {
             createdAt = date
         } else if let dateString = createdAtValue as? String {
-            // Parse ISO 8601 format from SQLite DATETIME
-            let formatter = ISO8601DateFormatter()
-            guard let parsedDate = formatter.date(from: dateString) else {
+            // Parse SQLite DATETIME format: "YYYY-MM-DD HH:MM:SS.mmm"
+            guard let parsedDate = Self.sqliteDateFormatter.date(from: dateString) else {
                 print("[GRDB] ❌ Failed to parse created_at from string: \(dateString)")
                 return nil
             }
@@ -559,9 +567,8 @@ actor GRDBDatabaseManager {
         if let date = updatedAtValue as? Date {
             updatedAt = date
         } else if let dateString = updatedAtValue as? String {
-            // Parse ISO 8601 format from SQLite DATETIME
-            let formatter = ISO8601DateFormatter()
-            guard let parsedDate = formatter.date(from: dateString) else {
+            // Parse SQLite DATETIME format: "YYYY-MM-DD HH:MM:SS.mmm"
+            guard let parsedDate = Self.sqliteDateFormatter.date(from: dateString) else {
                 print("[GRDB] ❌ Failed to parse updated_at from string: \(dateString)")
                 return nil
             }
@@ -661,8 +668,7 @@ actor GRDBDatabaseManager {
         if let date = favoritedAtValue as? Date {
             favoritedAt = date
         } else if let dateString = favoritedAtValue as? String {
-            let formatter = ISO8601DateFormatter()
-            favoritedAt = formatter.date(from: dateString)
+            favoritedAt = Self.sqliteDateFormatter.date(from: dateString)
         } else {
             favoritedAt = nil
         }
@@ -693,8 +699,7 @@ actor GRDBDatabaseManager {
         if let date = updatedAtValue as? Date {
             updatedAt = date
         } else if let dateString = updatedAtValue as? String {
-            let formatter = ISO8601DateFormatter()
-            guard let parsedDate = formatter.date(from: dateString) else {
+            guard let parsedDate = Self.sqliteDateFormatter.date(from: dateString) else {
                 return nil
             }
             updatedAt = parsedDate
