@@ -36,6 +36,17 @@ actor MigrationCoordinator {
 
             print("✅ Migration completed successfully")
             print("📦 Backup saved to: \(DatabaseConfig.jsonBackupURL.path)")
+
+            // Cleanup: Remove legacy JSON file after successful migration
+            do {
+                if FileManager.default.fileExists(atPath: DatabaseConfig.legacyJSONURL.path) {
+                    try FileManager.default.removeItem(at: DatabaseConfig.legacyJSONURL)
+                    print("🗑️  Removed legacy JSON file: \(DatabaseConfig.legacyJSONURL.path)")
+                }
+            } catch {
+                // Log but don't fail the migration if cleanup fails
+                print("⚠️  Warning: Could not remove legacy JSON file: \(error)")
+            }
         } catch {
             throw DatabaseError.migrationFailed("Failed to migrate collections: \(error)")
         }
