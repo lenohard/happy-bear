@@ -227,7 +227,7 @@ struct CollectionDetailView: View {
             } else {
                 ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
                     let trackIsActive = isCurrentTrack(track: track)
-                    TrackRow(
+                    TrackDetailRow(
                         index: index,
                         track: track,
                         isActive: trackIsActive,
@@ -510,7 +510,7 @@ private struct RenameEntryView: View {
     }
 }
 
-private struct TrackRow: View {
+private struct TrackDetailRow: View {
     let index: Int
     let track: AudiobookTrack
     let isActive: Bool

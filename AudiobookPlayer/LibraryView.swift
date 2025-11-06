@@ -345,23 +345,28 @@ private extension AudiobookCollection {
     }
 }
 
-#Preview {
+// Preview disabled - complex initialization conflicts with type inference
+// Re-enable when GRDBDatabaseManager preview support is added
+/*
+#Preview("LibraryView") {
     let sample = AudiobookCollection.makeEmptyDraft(
         for: .baiduNetdisk(folderPath: "/audiobooks", tokenScope: "netdisk"),
         title: "Sample Collection"
     )
 
     let store = LibraryStore(
-        persistence: LibraryPersistence(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("library-preview.json")),
+        dbManager: .shared,
+        jsonPersistence: LibraryPersistence(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("library-preview.json")),
         autoLoadOnInit: false
     )
     store.save(sample)
 
-    return LibraryView()
+    LibraryView()
         .environmentObject(AudioPlayerViewModel())
         .environmentObject(store)
         .environmentObject(BaiduAuthViewModel())
 }
+*/
 
 private enum ImportSource: Identifiable {
     case baidu

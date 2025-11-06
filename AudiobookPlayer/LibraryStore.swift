@@ -12,16 +12,23 @@ final class LibraryStore: ObservableObject {
     @Published private(set) var lastError: Error?
     @Published private(set) var isLoading = false
 
-    private let persistence: LibraryPersistence
+    private let dbManager: GRDBDatabaseManager
+    private let jsonPersistence: LibraryPersistence  // Keep for fallback
     private let syncEngine: LibrarySyncing?
     private let schemaVersion = 3
 
+    // Migration state
+    private var migrationInProgress = false
+    private var useFallbackJSON = false
+
     init(
-        persistence: LibraryPersistence = .default,
+        dbManager: GRDBDatabaseManager = .shared,
+        jsonPersistence: LibraryPersistence = .default,
         autoLoadOnInit: Bool = true,
         syncEngine: LibrarySyncing? = LibraryStore.makeDefaultSyncEngine()
     ) {
-        self.persistence = persistence
+        self.dbManager = dbManager
+        self.jsonPersistence = jsonPersistence
         self.syncEngine = syncEngine
         if autoLoadOnInit {
             Task(priority: .userInitiated) {
@@ -35,24 +42,48 @@ final class LibraryStore: ObservableObject {
         defer { isLoading = false }
 
         do {
-            let file = try await persistence.load()
-            guard file.schemaVersion <= schemaVersion else {
-                throw LibraryStoreError.unsupportedSchema(file.schemaVersion)
+            // Step 1: Attempt migration if JSON exists
+            if MigrationService.needsMigration() && !migrationInProgress {
+                print("🔄 Migration needed, starting...")
+                migrationInProgress = true
+                try await MigrationService.migrate()
+                migrationInProgress = false
             }
 
-            collections = file.collections.sorted { $0.updatedAt > $1.updatedAt }
+            // Step 2: Initialize database if not already done
+            try await dbManager.initializeDatabase()
+
+            // Step 3: Load from SQLite database
+            let dbCollections = try await dbManager.loadAllCollections()
+            collections = dbCollections.sorted { $0.updatedAt > $1.updatedAt }
             lastError = nil
 
-            if file.schemaVersion < schemaVersion {
-                persistCurrentSnapshot()
-            }
-
+            // Step 4: Sync with remote if available
             if let syncEngine {
                 await synchronizeWithRemote(using: syncEngine)
             }
         } catch {
-            collections = []
-            lastError = error
+            print("❌ Failed to load from GRDB: \(error)")
+
+            // Fallback to JSON if GRDB fails
+            do {
+                print("⚠️  Attempting to load from JSON fallback...")
+                let file = try await jsonPersistence.load()
+                guard file.schemaVersion <= schemaVersion else {
+                    throw LibraryStoreError.unsupportedSchema(file.schemaVersion)
+                }
+
+                collections = file.collections.sorted { $0.updatedAt > $1.updatedAt }
+                useFallbackJSON = true
+                lastError = NSError(
+                    domain: "LibraryStore",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: "Using fallback JSON persistence. Please restart the app."]
+                )
+            } catch {
+                collections = []
+                lastError = error
+            }
         }
     }
 
@@ -65,7 +96,13 @@ final class LibraryStore: ObservableObject {
         }
 
         collections = updated.sorted { $0.updatedAt > $1.updatedAt }
-        persistCurrentSnapshot()
+
+        // Persist to database
+        if !useFallbackJSON {
+            persistToDatabase(collection)
+        } else {
+            persistCurrentSnapshot()  // Fallback to JSON
+        }
 
         if let syncEngine {
             Task(priority: .utility) {
@@ -76,7 +113,13 @@ final class LibraryStore: ObservableObject {
 
     func delete(_ collection: AudiobookCollection) {
         collections.removeAll { $0.id == collection.id }
-        persistCurrentSnapshot()
+
+        // Delete from database
+        if !useFallbackJSON {
+            deleteFromDatabase(collection.id)
+        } else {
+            persistCurrentSnapshot()  // Fallback to JSON
+        }
 
         if let syncEngine {
             Task(priority: .utility) {
@@ -135,7 +178,28 @@ final class LibraryStore: ObservableObject {
         collection.updatedAt = now
 
         collections[index] = collection
-        persistCurrentSnapshot()
+
+        // Persist to database
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                do {
+                    try await dbManager.savePlaybackState(
+                        trackId: trackID,
+                        collectionId: collectionID,
+                        position: clampedPosition,
+                        duration: duration
+                    )
+                    // Also save the collection to update updatedAt and lastPlayedTrackId
+                    try await dbManager.saveCollection(collection)
+                } catch {
+                    await MainActor.run {
+                        self.lastError = error
+                    }
+                }
+            }
+        } else {
+            persistCurrentSnapshot()  // Fallback to JSON
+        }
 
         if let syncEngine {
             Task(priority: .utility) {
@@ -167,7 +231,13 @@ final class LibraryStore: ObservableObject {
 
         collections[index] = collection
         collections.sort { $0.updatedAt > $1.updatedAt }
-        persistCurrentSnapshot()
+
+        // Persist to database
+        if !useFallbackJSON {
+            persistToDatabase(collection)
+        } else {
+            persistCurrentSnapshot()
+        }
 
         if let syncEngine {
             Task(priority: .utility) {
@@ -198,7 +268,22 @@ final class LibraryStore: ObservableObject {
 
         collections[index] = collection
         collections.sort { $0.updatedAt > $1.updatedAt }
-        persistCurrentSnapshot()
+
+        // Persist to database
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                do {
+                    try await dbManager.removeTrack(id: trackID, from: collectionID)
+                    try await dbManager.saveCollection(collection)
+                } catch {
+                    await MainActor.run {
+                        self.lastError = error
+                    }
+                }
+            }
+        } else {
+            persistCurrentSnapshot()
+        }
 
         if let syncEngine {
             Task(priority: .utility) {
@@ -228,7 +313,13 @@ final class LibraryStore: ObservableObject {
 
         collections[index] = collection
         collections.sort { $0.updatedAt > $1.updatedAt }
-        persistCurrentSnapshot()
+
+        // Persist to database
+        if !useFallbackJSON {
+            persistToDatabase(collection)
+        } else {
+            persistCurrentSnapshot()
+        }
 
         if let syncEngine {
             Task(priority: .utility) {
@@ -265,7 +356,22 @@ final class LibraryStore: ObservableObject {
 
         collections[collectionIndex] = collection
         collections.sort { $0.updatedAt > $1.updatedAt }
-        persistCurrentSnapshot()
+
+        // Persist to database
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                do {
+                    try await dbManager.updateTrack(track, in: collectionID)
+                    try await dbManager.saveCollection(collection)
+                } catch {
+                    await MainActor.run {
+                        self.lastError = error
+                    }
+                }
+            }
+        } else {
+            persistCurrentSnapshot()
+        }
 
         if let syncEngine {
             Task(priority: .utility) {
@@ -290,24 +396,39 @@ final class LibraryStore: ObservableObject {
     }
     
     // MARK: - Favorite Management
-    
+
     func toggleFavorite(for trackID: UUID, in collectionID: UUID) {
         guard let collectionIndex = collections.firstIndex(where: { $0.id == collectionID }) else { return }
         guard let trackIndex = collections[collectionIndex].tracks.firstIndex(where: { $0.id == trackID }) else { return }
-        
+
         var collection = collections[collectionIndex]
         var track = collection.tracks[trackIndex]
-        
+
         track.isFavorite.toggle()
         track.favoritedAt = track.isFavorite ? Date() : nil
-        
+
         collection.tracks[trackIndex] = track
         collection.updatedAt = Date()
-        
+
         collections[collectionIndex] = collection
         collections.sort { $0.updatedAt > $1.updatedAt }
-        persistCurrentSnapshot()
-        
+
+        // Persist to database
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                do {
+                    try await dbManager.setFavorite(track.isFavorite, for: trackID)
+                    try await dbManager.saveCollection(collection)
+                } catch {
+                    await MainActor.run {
+                        self.lastError = error
+                    }
+                }
+            }
+        } else {
+            persistCurrentSnapshot()
+        }
+
         if let syncEngine {
             Task(priority: .utility) {
                 try? await syncEngine.saveRemoteCollection(collection)
@@ -361,7 +482,31 @@ extension LibraryStore {
         let snapshot = LibraryFile(schemaVersion: schemaVersion, collections: collections)
         Task(priority: .utility) {
             do {
-                try await persistence.save(snapshot)
+                try await jsonPersistence.save(snapshot)
+            } catch {
+                await MainActor.run {
+                    self.lastError = error
+                }
+            }
+        }
+    }
+
+    private func persistToDatabase(_ collection: AudiobookCollection) {
+        Task(priority: .utility) {
+            do {
+                try await dbManager.saveCollection(collection)
+            } catch {
+                await MainActor.run {
+                    self.lastError = error
+                }
+            }
+        }
+    }
+
+    private func deleteFromDatabase(_ collectionId: UUID) {
+        Task(priority: .utility) {
+            do {
+                try await dbManager.deleteCollection(id: collectionId)
             } catch {
                 await MainActor.run {
                     self.lastError = error

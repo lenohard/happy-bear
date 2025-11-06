@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		028C4E21A1D645AABA2BC0CE /* AudiobookPlayer/MigrationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C28E287906F54BA39251DD51 /* AudiobookPlayer/MigrationService.swift */; };
 		5699532872F14F318BCED8CE /* CollectionBuilderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */; };
 		6F6E7F6F2C4A9B0500AA00AA /* AudiobookPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F6E2C4A9B0500AA00AA /* AudiobookPlayerApp.swift */; };
 		6F6E7F6F2C4A9B0500AA00AB /* BaiduOAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F6E7F6E2C4A9B0500AA00AB /* BaiduOAuth.swift */; };
@@ -26,19 +27,26 @@
 		6FC010072C5B0C0000AA00AA /* SourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010062C5B0C0000AA00AA /* SourcesView.swift */; };
 		6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */; };
 		6FC0100B2C5B0C0000AA00AA /* TrackPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0100A2C5B0C0000AA00AA /* TrackPickerView.swift */; };
-		A1B2C3D52FEB123400000001 /* FavoriteToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */; };
-		A1B2C3D72FEB123400000002 /* FavoriteTracksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */; };
 		6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */; };
 		6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6FC0200A2C5B0C0000AA00AA /* Localizable.strings */; };
 		6FD0A0022C5B0C0000AA00AB /* AudioCacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0012C5B0C0000AA00AB /* AudioCacheManager.swift */; };
 		6FD0A0042C5B0C0000AA00AB /* CachedAudioAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */; };
+		8637370F2EBCF7120002CD46 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8637370E2EBCF7120002CD46 /* GRDB */; };
 		86AD83AC2EB9AD5200FAB6DF /* CacheProgressTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */; };
 		86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */; };
+		8E29594F1DFC4DD3BDB9C297 /* AudiobookPlayer/DatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599C0102E5CE40F89A991FD2 /* AudiobookPlayer/DatabaseSchema.swift */; };
+		9AA2D81AAF724F08916ACE38 /* AudiobookPlayer/GRDBDatabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A3EA38DA804EB5B27139AA /* AudiobookPlayer/GRDBDatabaseManager.swift */; };
+		A1B2C3D52FEB123400000001 /* FavoriteToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */; };
+		A1B2C3D72FEB123400000002 /* FavoriteTracksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */; };
+		C0E7E438067149FBAA94ECEA /* AudiobookPlayer/DatabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375BFCDDA1EF440F8C3033E5 /* AudiobookPlayer/DatabaseConfig.swift */; };
 		E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		17A3EA38DA804EB5B27139AA /* AudiobookPlayer/GRDBDatabaseManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayer/GRDBDatabaseManager.swift; sourceTree = "<group>"; };
 		2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateCollectionView.swift; sourceTree = "<group>"; };
+		375BFCDDA1EF440F8C3033E5 /* AudiobookPlayer/DatabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayer/DatabaseConfig.swift; sourceTree = "<group>"; };
+		599C0102E5CE40F89A991FD2 /* AudiobookPlayer/DatabaseSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayer/DatabaseSchema.swift; sourceTree = "<group>"; };
 		6F6E7F6E2C4A9B0500AA00AA /* AudiobookPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayerApp.swift; sourceTree = "<group>"; };
 		6F6E7F6E2C4A9B0500AA00AB /* BaiduOAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduOAuth.swift; sourceTree = "<group>"; };
 		6F6E7F702C4A9B0500AA00AA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -59,8 +67,6 @@
 		6FC010062C5B0C0000AA00AA /* SourcesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourcesView.swift; sourceTree = "<group>"; };
 		6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionDetailView.swift; sourceTree = "<group>"; };
 		6FC0100A2C5B0C0000AA00AA /* TrackPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackPickerView.swift; sourceTree = "<group>"; };
-		A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteToggleButton.swift; sourceTree = "<group>"; };
-		A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteTracksView.swift; sourceTree = "<group>"; };
 		6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitLibrarySync.swift; sourceTree = "<group>"; };
 		6FC0200B2C5B0C0000AA00AA /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
 		6FC0200C2C5B0C0000AA00AA /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
@@ -68,6 +74,9 @@
 		6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedAudioAsset.swift; sourceTree = "<group>"; };
 		86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheDownloadManager.swift; sourceTree = "<group>"; };
 		86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheProgressTracker.swift; sourceTree = "<group>"; };
+		A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteToggleButton.swift; sourceTree = "<group>"; };
+		A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteTracksView.swift; sourceTree = "<group>"; };
+		C28E287906F54BA39251DD51 /* AudiobookPlayer/MigrationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayer/MigrationService.swift; sourceTree = "<group>"; };
 		F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionBuilderViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -77,6 +86,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6F6E7F792C4A9B0500AA00AA /* AVFoundation.framework in Frameworks */,
+				8637370F2EBCF7120002CD46 /* GRDB in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -89,6 +99,7 @@
 				6F6E7F672C4A9B0500AA00AA /* AudiobookPlayer */,
 				6F6E7F7C2C4A9B0500AA00AA /* Products */,
 				6F6E7F7D2C4A9B0500AA00AA /* Frameworks */,
+				863737112EBD000A0002CD46 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -151,6 +162,17 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		863737112EBD000A0002CD46 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				17A3EA38DA804EB5B27139AA /* AudiobookPlayer/GRDBDatabaseManager.swift */,
+				C28E287906F54BA39251DD51 /* AudiobookPlayer/MigrationService.swift */,
+				375BFCDDA1EF440F8C3033E5 /* AudiobookPlayer/DatabaseConfig.swift */,
+				599C0102E5CE40F89A991FD2 /* AudiobookPlayer/DatabaseSchema.swift */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -195,6 +217,9 @@
 				"zh-Hans",
 			);
 			mainGroup = 6F6E7F662C4A9B0500AA00AA;
+			packageReferences = (
+				8637370D2EBCF7120002CD46 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+			);
 			productRefGroup = 6F6E7F7C2C4A9B0500AA00AA /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -246,6 +271,10 @@
 				6FD0A0022C5B0C0000AA00AB /* AudioCacheManager.swift in Sources */,
 				6FD0A0042C5B0C0000AA00AB /* CachedAudioAsset.swift in Sources */,
 				6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */,
+				9AA2D81AAF724F08916ACE38 /* AudiobookPlayer/GRDBDatabaseManager.swift in Sources */,
+				028C4E21A1D645AABA2BC0CE /* AudiobookPlayer/MigrationService.swift in Sources */,
+				C0E7E438067149FBAA94ECEA /* AudiobookPlayer/DatabaseConfig.swift in Sources */,
+				8E29594F1DFC4DD3BDB9C297 /* AudiobookPlayer/DatabaseSchema.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -462,6 +491,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		8637370D2EBCF7120002CD46 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 7.8.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		8637370E2EBCF7120002CD46 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 8637370D2EBCF7120002CD46 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6F6E7F652C4A9B0500AA00AA /* Project object */;
 }
