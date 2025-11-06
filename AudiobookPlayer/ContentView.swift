@@ -655,15 +655,15 @@ private struct CacheManagementView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Storage") {
+                Section(NSLocalizedString("cache_storage_section", comment: "Storage section title")) {
                     HStack {
-                        Text("Total Cache")
+                        Text(NSLocalizedString("cache_total_size", comment: "Total cache size label"))
                         Spacer()
                         Text(audioPlayer.formattedCacheSize())
                     }
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Cache Folder")
+                        Text(NSLocalizedString("cache_folder", comment: "Cache folder label"))
                         Text(audioPlayer.cacheDirectoryPath())
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -671,7 +671,7 @@ private struct CacheManagementView: View {
                     }
 
                     Stepper(value: $retentionDays, in: 1...30, step: 1) {
-                        Text("Retention: \(retentionDays) \(retentionDays == 1 ? "day" : "days")")
+                        Text(String(format: NSLocalizedString("cache_retention_days", comment: "Cache retention days format"), retentionDays, retentionDays == 1 ? NSLocalizedString("cache_day", comment: "Day") : NSLocalizedString("cache_days", comment: "Days")))
                     }
                     .onChange(of: retentionDays) { newValue in
                         audioPlayer.updateCacheRetention(days: newValue)
@@ -679,7 +679,7 @@ private struct CacheManagementView: View {
                 }
 
                 if let track = currentTrack {
-                    Section("Current Track") {
+                    Section(NSLocalizedString("cache_current_track_section", comment: "Current track section title")) {
                         Text(track.displayName)
                             .font(.headline)
 
@@ -696,7 +696,7 @@ private struct CacheManagementView: View {
                                 Button {
                                     audioPlayer.cacheTrackIfNeeded(track)
                                 } label: {
-                                    Label("Download for Offline Listening", systemImage: "arrow.down.circle")
+                                    Label(NSLocalizedString("cache_download_offline", comment: "Download for offline listening"), systemImage: "arrow.down.circle")
                                 }
                             }
 
@@ -704,11 +704,11 @@ private struct CacheManagementView: View {
                                 Button(role: .destructive) {
                                     showClearTrackConfirmation = true
                                 } label: {
-                                    Label("Clear This Track", systemImage: "trash")
+                                    Label(NSLocalizedString("cache_clear_track", comment: "Clear this track"), systemImage: "trash")
                                 }
                             }
                         } else {
-                            Text("Streaming directly from Baidu Netdisk.")
+                            Text(NSLocalizedString("cache_streaming_directly", comment: "Streaming directly from Baidu Netdisk"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -719,33 +719,33 @@ private struct CacheManagementView: View {
                     Button(role: .destructive) {
                         showClearAllConfirmation = true
                     } label: {
-                        Label("Clear All Cached Audio", systemImage: "trash.slash")
+                        Label(NSLocalizedString("cache_clear_all", comment: "Clear all cached audio"), systemImage: "trash.slash")
                     }
                 }
             }
-            .navigationTitle("Cache Settings")
+            .navigationTitle(NSLocalizedString("cache_settings_title", comment: "Cache settings title"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button(NSLocalizedString("done_button", comment: "Done button")) { dismiss() }
                 }
             }
-            .confirmationDialog("Clear cached audio?", isPresented: $showClearAllConfirmation, titleVisibility: .visible) {
-                Button("Delete All Cached Audio", role: .destructive) {
+            .confirmationDialog(NSLocalizedString("cache_clear_all_title", comment: "Clear cached audio confirmation title"), isPresented: $showClearAllConfirmation, titleVisibility: .visible) {
+                Button(NSLocalizedString("cache_clear_all_confirm", comment: "Delete all cached audio button"), role: .destructive) {
                     audioPlayer.clearAllCache()
                 }
-                Button("Cancel", role: .cancel) { }
+                Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) { }
             } message: {
-                Text("This removes every cached audiobook file from your device.")
+                Text(NSLocalizedString("cache_clear_all_message", comment: "Clear all cached audio confirmation message"))
             }
-            .confirmationDialog("Remove cached copy of this track?", isPresented: $showClearTrackConfirmation, titleVisibility: .visible) {
-                Button("Remove Track Cache", role: .destructive) {
+            .confirmationDialog(NSLocalizedString("cache_clear_track_title", comment: "Remove cached copy of this track confirmation title"), isPresented: $showClearTrackConfirmation, titleVisibility: .visible) {
+                Button(NSLocalizedString("cache_clear_track_confirm", comment: "Remove track cache button"), role: .destructive) {
                     if let track = currentTrack {
                         audioPlayer.removeCache(for: track)
                     }
                 }
-                Button("Cancel", role: .cancel) { }
+                Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) { }
             } message: {
-                Text("Only the cached data for this track will be deleted. Streaming remains available.")
+                Text(NSLocalizedString("cache_clear_track_message", comment: "Remove track cache confirmation message"))
             }
             .onAppear {
                 retentionDays = audioPlayer.cacheRetentionDays()
