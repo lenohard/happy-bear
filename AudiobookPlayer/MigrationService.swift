@@ -87,6 +87,11 @@ actor MigrationService {
         do {
             try DatabaseConfig.ensureDirectoryExists()
             if FileManager.default.fileExists(atPath: DatabaseConfig.legacyJSONURL.path) {
+                // Remove existing backup if it exists
+                if FileManager.default.fileExists(atPath: DatabaseConfig.jsonBackupURL.path) {
+                    try FileManager.default.removeItem(at: DatabaseConfig.jsonBackupURL)
+                    print("   Removed old backup")
+                }
                 try FileManager.default.copyItem(
                     at: DatabaseConfig.legacyJSONURL,
                     to: DatabaseConfig.jsonBackupURL
