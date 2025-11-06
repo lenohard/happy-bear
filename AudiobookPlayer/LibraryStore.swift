@@ -17,8 +17,6 @@ final class LibraryStore: ObservableObject {
     private let syncEngine: LibrarySyncing?
     private let schemaVersion = 3
 
-    // Migration state
-    private var migrationInProgress = false
     private var useFallbackJSON = false
 
     init(
@@ -42,23 +40,15 @@ final class LibraryStore: ObservableObject {
         defer { isLoading = false }
 
         do {
-            // Step 1: Attempt migration if JSON exists
-            if MigrationService.needsMigration() && !migrationInProgress {
-                print("🔄 Migration needed, starting...")
-                migrationInProgress = true
-                try await MigrationService.migrate()
-                migrationInProgress = false
-            }
-
-            // Step 2: Initialize database if not already done
+            // Initialize database if not already done
             try await dbManager.initializeDatabase()
 
-            // Step 3: Load from SQLite database
+            // Load from SQLite database
             let dbCollections = try await dbManager.loadAllCollections()
             collections = dbCollections.sorted { $0.updatedAt > $1.updatedAt }
             lastError = nil
 
-            // Step 4: Sync with remote if available
+            // Sync with remote if available
             if let syncEngine {
                 await synchronizeWithRemote(using: syncEngine)
             }

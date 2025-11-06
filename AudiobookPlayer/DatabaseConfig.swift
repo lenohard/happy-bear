@@ -13,28 +13,6 @@ struct DatabaseConfig {
             .appendingPathComponent("library.sqlite", isDirectory: false)
     }
 
-    /// Gets the backup JSON URL (for rollback support)
-    static var jsonBackupURL: URL {
-        let appSupport = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first!
-        return appSupport
-            .appendingPathComponent("AudiobookPlayer", isDirectory: true)
-            .appendingPathComponent("library.json.backup", isDirectory: false)
-    }
-
-    /// Gets the legacy JSON URL
-    static var legacyJSONURL: URL {
-        let appSupport = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first!
-        return appSupport
-            .appendingPathComponent("AudiobookPlayer", isDirectory: true)
-            .appendingPathComponent("library.json", isDirectory: false)
-    }
-
     /// Ensures the application support directory exists
     static func ensureDirectoryExists() throws {
         let dir = defaultURL.deletingLastPathComponent()

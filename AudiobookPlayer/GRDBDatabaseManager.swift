@@ -890,7 +890,6 @@ extension CollectionCover.Kind {
 
 enum DatabaseError: LocalizedError {
     case initializationFailed(String)
-    case migrationFailed(String)
     case queryFailed(String)
     case saveFailed(String)
     case loadFailed(String)
@@ -902,8 +901,6 @@ enum DatabaseError: LocalizedError {
         switch self {
         case let .initializationFailed(msg):
             return "Database initialization failed: \(msg)"
-        case let .migrationFailed(msg):
-            return "Migration failed: \(msg)"
         case let .queryFailed(msg):
             return "Query failed: \(msg)"
         case let .saveFailed(msg):
