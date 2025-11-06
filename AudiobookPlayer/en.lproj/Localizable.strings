@@ -51,6 +51,11 @@
 "favorite_tracks_title" = "Favorite Tracks";
 "favorite_tracks_summary_suffix" = "and %d more";
 "favorites_section" = "Favorites";
+"rename_action" = "Rename";
+"rename_collection_title" = "Rename Collection";
+"rename_track_title" = "Rename Track";
+"name_field_label" = "Name";
+"more_options_accessibility" = "More options";
 "folder_empty" = "This folder is empty.";
 "fully_cached" = "Fully Cached";
 "import_again_button" = "Import Again";

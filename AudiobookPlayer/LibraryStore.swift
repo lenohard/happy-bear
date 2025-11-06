@@ -207,6 +207,73 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func renameCollection(
+        collectionID: UUID,
+        newTitle: String
+    ) {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
+            return
+        }
+
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let clamped = String(trimmed.prefix(256))
+
+        var collection = collections[index]
+        guard collection.title != clamped else { return }
+
+        collection.title = clamped
+        collection.updatedAt = Date()
+
+        collections[index] = collection
+        collections.sort { $0.updatedAt > $1.updatedAt }
+        persistCurrentSnapshot()
+
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(collection)
+            }
+        }
+    }
+
+    func renameTrack(
+        in collectionID: UUID,
+        trackID: UUID,
+        newTitle: String
+    ) {
+        guard let collectionIndex = collections.firstIndex(where: { $0.id == collectionID }) else {
+            return
+        }
+
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let clamped = String(trimmed.prefix(256))
+
+        var collection = collections[collectionIndex]
+        guard let trackIndex = collection.tracks.firstIndex(where: { $0.id == trackID }) else {
+            return
+        }
+
+        var track = collection.tracks[trackIndex]
+        guard track.displayName != clamped else { return }
+
+        track.displayName = clamped
+        collection.tracks[trackIndex] = track
+        collection.updatedAt = Date()
+
+        collections[collectionIndex] = collection
+        collections.sort { $0.updatedAt > $1.updatedAt }
+        persistCurrentSnapshot()
+
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(collection)
+            }
+        }
+    }
+
     func canModifyCollection(_ collectionID: UUID) -> Bool {
         guard let collection = collections.first(where: { $0.id == collectionID }) else {
             return false

@@ -12,6 +12,10 @@ struct CollectionDetailView: View {
     @State private var showTrackPicker = false
     @State private var trackToDelete: AudiobookTrack?
     @State private var showDeleteConfirmation = false
+    @State private var trackToRename: AudiobookTrack?
+    @State private var trackTitleDraft = ""
+    @State private var showCollectionRenameSheet = false
+    @State private var collectionTitleDraft = ""
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -105,6 +109,36 @@ struct CollectionDetailView: View {
             .environmentObject(library)
             .environmentObject(authViewModel)
         }
+        .sheet(item: $trackToRename) { track in
+            RenameEntryView(
+                title: NSLocalizedString("rename_track_title", comment: "Rename track title"),
+                fieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
+                text: $trackTitleDraft,
+                onSubmit: {
+                    applyTrackRename(for: track)
+                },
+                onCancel: cancelTrackRename
+            )
+        }
+        .sheet(isPresented: $showCollectionRenameSheet) {
+            RenameEntryView(
+                title: NSLocalizedString("rename_collection_title", comment: "Rename collection title"),
+                fieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
+                text: $collectionTitleDraft,
+                onSubmit: applyCollectionRename,
+                onCancel: cancelCollectionRename
+            )
+        }
+        .onChange(of: trackToRename) { newValue in
+            if newValue == nil {
+                trackTitleDraft = ""
+            }
+        }
+        .onChange(of: showCollectionRenameSheet) { newValue in
+            if !newValue {
+                collectionTitleDraft = ""
+            }
+        }
     }
 
     @ViewBuilder
@@ -157,6 +191,27 @@ struct CollectionDetailView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .topTrailing) {
+                if library.canModifyCollection(collectionID) {
+                    Menu {
+                        Button {
+                            beginRenamingCollection(collection)
+                        } label: {
+                            Label(
+                                NSLocalizedString("rename_action", comment: "Rename action"),
+                                systemImage: "pencil"
+                            )
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .imageScale(.large)
+                            .padding(.leading, 8)
+                            .padding(.top, 2)
+                            .accessibilityLabel(NSLocalizedString("more_options_accessibility", comment: "More options accessibility label"))
+                    }
+                }
+            }
             .padding(.vertical, 4)
         }
     }
@@ -191,6 +246,15 @@ struct CollectionDetailView: View {
                     }
                     .swipeActions(edge: .trailing) {
                         if library.canModifyCollection(collectionID) {
+                            Button {
+                                beginRenamingTrack(track)
+                            } label: {
+                                Label(
+                                    NSLocalizedString("rename_action", comment: "Rename action"),
+                                    systemImage: "pencil"
+                                )
+                            }
+
                             Button(role: .destructive) {
                                 confirmDeleteTrack(track)
                             } label: {
@@ -215,8 +279,8 @@ struct CollectionDetailView: View {
         if audioPlayer.currentTrack?.id == track.id, audioPlayer.isPlaying {
             audioPlayer.togglePlayback()
         } else {
-        audioPlayer.play(track: track, in: collection, token: token)
-        recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
+            audioPlayer.play(track: track, in: collection, token: token)
+            recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
         }
     }
 
@@ -277,6 +341,51 @@ struct CollectionDetailView: View {
     private func confirmDeleteTrack(_ track: AudiobookTrack) {
         trackToDelete = track
         showDeleteConfirmation = true
+    }
+
+    private func beginRenamingTrack(_ track: AudiobookTrack) {
+        trackToRename = track
+        trackTitleDraft = String(track.displayName.prefix(256))
+    }
+
+    private func cancelTrackRename() {
+        trackToRename = nil
+        trackTitleDraft = ""
+    }
+
+    private func applyTrackRename(for track: AudiobookTrack) {
+        let trimmed = trackTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        trackTitleDraft = ""
+        trackToRename = nil
+
+        guard !trimmed.isEmpty else { return }
+        library.renameTrack(
+            in: collectionID,
+            trackID: track.id,
+            newTitle: String(trimmed.prefix(256))
+        )
+    }
+
+    private func beginRenamingCollection(_ collection: AudiobookCollection) {
+        collectionTitleDraft = String(collection.title.prefix(256))
+        showCollectionRenameSheet = true
+    }
+
+    private func cancelCollectionRename() {
+        showCollectionRenameSheet = false
+        collectionTitleDraft = ""
+    }
+
+    private func applyCollectionRename() {
+        let trimmed = collectionTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        collectionTitleDraft = ""
+        showCollectionRenameSheet = false
+
+        guard !trimmed.isEmpty else { return }
+        library.renameCollection(
+            collectionID: collectionID,
+            newTitle: String(trimmed.prefix(256))
+        )
     }
 
     private func deleteSelectedTrack() {
@@ -340,6 +449,65 @@ struct CollectionDetailView: View {
         .environmentObject(LibraryStore())
         .environmentObject(AudioPlayerViewModel())
         .environmentObject(BaiduAuthViewModel())
+}
+
+private struct RenameEntryView: View {
+    let title: String
+    let fieldLabel: String
+    @Binding var text: String
+    let onSubmit: () -> Void
+    let onCancel: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var focusField: Bool
+    @State private var didComplete = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(fieldLabel, text: $text, axis: .vertical)
+                        .focused($focusField)
+                        .onAppear {
+                            focusField = true
+                        }
+                        .onChange(of: text) { newValue in
+                            if newValue.count > 256 {
+                                text = String(newValue.prefix(256))
+                            }
+                        }
+                        .textInputAutocapitalization(.sentences)
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(NSLocalizedString("cancel_button", comment: "Cancel button")) {
+                        didComplete = true
+                        onCancel()
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(NSLocalizedString("ok_button", comment: "OK button")) {
+                        didComplete = true
+                        onSubmit()
+                        dismiss()
+                    }
+                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .onAppear {
+                didComplete = false
+            }
+            .onDisappear {
+                if !didComplete {
+                    onCancel()
+                }
+            }
+        }
+    }
 }
 
 private struct TrackRow: View {

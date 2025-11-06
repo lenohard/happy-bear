@@ -144,6 +144,11 @@ STRINGS = {
     "add_to_favorites": ("Add to Favorites", "添加到收藏"),
     "remove_from_favorites": ("Remove from Favorites", "从收藏中移除"),
     "favorites_section": ("Favorites", "收藏"),
+    "rename_action": ("Rename", "重命名"),
+    "rename_collection_title": ("Rename Collection", "重命名合集"),
+    "rename_track_title": ("Rename Track", "重命名曲目"),
+    "name_field_label": ("Name", "名称"),
+    "more_options_accessibility": ("More options", "更多选项"),
 }
 
 def generate_xcstrings():

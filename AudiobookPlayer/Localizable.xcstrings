@@ -1457,338 +1457,82 @@
         }
       }
     },
-    "pause_playback": {
+    "rename_action": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Pause playback"
+            "value": "Rename"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "暂停播放"
+            "value": "重命名"
           }
         }
       }
     },
-    "resume_playback": {
+    "rename_collection_title": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Resume playback"
+            "value": "Rename Collection"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "继续播放"
+            "value": "重命名合集"
           }
         }
       }
     },
-    "cache_settings_title": {
+    "rename_track_title": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cache Settings"
+            "value": "Rename Track"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "缓存设置"
+            "value": "重命名曲目"
           }
         }
       }
     },
-    "cache_storage_section": {
+    "name_field_label": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Storage"
+            "value": "Name"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "存储"
+            "value": "名称"
           }
         }
       }
     },
-    "cache_total_size": {
+    "more_options_accessibility": {
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Total Cache"
+            "value": "More options"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "总缓存"
-          }
-        }
-      }
-    },
-    "cache_folder": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cache Folder"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "缓存文件夹"
-          }
-        }
-      }
-    },
-    "cache_retention_days": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Retention: %d %@"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保留：%d %@"
-          }
-        }
-      }
-    },
-    "cache_day": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "day"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "天"
-          }
-        }
-      }
-    },
-    "cache_days": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "days"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "天"
-          }
-        }
-      }
-    },
-    "cache_current_track_section": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Current Track"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "当前音轨"
-          }
-        }
-      }
-    },
-    "cache_download_offline": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Download for Offline Listening"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下载以供离线收听"
-          }
-        }
-      }
-    },
-    "cache_clear_track": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear This Track"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清除此音轨"
-          }
-        }
-      }
-    },
-    "cache_streaming_directly": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Streaming directly from Baidu Netdisk."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在直接从百度网盘流式播放。"
-          }
-        }
-      }
-    },
-    "cache_clear_all": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear All Cached Audio"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清除所有缓存音频"
-          }
-        }
-      }
-    },
-    "cache_clear_all_title": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Clear cached audio?"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清除缓存音频？"
-          }
-        }
-      }
-    },
-    "cache_clear_all_confirm": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete All Cached Audio"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除所有缓存音频"
-          }
-        }
-      }
-    },
-    "cache_clear_all_message": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This removes every cached audiobook file from your device."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这将从您的设备中删除所有缓存的有声书文件。"
-          }
-        }
-      }
-    },
-    "cache_clear_track_title": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove cached copy of this track?"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除此音轨的缓存副本？"
-          }
-        }
-      }
-    },
-    "cache_clear_track_confirm": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove Track Cache"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除音轨缓存"
-          }
-        }
-      }
-    },
-    "cache_clear_track_message": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Only the cached data for this track will be deleted. Streaming remains available."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仅删除此音轨的缓存数据。流式播放仍然可用。"
-          }
-        }
-      }
-    },
-    "done_button": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Done"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完成"
+            "value": "更多选项"
           }
         }
       }

@@ -113,3 +113,8 @@
 "track_picker_remove_selected" = "从选择中移除";
 "track_picker_add_selected" = "添加所选";
 "track_picker_collection_readonly" = "无法修改此合集";
+"rename_action" = "重命名";
+"rename_collection_title" = "重命名合集";
+"rename_track_title" = "重命名曲目";
+"name_field_label" = "名称";
+"more_options_accessibility" = "更多选项";
