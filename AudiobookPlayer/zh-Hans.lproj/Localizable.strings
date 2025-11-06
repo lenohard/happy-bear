@@ -38,6 +38,7 @@
 "connect_baidu_first" = "先连接百度";
 "connect_baidu_message" = "连接您的百度网盘账户以浏览和下载有声书。";
 "current_path_label" = "当前路径";
+"done_button" = "取消";
 "duplicate_import_message" = "\"%@\"已使用此文件夹。您想做什么？";
 "duplicate_import_title" = "已导入";
 "empty_library_hint" = "点击\"导入\"选择来源并添加您的第一个有声书集合。";
@@ -60,6 +61,7 @@
 "listening_history" = "收听历史";
 "loading_library" = "正在加载您的图书馆...";
 "local_file" = "本地文件";
+"local_files_message" = "选择本地文件夹";
 "local_files_coming_soon" = "本地文件（即将推出）";
 "local_files_section" = "本地文件";
 "more_tracks_notice" = "...还有 %d 个音频";

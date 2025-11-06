@@ -38,6 +38,7 @@
 "connect_baidu_first" = "Connect Baidu First";
 "connect_baidu_message" = "Connect your Baidu Netdisk account to browse and download audiobooks.";
 "current_path_label" = "Current Path";
+"done_button" = "cancel";
 "duplicate_import_message" = "\"%@\" already uses this folder. What would you like to do?";
 "duplicate_import_title" = "Already Imported";
 "empty_library_hint" = "Tap \"Import\" to choose a source and add your first audiobook collection.";
@@ -60,6 +61,7 @@
 "listening_history" = "Listening History";
 "loading_library" = "Loading your library...";
 "local_file" = "Local File";
+"local_files_message" = "select the local folder";
 "local_files_coming_soon" = "Local Files (Coming Soon)";
 "local_files_section" = "Local Files";
 "more_tracks_notice" = "... and %d more tracks";

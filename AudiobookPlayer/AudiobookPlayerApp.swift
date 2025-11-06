@@ -38,27 +38,22 @@ struct SplashScreenView: View {
 
     var body: some View {
         ZStack {
-            Color(uiColor: .systemBackground)
-                .ignoresSafeArea()
+            Color(red: 242 / 255, green: 242 / 255, blue: 239 / 255)
+                            .ignoresSafeArea()
 
             VStack {
-                Image(systemName: "book.circle.fill")
-                    .font(.system(size: 120))
-                    .foregroundStyle(
-                        LinearGradient(
-                            gradient: Gradient(colors: [.blue, .purple]),
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .scaleEffect(iconScale)
-                    .opacity(iconOpacity)
-            }
+                            Image("AppLogo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 120, height: 120)
+                                .scaleEffect(iconScale)
+                                .opacity(iconOpacity)
+                        }
         }
         .onAppear {
             // Fade in animation (0.4s)
             withAnimation(.easeIn(duration: 0.4)) {
-                iconScale = 1.0
+                iconScale = 2.0
             }
 
             // Dismiss after 2 seconds
