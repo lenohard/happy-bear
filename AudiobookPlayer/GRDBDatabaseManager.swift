@@ -519,72 +519,35 @@ actor GRDBDatabaseManager {
         playbackRows: [Row],
         tagRows: [Row]
     ) throws -> AudiobookCollection? {
-        // Extract each field with detailed logging
-        guard let id = collectionRow["id"] as? String else {
-            print("[GRDB] ❌ Failed to extract id field")
+        guard let id = collectionRow["id"] as? String,
+              let uuid = UUID(uuidString: id),
+              let title = collectionRow["title"] as? String,
+              let coverKindStr = collectionRow["cover_kind"] as? String,
+              let sourceTypeStr = collectionRow["source_type"] as? String,
+              let sourcePayload = collectionRow["source_payload"] as? String else {
             return nil
         }
 
-        guard let uuid = UUID(uuidString: id) else {
-            print("[GRDB] ❌ Failed to parse UUID from id: \(id)")
-            return nil
-        }
-
-        guard let title = collectionRow["title"] as? String else {
-            print("[GRDB] ❌ Failed to extract title field")
-            return nil
-        }
-
-        guard let coverKindStr = collectionRow["cover_kind"] as? String else {
-            print("[GRDB] ❌ Failed to extract cover_kind field")
-            return nil
-        }
-
-        // Check createdAt - GRDB returns DATETIME as String, not Date
+        // Parse DATETIME fields - GRDB returns them as String
         let createdAtValue = collectionRow["created_at"]
-        print("[GRDB] DEBUG: created_at value type: \(type(of: createdAtValue)), value: \(createdAtValue ?? "nil")")
-
         let createdAt: Date
         if let date = createdAtValue as? Date {
             createdAt = date
-        } else if let dateString = createdAtValue as? String {
-            // Parse SQLite DATETIME format: "YYYY-MM-DD HH:MM:SS.mmm"
-            guard let parsedDate = Self.sqliteDateFormatter.date(from: dateString) else {
-                print("[GRDB] ❌ Failed to parse created_at from string: \(dateString)")
-                return nil
-            }
+        } else if let dateString = createdAtValue as? String,
+                  let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
             createdAt = parsedDate
         } else {
-            print("[GRDB] ❌ Failed to extract created_at - unexpected type \(type(of: createdAtValue))")
             return nil
         }
 
-        // Check updatedAt - same issue as createdAt
         let updatedAtValue = collectionRow["updated_at"]
-        print("[GRDB] DEBUG: updated_at value type: \(type(of: updatedAtValue)), value: \(updatedAtValue ?? "nil")")
-
         let updatedAt: Date
         if let date = updatedAtValue as? Date {
             updatedAt = date
-        } else if let dateString = updatedAtValue as? String {
-            // Parse SQLite DATETIME format: "YYYY-MM-DD HH:MM:SS.mmm"
-            guard let parsedDate = Self.sqliteDateFormatter.date(from: dateString) else {
-                print("[GRDB] ❌ Failed to parse updated_at from string: \(dateString)")
-                return nil
-            }
+        } else if let dateString = updatedAtValue as? String,
+                  let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
             updatedAt = parsedDate
         } else {
-            print("[GRDB] ❌ Failed to extract updated_at - unexpected type \(type(of: updatedAtValue))")
-            return nil
-        }
-
-        guard let sourceTypeStr = collectionRow["source_type"] as? String else {
-            print("[GRDB] ❌ Failed to extract source_type field")
-            return nil
-        }
-
-        guard let sourcePayload = collectionRow["source_payload"] as? String else {
-            print("[GRDB] ❌ Failed to extract source_payload field")
             return nil
         }
 
@@ -644,47 +607,14 @@ actor GRDBDatabaseManager {
     }
 
     private func reconstructTrack(row: Row) throws -> AudiobookTrack? {
-        // Debug: Print all row keys and values
-        print("[GRDB] reconstructTrack: Row contents = \(row)")
-
-        guard let id = row["id"] as? String else {
-            print("[GRDB] ❌ reconstructTrack: Failed to extract 'id' as String")
-            return nil
-        }
-
-        guard let uuid = UUID(uuidString: id) else {
-            print("[GRDB] ❌ reconstructTrack: Failed to parse UUID from '\(id)'")
-            return nil
-        }
-
-        guard let displayName = row["display_name"] as? String else {
-            print("[GRDB] ❌ reconstructTrack: Failed to extract 'display_name' as String")
-            return nil
-        }
-
-        guard let filename = row["filename"] as? String else {
-            print("[GRDB] ❌ reconstructTrack: Failed to extract 'filename' as String")
-            return nil
-        }
-
-        guard let locationTypeStr = row["location_type"] as? String else {
-            print("[GRDB] ❌ reconstructTrack: Failed to extract 'location_type' as String")
-            return nil
-        }
-
-        guard let locationPayload = row["location_payload"] as? String else {
-            print("[GRDB] ❌ reconstructTrack: Failed to extract 'location_payload' as String")
-            return nil
-        }
-
-        // GRDB requires explicit type annotation for integer subscripts
-        guard let fileSize: Int64 = row["file_size"] else {
-            print("[GRDB] ❌ reconstructTrack: Failed to extract 'file_size' as Int64")
-            return nil
-        }
-
-        guard let trackNumber: Int = row["track_number"] else {
-            print("[GRDB] ❌ reconstructTrack: Failed to extract 'track_number' as Int")
+        guard let id = row["id"] as? String,
+              let uuid = UUID(uuidString: id),
+              let displayName = row["display_name"] as? String,
+              let filename = row["filename"] as? String,
+              let locationTypeStr = row["location_type"] as? String,
+              let locationPayload = row["location_payload"] as? String,
+              let fileSize: Int64 = row["file_size"],
+              let trackNumber: Int = row["track_number"] else {
             return nil
         }
 
