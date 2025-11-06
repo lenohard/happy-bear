@@ -644,13 +644,47 @@ actor GRDBDatabaseManager {
     }
 
     private func reconstructTrack(row: Row) throws -> AudiobookTrack? {
-        guard let id = row["id"] as? String, let uuid = UUID(uuidString: id),
-              let displayName = row["display_name"] as? String,
-              let filename = row["filename"] as? String,
-              let locationTypeStr = row["location_type"] as? String,
-              let locationPayload = row["location_payload"] as? String,
-              let fileSize = row["file_size"] as? Int64,
-              let trackNumber = row["track_number"] as? Int else {
+        // Debug: Print all row keys and values
+        print("[GRDB] reconstructTrack: Row contents = \(row)")
+
+        guard let id = row["id"] as? String else {
+            print("[GRDB] ❌ reconstructTrack: Failed to extract 'id' as String")
+            return nil
+        }
+
+        guard let uuid = UUID(uuidString: id) else {
+            print("[GRDB] ❌ reconstructTrack: Failed to parse UUID from '\(id)'")
+            return nil
+        }
+
+        guard let displayName = row["display_name"] as? String else {
+            print("[GRDB] ❌ reconstructTrack: Failed to extract 'display_name' as String")
+            return nil
+        }
+
+        guard let filename = row["filename"] as? String else {
+            print("[GRDB] ❌ reconstructTrack: Failed to extract 'filename' as String")
+            return nil
+        }
+
+        guard let locationTypeStr = row["location_type"] as? String else {
+            print("[GRDB] ❌ reconstructTrack: Failed to extract 'location_type' as String")
+            return nil
+        }
+
+        guard let locationPayload = row["location_payload"] as? String else {
+            print("[GRDB] ❌ reconstructTrack: Failed to extract 'location_payload' as String")
+            return nil
+        }
+
+        // GRDB requires explicit type annotation for integer subscripts
+        guard let fileSize: Int64 = row["file_size"] else {
+            print("[GRDB] ❌ reconstructTrack: Failed to extract 'file_size' as Int64")
+            return nil
+        }
+
+        guard let trackNumber: Int = row["track_number"] else {
+            print("[GRDB] ❌ reconstructTrack: Failed to extract 'track_number' as Int")
             return nil
         }
 
