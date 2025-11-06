@@ -335,6 +335,13 @@ struct CollectionDetailView: View {
     }
 }
 
+#Preview {
+    CollectionDetailView(collectionID: UUID())
+        .environmentObject(LibraryStore())
+        .environmentObject(AudioPlayerViewModel())
+        .environmentObject(BaiduAuthViewModel())
+}
+
 private struct TrackRow: View {
     let index: Int
     let track: AudiobookTrack
