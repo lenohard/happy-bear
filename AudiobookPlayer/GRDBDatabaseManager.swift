@@ -57,8 +57,18 @@ actor GRDBDatabaseManager {
         print("[GRDB] Starting save for collection: \(collection.title)")
 
         try db.write { db in
-            // Delete existing collection and its related data
-            print("[GRDB] Deleting existing collection: \(collection.id.uuidString)")
+            // Delete existing data in CORRECT DEPENDENCY ORDER
+            // (reverse of creation order to respect foreign keys)
+            print("[GRDB] Deleting playback states for collection: \(collection.id.uuidString)")
+            try db.execute(sql: "DELETE FROM playback_states WHERE collection_id = ?", arguments: [collection.id.uuidString])
+
+            print("[GRDB] Deleting tracks for collection: \(collection.id.uuidString)")
+            try db.execute(sql: "DELETE FROM tracks WHERE collection_id = ?", arguments: [collection.id.uuidString])
+
+            print("[GRDB] Deleting tags for collection: \(collection.id.uuidString)")
+            try db.execute(sql: "DELETE FROM tags WHERE collection_id = ?", arguments: [collection.id.uuidString])
+
+            print("[GRDB] Deleting collection: \(collection.id.uuidString)")
             try db.execute(sql: "DELETE FROM collections WHERE id = ?", arguments: [collection.id.uuidString])
 
             // Insert collection
@@ -500,13 +510,50 @@ actor GRDBDatabaseManager {
         playbackRows: [Row],
         tagRows: [Row]
     ) throws -> AudiobookCollection? {
-        guard let id = collectionRow["id"] as? String, let uuid = UUID(uuidString: id),
-              let title = collectionRow["title"] as? String,
-              let coverKindStr = collectionRow["cover_kind"] as? String,
-              let createdAt = collectionRow["created_at"] as? Date,
-              let updatedAt = collectionRow["updated_at"] as? Date,
-              let sourceTypeStr = collectionRow["source_type"] as? String,
-              let sourcePayload = collectionRow["source_payload"] as? String else {
+        // Extract each field with detailed logging
+        guard let id = collectionRow["id"] as? String else {
+            print("[GRDB] ❌ Failed to extract id field")
+            return nil
+        }
+
+        guard let uuid = UUID(uuidString: id) else {
+            print("[GRDB] ❌ Failed to parse UUID from id: \(id)")
+            return nil
+        }
+
+        guard let title = collectionRow["title"] as? String else {
+            print("[GRDB] ❌ Failed to extract title field")
+            return nil
+        }
+
+        guard let coverKindStr = collectionRow["cover_kind"] as? String else {
+            print("[GRDB] ❌ Failed to extract cover_kind field")
+            return nil
+        }
+
+        // Check createdAt
+        let createdAtValue = collectionRow["created_at"]
+        print("[GRDB] DEBUG: created_at value type: \(type(of: createdAtValue)), value: \(createdAtValue ?? "nil")")
+        guard let createdAt = createdAtValue as? Date else {
+            print("[GRDB] ❌ Failed to extract created_at as Date (got \(type(of: createdAtValue)))")
+            return nil
+        }
+
+        // Check updatedAt
+        let updatedAtValue = collectionRow["updated_at"]
+        print("[GRDB] DEBUG: updated_at value type: \(type(of: updatedAtValue)), value: \(updatedAtValue ?? "nil")")
+        guard let updatedAt = updatedAtValue as? Date else {
+            print("[GRDB] ❌ Failed to extract updated_at as Date (got \(type(of: updatedAtValue)))")
+            return nil
+        }
+
+        guard let sourceTypeStr = collectionRow["source_type"] as? String else {
+            print("[GRDB] ❌ Failed to extract source_type field")
+            return nil
+        }
+
+        guard let sourcePayload = collectionRow["source_payload"] as? String else {
+            print("[GRDB] ❌ Failed to extract source_payload field")
             return nil
         }
 
