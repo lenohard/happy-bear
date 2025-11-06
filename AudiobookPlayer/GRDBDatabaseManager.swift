@@ -531,19 +531,43 @@ actor GRDBDatabaseManager {
             return nil
         }
 
-        // Check createdAt
+        // Check createdAt - GRDB returns DATETIME as String, not Date
         let createdAtValue = collectionRow["created_at"]
         print("[GRDB] DEBUG: created_at value type: \(type(of: createdAtValue)), value: \(createdAtValue ?? "nil")")
-        guard let createdAt = createdAtValue as? Date else {
-            print("[GRDB] ❌ Failed to extract created_at as Date (got \(type(of: createdAtValue)))")
+
+        let createdAt: Date
+        if let date = createdAtValue as? Date {
+            createdAt = date
+        } else if let dateString = createdAtValue as? String {
+            // Parse ISO 8601 format from SQLite DATETIME
+            let formatter = ISO8601DateFormatter()
+            guard let parsedDate = formatter.date(from: dateString) else {
+                print("[GRDB] ❌ Failed to parse created_at from string: \(dateString)")
+                return nil
+            }
+            createdAt = parsedDate
+        } else {
+            print("[GRDB] ❌ Failed to extract created_at - unexpected type \(type(of: createdAtValue))")
             return nil
         }
 
-        // Check updatedAt
+        // Check updatedAt - same issue as createdAt
         let updatedAtValue = collectionRow["updated_at"]
         print("[GRDB] DEBUG: updated_at value type: \(type(of: updatedAtValue)), value: \(updatedAtValue ?? "nil")")
-        guard let updatedAt = updatedAtValue as? Date else {
-            print("[GRDB] ❌ Failed to extract updated_at as Date (got \(type(of: updatedAtValue)))")
+
+        let updatedAt: Date
+        if let date = updatedAtValue as? Date {
+            updatedAt = date
+        } else if let dateString = updatedAtValue as? String {
+            // Parse ISO 8601 format from SQLite DATETIME
+            let formatter = ISO8601DateFormatter()
+            guard let parsedDate = formatter.date(from: dateString) else {
+                print("[GRDB] ❌ Failed to parse updated_at from string: \(dateString)")
+                return nil
+            }
+            updatedAt = parsedDate
+        } else {
+            print("[GRDB] ❌ Failed to extract updated_at - unexpected type \(type(of: updatedAtValue))")
             return nil
         }
 
@@ -630,7 +654,18 @@ actor GRDBDatabaseManager {
         let metadataJson = row["metadata_json"] as? String
         let metadata = metadataJson.flatMap { decodeJSON($0) as? [String: String] } ?? [:]
         let isFavorite = (row["is_favorite"] as? Int ?? 0) == 1
-        let favoritedAt = row["favorited_at"] as? Date
+
+        // Handle favoritedAt - GRDB returns DATETIME as String, not Date
+        let favoritedAtValue = row["favorited_at"]
+        let favoritedAt: Date?
+        if let date = favoritedAtValue as? Date {
+            favoritedAt = date
+        } else if let dateString = favoritedAtValue as? String {
+            let formatter = ISO8601DateFormatter()
+            favoritedAt = formatter.date(from: dateString)
+        } else {
+            favoritedAt = nil
+        }
 
         return AudiobookTrack(
             id: uuid,
@@ -648,8 +683,22 @@ actor GRDBDatabaseManager {
     }
 
     private func reconstructPlaybackState(row: Row) throws -> TrackPlaybackState? {
-        guard let position = row["position"] as? TimeInterval,
-              let updatedAt = row["updated_at"] as? Date else {
+        guard let position = row["position"] as? TimeInterval else {
+            return nil
+        }
+
+        // Handle updatedAt - GRDB returns DATETIME as String, not Date
+        let updatedAtValue = row["updated_at"]
+        let updatedAt: Date
+        if let date = updatedAtValue as? Date {
+            updatedAt = date
+        } else if let dateString = updatedAtValue as? String {
+            let formatter = ISO8601DateFormatter()
+            guard let parsedDate = formatter.date(from: dateString) else {
+                return nil
+            }
+            updatedAt = parsedDate
+        } else {
             return nil
         }
 
