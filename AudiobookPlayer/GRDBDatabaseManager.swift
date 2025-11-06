@@ -21,21 +21,31 @@ actor GRDBDatabaseManager {
 
     /// Initialize the database with schema
     func initializeDatabase() throws {
+        print("[GRDB] initializeDatabase starting...")
         try DatabaseConfig.ensureDirectoryExists()
+        print("[GRDB] Directory exists")
 
+        print("[GRDB] Creating DatabaseQueue with path: \(dbURL.path)")
         let db = try DatabaseQueue(path: dbURL.path)
         self.db = db
+        print("[GRDB] DatabaseQueue created successfully")
 
         // Create schema
+        print("[GRDB] Creating schema...")
         try db.write { db in
             // Create all tables
+            print("[GRDB] Executing createTableSQL...")
             try db.execute(sql: DatabaseSchema.createTableSQL)
+            print("[GRDB] Schema tables created")
 
             // Insert schema version if not exists
+            print("[GRDB] Inserting schema version...")
             try db.execute(sql: """
                 INSERT OR IGNORE INTO schema_state (version) VALUES (1)
             """)
+            print("[GRDB] Schema version inserted")
         }
+        print("[GRDB] Database initialization complete!")
     }
 
     // MARK: - Collection Operations
@@ -44,12 +54,16 @@ actor GRDBDatabaseManager {
     func saveCollection(_ collection: AudiobookCollection) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
+        print("[GRDB] Starting save for collection: \(collection.title)")
+
         try db.write { db in
             // Delete existing collection and its related data
+            print("[GRDB] Deleting existing collection: \(collection.id.uuidString)")
             try db.execute(sql: "DELETE FROM collections WHERE id = ?", arguments: [collection.id.uuidString])
 
             // Insert collection
-            try db.execute(sql: 
+            print("[GRDB] Inserting collection: \(collection.title)")
+            try db.execute(sql:
                 """
                 INSERT INTO collections (
                     id, title, author, description,
@@ -76,8 +90,9 @@ actor GRDBDatabaseManager {
             )
 
             // Insert tracks
-            for track in collection.tracks {
-                try db.execute(sql: 
+            print("[GRDB] Inserting \(collection.tracks.count) tracks")
+            for (idx, track) in collection.tracks.enumerated() {
+                try db.execute(sql:
                     """
                     INSERT INTO tracks (
                         id, collection_id,
@@ -104,11 +119,15 @@ actor GRDBDatabaseManager {
                         track.favoritedAt
                     ]
                 )
+                if idx % 20 == 0 {
+                    print("[GRDB] Inserted \(idx) tracks...")
+                }
             }
 
             // Insert playback states
+            print("[GRDB] Inserting playback states")
             for (trackId, state) in collection.playbackStates {
-                try db.execute(sql: 
+                try db.execute(sql:
                     """
                     INSERT INTO playback_states (
                         track_id, collection_id,
@@ -126,6 +145,7 @@ actor GRDBDatabaseManager {
             }
 
             // Insert tags
+            print("[GRDB] Inserting \(collection.tags.count) tags")
             for tag in collection.tags {
                 try db.execute(
                     sql: "INSERT INTO tags (collection_id, tag) VALUES (?, ?)",
@@ -133,6 +153,8 @@ actor GRDBDatabaseManager {
                 )
             }
         }
+
+        print("[GRDB] Successfully saved collection: \(collection.title)")
     }
 
     /// Load a collection by ID
@@ -184,22 +206,30 @@ actor GRDBDatabaseManager {
     func loadAllCollections() throws -> [AudiobookCollection] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
+        print("[GRDB] Starting loadAllCollections")
+
         return try db.read { db in
+            print("[GRDB] Fetching all collection rows...")
             let collectionRows = try Row.fetchAll(db, sql: "SELECT * FROM collections")
+            print("[GRDB] Found \(collectionRows.count) collection rows in database")
 
             var collections: [AudiobookCollection] = []
 
             for collectionRow in collectionRows {
                 guard let collectionId = collectionRow["id"] as? String,
-                      let uuid = UUID(uuidString: collectionId) else {
+                      let _ = UUID(uuidString: collectionId) else {
+                    print("[GRDB] Invalid collection ID: \(collectionRow["id"] as? String ?? "unknown")")
                     continue
                 }
+
+                print("[GRDB] Loading collection: \(collectionId)")
 
                 let trackRows = try Row.fetchAll(
                     db,
                     sql: "SELECT * FROM tracks WHERE collection_id = ? ORDER BY track_number",
                     arguments: [collectionId]
                 )
+                print("[GRDB] Found \(trackRows.count) tracks for collection \(collectionId)")
 
                 let playbackRows = try Row.fetchAll(
                     db,
@@ -220,9 +250,13 @@ actor GRDBDatabaseManager {
                     tagRows: tagRows
                 ) {
                     collections.append(collection)
+                    print("[GRDB] Successfully reconstructed collection: \(collection.title)")
+                } else {
+                    print("[GRDB] Failed to reconstruct collection from row")
                 }
             }
 
+            print("[GRDB] Returning \(collections.count) collections")
             return collections
         }
     }
@@ -704,7 +738,6 @@ extension AudiobookCollection.Source {
     }
 
     func payloadJSON() -> String {
-        let encoder = JSONEncoder()
         var payload: [String: Any] = [:]
 
         switch self {
@@ -736,7 +769,6 @@ extension AudiobookTrack.Location {
     }
 
     func payloadJSON() -> String {
-        let encoder = JSONEncoder()
         var payload: [String: Any] = [:]
 
         switch self {
