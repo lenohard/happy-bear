@@ -14,6 +14,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published private(set) var activeCollection: AudiobookCollection?
     @Published private(set) var currentTrack: AudiobookTrack?
     @Published private(set) var activeCacheStatus: CacheStatusSnapshot?
+    @Published private(set) var ephemeralContext: TemporaryPlaybackContext?
 
     private var playlist: [AudiobookTrack] = []
     private var player: AVPlayer?
@@ -81,6 +82,10 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func prepareCollection(_ collection: AudiobookCollection) {
+        if !collection.isEphemeral {
+            ephemeralContext = nil
+        }
+
         let sortedTracks = collection.tracks.sorted { lhs, rhs in
             lhs.filename.localizedCaseInsensitiveCompare(rhs.filename) == .orderedAscending
         }
@@ -156,6 +161,51 @@ final class AudioPlayerViewModel: ObservableObject {
             preparePlayer(with: url, autoPlay: true)
             currentTrack = track
             statusMessage = "Playing \"\(track.displayName)\"."
+#if os(iOS)
+            updateNowPlayingInfo()
+#endif
+            refreshActiveCacheStatus()
+        } catch {
+            statusMessage = "Playback error: \(error.localizedDescription)"
+        }
+    }
+
+    func playDirect(entry: BaiduNetdiskEntry, token: BaiduOAuthToken) {
+        guard !entry.isDir else {
+            statusMessage = "Select an audio file to start playback."
+            return
+        }
+
+        let track = AudiobookTrack(
+            id: UUID(),
+            displayName: entry.serverFilename,
+            filename: entry.serverFilename,
+            location: .baidu(fsId: entry.fsId, path: entry.path),
+            fileSize: entry.size,
+            duration: nil,
+            trackNumber: 1,
+            checksum: entry.md5,
+            metadata: ["baidu_path": entry.path],
+            isFavorite: false,
+            favoritedAt: nil
+        )
+
+        let context = TemporaryPlaybackContext(
+            title: entry.serverFilename,
+            sourcePath: entry.path,
+            tracks: [track]
+        )
+
+        ephemeralContext = context
+        prepareCollection(context.collection)
+        currentToken = token
+
+        do {
+            let url = try streamURL(for: track, token: token)
+            pendingInitialSeek = nil
+            preparePlayer(with: url, autoPlay: true)
+            currentTrack = track
+            statusMessage = "Streaming \"\(track.displayName)\" from Baidu Netdisk."
 #if os(iOS)
             updateNowPlayingInfo()
 #endif
@@ -609,6 +659,7 @@ final class AudioPlayerViewModel: ObservableObject {
             currentTrack = nil
             currentToken = nil
             playlist = []
+            ephemeralContext = nil
         }
     }
 

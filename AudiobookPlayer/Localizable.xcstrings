@@ -1482,6 +1482,40 @@
         }
       }
     },
+    "ephemeral_save_button" : {
+      "comment" : "Button shown in Playing tab to save the current ephemeral folder to the library",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Save Folder to Library"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "保存文件夹到资料库"
+          }
+        }
+      }
+    },
+    "ephemeral_streaming_badge" : {
+      "comment" : "Badge indicating the track is streaming directly from the Baidu browser",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Streaming from Baidu Browser"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "来自百度浏览器的串流"
+          }
+        }
+      }
+    },
     "Done" : {
       "localizations" : {
         "zh-Hans" : {

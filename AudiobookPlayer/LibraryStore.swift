@@ -380,7 +380,7 @@ final class LibraryStore: ObservableObject {
             return true
         case .baiduNetdisk:
             return true
-        case .external:
+        case .external, .ephemeralBaidu:
             return false
         }
     }

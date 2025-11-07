@@ -11,6 +11,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case baiduNetdisk(folderPath: String, tokenScope: String)
         case local(directoryBookmark: Data)
         case external(description: String)
+        case ephemeralBaidu(path: String)
 
         private enum CodingKeys: String, CodingKey {
             case type
@@ -18,12 +19,14 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case tokenScope
             case directoryBookmark
             case description
+            case ephemeralPath
         }
 
         private enum SourceType: String, Codable {
             case baiduNetdisk
             case local
             case external
+            case ephemeralBaidu
         }
 
         init(from decoder: Decoder) throws {
@@ -41,6 +44,9 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case .external:
                 let description = try container.decode(String.self, forKey: .description)
                 self = .external(description: description)
+            case .ephemeralBaidu:
+                let path = try container.decode(String.self, forKey: .ephemeralPath)
+                self = .ephemeralBaidu(path: path)
             }
         }
 
@@ -58,6 +64,9 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case let .external(description):
                 try container.encode(SourceType.external, forKey: .type)
                 try container.encode(description, forKey: .description)
+            case let .ephemeralBaidu(path):
+                try container.encode(SourceType.ephemeralBaidu, forKey: .type)
+                try container.encode(path, forKey: .ephemeralPath)
             }
         }
     }
@@ -335,6 +344,13 @@ extension TimeInterval {
 }
 
 extension AudiobookCollection {
+    var isEphemeral: Bool {
+        if case .ephemeralBaidu = source {
+            return true
+        }
+        return false
+    }
+
     var tracksSortedByFilename: [AudiobookTrack] {
         tracks.sorted {
             $0.filename.localizedCaseInsensitiveCompare($1.filename) == .orderedAscending

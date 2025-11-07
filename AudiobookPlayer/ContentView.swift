@@ -93,24 +93,34 @@ struct PlayingView: View {
 
     @State private var missingAuthAlert = false
     @State private var showingCacheManagement = false
+    @State private var showingEphemeralSave = false
 
     private var currentPlayback: PlaybackSnapshot? {
-        guard let trackID = audioPlayer.currentTrack?.id else {
+        guard let currentTrack = audioPlayer.currentTrack else {
             return nil
         }
 
-        // First, try to find the track in activeCollection (the normal case)
-        if let collectionID = audioPlayer.activeCollection?.id,
-           let collection = library.collections.first(where: { $0.id == collectionID }),
-           let track = collection.tracks.first(where: { $0.id == trackID }) {
-            let state = collection.playbackState(for: track.id)
-            return PlaybackSnapshot(collection: collection, track: track, state: state, isLive: true)
+        if let activeCollection = audioPlayer.activeCollection {
+            if activeCollection.isEphemeral {
+                let transientState = TrackPlaybackState(
+                    position: audioPlayer.currentTime,
+                    duration: audioPlayer.duration > 0 ? audioPlayer.duration : nil,
+                    updatedAt: Date()
+                )
+                return PlaybackSnapshot(collection: activeCollection, track: currentTrack, state: transientState, isLive: true)
+            }
+
+            if let collection = library.collections.first(where: { $0.id == activeCollection.id }),
+               let track = collection.tracks.first(where: { $0.id == currentTrack.id }) {
+                let state = collection.playbackState(for: track.id)
+                return PlaybackSnapshot(collection: collection, track: track, state: state, isLive: true)
+            }
         }
 
         // Defensive fallback: if track not in activeCollection, search all collections
         // This handles the case where activeCollection got out of sync with actual playback
         for collection in library.collections {
-            if let track = collection.tracks.first(where: { $0.id == trackID }) {
+            if let track = collection.tracks.first(where: { $0.id == currentTrack.id }) {
                 let state = collection.playbackState(for: track.id)
                 return PlaybackSnapshot(collection: collection, track: track, state: state, isLive: true)
             }
@@ -142,7 +152,8 @@ struct PlayingView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             primaryCard(for: snapshot)
 
-                            if !historyEntries(excluding: snapshot).isEmpty {
+                            if !snapshot.collection.isEphemeral,
+                               !historyEntries(excluding: snapshot).isEmpty {
                                 listeningHistorySection(entries: historyEntries(excluding: snapshot))
                             }
                         }
@@ -173,6 +184,21 @@ struct PlayingView: View {
         .sheet(isPresented: $showingCacheManagement) {
             CacheManagementView()
                 .environmentObject(audioPlayer)
+        }
+        .sheet(isPresented: $showingEphemeralSave) {
+            if let folderPath = audioPlayer.ephemeralContext?.sourceDirectory {
+                NavigationStack {
+                    CreateCollectionView(
+                        folderPath: folderPath,
+                        tokenProvider: { authViewModel.token },
+                        onComplete: { _ in
+                            showingEphemeralSave = false
+                        }
+                    )
+                }
+            } else {
+                EmptyView()
+            }
         }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             syncPlaybackState()
@@ -354,24 +380,44 @@ struct PlayingView: View {
     @ViewBuilder
     private func compactActionRow(collection: AudiobookCollection, track: AudiobookTrack) -> some View {
         HStack(spacing: 12) {
-            NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
-                HStack(spacing: 6) {
-                    Image(systemName: "books.vertical")
-                    Text(NSLocalizedString("open_collection", comment: "Open collection button"))
+            if collection.isEphemeral {
+                Label(NSLocalizedString("ephemeral_streaming_badge", comment: "Ephemeral streaming badge"), systemImage: "bolt.horizontal.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                Spacer()
+
+                Button {
+                    if authViewModel.token == nil {
+                        missingAuthAlert = true
+                    } else {
+                        showingEphemeralSave = true
+                    }
+                } label: {
+                    Label(NSLocalizedString("ephemeral_save_button", comment: "Ephemeral save button"), systemImage: "tray.and.arrow.down")
+                        .font(.subheadline)
                 }
-                .font(.subheadline)
-            }
-            .buttonStyle(.bordered)
+                .buttonStyle(.bordered)
+            } else {
+                NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "books.vertical")
+                        Text(NSLocalizedString("open_collection", comment: "Open collection button"))
+                    }
+                    .font(.subheadline)
+                }
+                .buttonStyle(.bordered)
 
-            Spacer()
+                Spacer()
 
-            Button {
-                library.toggleFavorite(for: track.id, in: collection.id)
-            } label: {
-                Image(systemName: track.isFavorite ? "heart.fill" : "heart")
-                    .foregroundStyle(track.isFavorite ? .pink : .gray)
+                Button {
+                    library.toggleFavorite(for: track.id, in: collection.id)
+                } label: {
+                    Image(systemName: track.isFavorite ? "heart.fill" : "heart")
+                        .foregroundStyle(track.isFavorite ? .pink : .gray)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
 
             if case .baidu = track.location {
                 let status = audioPlayer.cacheStatus(for: track)
@@ -494,6 +540,7 @@ struct PlayingView: View {
     private func syncPlaybackState() {
         guard
             let collection = audioPlayer.activeCollection,
+            !collection.isEphemeral,
             let track = audioPlayer.currentTrack
         else { return }
 

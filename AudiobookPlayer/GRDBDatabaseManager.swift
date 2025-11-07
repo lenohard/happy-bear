@@ -1081,6 +1081,7 @@ extension AudiobookCollection.Source {
         case .baiduNetdisk: return "baiduNetdisk"
         case .local: return "local"
         case .external: return "external"
+        case .ephemeralBaidu: return "ephemeralBaidu"
         }
     }
 
@@ -1096,6 +1097,9 @@ extension AudiobookCollection.Source {
 
         case let .external(description):
             payload = ["description": description]
+
+        case let .ephemeralBaidu(path):
+            payload = ["ephemeralPath": path]
         }
 
         guard let data = try? JSONSerialization.data(withJSONObject: payload),

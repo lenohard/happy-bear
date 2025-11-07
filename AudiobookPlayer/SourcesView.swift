@@ -12,6 +12,9 @@ struct SourcesView: View {
     @State private var selectedNetdiskEntry: BaiduNetdiskEntry?
     @State private var showingBaiduImport = false
     @State private var importFromPath: String?
+    @State private var directPlayError: IdentifiableString?
+
+    private let playableExtensions: Set<String> = ["mp3", "m4a", "m4b", "aac", "flac", "wav", "ogg", "opus"]
 
     var body: some View {
         NavigationStack {
@@ -25,6 +28,7 @@ struct SourcesView: View {
             .navigationTitle(NSLocalizedString("sources_title", comment: "Sources view title"))
         }
         .sheet(item: $selectedNetdiskEntry) { entry in
+            let canStream = isPlayable(entry)
             NavigationStack {
                 VStack(alignment: .leading, spacing: 16) {
                     Label(NSLocalizedString("file_details", comment: "File details"), systemImage: "doc.text.magnifyingglass")
@@ -44,11 +48,37 @@ struct SourcesView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
 
+                    Label(
+                        canStream
+                            ? NSLocalizedString("direct_play_sheet_hint", comment: "Direct play hint")
+                            : NSLocalizedString("unsupported_audio_file_message", comment: "Unsupported audio file message"),
+                        systemImage: canStream ? "bolt.horizontal" : "exclamationmark.triangle"
+                    )
+                    .font(.subheadline)
+                    .foregroundStyle(canStream ? .secondary : Color.orange)
+
                     Spacer()
+
+                    Button {
+                        startDirectPlayback(with: entry)
+                    } label: {
+                        Label(NSLocalizedString("play_now_button", comment: "Play now button"), systemImage: "play.circle.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!canStream)
+
+                    Button {
+                        presentSaveFlow(for: entry)
+                    } label: {
+                        Label(NSLocalizedString("save_to_library_button", comment: "Save to library button"), systemImage: "tray.and.arrow.down")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
 
                     Button(NSLocalizedString("close_button", comment: "Close button"), role: .cancel) { selectedNetdiskEntry = nil }
                         .frame(maxWidth: .infinity)
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                 }
                 .padding()
                 .navigationTitle(NSLocalizedString("netdisk_file_title", comment: "Netdisk file sheet title"))
@@ -82,6 +112,13 @@ struct SourcesView: View {
                     // Collection is automatically added to library,
                     // don't interrupt current playback
                 }
+            )
+        }
+        .alert(item: $directPlayError) { payload in
+            Alert(
+                title: Text(NSLocalizedString("error_title", comment: "Error title")),
+                message: Text(payload.value),
+                dismissButton: .default(Text(NSLocalizedString("ok_button", comment: "OK button")))
             )
         }
     }
@@ -144,7 +181,7 @@ private extension SourcesView {
                         BaiduNetdiskBrowserView(
                             tokenProvider: { authViewModel.token },
                             onSelectFile: { entry in
-                                selectedNetdiskEntry = entry
+                                handleNetdiskFileSelection(entry)
                             }
                         )
                     } label: {
@@ -184,6 +221,46 @@ private extension SourcesView {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    func handleNetdiskFileSelection(_ entry: BaiduNetdiskEntry) {
+        selectedNetdiskEntry = entry
+
+        guard isPlayable(entry) else {
+            directPlayError = IdentifiableString(value: NSLocalizedString("unsupported_audio_file_message", comment: "Unsupported audio file message"))
+            return
+        }
+
+        startDirectPlayback(with: entry)
+    }
+
+    func startDirectPlayback(with entry: BaiduNetdiskEntry) {
+        guard isPlayable(entry) else { return }
+
+        guard let token = authViewModel.token else {
+            directPlayError = IdentifiableString(value: NSLocalizedString("direct_play_requires_auth", comment: "Direct play requires auth message"))
+            return
+        }
+
+        audioPlayer.playDirect(entry: entry, token: token)
+    }
+
+    func presentSaveFlow(for entry: BaiduNetdiskEntry) {
+        let parentPath = parentDirectory(for: entry.path)
+        importFromPath = parentPath
+        selectedNetdiskEntry = nil
+        showingBaiduImport = false
+    }
+
+    func isPlayable(_ entry: BaiduNetdiskEntry) -> Bool {
+        guard !entry.isDir else { return false }
+        let ext = (entry.serverFilename as NSString).pathExtension.lowercased()
+        return playableExtensions.contains(ext)
+    }
+
+    func parentDirectory(for path: String) -> String {
+        let directory = (path as NSString).deletingLastPathComponent
+        return directory.isEmpty ? "/" : directory
     }
 }
 
