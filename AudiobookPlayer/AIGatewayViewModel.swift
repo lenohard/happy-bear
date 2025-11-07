@@ -28,6 +28,7 @@ final class AIGatewayViewModel: ObservableObject {
     private let keyStore: AIGatewayAPIKeyStore
     private let client: AIGatewayClient
     private let defaults: UserDefaults
+    private var hasStoredKey: Bool = false
 
     private let defaultModelKey = "ai_gateway_default_model"
 
@@ -60,22 +61,23 @@ final class AIGatewayViewModel: ObservableObject {
     func loadStoredKey() {
         do {
             if let stored = try keyStore.loadKey() {
-                // Don't populate the SecureField with the actual key for security
-                // Just mark it as valid
+                hasStoredKey = true
                 keyState = .valid
+                // Don't populate apiKey field - keep it empty for security
+                // User will see empty field with "Key verified" status
             } else {
-                apiKey = ""
+                hasStoredKey = false
                 keyState = .unknown
             }
         } catch {
+            hasStoredKey = false
             keyState = .invalid(error.localizedDescription)
         }
     }
 
     func markKeyAsEditing() {
-        if case .valid = keyState {
-            keyState = .editing
-        }
+        // Always allow editing when user types something
+        keyState = .editing
     }
 
     func saveAndValidateKey() async {
@@ -89,9 +91,10 @@ final class AIGatewayViewModel: ObservableObject {
 
         do {
             try keyStore.saveKey(trimmed)
-            // Temporarily use the key for validation, then clear for security
-            let previousKey = apiKey
+            hasStoredKey = true
+            // Validate by fetching models with the new key
             try await refreshModels(with: trimmed)
+            // Clear field after successful save for security
             apiKey = ""
             keyState = .valid
         } catch {
@@ -136,26 +139,33 @@ final class AIGatewayViewModel: ObservableObject {
     }
 
     func refreshCredits() async {
-        guard !apiKey.isEmpty else { return }
+        // Use hasStoredKey to know if we have a valid key in storage
+        // Don't rely on apiKey field since we clear it for security
+        guard hasStoredKey else { return }
         isFetchingCredits = true
         defer { isFetchingCredits = false }
 
         do {
-            credits = try await client.fetchCredits(apiKey: apiKey)
+            // Try to load key from storage to use for API call
+            if let storedKey = try keyStore.loadKey() {
+                credits = try await client.fetchCredits(apiKey: storedKey)
+            }
         } catch {
             credits = nil
         }
     }
 
     func runChatTest() async {
-        guard !apiKey.isEmpty, !chatPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard hasStoredKey, !chatPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             chatResponseText = ""
             return
         }
 
         do {
+            guard let storedKey = try keyStore.loadKey() else { return }
+
             let result = try await client.sendChat(
-                apiKey: apiKey,
+                apiKey: storedKey,
                 model: selectedModelID,
                 systemPrompt: systemPrompt,
                 userPrompt: chatPrompt
@@ -192,13 +202,17 @@ final class AIGatewayViewModel: ObservableObject {
             generationError = NSLocalizedString("ai_tab_generation_empty", comment: "")
             return
         }
-        guard !apiKey.isEmpty else {
+        guard hasStoredKey else {
             generationError = NSLocalizedString("ai_tab_missing_key", comment: "")
             return
         }
 
         do {
-            let response = try await client.fetchGeneration(apiKey: apiKey, id: trimmedID)
+            guard let storedKey = try keyStore.loadKey() else {
+                generationError = NSLocalizedString("ai_tab_missing_key", comment: "")
+                return
+            }
+            let response = try await client.fetchGeneration(apiKey: storedKey, id: trimmedID)
             generationDetails = response.data
         } catch {
             generationError = error.localizedDescription
@@ -208,6 +222,7 @@ final class AIGatewayViewModel: ObservableObject {
     func clearKey() {
         do {
             try keyStore.clearKey()
+            hasStoredKey = false
             apiKey = ""
             keyState = .unknown
             models = []

@@ -244,7 +244,7 @@ YES
    - **See last lines**: `xcodebuild ... | tail -n 20`
    - This saves tokens and makes build verification more efficient
 
-2. **⚠️ CRITICAL - Localizable.xcstrings File Corruption Protection**:
+3. **⚠️ CRITICAL - Localizable.xcstrings File Corruption Protection**:
    - **PROBLEM**: The `AudiobookPlayer/Localizable.xcstrings` file is prone to corruption when edited by multiple agents or tools
    - **Common Issues**:
      - File gets converted to binary plist format (breaks Xcode build)
@@ -258,14 +258,14 @@ YES
      2. Add missing `"version": "1.0"` field if needed
      3. If file is binary plist, restore from git: `git checkout HEAD -- AudiobookPlayer/Localizable.xcstrings` then re-run step 1 & 2
 
-3. **Xcode Project File Editing**: Never attempt to programmatically edit `project.pbxproj`. Instead:
+4. **Xcode Project File Editing**: Never attempt to programmatically edit `project.pbxproj`. Instead:
    - Generate required resource files (`.strings`, `.xcassets`, etc.) using scripts
    - Create necessary directory structure (`*.lproj`, etc.)
    - Ask user to manually add files/folders to Xcode project via UI (Build Phases > Copy Bundle Resources, etc.)
    - User then builds and tests in Xcode
    This prevents pbxproj corruption and ensures proper project configuration.
 
-3. **UI Localization Best Practices**: When writing UI code, always use localization keys for multi-language support:
+5. **UI Localization Best Practices**: When writing UI code, always use localization keys for multi-language support:
    - ✅ **DO**: Use `Text("search_files")` with corresponding entries in `Localizable.xcstrings`
    - ✅ **DO**: Use `Label("Current Path", systemImage: "folder")` where system images are universal
    - ❌ **DON'T**: Use hardcoded strings like `Text("Search files")` directly in UI code
@@ -285,13 +285,13 @@ YES
      4. User manually adds to Xcode project
      5. Test in both English and Chinese device settings
 
-4. **Avoid Over-Automation for Small Localization Changes**:
+6. **Avoid Over-Automation for Small Localization Changes**:
    - ❌ **DON'T**: Build scripts to regenerate `.strings` files for small edits (3-5 strings)
    - ✅ **DO**: Directly edit `en.lproj/Localizable.strings` and `zh-Hans.lproj/Localizable.strings` by hand (copy-paste, ~1 minute)
    - ✅ **DO**: Update `generate_strings.py` SCRIPT dictionary for future regenerations
    - **Lesson**: Task was 10 lines of manual edits, but I built a Python script instead (wasted ~15 minutes on automation). For surgical changes to static files, direct editing beats scripting.
 
-5. **App Intents & Siri Support - Requires Paid Developer Account**:
+7. **App Intents & Siri Support - Requires Paid Developer Account**:
    - ❌ **FREE accounts cannot use App Intents**: Free and Team provisioning profiles lack `com.apple.developer.appintents` entitlement support
    - ❌ **Paid accounts only**: Only Apple Developer Program members ($99/year) can create App Intents-enabled provisioning profiles
    - ✅ **Workaround**: Save complete implementation in WIP branch, restore when account is upgraded

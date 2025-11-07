@@ -646,7 +646,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AI 网关"
+            "value" : "AI Gateway"
           }
         }
       }
@@ -716,10 +716,24 @@
       }
     },
     "Authorizing…" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鉴权中…"
+          }
+        }
+      }
     },
     "Baidu Netdisk" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "百度网盘"
+          }
+        }
+      }
     },
     "baidu_auth_section" : {
       "comment" : "Baidu auth section title",
@@ -773,55 +787,269 @@
       }
     },
     "cache_clear_all" : {
-      "comment" : "Clear all cached audio"
+      "comment" : "Clear all cached audio",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除所有"
+          }
+        }
+      }
     },
     "cache_clear_all_confirm" : {
-      "comment" : "Delete all cached audio button"
+      "comment" : "Delete all cached audio button",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确认"
+          }
+        }
+      }
     },
     "cache_clear_all_message" : {
-      "comment" : "Clear all cached audio confirmation message"
+      "comment" : "Clear all cached audio confirmation message",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除所有缓存"
+          }
+        }
+      }
     },
     "cache_clear_all_title" : {
-      "comment" : "Clear cached audio confirmation title"
+      "comment" : "Clear cached audio confirmation title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缓存清理"
+          }
+        }
+      }
     },
     "cache_clear_track" : {
-      "comment" : "Clear this track"
+      "comment" : "Clear this track",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear this track"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除此曲目"
+          }
+        }
+      }
     },
     "cache_clear_track_confirm" : {
-      "comment" : "Remove track cache button"
+      "comment" : "Remove track cache button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Cache"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除缓存"
+          }
+        }
+      }
     },
     "cache_clear_track_message" : {
-      "comment" : "Remove track cache confirmation message"
+      "comment" : "Remove track cache confirmation message",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remove cached copy of this track?"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除此曲目的缓存副本？"
+          }
+        }
+      }
     },
     "cache_clear_track_title" : {
-      "comment" : "Remove cached copy of this track confirmation title"
+      "comment" : "Remove cached copy of this track confirmation title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Track Cache"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除曲目缓存"
+          }
+        }
+      }
     },
     "cache_current_track_section" : {
-      "comment" : "Current track section title"
+      "comment" : "Current track section title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current Track"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前曲目"
+          }
+        }
+      }
     },
     "cache_day" : {
-      "comment" : "Day"
+      "comment" : "Day",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "day"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天"
+          }
+        }
+      }
     },
     "cache_days" : {
-      "comment" : "Days"
+      "comment" : "Days",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "days"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天"
+          }
+        }
+      }
     },
     "cache_download_offline" : {
-      "comment" : "Download for offline listening"
+      "comment" : "Download for offline listening",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Download for offline listening"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载以供离线收听"
+          }
+        }
+      }
     },
     "cache_folder" : {
-      "comment" : "Cache folder label"
+      "comment" : "Cache folder label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Folder"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缓存文件夹"
+          }
+        }
+      }
     },
     "cache_retention_days" : {
-      "comment" : "Cache retention days format"
+      "comment" : "Cache retention days format",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep files for %d %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留文件 %d %@"
+          }
+        }
+      }
     },
     "cache_settings_title" : {
-      "comment" : "Cache settings title"
+      "comment" : "Cache settings title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cache Settings"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缓存设置"
+          }
+        }
+      }
     },
     "cache_storage_section" : {
-      "comment" : "Storage section title"
+      "comment" : "Storage section title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "存储"
+          }
+        }
+      }
     },
     "cache_streaming_directly" : {
-      "comment" : "Streaming directly from Baidu Netdisk"
+      "comment" : "Streaming directly from Baidu Netdisk",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming directly from Baidu Netdisk"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在直接从百度网盘流式播放"
+          }
+        }
+      }
     },
     "cache_tools_day" : {
       "extractionState" : "stale",
@@ -943,13 +1171,36 @@
       }
     },
     "cache_total_size" : {
-      "comment" : "Total cache size label"
+      "comment" : "Total cache size label",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "缓存总大小"
+          }
+        }
+      }
     },
     "Cancel" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
     },
     "cancel_button" : {
-      "comment" : "Cancel\nCancel button"
+      "comment" : "Cancel\nCancel button",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
     },
     "close_button" : {
       "comment" : "Close button",
@@ -969,7 +1220,14 @@
       }
     },
     "Collection Details" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "详情"
+          }
+        }
+      }
     },
     "collection_not_found" : {
       "comment" : "Collection not found",
@@ -1131,16 +1389,45 @@
       }
     },
     "Description (optional)" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述"
+          }
+        }
+      }
     },
     "Deselect All" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消全选"
+          }
+        }
+      }
     },
     "Done" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
     },
     "done_button" : {
-      "comment" : "Done button"
+      "comment" : "Done button",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
     },
     "duplicate_import_message" : {
       "comment" : "Duplicate import message",
@@ -1336,7 +1623,14 @@
       }
     },
     "Folder" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件夹"
+          }
+        }
+      }
     },
     "folder_empty" : {
       "extractionState" : "stale",
@@ -1373,7 +1667,14 @@
       }
     },
     "Import Audiobook" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入"
+          }
+        }
+      }
     },
     "import_again_button" : {
       "comment" : "Import again button",
@@ -1410,7 +1711,14 @@
       }
     },
     "Last position: %@" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上次位置: %@"
+          }
+        }
+      }
     },
     "last_position" : {
       "comment" : "Last position label",
@@ -1498,7 +1806,14 @@
       }
     },
     "Loading…" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加载中…"
+          }
+        }
+      }
     },
     "local_file" : {
       "comment" : "Cache status for local file",
@@ -1535,7 +1850,15 @@
       }
     },
     "local_files_message" : {
-      "comment" : "Local files message"
+      "comment" : "Local files message",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地文件"
+          }
+        }
+      }
     },
     "local_files_section" : {
       "comment" : "Local files section title",
@@ -1623,7 +1946,14 @@
       }
     },
     "No results for \"%@\"" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有%@了～"
+          }
+        }
+      }
     },
     "no_audio_tracks" : {
       "comment" : "No audio tracks",
@@ -1785,7 +2115,14 @@
       }
     },
     "Open Cache Settings" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开缓存设置"
+          }
+        }
+      }
     },
     "open_collection" : {
       "comment" : "Open collection button",
@@ -1907,13 +2244,34 @@
       }
     },
     "Preparing..." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "准备中…"
+          }
+        }
+      }
     },
     "Re-authenticate" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "再验证"
+          }
+        }
+      }
     },
     "Refresh" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新"
+          }
+        }
+      }
     },
     "refresh_button" : {
       "extractionState" : "stale",
@@ -2069,7 +2427,14 @@
       }
     },
     "Scanning folder..." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "扫描文件夹…"
+          }
+        }
+      }
     },
     "scanning_folder" : {
       "extractionState" : "stale",
@@ -2106,7 +2471,14 @@
       }
     },
     "Search files" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索文件"
+          }
+        }
+      }
     },
     "search_tracks_prompt" : {
       "comment" : "Search tracks prompt",
@@ -2126,10 +2498,24 @@
       }
     },
     "Select All" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全选"
+          }
+        }
+      }
     },
     "Select Tracks" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择音频"
+          }
+        }
+      }
     },
     "sign_in_on_sources_tab" : {
       "comment" : "Sign in on sources tab message",
@@ -2329,13 +2715,34 @@
       }
     },
     "This folder is empty." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这个文件夹是空的"
+          }
+        }
+      }
     },
     "Title" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题"
+          }
+        }
+      }
     },
     "Total Size" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总大小"
+          }
+        }
+      }
     },
     "track_count_and_size" : {
       "comment" : "Track count and size",
@@ -2609,10 +3016,24 @@
       }
     },
     "Try Again" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        }
+      }
     },
     "Unable to load directory" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法加载文件夹"
+          }
+        }
+      }
     },
     "unable_to_load_directory" : {
       "extractionState" : "stale",
@@ -2632,7 +3053,14 @@
       }
     },
     "Up One Level" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上一级"
+          }
+        }
+      }
     },
     "up_one_level_button" : {
       "extractionState" : "stale",
@@ -2669,10 +3097,24 @@
       }
     },
     "Use This Folder" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用此文件夹"
+          }
+        }
+      }
     },
     "Use This Folder (%lld)" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用此文件夹(%lld)"
+          }
+        }
+      }
     },
     "use_this_folder" : {
       "extractionState" : "stale",
