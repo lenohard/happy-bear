@@ -237,6 +237,13 @@ YES
 # Notes
 1. Don't run to run the simulator, leave the test to me, but you should use cmd to build project to see the warnings and errors and try to fix them.
 
+2. **Filtering Xcode Build Output**: Xcode build output can be very large (thousands of lines). Use grep to filter and check for specific conditions:
+   - **Check for errors**: `xcodebuild ... | grep -i error`
+   - **Check for warnings**: `xcodebuild ... | grep -i warning`
+   - **Check for success**: `xcodebuild ... | grep -i "build succeeded"`
+   - **See last lines**: `xcodebuild ... | tail -n 20`
+   - This saves tokens and makes build verification more efficient
+
 2. **⚠️ CRITICAL - Localizable.xcstrings File Corruption Protection**:
    - **PROBLEM**: The `AudiobookPlayer/Localizable.xcstrings` file is prone to corruption when edited by multiple agents or tools
    - **Common Issues**:

@@ -60,9 +60,11 @@ final class AIGatewayViewModel: ObservableObject {
     func loadStoredKey() {
         do {
             if let stored = try keyStore.loadKey() {
-                apiKey = stored
+                // Don't populate the SecureField with the actual key for security
+                // Just mark it as valid
                 keyState = .valid
             } else {
+                apiKey = ""
                 keyState = .unknown
             }
         } catch {
@@ -87,8 +89,10 @@ final class AIGatewayViewModel: ObservableObject {
 
         do {
             try keyStore.saveKey(trimmed)
-            apiKey = trimmed
-            try await refreshModels()
+            // Temporarily use the key for validation, then clear for security
+            let previousKey = apiKey
+            try await refreshModels(with: trimmed)
+            apiKey = ""
             keyState = .valid
         } catch {
             keyState = .invalid(error.localizedDescription)
@@ -103,6 +107,24 @@ final class AIGatewayViewModel: ObservableObject {
 
         do {
             let list = try await client.fetchModels(apiKey: apiKey)
+            models = list
+            if !list.contains(where: { $0.id == selectedModelID }) {
+                selectedModelID = list.first?.id ?? selectedModelID
+            }
+        } catch {
+            modelErrorMessage = error.localizedDescription
+            throw error
+        }
+    }
+
+    func refreshModels(with key: String) async throws {
+        guard !key.isEmpty else { return }
+        isFetchingModels = true
+        modelErrorMessage = nil
+        defer { isFetchingModels = false }
+
+        do {
+            let list = try await client.fetchModels(apiKey: key)
             models = list
             if !list.contains(where: { $0.id == selectedModelID }) {
                 selectedModelID = list.first?.id ?? selectedModelID
