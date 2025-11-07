@@ -2,11 +2,13 @@ import SwiftUI
 
 struct AITabView: View {
     @EnvironmentObject private var gateway: AIGatewayViewModel
+    @StateObject private var sonioxViewModel = SonioxKeyViewModel()
 
     var body: some View {
         NavigationStack {
             List {
                 credentialsSection
+                sonioxSection
 
                 if gateway.hasValidKey {
                     modelsSection
@@ -234,6 +236,48 @@ struct AITabView: View {
                 Text(String(format: NSLocalizedString("ai_tab_generation_tokens", comment: ""), promptTokens, completionTokens))
                     .font(.footnote)
             }
+        }
+    }
+
+    private var sonioxSection: some View {
+        Section(header: Text(NSLocalizedString("soniox_section_title", comment: ""))) {
+            SecureField(
+                NSLocalizedString("soniox_key_placeholder", comment: ""),
+                text: $sonioxViewModel.apiKey
+            )
+            .textInputAutocapitalization(.never)
+            .disableAutocorrection(true)
+
+            HStack {
+                Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
+                    Task { await sonioxViewModel.saveKey() }
+                }
+
+                Button(NSLocalizedString("ai_tab_clear_key", comment: ""), role: .destructive) {
+                    Task { await sonioxViewModel.clearKey() }
+                }
+            }
+
+            sonioxStatusLabel
+        }
+    }
+
+    @ViewBuilder
+    private var sonioxStatusLabel: some View {
+        if sonioxViewModel.keyExists {
+            Label(NSLocalizedString("soniox_configured", comment: ""), systemImage: "checkmark.seal")
+                .font(.footnote)
+                .foregroundColor(.green)
+        } else {
+            Label(NSLocalizedString("soniox_not_configured", comment: ""), systemImage: "exclamationmark.circle")
+                .font(.footnote)
+                .foregroundColor(.orange)
+        }
+
+        if let message = sonioxViewModel.statusMessage {
+            Text(message)
+                .font(.footnote)
+                .foregroundColor(sonioxViewModel.isSuccess ? .green : .red)
         }
     }
 }

@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 // MARK: - Background Task Configuration
 
@@ -24,7 +25,7 @@ class BackgroundTranscriptionManager: NSObject, URLSessionDelegate, URLSessionTa
 
     static let shared = BackgroundTranscriptionManager()
 
-    private let backgroundSessionIdentifier = "com.audiobook-player.transcription.background"
+    let backgroundSessionIdentifier = "com.audiobook-player.transcription.background"
     private var backgroundSession: URLSession?
 
     override init() {

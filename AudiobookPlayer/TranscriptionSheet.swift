@@ -182,12 +182,20 @@ struct TranscriptionSheet: View {
         }
     }
 
-    private func getAudioFileURL(track: AudiobookTrack, token: String) async throws -> URL {
-        // Check if we have a cached version
-        let cacheManager = AudioCacheManager.shared
+    private func getAudioFileURL(track: AudiobookTrack, token: BaiduOAuthToken) async throws -> URL {
+        guard case let .baidu(fsId, path) = track.location else {
+            throw TranscriptionManager.TranscriptionError.invalidAudioFile
+        }
 
-        if let cachedAsset = cacheManager.getCachedAsset(for: track.baiduPath) {
-            return cachedAsset.localURL
+        let cacheManager = AudioCacheManager()
+        let baiduFileId = String(fsId)
+
+        if let cachedURL = cacheManager.getCachedAssetURL(
+            for: track.id.uuidString,
+            baiduFileId: baiduFileId,
+            filename: track.filename
+        ) {
+            return cachedURL
         }
 
         // Download to temp directory for transcription
@@ -195,12 +203,9 @@ struct TranscriptionSheet: View {
         let tempDir = FileManager.default.temporaryDirectory
         let tempFile = tempDir.appendingPathComponent(track.id.uuidString + "_temp_\(track.filename)")
 
-        // Download file
-        let downloadURL = try BaiduNetdiskAPI.constructDownloadURL(
-            path: track.baiduPath,
-            accessToken: token
-        )
-
+        // Download file from Baidu
+        let netdiskClient = BaiduNetdiskClient()
+        let downloadURL = try netdiskClient.downloadURL(forPath: path, token: token)
         let (localURL, _) = try await URLSession.shared.download(from: downloadURL)
 
         // Move to temp location
@@ -221,13 +226,17 @@ struct TranscriptionSheet: View {
 #Preview {
     let sampleTrack = AudiobookTrack(
         id: UUID(),
+        displayName: "Sample Audio",
         filename: "sample_audio.mp3",
-        baiduPath: "/audiobooks/sample_audio.mp3",
+        location: .baidu(fsId: 12345, path: "/audiobooks/sample_audio.mp3"),
         fileSize: 5_242_880,
-        fsID: "12345"
+        duration: 320,
+        trackNumber: 1,
+        checksum: nil,
+        metadata: [:]
     )
 
-    return TranscriptionSheet(
+    TranscriptionSheet(
         track: sampleTrack,
         collectionID: UUID()
     )

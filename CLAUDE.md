@@ -236,7 +236,22 @@ YES
 
 # Notes
 1. Don't run to run the simulator, leave the test to me, but you should use cmd to build project to see the warnings and errors and try to fix them.
-2. **Xcode Project File Editing**: Never attempt to programmatically edit `project.pbxproj`. Instead:
+
+2. **⚠️ CRITICAL - Localizable.xcstrings File Corruption Protection**:
+   - **PROBLEM**: The `AudiobookPlayer/Localizable.xcstrings` file is prone to corruption when edited by multiple agents or tools
+   - **Common Issues**:
+     - File gets converted to binary plist format (breaks Xcode build)
+     - Missing required `"version": "1.0"` field at root level
+   - **⚠️ BEFORE EDITING Localizable.xcstrings**:
+     1. **Always backup first**: `cp AudiobookPlayer/Localizable.xcstrings AudiobookPlayer/Localizable.xcstrings.backup-$(date +%Y%m%d-%H%M%S)`
+     2. **Check file type**: Must be JSON, not binary plist - `file AudiobookPlayer/Localizable.xcstrings` should return "JSON data"
+     3. **Verify structure**: Must have `{"sourceLanguage": "en", "version": "1.0", "strings": {...}}`
+   - **IF FILE IS CORRUPTED**:
+     1. Run `scripts/add_ai_tab_keys.py` to restore AI tab keys
+     2. Add missing `"version": "1.0"` field if needed
+     3. If file is binary plist, restore from git: `git checkout HEAD -- AudiobookPlayer/Localizable.xcstrings` then re-run step 1 & 2
+
+3. **Xcode Project File Editing**: Never attempt to programmatically edit `project.pbxproj`. Instead:
    - Generate required resource files (`.strings`, `.xcassets`, etc.) using scripts
    - Create necessary directory structure (`*.lproj`, etc.)
    - Ask user to manually add files/folders to Xcode project via UI (Build Phases > Copy Bundle Resources, etc.)

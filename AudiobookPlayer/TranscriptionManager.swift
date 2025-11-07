@@ -44,15 +44,33 @@ class TranscriptionManager: NSObject, ObservableObject {
 
     private let sonioxAPI: SonioxAPI?
     private let dbManager: GRDBDatabaseManager
+    private let keychainStore: SonioxAPIKeyStore
     private let pollingInterval: TimeInterval = 2.0  // Poll every 2 seconds
     private let maxPollingDuration: TimeInterval = 3600  // Max 1 hour
     private var pollingTask: Task<Void, Never>?
 
-    init(databaseManager: GRDBDatabaseManager = .shared, sonioxAPIKey: String? = nil) {
+    init(
+        databaseManager: GRDBDatabaseManager = .shared,
+        keychainStore: SonioxAPIKeyStore = KeychainSonioxAPIKeyStore(),
+        sonioxAPIKey: String? = nil
+    ) {
         self.dbManager = databaseManager
+        self.keychainStore = keychainStore
 
-        // Try to load API key from Info.plist if not provided
+        // Try to load API key in this order:
+        // 1. Directly provided (for testing)
+        // 2. From Keychain (recommended)
+        // 3. From Info.plist (legacy fallback)
         let apiKey = sonioxAPIKey ?? {
+            do {
+                if let keyFromKeychain = try keychainStore.loadKey() {
+                    return keyFromKeychain
+                }
+            } catch {
+                print("Failed to load Soniox key from Keychain: \(error.localizedDescription)")
+            }
+
+            // Fallback to Info.plist for backward compatibility
             guard let bundle = Bundle.main.infoDictionary,
                   let key = bundle["SONIOX_API_KEY"] as? String,
                   !key.isEmpty else {
