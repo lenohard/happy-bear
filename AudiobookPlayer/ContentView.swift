@@ -687,6 +687,12 @@ private struct CacheManagementView: View {
                     .onChange(of: retentionDays) { newValue in
                         audioPlayer.updateCacheRetention(days: newValue)
                     }
+
+                    Button(role: .destructive) {
+                        showClearAllConfirmation = true
+                    } label: {
+                        Label(NSLocalizedString("cache_clear_all", comment: "Clear all cached audio"), systemImage: "trash.slash")
+                    }
                 }
 
                 if let track = currentTrack {
@@ -695,13 +701,28 @@ private struct CacheManagementView: View {
                             .font(.headline)
 
                         if let status = currentTrackStatus {
-                            Text(statusTitle(for: status))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                            // Compact status row: status + size + clear button in one line
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(statusTitle(for: status))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    Text(cacheAmountText(for: status))
+                                        .font(.caption)
+                                        .foregroundStyle(.tertiary)
+                                }
 
-                            Text(cacheAmountText(for: status))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                Spacer()
+
+                                if status.state != .notCached {
+                                    Button(role: .destructive) {
+                                        showClearTrackConfirmation = true
+                                    } label: {
+                                        Image(systemName: "trash")
+                                            .foregroundStyle(.red)
+                                    }
+                                }
+                            }
 
                             if status.state != .fullyCached {
                                 Button {
@@ -710,27 +731,11 @@ private struct CacheManagementView: View {
                                     Label(NSLocalizedString("cache_download_offline", comment: "Download for offline listening"), systemImage: "arrow.down.circle")
                                 }
                             }
-
-                            if status.state != .notCached {
-                                Button(role: .destructive) {
-                                    showClearTrackConfirmation = true
-                                } label: {
-                                    Label(NSLocalizedString("cache_clear_track", comment: "Clear this track"), systemImage: "trash")
-                                }
-                            }
                         } else {
                             Text(NSLocalizedString("cache_streaming_directly", comment: "Streaming directly from Baidu Netdisk"))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
-                    }
-                }
-
-                Section {
-                    Button(role: .destructive) {
-                        showClearAllConfirmation = true
-                    } label: {
-                        Label(NSLocalizedString("cache_clear_all", comment: "Clear all cached audio"), systemImage: "trash.slash")
                     }
                 }
             }
