@@ -173,14 +173,16 @@ final class LibraryStore: ObservableObject {
         if !useFallbackJSON {
             Task(priority: .utility) {
                 do {
+                    // OPTIMIZATION: Only save playback state, not entire collection
+                    // Avoid expensive DELETE+INSERT of all tracks/tags when only playback position changed
                     try await dbManager.savePlaybackState(
                         trackId: trackID,
                         collectionId: collectionID,
                         position: clampedPosition,
                         duration: duration
                     )
-                    // Also save the collection to update updatedAt and lastPlayedTrackId
-                    try await dbManager.saveCollection(collection)
+                    // Note: collection.updatedAt and lastPlayedTrackId updates are kept in memory
+                    // but deferred from database to avoid high-frequency full collection saves
                 } catch {
                     await MainActor.run {
                         self.lastError = error
