@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import OSLog
 
 @MainActor
 class SonioxKeyViewModel: ObservableObject {
@@ -9,6 +10,7 @@ class SonioxKeyViewModel: ObservableObject {
     @Published var isSuccess: Bool = false
 
     private let keychainStore: SonioxAPIKeyStore = KeychainSonioxAPIKeyStore()
+    private let logger = Logger(subsystem: "com.wdh.audiobook", category: "SonioxKey")
 
     init() {
         Task {
@@ -16,36 +18,25 @@ class SonioxKeyViewModel: ObservableObject {
         }
     }
 
-    func saveKey() async {
-        guard !apiKey.trimmingCharacters(in: .whitespaces).isEmpty else {
+    func saveKey(using providedKey: String? = nil) async {
+        let input = providedKey ?? apiKey
+        let trimmed = input.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else {
+            logger.warning("Soniox save blocked: empty key")
             await updateStatus("API key cannot be empty", success: false)
             return
         }
 
         do {
-            try keychainStore.saveKey(apiKey)
+            logger.debug("Saving Soniox key; length=\(input.count)")
+            try keychainStore.saveKey(trimmed)
             await updateStatus(
                 NSLocalizedString("soniox_key_saved", comment: ""),
                 success: true
             )
             await loadKeyStatus()
         } catch {
-            await updateStatus(error.localizedDescription, success: false)
-        }
-    }
-
-    func clearKey() async {
-        do {
-            try keychainStore.clearKey()
-            await MainActor.run {
-                self.apiKey = ""
-                self.keyExists = false
-            }
-            await updateStatus(
-                NSLocalizedString("soniox_key_cleared", comment: ""),
-                success: true
-            )
-        } catch {
+            logger.error("Soniox key save failed: \(error.localizedDescription)")
             await updateStatus(error.localizedDescription, success: false)
         }
     }
@@ -59,10 +50,12 @@ class SonioxKeyViewModel: ObservableObject {
                     self.apiKey = ""  // Don't show the actual key
                 }
             }
+            logger.debug("Soniox key load complete; exists=\(key != nil)")
         } catch {
             await MainActor.run {
                 self.keyExists = false
             }
+            logger.error("Failed loading Soniox key: \(error.localizedDescription)")
         }
     }
 

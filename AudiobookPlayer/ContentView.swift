@@ -9,6 +9,7 @@ final class TabSelectionManager: ObservableObject {
         case playing = 1
         case sources = 2
         case ai = 3
+        case tts = 4
         
         var title: String {
             switch self {
@@ -20,6 +21,8 @@ final class TabSelectionManager: ObservableObject {
                 return NSLocalizedString("sources_tab", comment: "Tab for sources")
             case .ai:
                 return NSLocalizedString("ai_tab", comment: "AI tab")
+            case .tts:
+                return NSLocalizedString("tts_tab", comment: "TTS tab")
             }
         }
 
@@ -33,6 +36,8 @@ final class TabSelectionManager: ObservableObject {
                 return "externaldrive.badge.icloud"
             case .ai:
                 return "brain"
+            case .tts:
+                return "waveform"
             }
         }
     }
@@ -70,6 +75,12 @@ struct ContentView: View {
                     Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "brain")
                 }
                 .tag(TabSelectionManager.Tab.ai)
+
+            TTSTabView()
+                .tabItem {
+                    Label(NSLocalizedString("tts_tab", comment: "TTS tab"), systemImage: "waveform")
+                }
+                .tag(TabSelectionManager.Tab.tts)
         }
         .environmentObject(tabSelection)
     }

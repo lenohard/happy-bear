@@ -154,6 +154,7 @@
       }
     },
     "ai_tab_clear_key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -283,6 +284,7 @@
       }
     },
     "ai_tab_generation_cost" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -315,6 +317,7 @@
       }
     },
     "ai_tab_generation_latency" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -331,6 +334,7 @@
       }
     },
     "ai_tab_generation_placeholder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -347,6 +351,7 @@
       }
     },
     "ai_tab_generation_section" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -363,6 +368,7 @@
       }
     },
     "ai_tab_generation_tokens" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -411,6 +417,7 @@
       }
     },
     "ai_tab_lookup_generation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -438,6 +445,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请先添加 API 密钥。"
+          }
+        }
+      }
+    },
+    "ai_tab_model_group_other" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Providers"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他供应商"
           }
         }
       }
@@ -586,6 +609,22 @@
         }
       }
     },
+    "ai_tab_selected_model_summary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Current default: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前默认: %@"
+          }
+        }
+      }
+    },
     "ai_tab_set_default" : {
       "localizations" : {
         "en" : {
@@ -646,7 +685,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AI Gateway"
+            "value" : "AI 网关"
           }
         }
       }
@@ -832,6 +871,7 @@
     },
     "cache_clear_track" : {
       "comment" : "Clear this track",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1404,6 +1444,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消全选"
+          }
+        }
+      }
+    },
+    "direct_play_requires_auth" : {
+      "comment" : "Direct play requires auth message",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Connect Baidu Netdisk before streaming files."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "串流文件前请先连接百度网盘。"
+          }
+        }
+      }
+    },
+    "direct_play_sheet_hint" : {
+      "comment" : "Direct play hint",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Stream this file instantly without importing the entire folder. You can still save the parent folder later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "无需导入整个文件夹即可立即串流此文件，如需加入资料库，可稍后保存其上级文件夹。"
           }
         }
       }
@@ -2192,6 +2266,23 @@
         }
       }
     },
+    "play_now_button" : {
+      "comment" : "Play now button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Play Now"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "立即播放"
+          }
+        }
+      }
+    },
     "playing_tab" : {
       "comment" : "Tab for now playing",
       "localizations" : {
@@ -2426,6 +2517,23 @@
         }
       }
     },
+    "save_to_library_button" : {
+      "comment" : "Save to library button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Save Parent Folder to Library"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "保存上级文件夹到资料库"
+          }
+        }
+      }
+    },
     "Scanning folder..." : {
       "localizations" : {
         "zh-Hans" : {
@@ -2585,6 +2693,7 @@
       }
     },
     "soniox_key_cleared" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3025,6 +3134,39 @@
         }
       }
     },
+    "tts_tab" : {
+      "comment" : "TTS tab",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "TTS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音"
+          }
+        }
+      }
+    },
+    "tts_tab_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Speech Tools"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "语音工具"
+          }
+        }
+      }
+    },
     "Unable to load directory" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3048,6 +3190,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法加载目录"
+          }
+        }
+      }
+    },
+    "unsupported_audio_file_message" : {
+      "comment" : "Unsupported audio file message",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This file type can't be streamed yet. Pick an audio format such as MP3 or M4B."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "此文件类型暂不支持串流，请选择 MP3、M4B 等音频格式。"
           }
         }
       }

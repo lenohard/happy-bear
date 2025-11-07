@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 @MainActor
 final class AIGatewayViewModel: ObservableObject {
@@ -29,6 +30,7 @@ final class AIGatewayViewModel: ObservableObject {
     private let client: AIGatewayClient
     private let defaults: UserDefaults
     private var hasStoredKey: Bool = false
+    private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGateway")
 
     private let defaultModelKey = "ai_gateway_default_model"
 
@@ -61,15 +63,18 @@ final class AIGatewayViewModel: ObservableObject {
     func loadStoredKey() {
         do {
             if let stored = try keyStore.loadKey() {
+                logger.debug("Loaded stored AI key; length=\(stored.count)")
                 hasStoredKey = true
                 keyState = .valid
                 // Don't populate apiKey field - keep it empty for security
                 // User will see empty field with "Key verified" status
             } else {
+                logger.debug("No stored AI key found")
                 hasStoredKey = false
                 keyState = .unknown
             }
         } catch {
+            logger.error("Failed loading stored AI key: \(error.localizedDescription)")
             hasStoredKey = false
             keyState = .invalid(error.localizedDescription)
         }
@@ -77,17 +82,22 @@ final class AIGatewayViewModel: ObservableObject {
 
     func markKeyAsEditing() {
         // Always allow editing when user types something
+        logger.debug("User editing AI key; current length=\(self.apiKey.count)")
         keyState = .editing
     }
 
-    func saveAndValidateKey() async {
-        let trimmed = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+    func saveAndValidateKey(using providedKey: String? = nil) async {
+        let input = providedKey ?? apiKey
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        logger.debug("saveAndValidateKey invoked; rawLength=\(input.count) trimmedLength=\(trimmed.count)")
         guard !trimmed.isEmpty else {
+            logger.warning("Save aborted: trimmed AI key is empty")
             keyState = .invalid(NSLocalizedString("ai_tab_empty_key", comment: ""))
             return
         }
 
         keyState = .validating
+        logger.debug("Persisting AI key and validating against model list")
 
         do {
             try keyStore.saveKey(trimmed)
@@ -96,20 +106,36 @@ final class AIGatewayViewModel: ObservableObject {
             try await refreshModels(with: trimmed)
             // Clear field after successful save for security
             apiKey = ""
+            logger.debug("AI key saved and validated successfully")
             keyState = .valid
         } catch {
+            logger.error("AI key validation failed: \(error.localizedDescription)")
             keyState = .invalid(error.localizedDescription)
         }
     }
 
     func refreshModels() async throws {
-        guard !apiKey.isEmpty else { return }
+        let resolvedKey: String
+        do {
+            if let storedKey = try keyStore.loadKey(), !storedKey.isEmpty {
+                resolvedKey = storedKey
+            } else if !apiKey.isEmpty {
+                resolvedKey = apiKey
+            } else {
+                modelErrorMessage = NSLocalizedString("ai_tab_missing_key", comment: "")
+                return
+            }
+        } catch {
+            modelErrorMessage = error.localizedDescription
+            throw error
+        }
+
         isFetchingModels = true
         modelErrorMessage = nil
         defer { isFetchingModels = false }
 
         do {
-            let list = try await client.fetchModels(apiKey: apiKey)
+            let list = try await client.fetchModels(apiKey: resolvedKey)
             models = list
             if !list.contains(where: { $0.id == selectedModelID }) {
                 selectedModelID = list.first?.id ?? selectedModelID
@@ -122,6 +148,7 @@ final class AIGatewayViewModel: ObservableObject {
 
     func refreshModels(with key: String) async throws {
         guard !key.isEmpty else { return }
+        logger.debug("Refreshing model list using provided key; currently have \(self.models.count) cached models")
         isFetchingModels = true
         modelErrorMessage = nil
         defer { isFetchingModels = false }
@@ -142,15 +169,18 @@ final class AIGatewayViewModel: ObservableObject {
         // Use hasStoredKey to know if we have a valid key in storage
         // Don't rely on apiKey field since we clear it for security
         guard hasStoredKey else { return }
+        logger.debug("Refreshing credits; stored key available=\(self.hasStoredKey)")
         isFetchingCredits = true
         defer { isFetchingCredits = false }
 
         do {
             // Try to load key from storage to use for API call
             if let storedKey = try keyStore.loadKey() {
+                logger.debug("Loaded stored key for credits request")
                 credits = try await client.fetchCredits(apiKey: storedKey)
             }
         } catch {
+            logger.error("Failed fetching credits: \(error.localizedDescription)")
             credits = nil
         }
     }
@@ -163,6 +193,7 @@ final class AIGatewayViewModel: ObservableObject {
 
         do {
             guard let storedKey = try keyStore.loadKey() else { return }
+            logger.debug("Running chat test with model \(self.selectedModelID)")
 
             let result = try await client.sendChat(
                 apiKey: storedKey,
@@ -212,25 +243,13 @@ final class AIGatewayViewModel: ObservableObject {
                 generationError = NSLocalizedString("ai_tab_missing_key", comment: "")
                 return
             }
+            logger.debug("Fetching generation details for id=\(trimmedID)")
             let response = try await client.fetchGeneration(apiKey: storedKey, id: trimmedID)
             generationDetails = response.data
         } catch {
+            logger.error("Failed fetching generation \(trimmedID): \(error.localizedDescription)")
             generationError = error.localizedDescription
         }
     }
 
-    func clearKey() {
-        do {
-            try keyStore.clearKey()
-            hasStoredKey = false
-            apiKey = ""
-            keyState = .unknown
-            models = []
-            credits = nil
-            chatResponseText = ""
-            chatUsageSummary = ""
-        } catch {
-            keyState = .invalid(error.localizedDescription)
-        }
-    }
 }

@@ -1,20 +1,26 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
 struct AITabView: View {
     @EnvironmentObject private var gateway: AIGatewayViewModel
-    @StateObject private var sonioxViewModel = SonioxKeyViewModel()
+    @FocusState private var focusedField: KeyField?
+    @State private var isModelListExpanded = true
+    @State private var collapsedModelProviders: Set<String> = []
+    @State private var isCredentialSectionExpanded = true
 
     var body: some View {
         NavigationStack {
             List {
                 credentialsSection
-                sonioxSection
 
                 if gateway.hasValidKey {
                     modelsSection
                     testerSection
                     creditsSection
-                    generationSection
                 }
             }
             .navigationTitle(Text(NSLocalizedString("ai_tab_title", comment: "AI tab title")))
@@ -42,25 +48,28 @@ struct AITabView: View {
     }
 
     private var credentialsSection: some View {
-        Section(header: Text(NSLocalizedString("ai_tab_credentials_section", comment: ""))) {
-            SecureField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
-                .textInputAutocapitalization(.never)
-                .disableAutocorrection(true)
-                .onChange(of: gateway.apiKey) { _ in
-                    gateway.markKeyAsEditing()
-                }
+        Section {
+            DisclosureGroup(isExpanded: $isCredentialSectionExpanded) {
+                SecureField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
+                    .textInputAutocapitalization(.never)
+                    .disableAutocorrection(true)
+                    .focused($focusedField, equals: .gateway)
+                    .onChange(of: gateway.apiKey) { _ in
+                        gateway.markKeyAsEditing()
+                    }
 
-            HStack {
                 Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
-                    Task { await gateway.saveAndValidateKey() }
+                    let pendingKey = gateway.apiKey
+                    focusedField = nil
+                    resignFirstResponder()
+                    Task { await gateway.saveAndValidateKey(using: pendingKey) }
                 }
 
-                Button(NSLocalizedString("ai_tab_clear_key", comment: ""), role: .destructive) {
-                    gateway.clearKey()
-                }
+                keyStateLabel
+            } label: {
+                Label(NSLocalizedString("ai_tab_credentials_section", comment: ""), systemImage: "key.horizontal")
+                    .font(.headline)
             }
-
-            keyStateLabel
         }
     }
 
@@ -89,50 +98,42 @@ struct AITabView: View {
     }
 
     private var modelsSection: some View {
-        Section(header: Text(NSLocalizedString("ai_tab_models_section", comment: "")), footer: modelsFooter) {
-            if gateway.isFetchingModels {
-                ProgressView()
-            } else if let error = gateway.modelErrorMessage {
-                Text(error)
-                    .foregroundColor(.red)
-            } else if gateway.models.isEmpty {
-                Button(NSLocalizedString("ai_tab_load_models", comment: "")) {
-                    Task { try? await gateway.refreshModels() }
-                }
-            } else {
-                ForEach(gateway.models) { model in
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack {
-                            Text(model.name ?? model.id)
-                                .font(.headline)
-                            Spacer()
-                            if model.id == gateway.selectedModelID {
-                                Label(NSLocalizedString("ai_tab_default_model", comment: ""), systemImage: "star.fill")
-                                    .font(.caption)
-                                    .foregroundColor(.yellow)
-                            }
-                        }
-                        if let description = model.description, !description.isEmpty {
-                            Text(description)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        if let pricing = model.pricing {
-                            Text(String(
-                                format: NSLocalizedString("ai_tab_pricing_template", comment: ""),
-                                pricing.input ?? "-",
-                                pricing.output ?? "-"
-                            ))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        }
-                        Button(NSLocalizedString("ai_tab_set_default", comment: "")) {
-                            gateway.selectedModelID = model.id
-                        }
-                        .buttonStyle(.bordered)
+        Section(footer: modelsFooter) {
+            if let summary = selectedModelSummary {
+                Label(summary, systemImage: "star.circle.fill")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            DisclosureGroup(isExpanded: $isModelListExpanded) {
+                modelsListContent
+            } label: {
+                Text(NSLocalizedString("ai_tab_models_section", comment: ""))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var modelsListContent: some View {
+        if gateway.isFetchingModels {
+            ProgressView()
+        } else if let error = gateway.modelErrorMessage {
+            Text(error)
+                .foregroundColor(.red)
+        } else if gateway.models.isEmpty {
+            Button(NSLocalizedString("ai_tab_load_models", comment: "")) {
+                Task { try? await gateway.refreshModels() }
+            }
+        } else {
+            ForEach(groupedModels, id: \.provider) { group in
+                DisclosureGroup(isExpanded: providerExpansionBinding(for: group.provider)) {
+                    ForEach(group.models) { model in
+                        modelRow(for: model)
                     }
-                    .padding(.vertical, 4)
+                } label: {
+                    Text(group.provider)
+                        .font(.headline)
                 }
+                .padding(.vertical, 4)
             }
         }
     }
@@ -144,6 +145,80 @@ struct AITabView: View {
             }
             .buttonStyle(.bordered)
         }
+    }
+
+    private var groupedModels: [(provider: String, models: [AIModelInfo])]
+    {
+        let grouped = Dictionary(grouping: gateway.models) { providerName(for: $0.id) }
+        return grouped
+            .map { (provider: $0.key, models: $0.value.sorted { ($0.name ?? $0.id) < ($1.name ?? $1.id) }) }
+            .sorted { $0.provider.localizedCaseInsensitiveCompare($1.provider) == .orderedAscending }
+    }
+
+    private func providerExpansionBinding(for provider: String) -> Binding<Bool> {
+        Binding(
+            get: { !collapsedModelProviders.contains(provider) },
+            set: { isExpanded in
+                if isExpanded {
+                    collapsedModelProviders.remove(provider)
+                } else {
+                    collapsedModelProviders.insert(provider)
+                }
+            }
+        )
+    }
+
+    private func providerName(for modelID: String) -> String {
+        if let prefix = modelID.split(separator: "/").first, !prefix.isEmpty {
+            return String(prefix)
+        }
+        return NSLocalizedString("ai_tab_model_group_other", comment: "")
+    }
+
+    private var selectedModelSummary: String? {
+        guard let model = gateway.models.first(where: { $0.id == gateway.selectedModelID }) else {
+            return nil
+        }
+        let displayName = model.name?.isEmpty == false ? model.name! : model.id
+        return String(
+            format: NSLocalizedString("ai_tab_selected_model_summary", comment: ""),
+            displayName
+        )
+    }
+
+    @ViewBuilder
+    private func modelRow(for model: AIModelInfo) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(model.name ?? model.id)
+                    .font(.headline)
+                Spacer()
+                if model.id == gateway.selectedModelID {
+                    Label(NSLocalizedString("ai_tab_default_model", comment: ""), systemImage: "star.fill")
+                        .font(.caption)
+                        .foregroundColor(.yellow)
+                }
+            }
+            if let description = model.description, !description.isEmpty {
+                Text(description)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            if let pricing = model.pricing {
+                Text(String(
+                    format: NSLocalizedString("ai_tab_pricing_template", comment: ""),
+                    pricing.input ?? "-",
+                    pricing.output ?? "-"
+                ))
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            }
+            Button(NSLocalizedString("ai_tab_set_default", comment: "")) {
+                gateway.selectedModelID = model.id
+            }
+            .buttonStyle(.bordered)
+        }
+        .padding(.vertical, 4)
     }
 
     private var testerSection: some View {
@@ -192,73 +267,57 @@ struct AITabView: View {
         }
     }
 
-    private var generationSection: some View {
-        Section(header: Text(NSLocalizedString("ai_tab_generation_section", comment: ""))) {
-            TextField(NSLocalizedString("ai_tab_generation_placeholder", comment: ""), text: $gateway.generationLookupID)
-                .textInputAutocapitalization(.never)
-                .disableAutocorrection(true)
+}
 
-            Button(NSLocalizedString("ai_tab_lookup_generation", comment: "")) {
-                Task { await gateway.lookupGeneration() }
-            }
+#Preview {
+    AITabView()
+        .environmentObject(AIGatewayViewModel())
+}
 
-            if let details = gateway.generationDetails {
-                generationDetailsView(details)
-            } else if let error = gateway.generationError {
-                Text(error)
-                    .foregroundColor(.red)
-            }
-        }
-    }
+private enum KeyField: Hashable {
+    case gateway
+}
 
-    @ViewBuilder
-    private func generationDetailsView(_ details: GenerationDetails) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(details.id)
-                .font(.headline)
-            if let model = details.model {
-                Text(model)
-                    .font(.subheadline)
-            }
-            if let created = details.createdAt {
-                Text(created.formatted())
-                    .font(.footnote)
-            }
-            if let cost = details.totalCost {
-                Text(String(format: NSLocalizedString("ai_tab_generation_cost", comment: ""), cost))
-                    .font(.footnote)
-            }
-            if let latency = details.latency, let duration = details.generationTime {
-                Text(String(format: NSLocalizedString("ai_tab_generation_latency", comment: ""), latency, duration))
-                    .font(.footnote)
-            }
-            if let promptTokens = details.tokensPrompt, let completionTokens = details.tokensCompletion {
-                Text(String(format: NSLocalizedString("ai_tab_generation_tokens", comment: ""), promptTokens, completionTokens))
-                    .font(.footnote)
-            }
-        }
-    }
+func resignFirstResponder() {
+#if canImport(UIKit)
+    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+#elseif canImport(AppKit)
+    NSApp.keyWindow?.makeFirstResponder(nil)
+#endif
+}
 
-    private var sonioxSection: some View {
-        Section(header: Text(NSLocalizedString("soniox_section_title", comment: ""))) {
-            SecureField(
-                NSLocalizedString("soniox_key_placeholder", comment: ""),
-                text: $sonioxViewModel.apiKey
-            )
-            .textInputAutocapitalization(.never)
-            .disableAutocorrection(true)
+struct TTSTabView: View {
+    @StateObject private var sonioxViewModel = SonioxKeyViewModel()
+    @FocusState private var isKeyFieldFocused: Bool
 
-            HStack {
-                Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
-                    Task { await sonioxViewModel.saveKey() }
-                }
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    DisclosureGroup {
+                        SecureField(
+                            NSLocalizedString("soniox_key_placeholder", comment: ""),
+                            text: $sonioxViewModel.apiKey
+                        )
+                        .textInputAutocapitalization(.never)
+                        .disableAutocorrection(true)
+                        .focused($isKeyFieldFocused)
 
-                Button(NSLocalizedString("ai_tab_clear_key", comment: ""), role: .destructive) {
-                    Task { await sonioxViewModel.clearKey() }
+                        Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
+                            let pendingKey = sonioxViewModel.apiKey
+                            isKeyFieldFocused = false
+                            resignFirstResponder()
+                            Task { await sonioxViewModel.saveKey(using: pendingKey) }
+                        }
+
+                        sonioxStatusLabel
+                    } label: {
+                        Label(NSLocalizedString("soniox_section_title", comment: ""), systemImage: "waveform")
+                            .font(.headline)
+                    }
                 }
             }
-
-            sonioxStatusLabel
+            .navigationTitle(Text(NSLocalizedString("tts_tab_title", comment: "")))
         }
     }
 
@@ -280,9 +339,4 @@ struct AITabView: View {
                 .foregroundColor(sonioxViewModel.isSuccess ? .green : .red)
         }
     }
-}
-
-#Preview {
-    AITabView()
-        .environmentObject(AIGatewayViewModel())
 }
