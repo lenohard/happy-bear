@@ -6,6 +6,8 @@ struct AudiobookPlayerApp: App {
     @StateObject private var libraryStore = LibraryStore()
     @StateObject private var baiduAuth = BaiduAuthViewModel()
     @StateObject private var tabSelection = TabSelectionManager()
+    @StateObject private var aiGateway = AIGatewayViewModel()
+    @StateObject private var transcriptionManager = TranscriptionManager()
     @State private var showSplash = true
 
     var body: some Scene {
@@ -16,6 +18,8 @@ struct AudiobookPlayerApp: App {
                     .environmentObject(libraryStore)
                     .environmentObject(baiduAuth)
                     .environmentObject(tabSelection)
+                    .environmentObject(aiGateway)
+                    .environmentObject(transcriptionManager)
 
                 if showSplash {
                     SplashScreenView {
@@ -70,4 +74,3 @@ struct SplashScreenView: View {
 #Preview {
     SplashScreenView(onDismiss: {})
 }
-

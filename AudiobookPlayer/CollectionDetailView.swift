@@ -16,6 +16,7 @@ struct CollectionDetailView: View {
     @State private var trackTitleDraft = ""
     @State private var showCollectionRenameSheet = false
     @State private var collectionTitleDraft = ""
+    @State private var trackForTranscription: AudiobookTrack?
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -138,6 +139,9 @@ struct CollectionDetailView: View {
             if !newValue {
                 collectionTitleDraft = ""
             }
+        }
+        .sheet(item: $trackForTranscription) { track in
+            TranscriptionSheet(track: track, collectionID: collectionID)
         }
     }
 
@@ -263,6 +267,16 @@ struct CollectionDetailView: View {
                                     systemImage: "trash"
                                 )
                             }
+                        }
+                    }
+                    .contextMenu {
+                        Button {
+                            trackForTranscription = track
+                        } label: {
+                            Label(
+                                NSLocalizedString("transcribe_track_title", comment: "Transcribe track title"),
+                                systemImage: "waveform"
+                            )
                         }
                     }
                 }

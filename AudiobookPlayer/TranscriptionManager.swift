@@ -1,5 +1,4 @@
 import Foundation
-import GRDB
 
 // MARK: - Transcription Manager
 
@@ -44,13 +43,13 @@ class TranscriptionManager: NSObject, ObservableObject {
     @Published var errorMessage: String?
 
     private let sonioxAPI: SonioxAPI?
-    private let dbQueue: DatabaseQueue?
+    private let dbManager: GRDBDatabaseManager
     private let pollingInterval: TimeInterval = 2.0  // Poll every 2 seconds
     private let maxPollingDuration: TimeInterval = 3600  // Max 1 hour
     private var pollingTask: Task<Void, Never>?
 
-    init(databaseQueue: DatabaseQueue?, sonioxAPIKey: String? = nil) {
-        self.dbQueue = databaseQueue
+    init(databaseManager: GRDBDatabaseManager = .shared, sonioxAPIKey: String? = nil) {
+        self.dbManager = databaseManager
 
         // Try to load API key from Info.plist if not provided
         let apiKey = sonioxAPIKey ?? {
@@ -102,20 +101,21 @@ class TranscriptionManager: NSObject, ObservableObject {
             self.errorMessage = nil
         }
 
+        var pendingTranscriptId: String?
+
         do {
-            // Create initial transcript record
-            let transcript = Transcript(
+            // Create or reuse transcript record
+            let transcriptId = try await ensurePendingTranscript(
                 trackId: trackIdStr,
                 collectionId: collectionIdStr,
-                language: languageHints.first ?? "en",
-                jobStatus: "pending"
+                language: languageHints.first ?? "en"
             )
-
-            try await saveTranscript(transcript)
+            pendingTranscriptId = transcriptId
             DispatchQueue.main.async { self.transcriptionProgress = 0.1 }
 
             // Step 1: Upload file
             let fileId = try await sonioxAPI.uploadFile(fileURL: audioFileURL)
+            cleanupTemporaryFileIfNeeded(audioFileURL)
             DispatchQueue.main.async { self.transcriptionProgress = 0.2 }
 
             // Step 2: Create transcription job
@@ -134,7 +134,7 @@ class TranscriptionManager: NSObject, ObservableObject {
             try await pollForCompletion(
                 transcriptionId: transcriptionId,
                 trackId: trackIdStr,
-                collectionId: collectionIdStr,
+                transcriptId: transcriptId,
                 fileId: fileId,
                 sonioxAPI: sonioxAPI
             )
@@ -154,6 +154,9 @@ class TranscriptionManager: NSObject, ObservableObject {
                 self.currentTrackId = nil
                 self.errorMessage = error.localizedDescription
             }
+            if pendingTranscriptId != nil {
+                await markTranscriptFailure(trackId: trackIdStr, message: error.localizedDescription)
+            }
             throw error
         }
     }
@@ -162,21 +165,10 @@ class TranscriptionManager: NSObject, ObservableObject {
     /// - Parameter trackId: UUID of the track
     /// - Returns: Transcript if available, nil otherwise
     func getTranscript(trackId: UUID) async throws -> Transcript? {
-        guard let dbQueue = dbQueue else {
-            throw TranscriptionError.databaseError("Database not initialized")
-        }
-
-        return try await withCheckedThrowingContinuation { continuation in
-            dbQueue.asyncRead { db in
-                do {
-                    let transcript = try Transcript
-                        .filter(Column("track_id") == trackId.uuidString)
-                        .fetchOne(db)
-                    continuation.resume(returning: transcript)
-                } catch {
-                    continuation.resume(throwing: TranscriptionError.databaseError(error.localizedDescription))
-                }
-            }
+        do {
+            return try await dbManager.loadTranscript(forTrackId: trackId.uuidString)
+        } catch {
+            throw TranscriptionError.databaseError(error.localizedDescription)
         }
     }
 
@@ -184,22 +176,10 @@ class TranscriptionManager: NSObject, ObservableObject {
     /// - Parameter transcriptId: UUID of the transcript
     /// - Returns: Array of transcript segments
     func getTranscriptSegments(transcriptId: String) async throws -> [TranscriptSegment] {
-        guard let dbQueue = dbQueue else {
-            throw TranscriptionError.databaseError("Database not initialized")
-        }
-
-        return try await withCheckedThrowingContinuation { continuation in
-            dbQueue.asyncRead { db in
-                do {
-                    let segments = try TranscriptSegment
-                        .filter(Column("transcript_id") == transcriptId)
-                        .order(Column("start_time_ms"))
-                        .fetchAll(db)
-                    continuation.resume(returning: segments)
-                } catch {
-                    continuation.resume(throwing: TranscriptionError.databaseError(error.localizedDescription))
-                }
-            }
+        do {
+            return try await dbManager.loadTranscriptSegments(forTranscriptId: transcriptId)
+        } catch {
+            throw TranscriptionError.databaseError(error.localizedDescription)
         }
     }
 
@@ -224,51 +204,18 @@ class TranscriptionManager: NSObject, ObservableObject {
 
     // MARK: - Private Helpers
 
-    private func saveTranscript(_ transcript: Transcript) async throws {
-        guard let dbQueue = dbQueue else {
-            throw TranscriptionError.databaseError("Database not initialized")
-        }
-
-        try await withCheckedThrowingContinuation { continuation in
-            dbQueue.asyncWrite { db in
-                do {
-                    try transcript.insert(db)
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: TranscriptionError.databaseError(error.localizedDescription))
-                }
-            }
-        }
-    }
-
     private func updateTranscriptJobId(trackId: String, jobId: String, status: String) async throws {
-        guard let dbQueue = dbQueue else {
-            throw TranscriptionError.databaseError("Database not initialized")
-        }
-
-        try await withCheckedThrowingContinuation { continuation in
-            dbQueue.asyncWrite { db in
-                do {
-                    try db.execute(
-                        sql: """
-                        UPDATE transcripts
-                        SET job_id = ?, job_status = ?, updated_at = ?
-                        WHERE track_id = ?
-                        """,
-                        arguments: [jobId, status, Date(), trackId]
-                    )
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: TranscriptionError.databaseError(error.localizedDescription))
-                }
-            }
+        do {
+            try await dbManager.updateTranscriptJobMetadata(trackId: trackId, jobId: jobId, status: status)
+        } catch {
+            throw TranscriptionError.databaseError(error.localizedDescription)
         }
     }
 
     private func pollForCompletion(
         transcriptionId: String,
         trackId: String,
-        collectionId: String,
+        transcriptId: String,
         fileId: String,
         sonioxAPI: SonioxAPI
     ) async throws {
@@ -287,7 +234,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                     try await saveTranscriptData(
                         transcript: transcript,
                         trackId: trackId,
-                        collectionId: collectionId
+                        transcriptId: transcriptId
                     )
 
                     DispatchQueue.main.async {
@@ -318,45 +265,23 @@ class TranscriptionManager: NSObject, ObservableObject {
     private func saveTranscriptData(
         transcript: SonioxTranscriptResponse,
         trackId: String,
-        collectionId: String
+        transcriptId: String
     ) async throws {
-        guard let dbQueue = dbQueue else {
-            throw TranscriptionError.databaseError("Database not initialized")
-        }
-
         // Group tokens into segments (by speaker or time gap)
-        let segments = groupTokensIntoSegments(transcript.tokens)
+        let segments = groupTokensIntoSegments(transcript.tokens, transcriptId: transcriptId)
 
         // Build full text
         let fullText = segments.map { $0.text }.joined(separator: " ")
 
-        try await withCheckedThrowingContinuation { continuation in
-            dbQueue.asyncWrite { db in
-                do {
-                    // Update transcript with completion status and full text
-                    try db.execute(
-                        sql: """
-                        UPDATE transcripts
-                        SET full_text = ?, job_status = ?, updated_at = ?
-                        WHERE track_id = ?
-                        """,
-                        arguments: [fullText, "complete", Date(), trackId]
-                    )
-
-                    // Insert segments
-                    for segment in segments {
-                        try segment.insert(db)
-                    }
-
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: TranscriptionError.databaseError(error.localizedDescription))
-                }
-            }
+        do {
+            try await dbManager.saveTranscriptSegments(segments, for: transcriptId)
+            try await dbManager.finalizeTranscript(trackId: trackId, fullText: fullText)
+        } catch {
+            throw TranscriptionError.databaseError(error.localizedDescription)
         }
     }
 
-    private func groupTokensIntoSegments(_ tokens: [SonioxToken]) -> [TranscriptSegment] {
+    private func groupTokensIntoSegments(_ tokens: [SonioxToken], transcriptId: String) -> [TranscriptSegment] {
         var segments: [TranscriptSegment] = []
         var currentSegment: (texts: [String], startMs: Int, endMs: Int, speaker: String?, language: String?)? = nil
 
@@ -380,7 +305,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                     // Save current segment and start new one
                     let fullText = current.texts.joined(separator: "")
                     let segment = TranscriptSegment(
-                        transcriptId: "",  // Will be set by caller
+                        transcriptId: transcriptId,
                         text: fullText,
                         startTimeMs: current.startMs,
                         endTimeMs: current.endMs,
@@ -402,7 +327,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         if let current = currentSegment {
             let fullText = current.texts.joined(separator: "")
             let segment = TranscriptSegment(
-                transcriptId: "",  // Will be set by caller
+                transcriptId: transcriptId,
                 text: fullText,
                 startTimeMs: current.startMs,
                 endTimeMs: current.endMs,
@@ -413,6 +338,49 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
 
         return segments
+    }
+
+    private func ensurePendingTranscript(
+        trackId: String,
+        collectionId: String,
+        language: String
+    ) async throws -> String {
+        do {
+            if let existing = try await dbManager.loadTranscript(forTrackId: trackId) {
+                return existing.id
+            }
+
+            let transcriptId = UUID().uuidString
+            try await dbManager.saveTranscript(
+                id: transcriptId,
+                trackId: trackId,
+                collectionId: collectionId,
+                language: language,
+                fullText: "",
+                jobStatus: "pending",
+                jobId: nil
+            )
+            return transcriptId
+        } catch {
+            throw TranscriptionError.databaseError(error.localizedDescription)
+        }
+    }
+
+    private func markTranscriptFailure(trackId: String, message: String) async {
+        do {
+            try await dbManager.markTranscriptFailed(trackId: trackId, message: message)
+        } catch {
+            print("Failed to mark transcript failure: \(error.localizedDescription)")
+        }
+    }
+
+    private func cleanupTemporaryFileIfNeeded(_ url: URL) {
+        let tempDirectory = FileManager.default.temporaryDirectory.standardizedFileURL
+        let fileURL = url.standardizedFileURL
+
+        guard fileURL.path.hasPrefix(tempDirectory.path) else { return }
+
+        try? FileManager.default.removeItem(at: fileURL)
     }
 
     private func highlightMatch(in text: String, query: String) -> String {

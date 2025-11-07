@@ -38,6 +38,11 @@ actor GRDBDatabaseManager {
             try db.execute(sql: DatabaseSchema.createTableSQL)
             print("[GRDB] Schema tables created")
 
+            // Create transcription tables
+            print("[GRDB] Executing transcription schema...")
+            try db.execute(sql: TranscriptionDatabaseSchema.createTableSQL)
+            print("[GRDB] Transcription tables created")
+
             // Insert schema version if not exists
             print("[GRDB] Inserting schema version...")
             try db.execute(sql: """
@@ -789,6 +794,283 @@ actor GRDBDatabaseManager {
         guard let data = jsonString.data(using: .utf8) else { return nil }
         return try? JSONSerialization.jsonObject(with: data)
     }
+
+    // MARK: - Transcription Operations
+
+    /// Save a transcript to the database
+    func saveTranscript(
+        id: String,
+        trackId: String,
+        collectionId: String,
+        language: String,
+        fullText: String,
+        jobStatus: String,
+        jobId: String?
+    ) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(sql: """
+                INSERT OR REPLACE INTO transcripts (
+                    id, track_id, collection_id, language,
+                    full_text, created_at, updated_at,
+                    job_status, job_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                arguments: [
+                    id,
+                    trackId,
+                    collectionId,
+                    language,
+                    fullText,
+                    Date(),
+                    Date(),
+                    jobStatus,
+                    jobId
+                ]
+            )
+        }
+    }
+
+    /// Load transcript by track ID
+    func loadTranscript(forTrackId trackId: String) throws -> Transcript? {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT * FROM transcripts WHERE track_id = ?",
+                arguments: [trackId]
+            ) else {
+                return nil
+            }
+
+            return try reconstructTranscript(row: row)
+        }
+    }
+
+    /// Load all transcript segments for a transcript
+    func loadTranscriptSegments(forTranscriptId transcriptId: String) throws -> [TranscriptSegment] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM transcript_segments WHERE transcript_id = ? ORDER BY start_time_ms",
+                arguments: [transcriptId]
+            )
+
+            return rows.compactMap { try reconstructTranscriptSegment(row: $0) }
+        }
+    }
+
+    /// Save transcript segments
+    func saveTranscriptSegments(_ segments: [TranscriptSegment], for transcriptId: String) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            // Delete existing segments
+            try db.execute(
+                sql: "DELETE FROM transcript_segments WHERE transcript_id = ?",
+                arguments: [transcriptId]
+            )
+
+            // Insert new segments
+            for segment in segments {
+                try db.execute(sql: """
+                    INSERT INTO transcript_segments (
+                        id, transcript_id, text,
+                        start_time_ms, end_time_ms,
+                        confidence, speaker, language
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    arguments: [
+                        segment.id,
+                        transcriptId,
+                        segment.text,
+                        segment.startTimeMs,
+                        segment.endTimeMs,
+                        segment.confidence,
+                        segment.speaker,
+                        segment.language
+                    ]
+                )
+            }
+        }
+    }
+    
+    /// Update transcript job metadata (job id/status)
+    func updateTranscriptJobMetadata(
+        trackId: String,
+        jobId: String,
+        status: String
+    ) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(
+                sql: """
+                UPDATE transcripts
+                SET job_id = ?, job_status = ?, error_message = NULL, updated_at = ?
+                WHERE track_id = ?
+                """,
+                arguments: [
+                    jobId,
+                    status,
+                    Date(),
+                    trackId
+                ]
+            )
+        }
+    }
+
+    /// Update transcript contents and mark completion
+    func finalizeTranscript(
+        trackId: String,
+        fullText: String,
+        jobStatus: String = "complete",
+        errorMessage: String? = nil
+    ) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(
+                sql: """
+                UPDATE transcripts
+                SET full_text = ?, job_status = ?, error_message = ?, updated_at = ?
+                WHERE track_id = ?
+                """,
+                arguments: [
+                    fullText,
+                    jobStatus,
+                    errorMessage,
+                    Date(),
+                    trackId
+                ]
+            )
+        }
+    }
+
+    /// Mark a transcript as failed with an error message
+    func markTranscriptFailed(trackId: String, message: String) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(
+                sql: """
+                UPDATE transcripts
+                SET job_status = 'failed', error_message = ?, updated_at = ?
+                WHERE track_id = ?
+                """,
+                arguments: [
+                    message,
+                    Date(),
+                    trackId
+                ]
+            )
+        }
+    }
+
+    /// Update transcript job status
+    func updateTranscriptionJobStatus(
+        jobId: String,
+        status: String,
+        progress: Double? = nil
+    ) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(sql: """
+                UPDATE transcription_jobs
+                SET status = ?, progress = ?, last_attempt_at = ?
+                WHERE id = ?
+                """,
+                arguments: [
+                    status,
+                    progress,
+                    Date(),
+                    jobId
+                ]
+            )
+        }
+    }
+
+    // MARK: - Private Helpers for Transcription
+
+    private func reconstructTranscript(row: Row) throws -> Transcript? {
+        guard let id = row["id"] as? String,
+              let trackId = row["track_id"] as? String,
+              let collectionId = row["collection_id"] as? String,
+              let fullText = row["full_text"] as? String,
+              let jobStatus = row["job_status"] as? String else {
+            return nil
+        }
+
+        let language = row["language"] as? String ?? "en"
+        let jobId = row["job_id"] as? String
+        let errorMessage = row["error_message"] as? String
+
+        // Parse dates
+        let createdAtValue = row["created_at"]
+        let createdAt: Date
+        if let date = createdAtValue as? Date {
+            createdAt = date
+        } else if let dateString = createdAtValue as? String,
+                  let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
+            createdAt = parsedDate
+        } else {
+            return nil
+        }
+
+        let updatedAtValue = row["updated_at"]
+        let updatedAt: Date
+        if let date = updatedAtValue as? Date {
+            updatedAt = date
+        } else if let dateString = updatedAtValue as? String,
+                  let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
+            updatedAt = parsedDate
+        } else {
+            return nil
+        }
+
+        return Transcript(
+            id: id,
+            trackId: trackId,
+            collectionId: collectionId,
+            language: language,
+            fullText: fullText,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            jobStatus: jobStatus,
+            jobId: jobId,
+            errorMessage: errorMessage
+        )
+    }
+
+    private func reconstructTranscriptSegment(row: Row) throws -> TranscriptSegment? {
+        guard let id = row["id"] as? String,
+              let transcriptId = row["transcript_id"] as? String,
+              let text = row["text"] as? String,
+              let startTimeMs = row["start_time_ms"] as? Int,
+              let endTimeMs = row["end_time_ms"] as? Int else {
+            return nil
+        }
+
+        let confidence = row["confidence"] as? Double
+        let speaker = row["speaker"] as? String
+        let language = row["language"] as? String
+
+        return TranscriptSegment(
+            id: id,
+            transcriptId: transcriptId,
+            text: text,
+            startTimeMs: startTimeMs,
+            endTimeMs: endTimeMs,
+            confidence: confidence,
+            speaker: speaker,
+            language: language
+        )
+    }
 }
 
 // MARK: - Type String Extensions
@@ -883,6 +1165,211 @@ extension CollectionCover.Kind {
             return "{}"
         }
         return jsonString
+    }
+
+    // MARK: - Transcription Operations
+
+    /// Save a transcript to the database
+    func saveTranscript(
+        id: String,
+        trackId: String,
+        collectionId: String,
+        language: String,
+        fullText: String,
+        jobStatus: String,
+        jobId: String?
+    ) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(sql: """
+                INSERT OR REPLACE INTO transcripts (
+                    id, track_id, collection_id, language,
+                    full_text, created_at, updated_at,
+                    job_status, job_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                arguments: [
+                    id,
+                    trackId,
+                    collectionId,
+                    language,
+                    fullText,
+                    Date(),
+                    Date(),
+                    jobStatus,
+                    jobId
+                ]
+            )
+        }
+    }
+
+    /// Load transcript by track ID
+    func loadTranscript(forTrackId trackId: String) throws -> Transcript? {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT * FROM transcripts WHERE track_id = ?",
+                arguments: [trackId]
+            ) else {
+                return nil
+            }
+
+            return try reconstructTranscript(row: row)
+        }
+    }
+
+    /// Load all transcript segments for a transcript
+    func loadTranscriptSegments(forTranscriptId transcriptId: String) throws -> [TranscriptSegment] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM transcript_segments WHERE transcript_id = ? ORDER BY start_time_ms",
+                arguments: [transcriptId]
+            )
+
+            return rows.compactMap { try reconstructTranscriptSegment(row: $0) }
+        }
+    }
+
+    /// Save transcript segments
+    func saveTranscriptSegments(_ segments: [TranscriptSegment], for transcriptId: String) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            // Delete existing segments
+            try db.execute(
+                sql: "DELETE FROM transcript_segments WHERE transcript_id = ?",
+                arguments: [transcriptId]
+            )
+
+            // Insert new segments
+            for segment in segments {
+                try db.execute(sql: """
+                    INSERT INTO transcript_segments (
+                        id, transcript_id, text,
+                        start_time_ms, end_time_ms,
+                        confidence, speaker, language
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    arguments: [
+                        segment.id,
+                        transcriptId,
+                        segment.text,
+                        segment.startTimeMs,
+                        segment.endTimeMs,
+                        segment.confidence,
+                        segment.speaker,
+                        segment.language
+                    ]
+                )
+            }
+        }
+    }
+
+    /// Update transcript job status
+    func updateTranscriptionJobStatus(
+        jobId: String,
+        status: String,
+        progress: Double? = nil
+    ) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(sql: """
+                UPDATE transcription_jobs
+                SET status = ?, progress = ?, last_attempt_at = ?
+                WHERE id = ?
+                """,
+                arguments: [
+                    status,
+                    progress,
+                    Date(),
+                    jobId
+                ]
+            )
+        }
+    }
+
+    // MARK: - Private Helpers for Transcription
+
+    private func reconstructTranscript(row: Row) throws -> Transcript? {
+        guard let id = row["id"] as? String,
+              let trackId = row["track_id"] as? String,
+              let collectionId = row["collection_id"] as? String,
+              let fullText = row["full_text"] as? String,
+              let jobStatus = row["job_status"] as? String else {
+            return nil
+        }
+
+        let language = row["language"] as? String ?? "en"
+        let jobId = row["job_id"] as? String
+        let errorMessage = row["error_message"] as? String
+
+        // Parse dates
+        let createdAtValue = row["created_at"]
+        let createdAt: Date
+        if let date = createdAtValue as? Date {
+            createdAt = date
+        } else if let dateString = createdAtValue as? String,
+                  let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
+            createdAt = parsedDate
+        } else {
+            return nil
+        }
+
+        let updatedAtValue = row["updated_at"]
+        let updatedAt: Date
+        if let date = updatedAtValue as? Date {
+            updatedAt = date
+        } else if let dateString = updatedAtValue as? String,
+                  let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
+            updatedAt = parsedDate
+        } else {
+            return nil
+        }
+
+        return Transcript(
+            id: id,
+            trackId: trackId,
+            collectionId: collectionId,
+            language: language,
+            fullText: fullText,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            jobStatus: jobStatus,
+            jobId: jobId,
+            errorMessage: errorMessage
+        )
+    }
+
+    private func reconstructTranscriptSegment(row: Row) throws -> TranscriptSegment? {
+        guard let id = row["id"] as? String,
+              let transcriptId = row["transcript_id"] as? String,
+              let text = row["text"] as? String,
+              let startTimeMs = row["start_time_ms"] as? Int,
+              let endTimeMs = row["end_time_ms"] as? Int else {
+            return nil
+        }
+
+        let confidence = row["confidence"] as? Double
+        let speaker = row["speaker"] as? String
+        let language = row["language"] as? String
+
+        return TranscriptSegment(
+            id: id,
+            transcriptId: transcriptId,
+            text: text,
+            startTimeMs: startTimeMs,
+            endTimeMs: endTimeMs,
+            confidence: confidence,
+            speaker: speaker,
+            language: language
+        )
     }
 }
 
