@@ -17,8 +17,6 @@ struct CollectionDetailView: View {
     @State private var showCollectionRenameSheet = false
     @State private var collectionTitleDraft = ""
     @State private var trackForTranscription: AudiobookTrack?
-    @State private var trackForViewing: AudiobookTrack?
-    @State private var showTranscriptViewer = false
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -144,11 +142,6 @@ struct CollectionDetailView: View {
         }
         .sheet(item: $trackForTranscription) { track in
             TranscriptionSheet(track: track, collectionID: collectionID)
-        }
-        .sheet(isPresented: $showTranscriptViewer) {
-            if let track = trackForViewing {
-                TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
-            }
         }
     }
 
@@ -283,16 +276,6 @@ struct CollectionDetailView: View {
                             Label(
                                 NSLocalizedString("transcribe_track_title", comment: "Transcribe track title"),
                                 systemImage: "waveform"
-                            )
-                        }
-
-                        Button {
-                            trackForViewing = track
-                            showTranscriptViewer = true
-                        } label: {
-                            Label(
-                                NSLocalizedString("view_transcript", comment: "View transcript menu item"),
-                                systemImage: "text.alignleft"
                             )
                         }
                     }
