@@ -49,6 +49,12 @@
 		8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */; };
 		8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */; };
 		8685F3632EBE204F003D8173 /* TemporaryPlaybackContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */; };
+		8685F3692EBF3607003D8173 /* TranscriptionProgressOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3652EBF3607003D8173 /* TranscriptionProgressOverlay.swift */; };
+		8685F36A2EBF3607003D8173 /* TranscriptViewerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3672EBF3607003D8173 /* TranscriptViewerSheet.swift */; };
+		8685F36B2EBF3607003D8173 /* TranscriptionRetryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3662EBF3607003D8173 /* TranscriptionRetryManager.swift */; };
+		8685F36C2EBF3607003D8173 /* TranscriptionJobManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3642EBF3607003D8173 /* TranscriptionJobManager.swift */; };
+		8685F36D2EBF3607003D8173 /* TranscriptViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3682EBF3607003D8173 /* TranscriptViewModel.swift */; };
+		8685F36F2EBF3813003D8173 /* AITabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F36E2EBF3813003D8173 /* AITabView.swift */; };
 		86AD83AC2EB9AD5200FAB6DF /* CacheProgressTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */; };
 		86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */; };
 		8E29594F1DFC4DD3BDB9C297 /* AudiobookPlayer/DatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599C0102E5CE40F89A991FD2 /* AudiobookPlayer/DatabaseSchema.swift */; };
@@ -105,6 +111,12 @@
 		8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeychainStore.swift; sourceTree = "<group>"; };
 		8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeyViewModel.swift; sourceTree = "<group>"; };
 		8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryPlaybackContext.swift; sourceTree = "<group>"; };
+		8685F3642EBF3607003D8173 /* TranscriptionJobManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionJobManager.swift; sourceTree = "<group>"; };
+		8685F3652EBF3607003D8173 /* TranscriptionProgressOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionProgressOverlay.swift; sourceTree = "<group>"; };
+		8685F3662EBF3607003D8173 /* TranscriptionRetryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptionRetryManager.swift; sourceTree = "<group>"; };
+		8685F3672EBF3607003D8173 /* TranscriptViewerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptViewerSheet.swift; sourceTree = "<group>"; };
+		8685F3682EBF3607003D8173 /* TranscriptViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptViewModel.swift; sourceTree = "<group>"; };
+		8685F36E2EBF3813003D8173 /* AITabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITabView.swift; sourceTree = "<group>"; };
 		86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheDownloadManager.swift; sourceTree = "<group>"; };
 		86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheProgressTracker.swift; sourceTree = "<group>"; };
 		A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteToggleButton.swift; sourceTree = "<group>"; };
@@ -152,6 +164,12 @@
 				8617DDE02EBE0A26006E7CA7 /* DatabaseSchema.swift */,
 				8617DDE12EBE0A26006E7CA7 /* GRDBDatabaseManager.swift */,
 				8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */,
+				8685F3642EBF3607003D8173 /* TranscriptionJobManager.swift */,
+				8685F3652EBF3607003D8173 /* TranscriptionProgressOverlay.swift */,
+				8685F3662EBF3607003D8173 /* TranscriptionRetryManager.swift */,
+				8685F3672EBF3607003D8173 /* TranscriptViewerSheet.swift */,
+				8685F3682EBF3607003D8173 /* TranscriptViewModel.swift */,
+				8685F36E2EBF3813003D8173 /* AITabView.swift */,
 				8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */,
 				8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */,
 				8617DDE32EBE0A26006E7CA7 /* SonioxAPI.swift */,
@@ -309,6 +327,7 @@
 				8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */,
 				8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */,
 				5699532872F14F318BCED8CE /* CollectionBuilderViewModel.swift in Sources */,
+				8685F36F2EBF3813003D8173 /* AITabView.swift in Sources */,
 				6F99A0052C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift in Sources */,
 				6F6E7F6F2C4A9B0500AA00AA /* AudiobookPlayerApp.swift in Sources */,
 				6FC010072C5B0C0000AA00AA /* SourcesView.swift in Sources */,
@@ -329,6 +348,11 @@
 				6FC010032C5B0C0000AA00AA /* LibraryStore.swift in Sources */,
 				6F99A0032C4C200000AA00AA /* BaiduNetdiskClient.swift in Sources */,
 				6F6E7F712C4A9B0500AA00AA /* ContentView.swift in Sources */,
+				8685F3692EBF3607003D8173 /* TranscriptionProgressOverlay.swift in Sources */,
+				8685F36A2EBF3607003D8173 /* TranscriptViewerSheet.swift in Sources */,
+				8685F36B2EBF3607003D8173 /* TranscriptionRetryManager.swift in Sources */,
+				8685F36C2EBF3607003D8173 /* TranscriptionJobManager.swift in Sources */,
+				8685F36D2EBF3607003D8173 /* TranscriptViewModel.swift in Sources */,
 				6F99A0012C4C200000AA00AA /* BaiduTokenStore.swift in Sources */,
 				6F6E7F6F2C4A9B0500AA00AB /* BaiduOAuth.swift in Sources */,
 				6FC010012C5B0C0000AA00AA /* LibraryModels.swift in Sources */,

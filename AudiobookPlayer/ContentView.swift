@@ -51,38 +51,44 @@ struct ContentView: View {
     @StateObject private var tabSelection = TabSelectionManager()
     
     var body: some View {
-        TabView(selection: $tabSelection.selectedTab) {
-            LibraryView()
-                .tabItem {
-                    Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
-                }
-                .tag(TabSelectionManager.Tab.library)
+        ZStack(alignment: .top) {
+            TabView(selection: $tabSelection.selectedTab) {
+                LibraryView()
+                    .tabItem {
+                        Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
+                    }
+                    .tag(TabSelectionManager.Tab.library)
 
-            PlayingView()
-                .tabItem {
-                    Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
-                }
-                .tag(TabSelectionManager.Tab.playing)
+                PlayingView()
+                    .tabItem {
+                        Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
+                    }
+                    .tag(TabSelectionManager.Tab.playing)
 
-            SourcesView()
-                .tabItem {
-                    Label(NSLocalizedString("sources_tab", comment: "Tab for sources"), systemImage: "externaldrive.badge.icloud")
-                }
-                .tag(TabSelectionManager.Tab.sources)
+                SourcesView()
+                    .tabItem {
+                        Label(NSLocalizedString("sources_tab", comment: "Tab for sources"), systemImage: "externaldrive.badge.icloud")
+                    }
+                    .tag(TabSelectionManager.Tab.sources)
 
-            AITabView()
-                .tabItem {
-                    Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "brain")
-                }
-                .tag(TabSelectionManager.Tab.ai)
+                AITabView()
+                    .tabItem {
+                        Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "brain")
+                    }
+                    .tag(TabSelectionManager.Tab.ai)
 
-            TTSTabView()
-                .tabItem {
-                    Label(NSLocalizedString("tts_tab", comment: "TTS tab"), systemImage: "waveform")
-                }
-                .tag(TabSelectionManager.Tab.tts)
+                TTSTabView()
+                    .tabItem {
+                        Label(NSLocalizedString("tts_tab", comment: "TTS tab"), systemImage: "waveform")
+                    }
+                    .tag(TabSelectionManager.Tab.tts)
+            }
+            .environmentObject(tabSelection)
+
+            // Transcription progress overlay
+            TranscriptionProgressOverlay()
+                .padding(.top, 8)
         }
-        .environmentObject(tabSelection)
     }
 }
 

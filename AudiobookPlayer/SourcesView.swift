@@ -30,65 +30,28 @@ struct SourcesView: View {
         .sheet(item: $selectedNetdiskEntry) { entry in
             let canStream = isPlayable(entry)
             NavigationStack {
-                VStack(alignment: .leading, spacing: 16) {
-                    Label(NSLocalizedString("file_details", comment: "File details"), systemImage: "doc.text.magnifyingglass")
-                        .font(.headline)
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(entry.serverFilename)
-                            .font(.title3)
-                            .bold()
-
-                        Text(entry.path)
-                            .font(.caption.monospaced())
-                            .foregroundColor(.secondary)
-                    }
-
-                    Text(NSLocalizedString("file_details_hint", comment: "File details hint"))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-
-                    Label(
-                        canStream
-                            ? NSLocalizedString("direct_play_sheet_hint", comment: "Direct play hint")
-                            : NSLocalizedString("unsupported_audio_file_message", comment: "Unsupported audio file message"),
-                        systemImage: canStream ? "bolt.horizontal" : "exclamationmark.triangle"
-                    )
-                    .font(.subheadline)
-                    .foregroundStyle(canStream ? .secondary : Color.orange)
-
-                    Spacer()
-
-                    Button {
+                NetdiskEntryDetailSheet(
+                    entry: entry,
+                    canStream: canStream,
+                    onPlay: {
+                        guard canStream else { return }
+                        selectedNetdiskEntry = nil
                         startDirectPlayback(with: entry)
-                    } label: {
-                        Label(NSLocalizedString("play_now_button", comment: "Play now button"), systemImage: "play.circle.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!canStream)
-
-                    Button {
+                    },
+                    onSaveParent: {
                         presentSaveFlow(for: entry)
-                    } label: {
-                        Label(NSLocalizedString("save_to_library_button", comment: "Save to library button"), systemImage: "tray.and.arrow.down")
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
-
-                    Button(NSLocalizedString("close_button", comment: "Close button"), role: .cancel) { selectedNetdiskEntry = nil }
-                        .frame(maxWidth: .infinity)
-                        .buttonStyle(.bordered)
-                }
-                .padding()
-                .navigationTitle(NSLocalizedString("netdisk_file_title", comment: "Netdisk file sheet title"))
+                )
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { selectedNetdiskEntry = nil }
+                        Button(NSLocalizedString("done_button", comment: "Done button")) {
+                            selectedNetdiskEntry = nil
+                        }
                     }
                 }
             }
-            .presentationDetents([.medium])
+            .presentationDetents([.fraction(0.7), .large])
         }
         .sheet(isPresented: $showingBaiduImport) {
             NavigationStack {
@@ -225,13 +188,6 @@ private extension SourcesView {
 
     func handleNetdiskFileSelection(_ entry: BaiduNetdiskEntry) {
         selectedNetdiskEntry = entry
-
-        guard isPlayable(entry) else {
-            directPlayError = IdentifiableString(value: NSLocalizedString("unsupported_audio_file_message", comment: "Unsupported audio file message"))
-            return
-        }
-
-        startDirectPlayback(with: entry)
     }
 
     func startDirectPlayback(with entry: BaiduNetdiskEntry) {
@@ -261,6 +217,126 @@ private extension SourcesView {
     func parentDirectory(for path: String) -> String {
         let directory = (path as NSString).deletingLastPathComponent
         return directory.isEmpty ? "/" : directory
+    }
+}
+
+private struct NetdiskEntryDetailSheet: View {
+    let entry: BaiduNetdiskEntry
+    let canStream: Bool
+    let onPlay: () -> Void
+    let onSaveParent: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Text(NSLocalizedString("netdisk_file_title", comment: "Netdisk file sheet title"))
+                    .font(.title2.weight(.semibold))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(entry.serverFilename)
+                        .font(.title3.weight(.semibold))
+                        .multilineTextAlignment(.leading)
+
+                    Text(entry.path)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(3)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(Color(.secondarySystemBackground))
+                )
+
+                if let metadataDescription = metadataDescription {
+                    Label(metadataDescription, systemImage: "waveform.path.ecg")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                infoNote
+            }
+            .padding(.horizontal)
+            .padding(.top, 16)
+            .padding(.bottom, 32)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 12) {
+                Button {
+                    guard canStream else { return }
+                    onPlay()
+                } label: {
+                    Label(NSLocalizedString("play_now_button", comment: "Play now button"), systemImage: "play.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .disabled(!canStream)
+
+                Button {
+                    onSaveParent()
+                } label: {
+                    Label(NSLocalizedString("save_to_library_button", comment: "Save to library button"), systemImage: "tray.and.arrow.down")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+            }
+            .padding(.horizontal)
+            .padding(.top, 12)
+            .padding(.bottom, 20)
+            .background(.thinMaterial)
+        }
+    }
+
+    private var metadataDescription: String? {
+        let hasSize = entry.size > 0
+        let hasDate = entry.serverMtime > 0
+        guard hasSize || hasDate else { return nil }
+
+        var segments: [String] = []
+        if hasSize {
+            let formatter = ByteCountFormatter()
+            formatter.countStyle = .file
+            segments.append(formatter.string(fromByteCount: entry.size))
+        }
+        if hasDate {
+            let date = Date(timeIntervalSince1970: entry.serverMtime)
+            let formatter = DateFormatter()
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            segments.append(formatter.string(from: date))
+        }
+        return segments.joined(separator: " • ")
+    }
+
+    @ViewBuilder
+    private var infoNote: some View {
+        let message = canStream
+            ? NSLocalizedString("direct_play_sheet_hint", comment: "Direct play hint")
+            : NSLocalizedString("unsupported_audio_file_message", comment: "Unsupported audio file message")
+        let icon = canStream ? "bolt.horizontal.fill" : "exclamationmark.triangle.fill"
+        let tint: Color = canStream ? .accentColor : .orange
+
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(tint)
+
+            Text(message)
+                .font(.callout)
+                .foregroundStyle(canStream ? .secondary : tint)
+                .multilineTextAlignment(.leading)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemBackground))
+        )
     }
 }
 
