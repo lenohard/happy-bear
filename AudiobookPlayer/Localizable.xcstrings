@@ -230,7 +230,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "你是一个有用的有声读物助手。"
+            "value" : "你是一个有用的智能助手。"
           }
         }
       }
@@ -1515,6 +1515,7 @@
       }
     },
     "Done" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1605,6 +1606,7 @@
     },
     "ephemeral_save_button" : {
       "comment" : "Ephemeral save button",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1713,6 +1715,7 @@
     },
     "file_details" : {
       "comment" : "File details",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1730,6 +1733,7 @@
     },
     "file_details_hint" : {
       "comment" : "File details hint",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3388,6 +3392,125 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查看藏书集合"
+          }
+        }
+      }
+    },
+    "view_transcript" : {
+      "comment" : "View transcript menu item",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Transcript"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看文本"
+          }
+        }
+      }
+    },
+    "search_in_transcript" : {
+      "comment" : "Search in transcript prompt",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search in transcript"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在文本中搜索"
+          }
+        }
+      }
+    },
+    "no_transcript_found" : {
+      "comment" : "No transcript available",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No transcript available"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可用的文本"
+          }
+        }
+      }
+    },
+    "no_search_results" : {
+      "comment" : "No search results found",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Results"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无搜索结果"
+          }
+        }
+      }
+    },
+    "transcript_search_no_matches" : {
+      "comment" : "No matches found for search query",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matches found for this search"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到匹配的搜索结果"
+          }
+        }
+      }
+    },
+    "transcript_search_results" : {
+      "comment" : "Search results header with query",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Results for \"%@\""
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" 的搜索结果"
+          }
+        }
+      }
+    },
+    "retry_button" : {
+      "comment" : "Retry button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
           }
         }
       }
