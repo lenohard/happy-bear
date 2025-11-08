@@ -54,3 +54,26 @@ struct FavoriteToggleButton: View {
         : NSLocalizedString("add_to_favorites", comment: "Add to favorites button")
     }
 }
+
+private struct FavoriteToggleButtonPreviewHarness: View {
+    @State private var iconFavorite = true
+    @State private var borderedFavorite = false
+
+    var body: some View {
+        VStack(spacing: 24) {
+            FavoriteToggleButton(isFavorite: iconFavorite, style: .icon) {
+                iconFavorite.toggle()
+            }
+
+            FavoriteToggleButton(isFavorite: borderedFavorite, style: .bordered) {
+                borderedFavorite.toggle()
+            }
+        }
+        .padding()
+        .previewLayout(.sizeThatFits)
+    }
+}
+
+#Preview("Favorite Toggle Button") {
+    FavoriteToggleButtonPreviewHarness()
+}

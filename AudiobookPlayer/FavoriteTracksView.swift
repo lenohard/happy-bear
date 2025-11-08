@@ -140,3 +140,163 @@ struct FavoriteTrackRow: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+private enum FavoriteTracksPreviewData {
+    static func sampleEntries() -> [LibraryStore.FavoriteTrackEntry] {
+        makeCollections().flatMap { collection in
+            collection.tracks
+                .filter(\.isFavorite)
+                .map { LibraryStore.FavoriteTrackEntry(collection: collection, track: $0) }
+        }
+    }
+
+    @MainActor
+    static func makePreviewEnvironment() -> (library: LibraryStore, audioPlayer: AudioPlayerViewModel, authViewModel: BaiduAuthViewModel) {
+        let library = LibraryStore(autoLoadOnInit: false, syncEngine: nil)
+        let collections = makeCollections()
+        collections.forEach { library.save($0) }
+
+        let audioPlayer = AudioPlayerViewModel()
+        if let firstCollection = library.collections.first {
+            audioPlayer.prepareCollection(firstCollection)
+        }
+
+        let authViewModel = BaiduAuthViewModel(
+            serviceFactory: { .failure(.missingConfiguration) },
+            tokenStore: PreviewBaiduTokenStore()
+        )
+
+        return (library, audioPlayer, authViewModel)
+    }
+
+    private static func makeCollections() -> [AudiobookCollection] {
+        var fiction = AudiobookCollection.makeEmptyDraft(
+            for: .local(directoryBookmark: Data("fiction-preview".utf8)),
+            title: "Fiction Classics"
+        )
+        fiction.author = "Curated Library"
+        var sciFi = makeTrack(
+            title: "Beyond the Stars",
+            number: 1,
+            minutes: 42,
+            favoriteHoursAgo: 2
+        )
+        var noir = makeTrack(
+            title: "Midnight Detective",
+            number: 2,
+            minutes: 38,
+            favoriteHoursAgo: 6
+        )
+        noir.isFavorite = true
+        fiction.tracks = [sciFi, noir]
+        fiction.lastPlayedTrackId = sciFi.id
+        fiction.playbackStates = [
+            sciFi.id: TrackPlaybackState(position: 120, duration: 2_400, updatedAt: Date())
+        ]
+
+        var mindfulness = AudiobookCollection.makeEmptyDraft(
+            for: .local(directoryBookmark: Data("mindfulness-preview".utf8)),
+            title: "Mindful Evenings"
+        )
+        mindfulness.author = "Serenity Voices"
+        let calm = makeTrack(
+            title: "Gentle Arrival",
+            number: 1,
+            minutes: 25,
+            favoriteHoursAgo: 30
+        )
+        mindfulness.tracks = [calm]
+
+        return [fiction, mindfulness]
+    }
+
+    private static func makeTrack(
+        title: String,
+        number: Int,
+        minutes: Double,
+        favoriteHoursAgo: Double
+    ) -> AudiobookTrack {
+        AudiobookTrack(
+            id: UUID(),
+            displayName: title,
+            filename: "\(number)-\(title.replacingOccurrences(of: " ", with: ""))",
+            location: .local(urlBookmark: Data("track-\(title)".utf8)),
+            fileSize: 28_000_000,
+            duration: minutes * 60,
+            trackNumber: number,
+            checksum: nil,
+            metadata: [:],
+            isFavorite: true,
+            favoritedAt: Date().addingTimeInterval(-(favoriteHoursAgo * 3_600))
+        )
+    }
+}
+
+private final class PreviewBaiduTokenStore: BaiduOAuthTokenStore {
+    private var storedToken: BaiduOAuthToken?
+
+    func loadToken() throws -> BaiduOAuthToken? {
+        storedToken
+    }
+
+    func saveToken(_ token: BaiduOAuthToken) throws {
+        storedToken = token
+    }
+
+    func clearToken() throws {
+        storedToken = nil
+    }
+}
+
+@MainActor
+private struct FavoriteTracksPreviewHarness: View {
+    @StateObject private var library: LibraryStore
+    @StateObject private var audioPlayer: AudioPlayerViewModel
+    @StateObject private var authViewModel: BaiduAuthViewModel
+
+    init() {
+        let environment = FavoriteTracksPreviewData.makePreviewEnvironment()
+        _library = StateObject(wrappedValue: environment.library)
+        _audioPlayer = StateObject(wrappedValue: environment.audioPlayer)
+        _authViewModel = StateObject(wrappedValue: environment.authViewModel)
+    }
+
+    var body: some View {
+        NavigationStack {
+            FavoriteTracksView()
+        }
+        .environmentObject(library)
+        .environmentObject(audioPlayer)
+        .environmentObject(authViewModel)
+    }
+}
+
+#Preview("Favorite Tracks List") {
+    FavoriteTracksPreviewHarness()
+}
+
+#Preview("Favorite Track Row") {
+    let entries = FavoriteTracksPreviewData.sampleEntries()
+
+    return VStack(alignment: .leading, spacing: 16) {
+        if let primary = entries.first {
+            FavoriteTrackRow(
+                entry: primary,
+                isActive: true,
+                onPlay: {},
+                onToggleFavorite: {}
+            )
+        }
+
+        if entries.count > 1 {
+            FavoriteTrackRow(
+                entry: entries[1],
+                isActive: false,
+                onPlay: {},
+                onToggleFavorite: {}
+            )
+        }
+    }
+    .padding()
+    .previewLayout(.sizeThatFits)
+}
