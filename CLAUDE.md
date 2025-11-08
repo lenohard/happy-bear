@@ -298,6 +298,14 @@ YES
    - ✅ **All other features** (background audio, cache, playback controls, lock screen) work fine on free accounts
    - **Lesson**: Always verify account limitations before implementing platform-specific features. App Intents was fully architected before discovering the blocker.
 
+8. **UI Button Design Pattern - Intuitive Refresh Buttons**:
+   - ✅ **Use icon-only buttons for intuitive actions**: Refresh buttons (↻), close buttons (✕), etc. don't need text labels
+   - ✅ **Design**: `Button { ... } label: { Image(systemName: "arrow.clockwise") }`
+   - ✅ **Style**: Use `.buttonStyle(.bordered)` + `.controlSize(.small)` for consistency
+   - ✅ **Placement**: Pair with content (e.g., refresh button next to quota display)
+   - **Guideline**: Don't add labels to buttons whose function is immediately obvious from the icon
+   - **Example**: AI tab refresh buttons for models and credits use icon-only design
+
 ## Documentation Index
 - `local/docs/siri-collection-playback.md`: Siri/App Intents setup for triggering collection playback via voice and Shortcuts.
 

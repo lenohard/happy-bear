@@ -57,31 +57,31 @@ struct AITabView: View {
 
     private var credentialsSection: some View {
         Section {
-            DisclosureGroup(isExpanded: $isCredentialSectionExpanded) {
-                SecureField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
-                    .textInputAutocapitalization(.never)
-                    .disableAutocorrection(true)
-                    .focused($focusedField, equals: .gateway)
-                    .onChange(of: gateway.apiKey) { newValue in
-                        // Only mark as editing if user is actively typing, not if field was cleared by save
-                        if !newValue.isEmpty {
-                            gateway.markKeyAsEditing()
-                        }
+            SecureField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
+                .textInputAutocapitalization(.never)
+                .disableAutocorrection(true)
+                .focused($focusedField, equals: .gateway)
+                .onChange(of: gateway.apiKey) { newValue in
+                    if !newValue.isEmpty {
+                        gateway.markKeyAsEditing()
                     }
-
-                Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
-                    let pendingKey = gateway.apiKey
-                    focusedField = nil
-                    resignFirstResponder()
-                    Task { await gateway.saveAndValidateKey(using: pendingKey) }
                 }
+                .modifier(CredentialRowModifier())
 
-                keyStateLabel
-            } label: {
-                Label(NSLocalizedString("ai_tab_credentials_section", comment: ""), systemImage: "key.horizontal")
-                    .font(.headline)
+            Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
+                let pendingKey = gateway.apiKey
+                focusedField = nil
+                resignFirstResponder()
+                Task { await gateway.saveAndValidateKey(using: pendingKey) }
             }
-            .listRowSeparator(.visible)
+            .buttonStyle(.borderless)
+            .modifier(CredentialRowModifier())
+
+            keyStateLabel
+                .modifier(CredentialRowModifier(alignment: .leading))
+        } header: {
+            Label(NSLocalizedString("ai_tab_credentials_section", comment: ""), systemImage: "key.horizontal")
+                .font(.headline)
         }
     }
 
@@ -120,7 +120,7 @@ struct AITabView: View {
                     Button {
                         Task { try? await gateway.refreshModels() }
                     } label: {
-                        Label(NSLocalizedString("ai_tab_refresh_models", comment: ""), systemImage: "arrow.clockwise")
+                        Image(systemName: "arrow.clockwise")
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
@@ -333,11 +333,21 @@ struct AITabView: View {
             if gateway.isFetchingCredits {
                 ProgressView()
             } else if let credits = gateway.credits {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(String(format: NSLocalizedString("ai_tab_balance_label", comment: ""), credits.balance))
-                    Text(String(format: NSLocalizedString("ai_tab_total_used_label", comment: ""), credits.totalUsed))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(format: NSLocalizedString("ai_tab_balance_label", comment: ""), credits.balance))
+                        Text(String(format: NSLocalizedString("ai_tab_total_used_label", comment: ""), credits.totalUsed))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button {
+                        Task { await gateway.refreshCredits() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
             } else {
                 Button(NSLocalizedString("ai_tab_fetch_credits", comment: "")) {
@@ -369,55 +379,198 @@ func resignFirstResponder() {
 struct TTSTabView: View {
     @StateObject private var sonioxViewModel = SonioxKeyViewModel()
     @FocusState private var isKeyFieldFocused: Bool
+    @State private var isTestInProgress = false
+    @State private var testResult: String?
+    @State private var testError: String?
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    DisclosureGroup {
-                        SecureField(
-                            NSLocalizedString("soniox_key_placeholder", comment: ""),
-                            text: $sonioxViewModel.apiKey
-                        )
-                        .textInputAutocapitalization(.never)
-                        .disableAutocorrection(true)
-                        .focused($isKeyFieldFocused)
+                    SecureField(
+                        NSLocalizedString("soniox_key_placeholder", comment: ""),
+                        text: $sonioxViewModel.apiKey
+                    )
+                    .textInputAutocapitalization(.never)
+                    .disableAutocorrection(true)
+                    .focused($isKeyFieldFocused)
+                    .modifier(CredentialRowModifier())
 
-                        Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
-                            let pendingKey = sonioxViewModel.apiKey
-                            isKeyFieldFocused = false
-                            resignFirstResponder()
-                            Task { await sonioxViewModel.saveKey(using: pendingKey) }
+                    Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
+                        let pendingKey = sonioxViewModel.apiKey
+                        isKeyFieldFocused = false
+                        resignFirstResponder()
+                        Task { await sonioxViewModel.saveKey(using: pendingKey) }
+                    }
+                    .buttonStyle(.borderless)
+                    .modifier(CredentialRowModifier())
+
+                    sonioxStatusContent
+                        .modifier(CredentialRowModifier(alignment: .leading))
+                } header: {
+                    Label(NSLocalizedString("soniox_section_title", comment: ""), systemImage: "waveform")
+                        .font(.headline)
+                }
+
+                if sonioxViewModel.keyExists {
+                    Section {
+                        Button(action: { Task { await testTranscription() } }) {
+                            if isTestInProgress {
+                                HStack {
+                                    ProgressView()
+                                        .scaleEffect(0.8, anchor: .center)
+                                    Text("Testing transcription...")
+                                }
+                            } else {
+                                Label("Test with sample audio", systemImage: "play.circle")
+                            }
+                        }
+                        .disabled(isTestInProgress)
+
+                        if let error = testError {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label("Test Failed", systemImage: "exclamationmark.triangle")
+                                    .font(.footnote)
+                                    .foregroundColor(.red)
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                            }
                         }
 
-                        sonioxStatusLabel
-                    } label: {
-                        Label(NSLocalizedString("soniox_section_title", comment: ""), systemImage: "waveform")
-                            .font(.headline)
+                        if let result = testResult {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Label("Transcription Result", systemImage: "checkmark.circle")
+                                    .font(.footnote)
+                                    .foregroundColor(.green)
+                                Text(result)
+                                    .font(.caption)
+                                    .lineLimit(5)
+                                    .truncationMode(.tail)
+                            }
+                        }
+                    } header: {
+                        Text("Test Soniox API")
                     }
-                    .listRowSeparator(.visible)
                 }
             }
             .navigationTitle(Text(NSLocalizedString("tts_tab_title", comment: "")))
+            .task {
+                // Reload key status when view appears (handles case where key was saved before this feature was added)
+                await sonioxViewModel.refreshKeyStatus()
+            }
         }
     }
 
-    @ViewBuilder
-    private var sonioxStatusLabel: some View {
-        if sonioxViewModel.keyExists {
-            Label(NSLocalizedString("soniox_configured", comment: ""), systemImage: "checkmark.seal")
-                .font(.footnote)
-                .foregroundColor(.green)
-        } else {
-            Label(NSLocalizedString("soniox_not_configured", comment: ""), systemImage: "exclamationmark.circle")
-                .font(.footnote)
-                .foregroundColor(.orange)
-        }
+    private var sonioxStatusContent: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if sonioxViewModel.keyExists {
+                Label(NSLocalizedString("soniox_configured", comment: ""), systemImage: "checkmark.seal")
+                    .font(.footnote)
+                    .foregroundColor(.green)
+            } else {
+                Label(NSLocalizedString("soniox_not_configured", comment: ""), systemImage: "exclamationmark.circle")
+                    .font(.footnote)
+                    .foregroundColor(.orange)
+            }
 
-        if let message = sonioxViewModel.statusMessage {
-            Text(message)
-                .font(.footnote)
-                .foregroundColor(sonioxViewModel.isSuccess ? .green : .red)
+            if let message = sonioxViewModel.statusMessage {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundColor(sonioxViewModel.isSuccess ? .green : .red)
+            }
         }
+    }
+
+    private func testTranscription() async {
+        isTestInProgress = true
+        testError = nil
+        testResult = nil
+
+        do {
+            // Get the API key from keychain
+            let keychainStore: SonioxAPIKeyStore = KeychainSonioxAPIKeyStore()
+            guard let apiKey = try keychainStore.loadKey() else {
+                throw SonioxAPI.APIError.missingAPIKey
+            }
+
+            let api = SonioxAPI(apiKey: apiKey)
+
+            // Get the test audio file from the app bundle
+            let fileManager = FileManager.default
+            let documentURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let testAudioURL = documentURL.appendingPathComponent("test-1min.mp3")
+
+            // Check if file exists, if not try the project root
+            let audioFileURL: URL
+            if fileManager.fileExists(atPath: testAudioURL.path) {
+                audioFileURL = testAudioURL
+            } else {
+                // Try the app directory if available
+                if let appBundleURL = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("test-1min.mp3") as URL?,
+                   fileManager.fileExists(atPath: appBundleURL.path) {
+                    audioFileURL = appBundleURL
+                } else {
+                    throw SonioxAPI.APIError.fileUploadFailed
+                }
+            }
+
+            // Upload the audio file
+            let fileId = try await api.uploadFile(fileURL: audioFileURL)
+
+            // Create transcription job
+            let transcriptionId = try await api.createTranscription(
+                fileId: fileId,
+                languageHints: ["zh", "en"]
+            )
+
+            // Poll for completion (with timeout)
+            var attempts = 0
+            let maxAttempts = 120  // 2 minutes with 1 second polling
+            while attempts < maxAttempts {
+                let status = try await api.checkTranscriptionStatus(transcriptionId: transcriptionId)
+
+                if status.status == "completed" {
+                    // Get the transcript
+                    let transcript = try await api.getTranscript(transcriptionId: transcriptionId)
+
+                    // Extract text from tokens
+                    let fullText = transcript.tokens
+                        .map { $0.text }
+                        .joined(separator: " ")
+
+                    await MainActor.run {
+                        testResult = fullText.isEmpty ? "(Empty transcript)" : fullText
+                        isTestInProgress = false
+                    }
+                    return
+                } else if status.status == "error" {
+                    throw SonioxAPI.APIError.transcriptionFailed(message: status.error_message ?? "Unknown error")
+                }
+
+                // Wait before polling again
+                try await Task.sleep(nanoseconds: 1_000_000_000)  // 1 second
+                attempts += 1
+            }
+
+            throw SonioxAPI.APIError.transcriptionFailed(message: "Transcription timeout after 2 minutes")
+
+        } catch {
+            await MainActor.run {
+                testError = error.localizedDescription
+                isTestInProgress = false
+            }
+        }
+    }
+}
+
+private struct CredentialRowModifier: ViewModifier {
+    var alignment: Alignment = .leading
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity, alignment: alignment)
+            .padding(.vertical, 8)
+            .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 }
