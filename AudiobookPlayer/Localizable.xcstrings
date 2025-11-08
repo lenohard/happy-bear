@@ -1631,8 +1631,8 @@
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "new",
-            "value" : "来自百度浏览器的串流"
+            "state" : "translated",
+            "value" : "百度网盘"
           }
         }
       }

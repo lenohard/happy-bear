@@ -152,8 +152,7 @@ struct PlayingView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             primaryCard(for: snapshot)
 
-                            if !snapshot.collection.isEphemeral,
-                               !historyEntries(excluding: snapshot).isEmpty {
+                            if !historyEntries(excluding: snapshot).isEmpty {
                                 listeningHistorySection(entries: historyEntries(excluding: snapshot))
                             }
                         }
@@ -394,10 +393,10 @@ struct PlayingView: View {
                         showingEphemeralSave = true
                     }
                 } label: {
-                    Label(NSLocalizedString("ephemeral_save_button", comment: "Ephemeral save button"), systemImage: "tray.and.arrow.down")
-                        .font(.subheadline)
+                    Image(systemName: "tray.and.arrow.down")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.plain)
+                .font(.subheadline)
             } else {
                 NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
                     HStack(spacing: 6) {
