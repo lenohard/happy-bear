@@ -48,10 +48,10 @@ class TranscriptViewModel: NSObject, ObservableObject {
                 // Count occurrences in this segment
                 let occurrences = lowerText.components(separatedBy: query).count - 1
                 results.append(TranscriptSearchResult(
-                    id: UUID().uuidString,
                     segmentIndex: index,
                     segment: segment,
-                    matchCount: occurrences
+                    matchCount: max(1, occurrences),
+                    matchedText: nil
                 ))
             }
         }
@@ -71,23 +71,25 @@ class TranscriptViewModel: NSObject, ObservableObject {
 
     /// Load transcript and segments for the given track
     @MainActor
-    func loadTranscript() {
+    func loadTranscript() async {
         isLoading = true
         errorMessage = nil
 
         do {
             // Load transcript
-            if let loadedTranscript = try dbManager.loadTranscript(forTrackId: trackId) {
+            if let loadedTranscript = try await dbManager.loadTranscript(forTrackId: trackId) {
                 self.transcript = loadedTranscript
 
                 // Load segments
-                let loadedSegments = try dbManager.loadTranscriptSegments(forTranscriptId: loadedTranscript.id)
+                let loadedSegments = try await dbManager.loadTranscriptSegments(forTranscriptId: loadedTranscript.id)
                 self.segments = loadedSegments
             } else {
                 errorMessage = "Transcript not found"
+                self.segments = []
             }
         } catch {
             errorMessage = "Failed to load transcript: \(error.localizedDescription)"
+            self.segments = []
         }
 
         isLoading = false
@@ -106,26 +108,33 @@ class TranscriptViewModel: NSObject, ObservableObject {
 
     /// Highlight matching text in a segment
     func highlightedSegmentText(_ segment: TranscriptSegment) -> NSAttributedString {
-        let query = searchText.lowercased()
+        let normalizedQuery = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         let text = segment.text
         let attributedString = NSMutableAttributedString(string: text)
 
-        if query.isEmpty {
+        guard !normalizedQuery.isEmpty else {
             return attributedString
         }
 
-        // Find all occurrences
-        let range = NSRange(text.startIndex..., in: text)
-        let lowerText = text.lowercased()
-
-        var searchRange = NSRange(location: 0, length: lowerText.count)
-        while let range = lowerText.range(of: query, range: searchRange) {
+        var searchStart = text.startIndex
+        while searchStart < text.endIndex,
+              let range = text.range(
+                  of: normalizedQuery,
+                  options: [.caseInsensitive],
+                  range: searchStart..<text.endIndex
+              ) {
             let nsRange = NSRange(range, in: text)
-            attributedString.addAttribute(.backgroundColor, value: UIColor.yellow.withAlphaComponent(0.3), range: nsRange)
-            attributedString.addAttribute(.font, value: UIFont.systemFont(ofSize: 16, weight: .semibold), range: nsRange)
-
-            searchRange.location = nsRange.location + nsRange.length
-            searchRange.length = lowerText.count - searchRange.location
+            attributedString.addAttribute(
+                .backgroundColor,
+                value: UIColor.yellow.withAlphaComponent(0.3),
+                range: nsRange
+            )
+            attributedString.addAttribute(
+                .font,
+                value: UIFont.systemFont(ofSize: 16, weight: .semibold),
+                range: nsRange
+            )
+            searchStart = range.upperBound
         }
 
         return attributedString
@@ -142,18 +151,5 @@ class TranscriptViewModel: NSObject, ObservableObject {
         let minutes = Int((seconds.truncatingRemainder(dividingBy: 3600)) / 60)
         let secs = Int(seconds.truncatingRemainder(dividingBy: 60))
         return String(format: "%02d:%02d:%02d", hours, minutes, secs)
-    }
-}
-
-// MARK: - Search Result Model
-
-struct TranscriptSearchResult: Identifiable {
-    let id: String
-    let segmentIndex: Int
-    let segment: TranscriptSegment
-    let matchCount: Int
-
-    var displayText: String {
-        "Found \(matchCount) match\(matchCount == 1 ? "" : "es") at \(segment.formattedStartTime)"
     }
 }

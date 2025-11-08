@@ -42,11 +42,11 @@ class TranscriptionManager: NSObject, ObservableObject {
     @Published var currentTrackId: String?
     @Published var errorMessage: String?
 
-    private let sonioxAPI: SonioxAPI?
-    private let dbManager: GRDBDatabaseManager
+    let sonioxAPI: SonioxAPI?
+    let dbManager: GRDBDatabaseManager
     private let keychainStore: SonioxAPIKeyStore
-    private let pollingInterval: TimeInterval = 2.0  // Poll every 2 seconds
-    private let maxPollingDuration: TimeInterval = 3600  // Max 1 hour
+    let pollingInterval: TimeInterval = 2.0  // Poll every 2 seconds
+    let maxPollingDuration: TimeInterval = 3600  // Max 1 hour
     private var pollingTask: Task<Void, Never>?
 
     init(
@@ -210,14 +210,20 @@ class TranscriptionManager: NSObject, ObservableObject {
         let segments = try await getTranscriptSegments(transcriptId: transcriptId)
         let lowercaseQuery = query.lowercased()
 
-        return segments
-            .filter { $0.text.lowercased().contains(lowercaseQuery) }
-            .map { segment in
-                TranscriptSearchResult(
-                    segment: segment,
-                    matchedText: highlightMatch(in: segment.text, query: query)
-                )
+        return segments.enumerated().compactMap { index, segment in
+            let lowerText = segment.text.lowercased()
+            guard lowerText.contains(lowercaseQuery) else {
+                return nil
             }
+
+            let occurrences = lowerText.components(separatedBy: lowercaseQuery).count - 1
+            return TranscriptSearchResult(
+                segmentIndex: index,
+                segment: segment,
+                matchCount: max(1, occurrences),
+                matchedText: highlightMatch(in: segment.text, query: query)
+            )
+        }
     }
 
     // MARK: - Private Helpers
@@ -416,12 +422,4 @@ class TranscriptionManager: NSObject, ObservableObject {
 
         return text
     }
-}
-
-// MARK: - Search Result
-
-struct TranscriptSearchResult: Identifiable {
-    let id = UUID()
-    let segment: TranscriptSegment
-    let matchedText: String
 }

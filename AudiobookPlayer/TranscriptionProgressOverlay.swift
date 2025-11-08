@@ -99,7 +99,7 @@ struct TranscriptionProgressSheet: View {
                     }
                 }
 
-                if !transcriptionManager.errorMessage?.isEmpty ?? false {
+                if let errorMessage = transcriptionManager.errorMessage, !errorMessage.isEmpty {
                     Section(header: Text("recent_errors")) {
                         HStack(spacing: 12) {
                             Image(systemName: "exclamationmark.triangle.fill")
@@ -110,7 +110,7 @@ struct TranscriptionProgressSheet: View {
                                     .font(.subheadline)
                                     .fontWeight(.semibold)
 
-                                Text(transcriptionManager.errorMessage ?? "")
+                                Text(errorMessage)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                                     .lineLimit(2)

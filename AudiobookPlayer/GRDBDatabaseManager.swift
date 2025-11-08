@@ -5,9 +5,9 @@ import GRDB
 actor GRDBDatabaseManager {
     static let shared = GRDBDatabaseManager()
 
-    private var db: DatabaseQueue?
-    private let dbURL: URL
-    private let fileManager: FileManager
+    var db: DatabaseQueue?
+    let dbURL: URL
+    let fileManager: FileManager
 
     init(
         dbURL: URL = DatabaseConfig.defaultURL,
@@ -510,7 +510,7 @@ actor GRDBDatabaseManager {
     // MARK: - Helper Methods
 
     /// SQLite DATETIME formatter: "YYYY-MM-DD HH:MM:SS.mmm"
-    private static let sqliteDateFormatter: DateFormatter = {
+    static let sqliteDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss.SSS"
         formatter.timeZone = TimeZone(secondsFromGMT: 0)

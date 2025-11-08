@@ -42,7 +42,9 @@ struct TranscriptViewerSheet: View {
                             .font(.subheadline)
                             .multilineTextAlignment(.center)
 
-                        Button(action: { viewModel.loadTranscript() }) {
+                        Button(action: {
+                            Task { await viewModel.loadTranscript() }
+                        }) {
                             Text("retry_button")
                                 .font(.headline)
                         }
@@ -66,7 +68,7 @@ struct TranscriptViewerSheet: View {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 12) {
                             ForEach(viewModel.segments) { segment in
-                                TranscriptSegmentRow(
+                                TranscriptSegmentRowView(
                                     segment: segment,
                                     isSelected: selectedSegment?.id == segment.id,
                                     onTap: {
@@ -138,8 +140,8 @@ struct TranscriptViewerSheet: View {
                 }
             }
         }
-        .onAppear {
-            viewModel.loadTranscript()
+        .task {
+            await viewModel.loadTranscript()
         }
     }
 
@@ -158,7 +160,7 @@ struct TranscriptViewerSheet: View {
 
 // MARK: - Segment Row Component
 
-struct TranscriptSegmentRow: View {
+struct TranscriptSegmentRowView: View {
     let segment: TranscriptSegment
     let isSelected: Bool
     let onTap: () -> Void

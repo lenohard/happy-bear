@@ -264,6 +264,34 @@ struct TranscriptSegmentRow: Codable {
     }
 }
 
+// MARK: - Transcript Search Result
+
+struct TranscriptSearchResult: Identifiable {
+    let id: String
+    let segmentIndex: Int
+    let segment: TranscriptSegment
+    let matchCount: Int
+    let matchedText: String?
+
+    init(
+        id: String = UUID().uuidString,
+        segmentIndex: Int,
+        segment: TranscriptSegment,
+        matchCount: Int,
+        matchedText: String? = nil
+    ) {
+        self.id = id
+        self.segmentIndex = segmentIndex
+        self.segment = segment
+        self.matchCount = max(1, matchCount)
+        self.matchedText = matchedText
+    }
+
+    var displayText: String {
+        "Found \(matchCount) match\(matchCount == 1 ? "" : "es") at \(segment.formattedStartTime)"
+    }
+}
+
 /// Data Transfer Object for transcription jobs
 struct TranscriptionJobRow: Codable {
     let id: String

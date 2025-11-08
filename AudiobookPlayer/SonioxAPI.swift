@@ -80,8 +80,8 @@ class SonioxAPI {
         }
     }
 
-    private let apiKey: String
-    private let baseURL = URL(string: "https://api.soniox.com")!
+    let apiKey: String
+    let baseURL = URL(string: "https://api.soniox.com")!
     private let session: URLSession
 
     init(apiKey: String) {

@@ -19,7 +19,7 @@ extension TranscriptionManager {
     /// Retry a failed transcription job with exponential backoff
     /// - Parameter jobId: The ID of the job to retry
     func retryFailedJob(jobId: String) async throws {
-        guard let job = try dbManager.loadTranscriptionJob(jobId: jobId) else {
+        guard let job = try await dbManager.loadTranscriptionJob(jobId: jobId) else {
             throw TranscriptionError.trackNotFound
         }
 
@@ -37,21 +37,21 @@ extension TranscriptionManager {
         try await Task.sleep(nanoseconds: UInt64(backoffSeconds * 1_000_000_000))
 
         // Reset job and retry
-        try dbManager.resetJobForRetry(jobId: jobId)
+        try await dbManager.resetJobForRetry(jobId: jobId)
         try await resumeTranscriptionJob(jobId: jobId)
     }
 
     /// Resume a paused or interrupted transcription job
     /// Useful for app restart scenarios
     func resumeTranscriptionJob(jobId: String) async throws {
-        guard let job = try dbManager.loadTranscriptionJob(jobId: jobId) else {
+        guard let job = try await dbManager.loadTranscriptionJob(jobId: jobId) else {
             throw TranscriptionError.trackNotFound
         }
 
         print("▶️ Resuming transcription job \(jobId) (status: \(job.status))")
 
         // Update status to show we're resuming
-        try dbManager.updateJobStatus(jobId: jobId, status: "transcribing")
+        try await dbManager.updateJobStatus(jobId: jobId, status: "transcribing")
 
         // Poll for completion
         try await pollTranscriptionStatus(sonioxJobId: job.sonioxJobId, jobId: jobId)
@@ -62,7 +62,7 @@ extension TranscriptionManager {
     @MainActor
     func resumeAllActiveJobs() async {
         do {
-            let activeJobs = try dbManager.loadActiveTranscriptionJobs()
+            let activeJobs = try await dbManager.loadActiveTranscriptionJobs()
 
             guard !activeJobs.isEmpty else {
                 print("✅ No active transcription jobs to resume")
@@ -118,7 +118,7 @@ extension TranscriptionManager {
                 let status = try await sonioxAPI.checkAsyncRecognitionStatus(jobId: sonioxJobId)
 
                 // Update progress
-                try dbManager.updateJobProgress(jobId: jobId, progress: status.progress ?? 0.5)
+                try await dbManager.updateJobProgress(jobId: jobId, progress: status.progress ?? 0.5)
 
                 switch status.state {
                 case "completed", "done":
@@ -130,7 +130,7 @@ extension TranscriptionManager {
                 case "failed", "error":
                     // Handle failure with retry
                     let errorMsg = status.errorDescription ?? "Transcription failed"
-                    try dbManager.markJobFailed(jobId: jobId, errorMessage: errorMsg)
+                    try await dbManager.markJobFailed(jobId: jobId, errorMessage: errorMsg)
                     throw TranscriptionError.transcriptionFailed(errorMsg)
 
                 default:
@@ -144,7 +144,7 @@ extension TranscriptionManager {
                 print("⚠️ Poll error for job \(jobId): \(error.localizedDescription)")
 
                 // Mark as failed for potential retry
-                try dbManager.markJobFailed(jobId: jobId, errorMessage: error.localizedDescription)
+                try await dbManager.markJobFailed(jobId: jobId, errorMessage: error.localizedDescription)
 
                 // Re-throw to let caller handle retry
                 throw error
@@ -153,7 +153,7 @@ extension TranscriptionManager {
 
         // Timeout
         let timeoutError = TranscriptionError.pollingTimeout
-        try dbManager.markJobFailed(jobId: jobId, errorMessage: timeoutError.localizedDescription ?? "Polling timeout")
+        try await dbManager.markJobFailed(jobId: jobId, errorMessage: timeoutError.localizedDescription ?? "Polling timeout")
         throw timeoutError
     }
 
@@ -163,7 +163,7 @@ extension TranscriptionManager {
         result: SonioxRecognitionResult
     ) async throws {
         // Mark job as completed
-        try dbManager.markJobCompleted(jobId: jobId)
+        try await dbManager.markJobCompleted(jobId: jobId)
 
         // Store transcript and segments
         try await storeTranscriptResult(result: result, jobId: jobId)

@@ -1,4 +1,5 @@
 import Foundation
+import GRDB
 
 // MARK: - Transcription Job Management Extension
 
