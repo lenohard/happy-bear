@@ -465,6 +465,38 @@
         }
       }
     },
+    "ai_tab_models_search_no_results" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No models match your search."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有匹配的模型。"
+          }
+        }
+      }
+    },
+    "ai_tab_models_search_placeholder" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search models"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索模型"
+          }
+        }
+      }
+    },
     "ai_tab_models_section" : {
       "localizations" : {
         "en" : {
@@ -1482,40 +1514,6 @@
         }
       }
     },
-    "ephemeral_save_button" : {
-      "comment" : "Button shown in Playing tab to save the current ephemeral folder to the library",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Save Folder to Library"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "保存文件夹到资料库"
-          }
-        }
-      }
-    },
-    "ephemeral_streaming_badge" : {
-      "comment" : "Badge indicating the track is streaming directly from the Baidu browser",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Streaming from Baidu Browser"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "来自百度浏览器的串流"
-          }
-        }
-      }
-    },
     "Done" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1601,6 +1599,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加藏书集合以开始"
+          }
+        }
+      }
+    },
+    "ephemeral_save_button" : {
+      "comment" : "Ephemeral save button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Save Folder to Library"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "保存文件夹到资料库"
+          }
+        }
+      }
+    },
+    "ephemeral_streaming_badge" : {
+      "comment" : "Ephemeral streaming badge",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Streaming from Baidu Browser"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "来自百度浏览器的串流"
           }
         }
       }

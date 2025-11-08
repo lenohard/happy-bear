@@ -104,6 +104,8 @@ final class AIGatewayViewModel: ObservableObject {
             hasStoredKey = true
             // Validate by fetching models with the new key
             try await refreshModels(with: trimmed)
+            // Refresh credits immediately after validation
+            await refreshCredits()
             // Clear field after successful save for security
             apiKey = ""
             logger.debug("AI key saved and validated successfully")

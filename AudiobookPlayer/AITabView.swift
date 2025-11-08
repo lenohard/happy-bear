@@ -1,4 +1,5 @@
 import SwiftUI
+import Foundation
 #if canImport(UIKit)
 import UIKit
 #elseif canImport(AppKit)
@@ -8,9 +9,11 @@ import AppKit
 struct AITabView: View {
     @EnvironmentObject private var gateway: AIGatewayViewModel
     @FocusState private var focusedField: KeyField?
-    @State private var isModelListExpanded = true
-    @State private var collapsedModelProviders: Set<String> = []
-    @State private var isCredentialSectionExpanded = true
+    @AppStorage("ai_tab_models_section_expanded_v2") private var isModelListExpanded = true
+    @AppStorage("ai_tab_collapsed_provider_data_v2") private var collapsedProviderData: Data = Data()
+    @State private var modelSearchText: String = ""
+    @State private var isCredentialSectionExpanded = false
+    @State private var hasAppliedDefaultCollapse = false
 
     var body: some View {
         NavigationStack {
@@ -18,9 +21,9 @@ struct AITabView: View {
                 credentialsSection
 
                 if gateway.hasValidKey {
-                    modelsSection
                     testerSection
                     creditsSection
+                    modelsSection
                 }
             }
             .navigationTitle(Text(NSLocalizedString("ai_tab_title", comment: "AI tab title")))
@@ -44,6 +47,11 @@ struct AITabView: View {
                     }
                 }
             }
+            .onChange(of: gateway.models.isEmpty) { isEmpty in
+                if !isEmpty {
+                    applyDefaultProviderCollapseIfNeeded(with: gateway.models)
+                }
+            }
         }
     }
 
@@ -54,8 +62,11 @@ struct AITabView: View {
                     .textInputAutocapitalization(.never)
                     .disableAutocorrection(true)
                     .focused($focusedField, equals: .gateway)
-                    .onChange(of: gateway.apiKey) { _ in
-                        gateway.markKeyAsEditing()
+                    .onChange(of: gateway.apiKey) { newValue in
+                        // Only mark as editing if user is actively typing, not if field was cleared by save
+                        if !newValue.isEmpty {
+                            gateway.markKeyAsEditing()
+                        }
                     }
 
                 Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
@@ -70,6 +81,7 @@ struct AITabView: View {
                 Label(NSLocalizedString("ai_tab_credentials_section", comment: ""), systemImage: "key.horizontal")
                     .font(.headline)
             }
+            .listRowSeparator(.visible)
         }
     }
 
@@ -98,12 +110,36 @@ struct AITabView: View {
     }
 
     private var modelsSection: some View {
-        Section(footer: modelsFooter) {
+        Section {
             if let summary = selectedModelSummary {
-                Label(summary, systemImage: "star.circle.fill")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                HStack(alignment: .center, spacing: 12) {
+                    Label(summary, systemImage: "star.circle.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Button {
+                        Task { try? await gateway.refreshModels() }
+                    } label: {
+                        Label(NSLocalizedString("ai_tab_refresh_models", comment: ""), systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                .padding(.vertical, 4)
+                .listRowSeparator(.hidden)
             }
+
+            if !gateway.models.isEmpty {
+                TextField(
+                    NSLocalizedString("ai_tab_models_search_placeholder", comment: ""),
+                    text: $modelSearchText
+                )
+                .textInputAutocapitalization(.never)
+                .disableAutocorrection(true)
+                .textFieldStyle(.roundedBorder)
+                .listRowSeparator(.hidden)
+            }
+
             DisclosureGroup(isExpanded: $isModelListExpanded) {
                 modelsListContent
             } label: {
@@ -124,26 +160,24 @@ struct AITabView: View {
                 Task { try? await gateway.refreshModels() }
             }
         } else {
-            ForEach(groupedModels, id: \.provider) { group in
-                DisclosureGroup(isExpanded: providerExpansionBinding(for: group.provider)) {
-                    ForEach(group.models) { model in
-                        modelRow(for: model)
+            let groups = filteredModelGroups
+            if groups.isEmpty {
+                Text(NSLocalizedString("ai_tab_models_search_no_results", comment: ""))
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+            } else {
+                ForEach(groups, id: \.provider) { group in
+                    DisclosureGroup(isExpanded: providerExpansionBinding(for: group.provider)) {
+                        ForEach(group.models) { model in
+                            modelRow(for: model)
+                        }
+                    } label: {
+                        Text(group.provider)
+                            .font(.headline)
                     }
-                } label: {
-                    Text(group.provider)
-                        .font(.headline)
+                    .padding(.vertical, 4)
                 }
-                .padding(.vertical, 4)
             }
-        }
-    }
-
-    private var modelsFooter: some View {
-        HStack {
-            Button(NSLocalizedString("ai_tab_refresh_models", comment: "")) {
-                Task { try? await gateway.refreshModels() }
-            }
-            .buttonStyle(.bordered)
         }
     }
 
@@ -155,17 +189,46 @@ struct AITabView: View {
             .sorted { $0.provider.localizedCaseInsensitiveCompare($1.provider) == .orderedAscending }
     }
 
+    private var filteredModelGroups: [(provider: String, models: [AIModelInfo])] {
+        let groups = groupedModels
+        let trimmed = modelSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return groups }
+        let query = trimmed.lowercased()
+
+        return groups.compactMap { group in
+            let providerMatches = group.provider.lowercased().contains(query)
+            let models = providerMatches ? group.models : group.models.filter { modelMatches($0, query: query) }
+            guard !models.isEmpty else { return nil }
+            return (provider: group.provider, models: models)
+        }
+    }
+
     private func providerExpansionBinding(for provider: String) -> Binding<Bool> {
         Binding(
             get: { !collapsedModelProviders.contains(provider) },
             set: { isExpanded in
+                var providers = collapsedModelProviders
                 if isExpanded {
-                    collapsedModelProviders.remove(provider)
+                    providers.remove(provider)
                 } else {
-                    collapsedModelProviders.insert(provider)
+                    providers.insert(provider)
                 }
+                collapsedModelProviders = providers
             }
         )
+    }
+
+    private var collapsedModelProviders: Set<String> {
+        get {
+            guard !collapsedProviderData.isEmpty,
+                  let decoded = try? JSONDecoder().decode(Set<String>.self, from: collapsedProviderData) else {
+                return []
+            }
+            return decoded
+        }
+        nonmutating set {
+            collapsedProviderData = (try? JSONEncoder().encode(newValue)) ?? Data()
+        }
     }
 
     private func providerName(for modelID: String) -> String {
@@ -173,6 +236,23 @@ struct AITabView: View {
             return String(prefix)
         }
         return NSLocalizedString("ai_tab_model_group_other", comment: "")
+    }
+
+    private func applyDefaultProviderCollapseIfNeeded(with models: [AIModelInfo]) {
+        guard !models.isEmpty,
+              collapsedProviderData.isEmpty,
+              !hasAppliedDefaultCollapse else { return }
+        let providers = Set(models.map { providerName(for: $0.id) })
+        collapsedModelProviders = providers
+        hasAppliedDefaultCollapse = true
+    }
+
+    private func modelMatches(_ model: AIModelInfo, query: String) -> Bool {
+        let displayName = (model.name ?? model.id).lowercased()
+        if displayName.contains(query) { return true }
+        if model.id.lowercased().contains(query) { return true }
+        if let description = model.description?.lowercased(), description.contains(query) { return true }
+        return false
     }
 
     private var selectedModelSummary: String? {
@@ -315,6 +395,7 @@ struct TTSTabView: View {
                         Label(NSLocalizedString("soniox_section_title", comment: ""), systemImage: "waveform")
                             .font(.headline)
                     }
+                    .listRowSeparator(.visible)
                 }
             }
             .navigationTitle(Text(NSLocalizedString("tts_tab_title", comment: "")))
