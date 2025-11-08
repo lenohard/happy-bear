@@ -41,6 +41,10 @@ class SonioxKeyViewModel: ObservableObject {
         }
     }
 
+    func refreshKeyStatus() async {
+        await loadKeyStatus()
+    }
+
     private func loadKeyStatus() async {
         do {
             let key = try keychainStore.loadKey()
