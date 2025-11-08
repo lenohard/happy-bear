@@ -75,18 +75,35 @@ final class CacheProgressTracker: ObservableObject {
     ) {
         downloadTasks[trackId]?.cancel()
 
-        downloadTasks[trackId] = Task {
+        downloadTasks[trackId] = Task { [weak self] in
+            let pollInterval: UInt64 = 2_000_000_000
+
             while !Task.isCancelled {
+                guard let self else { return }
+
                 if let metadata = cacheManager.metadata(for: trackId, baiduFileId: baiduFileId) {
-                    await MainActor.run { [weak self] in
-                        self?.cachedRanges[trackId] = metadata.cachedRanges
-                        if metadata.cacheStatus == .complete {
-                            self?.downloadProgress[trackId] = 1.0
+                    let isComplete = metadata.cacheStatus == .complete
+                    await MainActor.run {
+                        self.cachedRanges[trackId] = metadata.cachedRanges
+                        if isComplete {
+                            self.downloadProgress[trackId] = 1.0
                         }
+                    }
+
+                    if isComplete {
+                        break
                     }
                 }
 
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                do {
+                    try await Task.sleep(nanoseconds: pollInterval)
+                } catch {
+                    break
+                }
+            }
+
+            await MainActor.run {
+                self?.downloadTasks.removeValue(forKey: trackId)
             }
         }
     }

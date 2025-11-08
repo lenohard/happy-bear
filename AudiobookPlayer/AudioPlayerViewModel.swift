@@ -143,6 +143,10 @@ final class AudioPlayerViewModel: ObservableObject {
         prepareCollection(collection)
         currentToken = token
 
+        if let existingTrack = currentTrack, existingTrack.id != track.id {
+            progressTracker.stopTracking(for: existingTrack.id.uuidString)
+        }
+
         do {
             let url = try streamURL(for: track, token: token)
             let resumeState = collection.playbackStates[track.id]
@@ -199,6 +203,10 @@ final class AudioPlayerViewModel: ObservableObject {
         ephemeralContext = context
         prepareCollection(context.collection)
         currentToken = token
+
+        if let existingTrack = currentTrack, existingTrack.id != track.id {
+            progressTracker.stopTracking(for: existingTrack.id.uuidString)
+        }
 
         do {
             let url = try streamURL(for: track, token: token)
@@ -573,6 +581,8 @@ final class AudioPlayerViewModel: ObservableObject {
             return
         }
 
+        progressTracker.stopTracking(for: track.id.uuidString)
+
         let nextIndex = playlist.index(after: index)
         guard playlist.indices.contains(nextIndex) else {
             statusMessage = "Finished playing \"\(collection.title)\"."
@@ -684,10 +694,6 @@ final class AudioPlayerViewModel: ObservableObject {
 
             let streamingURL = try netdiskClient.downloadURL(forPath: path, token: token)
 
-            Task {
-                await self.startBackgroundCaching(track: track, baiduFileId: baiduFileId, fileSize: track.fileSize)
-            }
-
             return streamingURL
         case let .local(bookmark):
             var isStale = false
@@ -756,6 +762,7 @@ final class AudioPlayerViewModel: ObservableObject {
                         ranges: progressTracker.cachedRanges[trackId] ?? [info.downloadedRange],
                         cacheStatus: .complete
                     )
+                    progressTracker.stopTracking(for: trackId)
                 }
                 refreshActiveCacheStatus()
             }
