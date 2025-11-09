@@ -42,7 +42,7 @@ class TranscriptionManager: NSObject, ObservableObject {
     @Published var currentTrackId: String?
     @Published var errorMessage: String?
 
-    let sonioxAPI: SonioxAPI?
+    var sonioxAPI: SonioxAPI?
     let dbManager: GRDBDatabaseManager
     private let keychainStore: SonioxAPIKeyStore
     let pollingInterval: TimeInterval = 2.0  // Poll every 2 seconds
@@ -88,6 +88,25 @@ class TranscriptionManager: NSObject, ObservableObject {
         super.init()
     }
 
+    // MARK: - API Key Management
+
+    /// Reload the Soniox API key from Keychain
+    /// Call this after saving a new API key in the TTS tab
+    func reloadSonioxAPIKey() {
+        do {
+            if let keyFromKeychain = try keychainStore.loadKey() {
+                print("[TranscriptionManager] Reloading Soniox API key from Keychain")
+                self.sonioxAPI = SonioxAPI(apiKey: keyFromKeychain)
+            } else {
+                print("[TranscriptionManager] No Soniox API key found in Keychain")
+                self.sonioxAPI = nil
+            }
+        } catch {
+            print("[TranscriptionManager] Failed to reload Soniox key from Keychain: \(error.localizedDescription)")
+            self.sonioxAPI = nil
+        }
+    }
+
     // MARK: - Public API
 
     /// Transcribe a single audio track
@@ -105,6 +124,9 @@ class TranscriptionManager: NSObject, ObservableObject {
         languageHints: [String] = ["zh", "en"],
         context: String? = nil
     ) async throws {
+        // Reload API key in case it was saved after app launch
+        reloadSonioxAPIKey()
+
         guard let sonioxAPI = sonioxAPI else {
             throw TranscriptionError.noAPIKey
         }
