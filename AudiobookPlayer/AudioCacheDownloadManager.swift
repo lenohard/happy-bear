@@ -76,6 +76,10 @@ final class AudioCacheDownloadManager {
         progressObservers.removeValue(forKey: trackId)
     }
 
+    func isDownloading(trackId: String) -> Bool {
+        activeDownloads[trackId] != nil
+    }
+
     func pauseCaching(for trackId: String) {
         activeDownloads[trackId]?.suspend()
     }

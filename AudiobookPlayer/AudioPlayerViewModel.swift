@@ -169,6 +169,7 @@ final class AudioPlayerViewModel: ObservableObject {
             updateNowPlayingInfo()
 #endif
             refreshActiveCacheStatus()
+            autoCacheIfPossible(track)
         } catch {
             statusMessage = "Playback error: \(error.localizedDescription)"
         }
@@ -218,6 +219,7 @@ final class AudioPlayerViewModel: ObservableObject {
             updateNowPlayingInfo()
 #endif
             refreshActiveCacheStatus()
+            autoCacheIfPossible(track)
         } catch {
             statusMessage = "Playback error: \(error.localizedDescription)"
         }
@@ -354,6 +356,15 @@ final class AudioPlayerViewModel: ObservableObject {
             statusMessage = "Connect Baidu Netdisk to cache audio offline."
             return
         }
+
+        Task { [weak self] in
+            await self?.startBackgroundCaching(track: track, baiduFileId: String(fsId), fileSize: track.fileSize)
+        }
+    }
+
+    private func autoCacheIfPossible(_ track: AudiobookTrack) {
+        guard case let .baidu(fsId, _) = track.location else { return }
+        guard currentToken != nil else { return }
 
         Task { [weak self] in
             await self?.startBackgroundCaching(track: track, baiduFileId: String(fsId), fileSize: track.fileSize)
@@ -714,26 +725,50 @@ final class AudioPlayerViewModel: ObservableObject {
     private func startBackgroundCaching(track: AudiobookTrack, baiduFileId: String, fileSize: Int64) async {
         let trackId = track.id.uuidString
 
-        if let metadata = cacheManager.metadata(for: trackId, baiduFileId: baiduFileId), metadata.cacheStatus == .complete {
-            if let fileSize = metadata.fileSizeBytes {
-                progressTracker.markAsComplete(for: trackId, fileSizeBytes: fileSize)
+        var existingMetadata = cacheManager.metadata(for: trackId, baiduFileId: baiduFileId)
+        if let metadata = existingMetadata {
+            if metadata.cacheStatus == .complete {
+                if let fileSize = metadata.fileSizeBytes {
+                    progressTracker.markAsComplete(for: trackId, fileSizeBytes: fileSize)
+                }
+                refreshActiveCacheStatus()
+                return
             }
-            refreshActiveCacheStatus()
-            return
-        }
 
-        // Create cache file
-        _ = cacheManager.createCacheFile(
-            trackId: trackId,
-            baiduFileId: baiduFileId,
-            filename: track.filename,
-            durationMs: track.duration.map { Int($0 * 1000) },
-            fileSizeBytes: Int(fileSize)
-        )
+            if downloadManager.isDownloading(trackId: trackId) {
+                progressTracker.startTracking(
+                    for: trackId,
+                    baiduFileId: baiduFileId,
+                    with: downloadManager,
+                    duration: Int(track.duration ?? 0)
+                )
+                refreshActiveCacheStatus()
+                return
+            }
+        }
 
         guard let token = currentToken else { return }
 
         do {
+            // Reset cache metadata only when starting a new download
+            if existingMetadata == nil {
+                _ = cacheManager.createCacheFile(
+                    trackId: trackId,
+                    baiduFileId: baiduFileId,
+                    filename: track.filename,
+                    durationMs: track.duration.map { Int($0 * 1000) },
+                    fileSizeBytes: Int(fileSize)
+                )
+                existingMetadata = cacheManager.metadata(for: trackId, baiduFileId: baiduFileId)
+            } else {
+                cacheManager.updateCacheMetadata(
+                    trackId: trackId,
+                    baiduFileId: baiduFileId,
+                    durationMs: track.duration.map { Int($0 * 1000) },
+                    fileSizeBytes: Int(fileSize)
+                )
+            }
+
             let streamingURL = try netdiskClient.downloadURL(forPath: {
                 if case let .baidu(_, path) = track.location {
                     return path
