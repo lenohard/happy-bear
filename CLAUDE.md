@@ -314,6 +314,17 @@ YES
    - **Debug Guide**: See `local/database-reference-debug.md` for full database schema, queries, and troubleshooting commands
    - **Key Learning**: Data persistence works perfectly; issue is purely in the UI display/refresh layer
 
+10. **Soniox API 401 Error Root Cause & Fix (2025-11-09)**:
+    - **Problem**: When attempting to transcribe, getting 401 Unauthorized from Soniox file upload endpoint
+    - **Root Cause**: TranscriptionManager is a @StateObject initialized at app launch. It captures the Soniox API key state at that moment from Keychain. If Keychain is empty at launch, sonioxAPI = nil. When user later saves the API key in TTS tab (SonioxKeyViewModel), TranscriptionManager is NOT updated because it's already initialized.
+    - **Solution Implemented**:
+      1. Changed `sonioxAPI: let` → `var` in TranscriptionManager to allow updates
+      2. Added `reloadSonioxAPIKey()` method that fetches fresh key from Keychain
+      3. Call reload in `transcribeTrack()` before attempting upload
+      4. API key is now always current, even if saved after app launch
+    - **Commits**: `a498d5e` - fix(stt): reload API key on demand before transcription attempt
+    - **Testing**: Save API key in TTS tab → transcribe track → should work without 401
+
 ## Documentation Index
 - `local/docs/siri-collection-playback.md`: Siri/App Intents setup for triggering collection playback via voice and Shortcuts.
 
