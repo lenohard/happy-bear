@@ -19,6 +19,7 @@ struct CollectionDetailView: View {
     @State private var trackForTranscription: AudiobookTrack?
     @State private var trackForViewing: AudiobookTrack?
     @State private var showTranscriptViewer = false
+    @State private var transcriptStatusCache: [UUID: Bool] = [:]
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -142,6 +143,12 @@ struct CollectionDetailView: View {
                 collectionTitleDraft = ""
             }
         }
+        .onChange(of: collectionID) { _ in
+            loadTranscriptStatus()
+        }
+        .onAppear {
+            loadTranscriptStatus()
+        }
         .sheet(item: $trackForTranscription) { track in
             TranscriptionSheet(track: track, collectionID: collectionID)
         }
@@ -245,6 +252,7 @@ struct CollectionDetailView: View {
                         isPlaying: trackIsActive && audioPlayer.isPlaying,
                         playbackState: collection.playbackState(for: track.id),
                         isFavorite: track.isFavorite,
+                        hasTranscript: transcriptStatusCache[track.id] ?? false,
                         onSelect: {
                             startPlayback(track, in: collection)
                         },
@@ -473,6 +481,29 @@ struct CollectionDetailView: View {
         }
         return sortedTracks[nextIndex]
     }
+
+    private func loadTranscriptStatus() {
+        guard let collection else { return }
+
+        Task {
+            var newCache: [UUID: Bool] = [:]
+            let dbManager = GRDBDatabaseManager.shared
+
+            for track in collection.tracks {
+                do {
+                    let hasTranscript = try await dbManager.hasCompletedTranscript(forTrackId: track.id.uuidString)
+                    newCache[track.id] = hasTranscript
+                } catch {
+                    print("[CollectionDetailView] Error loading transcript status for track \(track.id): \(error)")
+                    newCache[track.id] = false
+                }
+            }
+
+            await MainActor.run {
+                self.transcriptStatusCache = newCache
+            }
+        }
+    }
 }
 
 #Preview {
@@ -548,6 +579,7 @@ private struct TrackDetailRow: View {
     let isPlaying: Bool
     let playbackState: TrackPlaybackState?
     let isFavorite: Bool
+    let hasTranscript: Bool
     let onSelect: () -> Void
     let onToggleFavorite: () -> Void
 
@@ -559,9 +591,18 @@ private struct TrackDetailRow: View {
                 .frame(width: 32, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text(track.displayName)
-                    .font(.body)
-                    .lineLimit(2)
+                HStack(spacing: 6) {
+                    Text(track.displayName)
+                        .font(.body)
+                        .lineLimit(2)
+
+                    if hasTranscript {
+                        Image(systemName: "text.alignleft")
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                            .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
+                    }
+                }
 
                 playbackSummary
 
@@ -581,7 +622,7 @@ private struct TrackDetailRow: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onSelect)
     }
-    
+
     private var statusIcon: some View {
         Group {
             if isActive {

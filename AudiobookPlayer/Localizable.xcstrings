@@ -50,6 +50,23 @@
         }
       }
     },
+    "active_transcriptions" : {
+      "comment" : "Active transcriptions section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active Transcriptions"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在进行的转录"
+          }
+        }
+      }
+    },
     "Add to Library" : {
 
     },
@@ -578,6 +595,7 @@
       }
     },
     "ai_tab_refresh_models" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1355,6 +1373,24 @@
         }
       }
     },
+    "completed_status" : {
+      "comment" : "Job completed status",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Completed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已完成"
+          }
+        }
+      }
+    },
     "connect_baidu_alert_message" : {
       "comment" : "Alert message to sign in before importing",
       "localizations" : {
@@ -1658,6 +1694,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "过期时间 %@"
+          }
+        }
+      }
+    },
+    "failed_status" : {
+      "comment" : "Job failed status",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "失败"
           }
         }
       }
@@ -2099,6 +2153,23 @@
         }
       }
     },
+    "no_active_transcriptions" : {
+      "comment" : "No active transcriptions",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No active transcriptions"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有正在进行的转录"
+          }
+        }
+      }
+    },
     "no_audio_tracks" : {
       "comment" : "No audio tracks",
       "localizations" : {
@@ -2169,6 +2240,23 @@
     },
     "no_tracks_selected_error" : {
       "comment" : "Must select at least one track"
+    },
+    "no_transcript_found" : {
+      "comment" : "No transcript available",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No transcript available"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有可用的文本"
+          }
+        }
+      }
     },
     "non_audio_files_notice" : {
       "extractionState" : "stale",
@@ -2414,12 +2502,47 @@
         }
       }
     },
+    "queued_status" : {
+      "comment" : "Job queued status",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Queued"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已排队"
+          }
+        }
+      }
+    },
     "Re-authenticate" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "再验证"
+          }
+        }
+      }
+    },
+    "recent_errors" : {
+      "comment" : "Recent errors section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent Errors"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近的错误"
           }
         }
       }
@@ -2587,6 +2710,23 @@
         }
       }
     },
+    "retry_button" : {
+      "comment" : "Retry button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Retry"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重试"
+          }
+        }
+      }
+    },
     "save_to_library_button" : {
       "comment" : "Save to library button",
       "localizations" : {
@@ -2654,6 +2794,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索文件"
+          }
+        }
+      }
+    },
+    "search_in_transcript" : {
+      "comment" : "Search in transcript prompt",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search in transcript"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在文本中搜索"
           }
         }
       }
@@ -2893,12 +3051,41 @@
         }
       }
     },
+    "Test Failed" : {
+
+    },
+    "Test Soniox API" : {
+
+    },
+    "Test with sample audio" : {
+
+    },
+    "Testing transcription..." : {
+
+    },
     "This folder is empty." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "这个文件夹是空的"
+          }
+        }
+      }
+    },
+    "tips" : {
+      "comment" : "Tips section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tips"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提示"
           }
         }
       }
@@ -3130,6 +3317,95 @@
         }
       }
     },
+    "transcribing_indicator" : {
+      "comment" : "Transcribing indicator badge",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribing..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在转录..."
+          }
+        }
+      }
+    },
+    "transcribing_status" : {
+      "comment" : "Job transcribing status",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribing"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录中"
+          }
+        }
+      }
+    },
+    "transcript_search_no_matches" : {
+      "comment" : "No matches found for search query",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No matches found for this search"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未找到匹配的搜索结果"
+          }
+        }
+      }
+    },
+    "transcript_search_results" : {
+      "comment" : "Search results header with query",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Results for \"%@\""
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "\"%@\" 的搜索结果"
+          }
+        }
+      }
+    },
+    "Transcription Result" : {
+
+    },
+    "transcript_available" : {
+      "comment" : "Transcript available accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript Available"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用转录"
+          }
+        }
+      }
+    },
     "transcription_completed" : {
       "localizations" : {
         "en" : {
@@ -3162,6 +3438,23 @@
         }
       }
     },
+    "transcription_error_occurred" : {
+      "comment" : "Transcription error occurred",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcription Error"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录错误"
+          }
+        }
+      }
+    },
     "transcription_error_title" : {
       "localizations" : {
         "en" : {
@@ -3178,6 +3471,57 @@
         }
       }
     },
+    "transcription_in_progress" : {
+      "comment" : "Transcription in progress label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcription in Progress"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录进行中"
+          }
+        }
+      }
+    },
+    "transcription_processing_message" : {
+      "comment" : "Processing message for active transcription",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Processing audio file..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在处理音频文件..."
+          }
+        }
+      }
+    },
+    "transcription_progress_title" : {
+      "comment" : "Transcription progress sheet title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcription Progress"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录进度"
+          }
+        }
+      }
+    },
     "transcription_ready_message" : {
       "localizations" : {
         "en" : {
@@ -3190,6 +3534,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "准备转录此音频文件。根据文件大小，这可能需要几分钟时间。"
+          }
+        }
+      }
+    },
+    "transcription_tip_background" : {
+      "comment" : "Tip about background transcription",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcriptions continue in the background - you can close this window"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录在后台继续进行 - 您可以关闭此窗口"
+          }
+        }
+      }
+    },
+    "transcription_tip_view" : {
+      "comment" : "Tip about viewing transcripts",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Once complete, view transcripts by long-pressing a track and selecting \"View Transcript\""
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成后，长按音轨并选择 \"查看文本\" 来查看转录"
           }
         }
       }
@@ -3264,6 +3642,24 @@
         }
       }
     },
+    "unknown_status" : {
+      "comment" : "Unknown job status",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unknown"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未知"
+          }
+        }
+      }
+    },
     "unsupported_audio_file_message" : {
       "comment" : "Unsupported audio file message",
       "localizations" : {
@@ -3321,6 +3717,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在上传音频文件..."
+          }
+        }
+      }
+    },
+    "uploading_status" : {
+      "comment" : "Job uploading status",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uploading"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上传中"
           }
         }
       }
@@ -3409,414 +3823,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查看文本"
-          }
-        }
-      }
-    },
-    "search_in_transcript" : {
-      "comment" : "Search in transcript prompt",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Search in transcript"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在文本中搜索"
-          }
-        }
-      }
-    },
-    "no_transcript_found" : {
-      "comment" : "No transcript available",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No transcript available"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有可用的文本"
-          }
-        }
-      }
-    },
-    "no_search_results" : {
-      "comment" : "No search results found",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No Results"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无搜索结果"
-          }
-        }
-      }
-    },
-    "transcript_search_no_matches" : {
-      "comment" : "No matches found for search query",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No matches found for this search"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未找到匹配的搜索结果"
-          }
-        }
-      }
-    },
-    "transcript_search_results" : {
-      "comment" : "Search results header with query",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Results for \"%@\""
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "\"%@\" 的搜索结果"
-          }
-        }
-      }
-    },
-    "retry_button" : {
-      "comment" : "Retry button",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retry"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重试"
-          }
-        }
-      }
-    },
-    "transcribing_indicator" : {
-      "comment" : "Transcribing indicator badge",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcribing..."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在转录..."
-          }
-        }
-      }
-    },
-    "active_transcriptions" : {
-      "comment" : "Active transcriptions section header",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Active Transcriptions"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在进行的转录"
-          }
-        }
-      }
-    },
-    "transcription_in_progress" : {
-      "comment" : "Transcription in progress label",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcription in Progress"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "转录进行中"
-          }
-        }
-      }
-    },
-    "transcription_processing_message" : {
-      "comment" : "Processing message for active transcription",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Processing audio file..."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在处理音频文件..."
-          }
-        }
-      }
-    },
-    "no_active_transcriptions" : {
-      "comment" : "No active transcriptions",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No active transcriptions"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有正在进行的转录"
-          }
-        }
-      }
-    },
-    "recent_errors" : {
-      "comment" : "Recent errors section header",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Recent Errors"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最近的错误"
-          }
-        }
-      }
-    },
-    "transcription_error_occurred" : {
-      "comment" : "Transcription error occurred",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcription Error"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "转录错误"
-          }
-        }
-      }
-    },
-    "tips" : {
-      "comment" : "Tips section header",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tips"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "提示"
-          }
-        }
-      }
-    },
-    "transcription_tip_background" : {
-      "comment" : "Tip about background transcription",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcriptions continue in the background - you can close this window"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "转录在后台继续进行 - 您可以关闭此窗口"
-          }
-        }
-      }
-    },
-    "transcription_tip_view" : {
-      "comment" : "Tip about viewing transcripts",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Once complete, view transcripts by long-pressing a track and selecting \"View Transcript\""
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "完成后，长按音轨并选择 \"查看文本\" 来查看转录"
-          }
-        }
-      }
-    },
-    "transcription_progress_title" : {
-      "comment" : "Transcription progress sheet title",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcription Progress"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "转录进度"
-          }
-        }
-      }
-    },
-    "queued_status" : {
-      "comment" : "Job queued status",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Queued"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已排队"
-          }
-        }
-      }
-    },
-    "uploading_status" : {
-      "comment" : "Job uploading status",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Uploading"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "上传中"
-          }
-        }
-      }
-    },
-    "transcribing_status" : {
-      "comment" : "Job transcribing status",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcribing"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "转录中"
-          }
-        }
-      }
-    },
-    "completed_status" : {
-      "comment" : "Job completed status",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Completed"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已完成"
-          }
-        }
-      }
-    },
-    "failed_status" : {
-      "comment" : "Job failed status",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "失败"
-          }
-        }
-      }
-    },
-    "unknown_status" : {
-      "comment" : "Unknown job status",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unknown"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未知"
-          }
-        }
-      }
-    },
-    "done_button" : {
-      "comment" : "Done button",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "完成"
           }
         }
       }

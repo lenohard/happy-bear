@@ -306,8 +306,24 @@ YES
    - **Guideline**: Don't add labels to buttons whose function is immediately obvious from the icon
    - **Example**: AI tab refresh buttons for models and credits use icon-only design
 
+9. **STT Database & Debugging (2025-11-09)**:
+   - **Location**: App runs on "My Mac (Designed for iPad)" so database is in app sandbox
+   - **Path**: `~/Library/Containers/6DAE9FFA-3650-44C2-9FD6-788F8AC6FB2E/Data/Library/Application Support/AudiobookPlayer/library.sqlite`
+   - **Current Issue**: Transcript data IS saved in DB (verified: 1 complete transcript, 16 segments, 4250 chars) but TranscriptViewerSheet displays blank
+   - **Root Cause**: TBD - likely state refresh issue in TranscriptViewModel or timing problem
+   - **Debug Guide**: See `local/database-reference-debug.md` for full database schema, queries, and troubleshooting commands
+   - **Key Learning**: Data persistence works perfectly; issue is purely in the UI display/refresh layer
+
 ## Documentation Index
 - `local/docs/siri-collection-playback.md`: Siri/App Intents setup for triggering collection playback via voice and Shortcuts.
+
+## Database Reference (STT & Library)
+- **Main Database**: `~/Library/Containers/6DAE9FFA-3650-44C2-9FD6-788F8AC6FB2E/Data/Library/Application Support/AudiobookPlayer/library.sqlite`
+- **Database Type**: SQLite with GRDB ORM
+- **Key Tables**: `transcripts`, `transcript_segments`, `transcription_jobs`, `collections`, `tracks`, `playback_states`
+- **Documentation**: See `local/database-reference-debug.md` for full schema, queries, and debug commands
+- **Current State (2025-11-09)**: 1 transcript with 16 segments, 4250+ chars of text, marked as "complete"
+- **Known Issue**: Transcript data is saved in DB but TranscriptViewerSheet shows blank (investigate state refresh)
 
 ## Qwen Added Memories
 - UI Localization Best Practices: When writing UI code, always use localization keys for multi-language support. Use Text("search_files") with corresponding entries in Localizable.xcstrings, not hardcoded strings like Text("Search files"). Process: 1) Use descriptive localization keys in code, 2) Add entries to Localizable.xcstrings, 3) Generate .strings files via generate_strings.py, 4) User manually adds to Xcode project, 5) Test in both English and Chinese device settings.

@@ -849,6 +849,24 @@ actor GRDBDatabaseManager {
         }
     }
 
+    /// Check if a track has a completed transcript
+    func hasCompletedTranscript(forTrackId trackId: String) throws -> Bool {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT job_status FROM transcripts WHERE track_id = ? LIMIT 1",
+                arguments: [trackId]
+            ) else {
+                return false
+            }
+
+            let jobStatus: String = row["job_status"]
+            return jobStatus == "complete"
+        }
+    }
+
     /// Load all transcript segments for a transcript
     func loadTranscriptSegments(forTranscriptId transcriptId: String) throws -> [TranscriptSegment] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
