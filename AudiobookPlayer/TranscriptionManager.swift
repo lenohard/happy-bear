@@ -12,6 +12,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         case trackNotFound
         case fileNotFound
         case invalidAudioFile
+        case missingBaiduToken
         case pollingTimeout
         case segmentingFailed
 
@@ -29,6 +30,8 @@ class TranscriptionManager: NSObject, ObservableObject {
                 return "Audio file not found"
             case .invalidAudioFile:
                 return "Invalid or unsupported audio file"
+            case .missingBaiduToken:
+                return "Sign in to Baidu before transcribing this track"
             case .pollingTimeout:
                 return "Transcription polling timeout"
             case .segmentingFailed:
@@ -41,6 +44,8 @@ class TranscriptionManager: NSObject, ObservableObject {
     @Published var transcriptionProgress: Double = 0.0
     @Published var currentTrackId: String?
     @Published var errorMessage: String?
+    @Published var activeJobs: [TranscriptionJob] = []
+    @Published var allRecentJobs: [TranscriptionJob] = []
 
     var sonioxAPI: SonioxAPI?
     let dbManager: GRDBDatabaseManager
@@ -86,6 +91,10 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
 
         super.init()
+
+        Task {
+            await refreshActiveJobsFromDatabase()
+        }
     }
 
     // MARK: - API Key Management
@@ -142,6 +151,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
 
         var pendingTranscriptId: String?
+        var currentJobId: String?
 
         do {
             // Create or reuse transcript record
@@ -153,9 +163,12 @@ class TranscriptionManager: NSObject, ObservableObject {
             pendingTranscriptId = transcriptId
             DispatchQueue.main.async { self.transcriptionProgress = 0.1 }
 
-            // Step 1: Upload file
+            // Step 1: Upload file to Soniox
             let fileId = try await sonioxAPI.uploadFile(fileURL: audioFileURL)
+
+            // Cleanup temporary file if needed
             cleanupTemporaryFileIfNeeded(audioFileURL)
+
             DispatchQueue.main.async { self.transcriptionProgress = 0.2 }
 
             // Step 2: Create transcription job
@@ -170,18 +183,28 @@ class TranscriptionManager: NSObject, ObservableObject {
             try await updateTranscriptJobId(trackId: trackIdStr, jobId: transcriptionId, status: "processing")
             DispatchQueue.main.async { self.transcriptionProgress = 0.3 }
 
+            let job = try await dbManager.createTranscriptionJob(trackId: trackIdStr, sonioxJobId: transcriptionId)
+            currentJobId = job.id
+            upsertActiveJob(job)
+
             // Step 3: Poll for completion
             try await pollForCompletion(
                 transcriptionId: transcriptionId,
                 trackId: trackIdStr,
                 transcriptId: transcriptId,
                 fileId: fileId,
-                sonioxAPI: sonioxAPI
+                sonioxAPI: sonioxAPI,
+                jobId: currentJobId
             )
 
             // Cleanup succeeded
             try? await sonioxAPI.deleteTranscription(transcriptionId: transcriptionId)
             try? await sonioxAPI.deleteFile(fileId: fileId)
+
+            if let jobId = currentJobId {
+                try await dbManager.markJobCompleted(jobId: jobId)
+                removeActiveJob(jobId: jobId)
+            }
 
             DispatchQueue.main.async {
                 self.isTranscribing = false
@@ -196,6 +219,10 @@ class TranscriptionManager: NSObject, ObservableObject {
             }
             if pendingTranscriptId != nil {
                 await markTranscriptFailure(trackId: trackIdStr, message: error.localizedDescription)
+            }
+            if let jobId = currentJobId {
+                try? await dbManager.markJobFailed(jobId: jobId, errorMessage: error.localizedDescription)
+                removeActiveJob(jobId: jobId)
             }
             throw error
         }
@@ -263,7 +290,8 @@ class TranscriptionManager: NSObject, ObservableObject {
         trackId: String,
         transcriptId: String,
         fileId: String,
-        sonioxAPI: SonioxAPI
+        sonioxAPI: SonioxAPI,
+        jobId: String?
     ) async throws {
         let startTime = Date()
         var pollCount = 0
@@ -286,8 +314,16 @@ class TranscriptionManager: NSObject, ObservableObject {
                     DispatchQueue.main.async {
                         self.transcriptionProgress = 1.0
                     }
+
+                    if let jobId {
+                        try await dbManager.updateJobStatus(jobId: jobId, status: "completed", progress: 1.0)
+                    }
                     return
                 } else if status.status == "error" {
+                    if let jobId {
+                        try await dbManager.markJobFailed(jobId: jobId, errorMessage: status.error_message ?? "Unknown error")
+                        removeActiveJob(jobId: jobId)
+                    }
                     throw TranscriptionError.transcriptionFailed(status.error_message ?? "Unknown error")
                 } else if status.status == "processing" || status.status == "queued" {
                     // Update progress (simple linear estimate)
@@ -295,6 +331,14 @@ class TranscriptionManager: NSObject, ObservableObject {
                     let estimatedProgress = 0.3 + (elapsed / maxPollingDuration) * 0.6
                     DispatchQueue.main.async {
                         self.transcriptionProgress = min(estimatedProgress, 0.9)
+                    }
+
+                    if let jobId {
+                        let normalizedProgress = min(estimatedProgress, 0.9)
+                        try await dbManager.updateJobStatus(jobId: jobId, status: status.status, progress: normalizedProgress)
+                        updateActiveJob(jobId: jobId) { job in
+                            job.updating(status: status.status, progress: normalizedProgress, lastAttemptAt: Date())
+                        }
                     }
                 }
 
@@ -331,7 +375,11 @@ class TranscriptionManager: NSObject, ObservableObject {
         var segments: [TranscriptSegment] = []
         var currentSegment: (texts: [String], startMs: Int, endMs: Int, speaker: String?, language: String?)? = nil
 
-        let gapThresholdMs = 1500  // 1.5 second gap = new segment
+        // Helper function to check if text ends with sentence-ending punctuation
+        func endsWithSentencePunctuation(_ text: String) -> Bool {
+            let sentenceEnders: Set<Character> = [".", "。", "!", "！", "?", "？"]
+            return sentenceEnders.contains(text.last ?? " ")
+        }
 
         for token in tokens {
             let startMs = token.start_ms ?? 0
@@ -341,15 +389,14 @@ class TranscriptionManager: NSObject, ObservableObject {
             let language = token.language
 
             if currentSegment == nil {
+                // Start first segment
                 currentSegment = (texts: [text], startMs: startMs, endMs: endMs, speaker: speaker, language: language)
             } else if let current = currentSegment {
-                let gapSize = startMs - current.endMs
                 let speakerChanged = speaker != current.speaker
-                let languageChanged = language != current.language
 
-                if gapSize > gapThresholdMs || speakerChanged {
-                    // Save current segment and start new one
-                    let fullText = current.texts.joined(separator: "")
+                if speakerChanged {
+                    // Speaker changed - save current segment and start new one
+                    let fullText = combineTokens(current.texts, languageCode: current.language)
                     let segment = TranscriptSegment(
                         transcriptId: transcriptId,
                         text: fullText,
@@ -362,16 +409,33 @@ class TranscriptionManager: NSObject, ObservableObject {
 
                     currentSegment = (texts: [text], startMs: startMs, endMs: endMs, speaker: speaker, language: language)
                 } else {
-                    // Continue current segment
+                    // Same speaker - add token to current segment
                     currentSegment?.texts.append(text)
                     currentSegment?.endMs = endMs
+
+                    // Check if this token ends with sentence punctuation
+                    if endsWithSentencePunctuation(text) {
+                        // Save current segment and start new one
+                        let fullText = combineTokens(currentSegment!.texts, languageCode: currentSegment!.language)
+                        let segment = TranscriptSegment(
+                            transcriptId: transcriptId,
+                            text: fullText,
+                            startTimeMs: currentSegment!.startMs,
+                            endTimeMs: currentSegment!.endMs,
+                            speaker: currentSegment!.speaker,
+                            language: currentSegment!.language
+                        )
+                        segments.append(segment)
+
+                        currentSegment = nil  // Reset for next segment
+                    }
                 }
             }
         }
 
-        // Save last segment
+        // Save last segment if not already saved
         if let current = currentSegment {
-            let fullText = current.texts.joined(separator: "")
+            let fullText = combineTokens(current.texts, languageCode: current.language)
             let segment = TranscriptSegment(
                 transcriptId: transcriptId,
                 text: fullText,
@@ -384,6 +448,32 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
 
         return segments
+    }
+
+    private func combineTokens(_ tokens: [String], languageCode: String?) -> String {
+        guard shouldInsertSpaces(for: languageCode) else {
+            return tokens.joined()
+        }
+
+        var combined = tokens.joined(separator: " ")
+
+        let punctuation = [".", ",", "!", "?", ";", ":", ")", "]", "}", "，", "。", "！", "？", "；", "："]
+        for symbol in punctuation {
+            combined = combined.replacingOccurrences(of: " \(symbol)", with: symbol)
+        }
+
+        while combined.contains("  ") {
+            combined = combined.replacingOccurrences(of: "  ", with: " ")
+        }
+
+        return combined.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func shouldInsertSpaces(for languageCode: String?) -> Bool {
+        guard let languageCode else { return true }
+        let trimmed = languageCode.lowercased()
+        let languagesWithoutSpaces = ["zh", "ja", "ko"]
+        return !languagesWithoutSpaces.contains { trimmed.hasPrefix($0) }
     }
 
     private func ensurePendingTranscript(
@@ -427,6 +517,47 @@ class TranscriptionManager: NSObject, ObservableObject {
         guard fileURL.path.hasPrefix(tempDirectory.path) else { return }
 
         try? FileManager.default.removeItem(at: fileURL)
+    }
+
+    private func refreshActiveJobsFromDatabase() async {
+        do {
+            let jobs = try await dbManager.loadActiveTranscriptionJobs()
+            await MainActor.run {
+                self.activeJobs = jobs
+            }
+        } catch {
+            print("[TranscriptionManager] Failed to refresh active jobs: \(error.localizedDescription)")
+        }
+    }
+
+    /// Refresh all recent jobs from database (public method for UI to call)
+    func refreshAllRecentJobs() async {
+        do {
+            let jobs = try await dbManager.loadAllRecentTranscriptionJobs(limit: 50)
+            await MainActor.run {
+                self.allRecentJobs = jobs
+            }
+        } catch {
+            print("[TranscriptionManager] Failed to refresh all jobs: \(error.localizedDescription)")
+        }
+    }
+
+    private func upsertActiveJob(_ job: TranscriptionJob) {
+        if let index = activeJobs.firstIndex(where: { $0.id == job.id }) {
+            activeJobs[index] = job
+        } else {
+            activeJobs.append(job)
+        }
+    }
+
+    private func updateActiveJob(jobId: String, transform: (TranscriptionJob) -> TranscriptionJob) {
+        if let index = activeJobs.firstIndex(where: { $0.id == jobId }) {
+            activeJobs[index] = transform(activeJobs[index])
+        }
+    }
+
+    private func removeActiveJob(jobId: String) {
+        activeJobs.removeAll { $0.id == jobId }
     }
 
     private func highlightMatch(in text: String, query: String) -> String {

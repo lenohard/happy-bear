@@ -95,6 +95,25 @@ extension GRDBDatabaseManager {
         }
     }
 
+    /// Load all recent transcription jobs (including completed and failed), limited to last N jobs
+    func loadAllRecentTranscriptionJobs(limit: Int = 50) throws -> [TranscriptionJob] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                    SELECT * FROM transcription_jobs
+                    ORDER BY created_at DESC
+                    LIMIT ?
+                    """,
+                arguments: [limit]
+            )
+
+            return try rows.compactMap { try reconstructTranscriptionJob(row: $0) }
+        }
+    }
+
     /// Load jobs that need retry (failed with retries remaining)
     func loadJobsNeedingRetry(maxRetries: Int = 3) throws -> [TranscriptionJob] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }

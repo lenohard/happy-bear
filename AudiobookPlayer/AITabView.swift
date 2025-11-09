@@ -378,6 +378,8 @@ func resignFirstResponder() {
 
 struct TTSTabView: View {
     @StateObject private var sonioxViewModel = SonioxKeyViewModel()
+    @EnvironmentObject private var transcriptionManager: TranscriptionManager
+    @EnvironmentObject private var library: LibraryStore
     @FocusState private var isKeyFieldFocused: Bool
     @State private var isTestInProgress = false
     @State private var testResult: String?
@@ -452,12 +454,20 @@ struct TTSTabView: View {
                     } header: {
                         Text("Test Soniox API")
                     }
+
+                    // Transcription Jobs Section
+                    transcriptionJobsSection
                 }
             }
             .navigationTitle(Text(NSLocalizedString("tts_tab_title", comment: "")))
             .task {
                 // Reload key status when view appears (handles case where key was saved before this feature was added)
                 await sonioxViewModel.refreshKeyStatus()
+                // Load all recent jobs
+                await transcriptionManager.refreshAllRecentJobs()
+            }
+            .refreshable {
+                await transcriptionManager.refreshAllRecentJobs()
             }
         }
     }
@@ -482,6 +492,170 @@ struct TTSTabView: View {
         }
     }
 
+    // MARK: - Transcription Jobs Section
+
+    @ViewBuilder
+    private var transcriptionJobsSection: some View {
+        if !transcriptionManager.allRecentJobs.isEmpty {
+            Section {
+                // Active jobs (queued + transcribing)
+                let activeJobs = transcriptionManager.allRecentJobs.filter {
+                    $0.status == "queued" || $0.status == "transcribing"
+                }
+                if !activeJobs.isEmpty {
+                    ForEach(activeJobs) { job in
+                        jobRow(for: job, status: "active")
+                    }
+                }
+
+                // Failed jobs
+                let failedJobs = transcriptionManager.allRecentJobs.filter { $0.status == "failed" }
+                if !failedJobs.isEmpty {
+                    ForEach(failedJobs) { job in
+                        jobRow(for: job, status: "failed")
+                    }
+                }
+
+                // Completed jobs (last 10)
+                let completedJobs = transcriptionManager.allRecentJobs.filter { $0.status == "completed" }.prefix(10)
+                if !completedJobs.isEmpty {
+                    ForEach(Array(completedJobs)) { job in
+                        jobRow(for: job, status: "completed")
+                    }
+                }
+            } header: {
+                HStack {
+                    Text("Transcription Jobs")
+                    Spacer()
+                    if !transcriptionManager.activeJobs.isEmpty {
+                        Text("\(transcriptionManager.activeJobs.count) active")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } else {
+            Section {
+                Text("No transcription jobs yet")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Transcription Jobs")
+            }
+        }
+    }
+
+    @MainActor
+    private func lookupTrackName(for trackId: String) -> String {
+        for collection in library.collections {
+            if let track = collection.tracks.first(where: { $0.id.uuidString == trackId }) {
+                return track.displayName
+            }
+        }
+        return trackId
+    }
+
+    @ViewBuilder
+    private func jobRow(for job: TranscriptionJob, status: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(lookupTrackName(for: job.trackId))
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .lineLimit(2)
+
+                    Text(statusText(for: job))
+                        .font(.caption)
+                        .foregroundStyle(statusColor(for: job.status))
+                }
+
+                Spacer()
+
+                statusIcon(for: job.status)
+            }
+
+            // Progress bar for active jobs
+            if job.status == "transcribing", let progress = job.progress {
+                ProgressView(value: progress, total: 1.0)
+                    .progressViewStyle(.linear)
+                Text("\(Int(progress * 100))%")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            // Error message for failed jobs
+            if job.status == "failed", let errorMessage = job.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+                    .lineLimit(2)
+            }
+
+            // Timestamp
+            Text(formatDate(job.createdAt))
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func statusText(for job: TranscriptionJob) -> String {
+        switch job.status {
+        case "queued":
+            return "Queued"
+        case "transcribing":
+            return "Transcribing..."
+        case "completed":
+            return "Completed"
+        case "failed":
+            return "Failed (retry \(job.retryCount))"
+        default:
+            return job.status.capitalized
+        }
+    }
+
+    private func statusColor(for status: String) -> Color {
+        switch status {
+        case "queued":
+            return .orange
+        case "transcribing":
+            return .blue
+        case "completed":
+            return .green
+        case "failed":
+            return .red
+        default:
+            return .secondary
+        }
+    }
+
+    @ViewBuilder
+    private func statusIcon(for status: String) -> some View {
+        switch status {
+        case "queued":
+            Image(systemName: "clock")
+                .foregroundStyle(.orange)
+        case "transcribing":
+            ProgressView()
+                .scaleEffect(0.8)
+        case "completed":
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+        case "failed":
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.red)
+        default:
+            EmptyView()
+        }
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
     private func testTranscription() async {
         isTestInProgress = true
         testError = nil
@@ -501,12 +675,14 @@ struct TTSTabView: View {
             let documentURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
             let testAudioURL = documentURL.appendingPathComponent("test-1min.mp3")
 
-            // Check if file exists, if not try the project root
+            // Check if file exists, if not try the app bundle, then try the project root
             let audioFileURL: URL
             if fileManager.fileExists(atPath: testAudioURL.path) {
                 audioFileURL = testAudioURL
+            } else if let bundleResourceURL = Bundle.main.url(forResource: "test-1min", withExtension: "mp3") {
+                audioFileURL = bundleResourceURL
             } else {
-                // Try the app directory if available
+                // Try the app directory if available (for development)
                 if let appBundleURL = Bundle.main.bundleURL.deletingLastPathComponent().appendingPathComponent("test-1min.mp3") as URL?,
                    fileManager.fileExists(atPath: appBundleURL.path) {
                     audioFileURL = appBundleURL
