@@ -384,6 +384,9 @@ struct TTSTabView: View {
     @State private var isTestInProgress = false
     @State private var testResult: String?
     @State private var testError: String?
+    @State private var selectedJobForTranscript: TranscriptionJob?
+    @State private var showTranscriptViewer = false
+    @State private var refreshTimer: Timer?
 
     var body: some View {
         NavigationStack {
@@ -465,9 +468,34 @@ struct TTSTabView: View {
                 await sonioxViewModel.refreshKeyStatus()
                 // Load all recent jobs
                 await transcriptionManager.refreshAllRecentJobs()
+                // Start auto-refresh timer if there are active jobs
+                startAutoRefreshIfNeeded()
             }
             .refreshable {
                 await transcriptionManager.refreshAllRecentJobs()
+            }
+            .onChange(of: transcriptionManager.activeJobs.count) { newCount in
+                // Auto-refresh all jobs when active job count changes (e.g., when job completes)
+                Task {
+                    await transcriptionManager.refreshAllRecentJobs()
+                }
+                // Start or stop timer based on active jobs
+                if newCount > 0 {
+                    startAutoRefresh()
+                } else {
+                    stopAutoRefresh()
+                }
+            }
+            .onDisappear {
+                stopAutoRefresh()
+            }
+            .sheet(isPresented: $showTranscriptViewer) {
+                if let job = selectedJobForTranscript {
+                    TranscriptViewerSheet(
+                        trackId: job.trackId,
+                        trackName: lookupTrackName(for: job.trackId)
+                    )
+                }
             }
         }
     }
@@ -498,13 +526,17 @@ struct TTSTabView: View {
     private var transcriptionJobsSection: some View {
         if !transcriptionManager.allRecentJobs.isEmpty {
             Section {
-                // Active jobs (queued + transcribing)
+                // Active jobs (queued + processing/transcribing)
                 let activeJobs = transcriptionManager.allRecentJobs.filter {
-                    $0.status == "queued" || $0.status == "transcribing"
+                    $0.status == "queued" || $0.status == "transcribing" || $0.status == "processing"
                 }
                 if !activeJobs.isEmpty {
                     ForEach(activeJobs) { job in
                         jobRow(for: job, status: "active")
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                // No action for active jobs (could add cancel in future)
+                            }
                     }
                 }
 
@@ -513,6 +545,10 @@ struct TTSTabView: View {
                 if !failedJobs.isEmpty {
                     ForEach(failedJobs) { job in
                         jobRow(for: job, status: "failed")
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                // No action for failed jobs (could add retry in future)
+                            }
                     }
                 }
 
@@ -521,6 +557,11 @@ struct TTSTabView: View {
                 if !completedJobs.isEmpty {
                     ForEach(Array(completedJobs)) { job in
                         jobRow(for: job, status: "completed")
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                selectedJobForTranscript = job
+                                showTranscriptViewer = true
+                            }
                     }
                 }
             } header: {
@@ -573,10 +614,17 @@ struct TTSTabView: View {
                 Spacer()
 
                 statusIcon(for: job.status)
+
+                // Add chevron for completed jobs (tappable)
+                if job.status == "completed" {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             // Progress bar for active jobs
-            if job.status == "transcribing", let progress = job.progress {
+            if (job.status == "transcribing" || job.status == "processing"), let progress = job.progress {
                 ProgressView(value: progress, total: 1.0)
                     .progressViewStyle(.linear)
                 Text("\(Int(progress * 100))%")
@@ -604,7 +652,7 @@ struct TTSTabView: View {
         switch job.status {
         case "queued":
             return "Queued"
-        case "transcribing":
+        case "transcribing", "processing":
             return "Transcribing..."
         case "completed":
             return "Completed"
@@ -619,7 +667,7 @@ struct TTSTabView: View {
         switch status {
         case "queued":
             return .orange
-        case "transcribing":
+        case "transcribing", "processing":
             return .blue
         case "completed":
             return .green
@@ -636,7 +684,7 @@ struct TTSTabView: View {
         case "queued":
             Image(systemName: "clock")
                 .foregroundStyle(.orange)
-        case "transcribing":
+        case "transcribing", "processing":
             ProgressView()
                 .scaleEffect(0.8)
         case "completed":
@@ -654,6 +702,31 @@ struct TTSTabView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    // MARK: - Auto-refresh Timer
+
+    private func startAutoRefreshIfNeeded() {
+        if !transcriptionManager.activeJobs.isEmpty {
+            startAutoRefresh()
+        }
+    }
+
+    private func startAutoRefresh() {
+        // Stop existing timer if any
+        stopAutoRefresh()
+
+        // Create new timer that fires every 3 seconds
+        refreshTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            Task { @MainActor in
+                await transcriptionManager.refreshAllRecentJobs()
+            }
+        }
+    }
+
+    private func stopAutoRefresh() {
+        refreshTimer?.invalidate()
+        refreshTimer = nil
     }
 
     private func testTranscription() async {
