@@ -118,7 +118,8 @@ class SonioxAPI {
             throw APIError.invalidResponse
         }
 
-        guard httpResponse.statusCode == 200 else {
+        // Accept both 200 and 201 (Created) as successful responses
+        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
             throw APIError.serverError(statusCode: httpResponse.statusCode, message: "File upload failed")
         }
 
@@ -164,7 +165,8 @@ class SonioxAPI {
             throw APIError.invalidResponse
         }
 
-        guard httpResponse.statusCode == 200 else {
+        // Accept both 200 and 201 (Created) as successful responses
+        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
             let message = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             let errorMsg = message?["message"] as? String ?? "Unknown error"
             throw APIError.serverError(statusCode: httpResponse.statusCode, message: errorMsg)
