@@ -836,24 +836,34 @@ actor GRDBDatabaseManager {
     func loadTranscript(forTrackId trackId: String) throws -> Transcript? {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
-        return try db.read { db in
+        print("[GRDB] Loading transcript for track: \(trackId)")
+
+        let transcript: Transcript? = try db.read { db in
             guard let row = try Row.fetchOne(
                 db,
                 sql: "SELECT * FROM transcripts WHERE track_id = ?",
                 arguments: [trackId]
             ) else {
-                return nil
+                print("[GRDB] No transcript found for track: \(trackId)")
+                return nil as Transcript?
             }
 
+            print("[GRDB] Found transcript row, reconstructing...")
             return try reconstructTranscript(row: row)
         }
+
+        if let t = transcript {
+            print("[GRDB] Successfully loaded transcript: \(t.id), status: \(t.jobStatus), text length: \(t.fullText.count)")
+        }
+
+        return transcript
     }
 
     /// Check if a track has a completed transcript
     func hasCompletedTranscript(forTrackId trackId: String) throws -> Bool {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
-        return try db.read { db in
+        let hasTranscript = try db.read { db in
             guard let row = try Row.fetchOne(
                 db,
                 sql: "SELECT job_status FROM transcripts WHERE track_id = ? LIMIT 1",
@@ -863,23 +873,33 @@ actor GRDBDatabaseManager {
             }
 
             let jobStatus: String = row["job_status"]
+            print("[GRDB] Track \(trackId) transcript status: \(jobStatus)")
             return jobStatus == "complete"
         }
+
+        print("[GRDB] Track \(trackId) hasCompletedTranscript: \(hasTranscript)")
+        return hasTranscript
     }
 
     /// Load all transcript segments for a transcript
     func loadTranscriptSegments(forTranscriptId transcriptId: String) throws -> [TranscriptSegment] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
-        return try db.read { db in
+        print("[GRDB] Loading segments for transcript: \(transcriptId)")
+
+        let segments = try db.read { db in
             let rows = try Row.fetchAll(
                 db,
                 sql: "SELECT * FROM transcript_segments WHERE transcript_id = ? ORDER BY start_time_ms",
                 arguments: [transcriptId]
             )
 
+            print("[GRDB] Found \(rows.count) segment rows")
             return try rows.compactMap { try reconstructTranscriptSegment(row: $0) }
         }
+
+        print("[GRDB] Successfully loaded \(segments.count) segments")
+        return segments
     }
 
     /// Save transcript segments
@@ -1068,11 +1088,13 @@ actor GRDBDatabaseManager {
     private func reconstructTranscriptSegment(row: Row) throws -> TranscriptSegment? {
         guard let id = row["id"] as? String,
               let transcriptId = row["transcript_id"] as? String,
-              let text = row["text"] as? String,
-              let startTimeMs = row["start_time_ms"] as? Int,
-              let endTimeMs = row["end_time_ms"] as? Int else {
+              let text = row["text"] as? String else {
             return nil
         }
+
+        // Use type-annotated subscripts for integers (GRDB compatibility)
+        let startTimeMs: Int = row["start_time_ms"]
+        let endTimeMs: Int = row["end_time_ms"]
 
         let confidence = row["confidence"] as? Double
         let speaker = row["speaker"] as? String

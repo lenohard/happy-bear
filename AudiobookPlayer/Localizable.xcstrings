@@ -17,6 +17,9 @@
     "%lld" : {
 
     },
+    "%lld active" : {
+
+    },
     "%lld non-audio files" : {
 
     },
@@ -2153,6 +2156,9 @@
         }
       }
     },
+    "No transcription jobs yet" : {
+
+    },
     "no_active_transcriptions" : {
       "comment" : "No active transcriptions",
       "localizations" : {
@@ -3352,6 +3358,23 @@
         }
       }
     },
+    "transcript_available" : {
+      "comment" : "Transcript available accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript Available"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用转录"
+          }
+        }
+      }
+    },
     "transcript_search_no_matches" : {
       "comment" : "No matches found for search query",
       "localizations" : {
@@ -3386,25 +3409,11 @@
         }
       }
     },
-    "Transcription Result" : {
+    "Transcription Jobs" : {
 
     },
-    "transcript_available" : {
-      "comment" : "Transcript available accessibility label",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcript Available"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "可用转录"
-          }
-        }
-      }
+    "Transcription Result" : {
+
     },
     "transcription_completed" : {
       "localizations" : {
@@ -3473,6 +3482,7 @@
     },
     "transcription_in_progress" : {
       "comment" : "Transcription in progress label",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3490,6 +3500,7 @@
     },
     "transcription_processing_message" : {
       "comment" : "Processing message for active transcription",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

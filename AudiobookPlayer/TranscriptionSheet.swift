@@ -132,14 +132,11 @@ struct TranscriptionSheet: View {
 
         Task {
             do {
-                // Get cached or remote audio URL
-                guard let token = authViewModel.token else {
-                    throw TranscriptionManager.TranscriptionError.noAPIKey
-                }
-
-                // For now, we'll use the Baidu URL directly
-                // In production, you might want to download the file first or use cached version
-                let audioURL = try await getAudioFileURL(track: track, token: token)
+                // Resolve a local URL that can be uploaded to Soniox
+                let audioURL = try await getAudioFileURL(
+                    track: track,
+                    token: authViewModel.token
+                )
 
                 // Start transcription
                 try await transcriptionManager.transcribeTrack(
@@ -156,6 +153,15 @@ struct TranscriptionSheet: View {
                     progress = 1.0
                     transcriptionCompleted = true
                 }
+
+                // Post notification for UI to refresh transcript status
+                NotificationCenter.default.post(
+                    name: NSNotification.Name("TranscriptionCompleted"),
+                    object: nil,
+                    userInfo: ["trackId": track.id.uuidString, "collectionId": collectionID.uuidString]
+                )
+
+                print("[TranscriptionSheet] Posted TranscriptionCompleted notification for track: \(track.id)")
 
                 // Auto-dismiss after 2 seconds
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -182,37 +188,39 @@ struct TranscriptionSheet: View {
         }
     }
 
-    private func getAudioFileURL(track: AudiobookTrack, token: BaiduOAuthToken) async throws -> URL {
-        guard case let .baidu(fsId, path) = track.location else {
-            throw TranscriptionManager.TranscriptionError.invalidAudioFile
+    private func getAudioFileURL(track: AudiobookTrack, token: BaiduOAuthToken?) async throws -> URL {
+        switch track.location {
+        case let .baidu(fsId, path):
+            guard let token else {
+                throw TranscriptionManager.TranscriptionError.missingBaiduToken
+            }
+
+            let cacheManager = AudioCacheManager()
+            let baiduFileId = String(fsId)
+
+            if let cachedURL = cacheManager.getCachedAssetURL(
+                for: track.id.uuidString,
+                baiduFileId: baiduFileId,
+                filename: track.filename
+            ) {
+                return cachedURL
+            }
+
+            return try await downloadBaiduAsset(
+                track: track,
+                path: path,
+                token: token
+            )
+
+        case let .local(bookmark):
+            return try resolveLocalBookmark(bookmark)
+
+        case let .external(url):
+            if url.isFileURL {
+                return url
+            }
+            return try await downloadExternalAsset(track: track, url: url)
         }
-
-        let cacheManager = AudioCacheManager()
-        let baiduFileId = String(fsId)
-
-        if let cachedURL = cacheManager.getCachedAssetURL(
-            for: track.id.uuidString,
-            baiduFileId: baiduFileId,
-            filename: track.filename
-        ) {
-            return cachedURL
-        }
-
-        // Download to temp directory for transcription
-        // We need to download because Soniox requires a file URL, not streaming
-        let tempDir = FileManager.default.temporaryDirectory
-        let tempFile = tempDir.appendingPathComponent(track.id.uuidString + "_temp_\(track.filename)")
-
-        // Download file from Baidu
-        let netdiskClient = BaiduNetdiskClient()
-        let downloadURL = try netdiskClient.downloadURL(forPath: path, token: token)
-        let (localURL, _) = try await URLSession.shared.download(from: downloadURL)
-
-        // Move to temp location
-        try? FileManager.default.removeItem(at: tempFile)
-        try FileManager.default.moveItem(at: localURL, to: tempFile)
-
-        return tempFile
     }
 
     private func formatBytes(_ bytes: Int64) -> String {
@@ -220,6 +228,47 @@ struct TranscriptionSheet: View {
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
+    }
+
+    private func downloadBaiduAsset(track: AudiobookTrack, path: String, token: BaiduOAuthToken) async throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempFile = tempDir.appendingPathComponent(track.id.uuidString + "_temp_\(track.filename)")
+
+        let netdiskClient = BaiduNetdiskClient()
+        let downloadURL = try netdiskClient.downloadURL(forPath: path, token: token)
+        let (localURL, _) = try await URLSession.shared.download(from: downloadURL)
+
+        try? FileManager.default.removeItem(at: tempFile)
+        try FileManager.default.moveItem(at: localURL, to: tempFile)
+
+        return tempFile
+    }
+
+    private func resolveLocalBookmark(_ bookmark: Data) throws -> URL {
+        var isStale = false
+        let url = try URL(
+            resolvingBookmarkData: bookmark,
+            options: [.withoutUI, .withoutMounting],
+            bookmarkDataIsStale: &isStale
+        )
+
+        if isStale {
+            throw TranscriptionManager.TranscriptionError.invalidAudioFile
+        }
+
+        return url
+    }
+
+    private func downloadExternalAsset(track: AudiobookTrack, url: URL) async throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempFile = tempDir.appendingPathComponent(track.id.uuidString + "_remote_\(track.filename)")
+
+        let (localURL, _) = try await URLSession.shared.download(from: url)
+
+        try? FileManager.default.removeItem(at: tempFile)
+        try FileManager.default.moveItem(at: localURL, to: tempFile)
+
+        return tempFile
     }
 }
 

@@ -55,12 +55,19 @@ final class AudioCacheManager {
 
         do {
             var metadata = try loadMetadata(for: trackId, baiduFileId: baiduFileId)
+
+            // Only return URL if cache is complete, not partially downloaded
+            guard metadata.cacheStatus == .complete else {
+                return nil
+            }
+
             metadata.lastAccessedAt = Date()
             try saveMetadata(metadata)
             return cachedURL
         } catch {
             print("Failed to update cache metadata: \(error)")
-            return cachedURL
+            // If metadata is missing or corrupt, don't assume cache is complete
+            return nil
         }
     }
 

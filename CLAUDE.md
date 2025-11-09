@@ -236,6 +236,7 @@ YES
 
 # Notes
 1. Don't run to run the simulator, leave the test to me, but you should use cmd to build project to see the warnings and errors and try to fix them.
+2. Do not try to add the files under local/ into git repo commit. they should be ignored.
 
 2. **Filtering Xcode Build Output**: Xcode build output can be very large (thousands of lines). Use grep to filter and check for specific conditions:
    - **Check for errors**: `xcodebuild ... | grep -i error`
@@ -306,24 +307,16 @@ YES
    - **Guideline**: Don't add labels to buttons whose function is immediately obvious from the icon
    - **Example**: AI tab refresh buttons for models and credits use icon-only design
 
-9. **STT Database & Debugging (2025-11-09)**:
-   - **Location**: App runs on "My Mac (Designed for iPad)" so database is in app sandbox
-   - **Path**: `~/Library/Containers/6DAE9FFA-3650-44C2-9FD6-788F8AC6FB2E/Data/Library/Application Support/AudiobookPlayer/library.sqlite`
-   - **Current Issue**: Transcript data IS saved in DB (verified: 1 complete transcript, 16 segments, 4250 chars) but TranscriptViewerSheet displays blank
-   - **Root Cause**: TBD - likely state refresh issue in TranscriptViewModel or timing problem
-   - **Debug Guide**: See `local/database-reference-debug.md` for full database schema, queries, and troubleshooting commands
-   - **Key Learning**: Data persistence works perfectly; issue is purely in the UI display/refresh layer
+9. **STT Simplification - Removed Audio Format Conversion (2025-11-10)**:
+   - **Problem**: AudioFormatConverter added unnecessary complexity - Soniox supports all common audio formats natively
+   - **Solution**: Completely removed audio format conversion code
+     - Deleted `AudioFormatConverter.swift` (115 lines)
+     - Removed conversion logic from `TranscriptionManager.swift`
+     - Removed `import AVFoundation` (no longer needed)
+   - **Impact**: Cleaner codebase, faster transcription, no quality loss from re-encoding
+   - **Also Fixed**: Cache completion check - `getCachedAssetURL()` now verifies `metadata.cacheStatus == .complete` before returning URL
+   - **Doc**: `local/stt-integration.md` Session 2025-11-10
 
-10. **Soniox API 401 Error Root Cause & Fix (2025-11-09)**:
-    - **Problem**: When attempting to transcribe, getting 401 Unauthorized from Soniox file upload endpoint
-    - **Root Cause**: TranscriptionManager is a @StateObject initialized at app launch. It captures the Soniox API key state at that moment from Keychain. If Keychain is empty at launch, sonioxAPI = nil. When user later saves the API key in TTS tab (SonioxKeyViewModel), TranscriptionManager is NOT updated because it's already initialized.
-    - **Solution Implemented**:
-      1. Changed `sonioxAPI: let` → `var` in TranscriptionManager to allow updates
-      2. Added `reloadSonioxAPIKey()` method that fetches fresh key from Keychain
-      3. Call reload in `transcribeTrack()` before attempting upload
-      4. API key is now always current, even if saved after app launch
-    - **Commits**: `a498d5e` - fix(stt): reload API key on demand before transcription attempt
-    - **Testing**: Save API key in TTS tab → transcribe track → should work without 401
 
 ## Documentation Index
 - `local/docs/siri-collection-playback.md`: Siri/App Intents setup for triggering collection playback via voice and Shortcuts.

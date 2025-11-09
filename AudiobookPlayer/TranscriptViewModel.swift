@@ -72,26 +72,40 @@ class TranscriptViewModel: NSObject, ObservableObject {
     /// Load transcript and segments for the given track
     @MainActor
     func loadTranscript() async {
+        print("[TranscriptViewModel] Starting to load transcript for track: \(trackId)")
         isLoading = true
         errorMessage = nil
 
         do {
-            // Load transcript
+            print("[TranscriptViewModel] Calling dbManager.loadTranscript...")
+
+            // Load transcript (actor method with await)
             if let loadedTranscript = try await dbManager.loadTranscript(forTrackId: trackId) {
+                print("[TranscriptViewModel] Loaded transcript: \(loadedTranscript.id)")
                 self.transcript = loadedTranscript
 
                 // Load segments
+                print("[TranscriptViewModel] Loading segments for transcript: \(loadedTranscript.id)")
                 let loadedSegments = try await dbManager.loadTranscriptSegments(forTranscriptId: loadedTranscript.id)
+
+                print("[TranscriptViewModel] Loaded \(loadedSegments.count) segments")
                 self.segments = loadedSegments
+
+                if loadedSegments.isEmpty {
+                    print("[TranscriptViewModel] WARNING: Transcript has 0 segments!")
+                }
             } else {
+                print("[TranscriptViewModel] No transcript found for track: \(trackId)")
                 errorMessage = "Transcript not found"
                 self.segments = []
             }
         } catch {
+            print("[TranscriptViewModel] ERROR loading transcript: \(error)")
             errorMessage = "Failed to load transcript: \(error.localizedDescription)"
             self.segments = []
         }
 
+        print("[TranscriptViewModel] Load complete. segments.count = \(segments.count)")
         isLoading = false
     }
 

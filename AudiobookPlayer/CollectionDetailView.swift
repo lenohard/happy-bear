@@ -149,6 +149,11 @@ struct CollectionDetailView: View {
         .onAppear {
             loadTranscriptStatus()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TranscriptionCompleted"))) { notification in
+            print("[CollectionDetailView] Received TranscriptionCompleted notification")
+            // Reload transcript status when a transcription completes
+            loadTranscriptStatus()
+        }
         .sheet(item: $trackForTranscription) { track in
             TranscriptionSheet(track: track, collectionID: collectionID)
         }
@@ -485,6 +490,8 @@ struct CollectionDetailView: View {
     private func loadTranscriptStatus() {
         guard let collection else { return }
 
+        print("[CollectionDetailView] Loading transcript status for \(collection.tracks.count) tracks")
+
         Task {
             var newCache: [UUID: Bool] = [:]
             let dbManager = GRDBDatabaseManager.shared
@@ -493,11 +500,16 @@ struct CollectionDetailView: View {
                 do {
                     let hasTranscript = try await dbManager.hasCompletedTranscript(forTrackId: track.id.uuidString)
                     newCache[track.id] = hasTranscript
+                    if hasTranscript {
+                        print("[CollectionDetailView] Track \(track.displayName) HAS transcript")
+                    }
                 } catch {
                     print("[CollectionDetailView] Error loading transcript status for track \(track.id): \(error)")
                     newCache[track.id] = false
                 }
             }
+
+            print("[CollectionDetailView] Transcript cache updated: \(newCache.filter { $0.value }.count) tracks with transcripts")
 
             await MainActor.run {
                 self.transcriptStatusCache = newCache

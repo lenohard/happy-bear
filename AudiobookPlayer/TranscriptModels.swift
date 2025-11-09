@@ -188,6 +188,28 @@ struct TranscriptionJob: Identifiable, Codable {
     }
 }
 
+extension TranscriptionJob {
+    func updating(
+        status: String? = nil,
+        progress: Double? = nil,
+        errorMessage: String? = nil,
+        lastAttemptAt: Date? = nil
+    ) -> TranscriptionJob {
+        TranscriptionJob(
+            id: id,
+            trackId: trackId,
+            sonioxJobId: sonioxJobId,
+            status: status ?? self.status,
+            progress: progress ?? self.progress,
+            createdAt: createdAt,
+            completedAt: completedAt,
+            errorMessage: errorMessage ?? self.errorMessage,
+            retryCount: retryCount,
+            lastAttemptAt: lastAttemptAt ?? self.lastAttemptAt
+        )
+    }
+}
+
 // MARK: - DTO Models for Database Operations
 
 /// Data Transfer Object for transcripts

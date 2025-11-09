@@ -57,6 +57,7 @@
 		8685F36F2EBF3813003D8173 /* AITabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F36E2EBF3813003D8173 /* AITabView.swift */; };
 		86AD83AC2EB9AD5200FAB6DF /* CacheProgressTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */; };
 		86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */; };
+		86FE17562EBFC7F200027E93 /* test-1min.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 86FE17552EBFC7F200027E93 /* test-1min.mp3 */; };
 		8E29594F1DFC4DD3BDB9C297 /* AudiobookPlayer/DatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599C0102E5CE40F89A991FD2 /* AudiobookPlayer/DatabaseSchema.swift */; };
 		9AA2D81AAF724F08916ACE38 /* AudiobookPlayer/GRDBDatabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A3EA38DA804EB5B27139AA /* AudiobookPlayer/GRDBDatabaseManager.swift */; };
 		A1B2C3D52FEB123400000001 /* FavoriteToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */; };
@@ -119,6 +120,7 @@
 		8685F36E2EBF3813003D8173 /* AITabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITabView.swift; sourceTree = "<group>"; };
 		86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheDownloadManager.swift; sourceTree = "<group>"; };
 		86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheProgressTracker.swift; sourceTree = "<group>"; };
+		86FE17552EBFC7F200027E93 /* test-1min.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "test-1min.mp3"; sourceTree = "<group>"; };
 		A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteToggleButton.swift; sourceTree = "<group>"; };
 		A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteTracksView.swift; sourceTree = "<group>"; };
 		F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionBuilderViewModel.swift; sourceTree = "<group>"; };
@@ -202,6 +204,7 @@
 				6F6E7F742C4A9B0500AA00AA /* Assets.xcassets */,
 				6F6E7F752C4A9B0500AA00AA /* Preview Content */,
 				6F6E7F772C4A9B0500AA00AA /* Info.plist */,
+				86FE17552EBFC7F200027E93 /* test-1min.mp3 */,
 			);
 			path = AudiobookPlayer;
 			sourceTree = "<group>";
@@ -304,6 +307,7 @@
 				6F6E7F7A2C4A9B0500AA00AA /* Assets.xcassets in Resources */,
 				6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */,
 				8617DDE82EBE0A26006E7CA7 /* Localizable.xcstrings in Resources */,
+				86FE17562EBFC7F200027E93 /* test-1min.mp3 in Resources */,
 				6F6E7F7B2C4A9B0500AA00AA /* Preview Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

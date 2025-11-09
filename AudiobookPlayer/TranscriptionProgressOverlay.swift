@@ -6,22 +6,31 @@ import SwiftUI
 /// Shows as a badge/pill when transcriptions are in progress
 struct TranscriptionProgressOverlay: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
+    @EnvironmentObject private var library: LibraryStore
     @State private var showProgressSheet = false
-    @State private var activeJobs: [(trackId: String, trackName: String, progress: Double)] = []
 
     var body: some View {
         Group {
-            if transcriptionManager.isTranscribing, let trackId = transcriptionManager.currentTrackId {
+            if !transcriptionManager.activeJobs.isEmpty {
                 VStack(spacing: 0) {
                     // Progress badge
                     Button(action: { showProgressSheet = true }) {
                         HStack(spacing: 8) {
-                            ProgressView(value: transcriptionManager.transcriptionProgress, total: 1.0)
+                            ProgressView(value: aggregateProgress, total: 1.0)
                                 .frame(width: 16, height: 16)
 
-                            Text("transcribing_indicator")
-                                .font(.caption)
-                                .lineLimit(1)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("transcribing_indicator")
+                                    .font(.caption)
+                                    .lineLimit(1)
+
+                                if let summary = overlaySummary {
+                                    Text(summary)
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                            }
 
                             Image(systemName: "chevron.right")
                                 .font(.caption2)
@@ -48,54 +57,22 @@ struct TranscriptionProgressOverlay: View {
 struct TranscriptionProgressSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
+    @EnvironmentObject private var library: LibraryStore
     @State private var refreshTimer: Timer?
 
     var body: some View {
         NavigationStack {
             List {
                 Section(header: Text("active_transcriptions")) {
-                    if transcriptionManager.isTranscribing {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack(spacing: 12) {
-                                ProgressView(value: transcriptionManager.transcriptionProgress, total: 1.0)
-                                    .frame(height: 8)
-
-                                Text(String(format: "%.0f%%", transcriptionManager.transcriptionProgress * 100))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            HStack(spacing: 12) {
-                                Image(systemName: "waveform.circle.fill")
-                                    .foregroundStyle(.blue)
-                                    .font(.headline)
-
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("transcription_in_progress")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-
-                                    Text("transcription_processing_message")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Spacer()
-
-                                VStack(alignment: .trailing, spacing: 4) {
-                                    StatusBadge(status: "transcribing")
-
-                                    Text(statusTimeEstimate)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    } else {
+                    if transcriptionManager.activeJobs.isEmpty {
                         Text("no_active_transcriptions")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(transcriptionManager.activeJobs) { job in
+                            let trackName = lookupTrackName(for: job.trackId, in: library) ?? job.trackId
+                            TranscriptionJobRowView(job: job, trackName: trackName)
+                        }
                     }
                 }
 
@@ -167,25 +144,6 @@ struct TranscriptionProgressSheet: View {
 
     // MARK: - Private Methods
 
-    private var statusTimeEstimate: String {
-        let progress = transcriptionManager.transcriptionProgress
-        if progress <= 0 || progress >= 1 {
-            return ""
-        }
-
-        // Estimate remaining time (rough approximation)
-        let estimatedTotalSeconds = 30.0  // Assume 30 seconds for a typical transcription
-        let elapsedSeconds = progress * estimatedTotalSeconds
-        let remainingSeconds = estimatedTotalSeconds - elapsedSeconds
-
-        if remainingSeconds > 60 {
-            let minutes = Int(remainingSeconds / 60)
-            return String(format: "~%d min", minutes)
-        } else {
-            return String(format: "~%d sec", Int(remainingSeconds))
-        }
-    }
-
     private func startRefreshTimer() {
         refreshTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             // Timer just triggers view updates, actual data comes from TranscriptionManager
@@ -207,7 +165,7 @@ struct StatusBadge: View {
         switch status {
         case "queued":
             return .gray
-        case "uploading", "transcribing":
+        case "uploading", "transcribing", "processing":
             return .blue
         case "completed":
             return .green
@@ -224,7 +182,7 @@ struct StatusBadge: View {
             return "queued_status"
         case "uploading":
             return "uploading_status"
-        case "transcribing":
+        case "transcribing", "processing":
             return "transcribing_status"
         case "completed":
             return "completed_status"
@@ -247,9 +205,93 @@ struct StatusBadge: View {
     }
 }
 
+// MARK: - Active Job Helpers
+
+private extension TranscriptionProgressOverlay {
+    var overlaySummary: String? {
+        guard let firstJob = transcriptionManager.activeJobs.first else {
+            return nil
+        }
+        if transcriptionManager.activeJobs.count == 1 {
+            return lookupTrackName(for: firstJob.trackId, in: library) ?? firstJob.trackId
+        }
+        return "\(transcriptionManager.activeJobs.count)"
+    }
+
+    var aggregateProgress: Double {
+        let jobs = transcriptionManager.activeJobs
+        guard !jobs.isEmpty else { return 0 }
+        let total = jobs.reduce(0.0) { partial, job in
+            partial + (job.progress ?? 0)
+        }
+        return total / Double(jobs.count)
+    }
+}
+
+@MainActor
+private func lookupTrackName(for trackId: String, in library: LibraryStore) -> String? {
+    guard let uuid = UUID(uuidString: trackId) else {
+        return nil
+    }
+
+    for collection in library.collections {
+        if let track = collection.tracks.first(where: { $0.id == uuid }) {
+            return track.displayName
+        }
+    }
+
+    return nil
+}
+
+struct TranscriptionJobRowView: View {
+    let job: TranscriptionJob
+    let trackName: String
+
+    private var progressValue: Double {
+        min(max(job.progress ?? 0, 0), 1)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(trackName)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .lineLimit(2)
+
+                    Text(job.sonioxJobId)
+                        .font(.caption2.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                StatusBadge(status: job.status)
+            }
+
+            ProgressView(value: progressValue, total: 1.0)
+                .progressViewStyle(.linear)
+
+            HStack {
+                Text(String(format: "%.0f%%", progressValue * 100))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(job.status.capitalized)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 6)
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
     TranscriptionProgressOverlay()
         .environmentObject(TranscriptionManager())
+        .environmentObject(LibraryStore())
 }
