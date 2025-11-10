@@ -44,42 +44,52 @@ Generates all required iOS app icon sizes from a single source image.
 
 ---
 
-## Architecture Suggestions
+## Current App Surface (2025-11)
 
-### Tech Stack (Proposed)
-- **Language**: Swift
-- **UI Framework**: SwiftUI (modern, declarative, easier maintenance)
-- **Audio Playback**: AVFoundation (native iOS audio framework)
-- **Networking**: URLSession + Combine for reactive programming
-- **Data Persistence**: SwiftData or Core Data (for playback progress, library)
-- **Baidu API Integration**: Custom HTTP client for Baidu Cloud API
+### Tabs & Primary Screens
+- `Library` (LibraryView.swift) shows the GRDB-backed collections list with quick-play buttons, duplicate-import detection, Baidu-only import menu, favorites shortcut, and inline error banner fed by `LibraryStore.lastError`.
+- `Playing` (PlayingView in ContentView.swift) renders the active/last-played `PlaybackSnapshot`, playback history feed, progress bars, and exposes cache settings via the toolbar sheet; it gracefully falls back to persisted states when nothing is actively playing.
+- `Sources` (SourcesView.swift) combines Baidu auth state, a Netdisk browser (`BaiduNetdiskBrowserView` + sheet detail), direct-play for supported audio, and the “save parent folder into library” flow; local files are stubbed for future expansion.
+- `AI` (AITabView.swift) manages the AI Gateway keychain secret, fetches credits/model catalogs from `AIGatewayClient`, lets users search/collapse provider groups, and runs quick chat/generation lookups for validation.
+- `TTS` (TTSTabView embedded in AITabView.swift) is the Soniox/STT control room: users store their key, run a sample transcription, monitor active/recent jobs, jump into `TranscriptionSheet`/`TranscriptViewerSheet`, and the tab badge reflects `transcriptionManager.activeJobs`.
 
-### Core Modules
-1. **BaiduCloudModule**
-   - OAuth2 authentication with Baidu
-   - File listing and browsing
-   - Audio file streaming
-   - Metadata extraction
+### Supporting Workflows & Sheets
+- `CollectionDetailView` + `FavoriteTracksView` provide track-level playback, favorites, and per-track resume states; both surfaces reuse the shared `AudioPlayerViewModel` for actions.
+- `BaiduNetdiskBrowserView` (and its detail sheet) powers both the Sources tab and Collection import flows, including direct streaming via `TemporaryPlaybackContext`.
+- `CreateCollectionView` + `CollectionBuilderViewModel` orchestrate pulling an entire Netdisk folder (metadata, tracks, checksums) into the local library and monitor background work.
+- `CacheManagementView` (sheet from Playing tab) lets users inspect cache path/size, tweak TTL (1–30 days, default 10), clear everything, or nuke the currently playing track.
+- `TranscriptionProgressOverlay`, `TranscriptionSheet`, and `TranscriptViewerSheet` surface Soniox job state, retry actions, and finished transcripts without leaving the current screen.
+- `SplashScreenView` briefly shows the AppLogo while `AudiobookPlayerApp` wires up all environment objects (player, library, Baidu auth, tab manager, AI gateway, transcription manager).
 
-2. **AudioPlaybackModule**
-   - AVFoundation-based player
-   - Queue management
-   - Playback state management
-   - Audio session handling
+---
 
-3. **LibraryModule**
-   - Local audiobook library
-   - Metadata storage (title, author, duration)
-   - Playback progress tracking
-   - Favorites/playlists
+## Architecture Snapshot (2025-11)
 
-4. **UIModule**
-   - Now Playing screen
-   - Library browser
-   - Baidu Cloud file browser
-   - Settings & preferences
+### Core Stack
+- SwiftUI + ObservableObject environment graph inside `AudiobookPlayerApp`; Combine is used sparingly (e.g., cache progress publishers) while async/await drives Baidu, Soniox, and AI Gateway requests.
+- AVFoundation/AVPlayer power playback with background audio + `MPRemoteCommandCenter` hooks for lock-screen/Control Center transport controls; `NowPlaying` metadata is kept in sync inside `AudioPlayerViewModel`.
+- Persistence lives in GRDB-backed SQLite (`GRDBDatabaseManager`, `DatabaseSchema`, `TranscriptionDatabaseSchema`); JSON file fallback (`LibraryPersistence`) and optional `CloudKitLibrarySync` keep collections portable.
+- Secrets stay in Keychain stores (`KeychainBaiduOAuthTokenStore`, `KeychainAIGatewayAPIKeyStore`, `SonioxKeychainStore`), while Info.plist still contains legacy placeholders for Baidu/Soniox defaults.
+
+### Modules & Responsibilities
+- **App shell & DI**: `AudiobookPlayerApp` instantiates player, library, Baidu auth, tab manager, AI gateway, and transcription manager, injects them via `.environmentObject`, and shows `SplashScreenView` until ready.
+- **Library & collections**: `LibraryStore` coordinates GRDB + CloudKit + JSON fallback, handles schema upgrades, provides duplicate-path detection, favorites, and `recordPlaybackProgress`. `CollectionDetailView`, `LibraryCollectionRow`, and `FavoriteToggleButton` consume its data.
+- **Baidu OAuth + Netdisk**: `BaiduAuthViewModel` wraps `ASWebAuthenticationSession`-backed `BaiduOAuthService`, persists tokens, and exposes sign-in/out states. `BaiduNetdiskClient` lists/searches directories and produces signed download URLs; `BaiduNetdiskBrowserView` + `BaiduNetdiskBrowserViewModel` provide the UI, and `NetdiskEntryDetailSheet` lets users play or save folders.
+- **Import pipeline**: `CreateCollectionView` uses `CollectionBuilderViewModel` to fetch folder metadata, build `AudiobookCollection`/`AudiobookTrack` models, and persist them; duplicate detection feeds back into `LibraryView` alerts.
+- **Audio engine & cache**: `AudioPlayerViewModel` manages playlists, tokens, resume logic, remote commands, and background audio session. `TemporaryPlaybackContext` keeps direct-play sessions coherent, while `AudioCacheManager`, `AudioCacheDownloadManager`, and `CacheProgressTracker` track partial/complete downloads with a 2 GB cap + 10-day TTL (customizable via `CacheManagementView`).
+- **UI tabs**: `ContentView` orchestrates a 5-tab `TabView`, shares selection state through `TabSelectionManager`, and wires `.badge(transcriptionManager.activeJobs.count)` on the TTS tab so long-running jobs remain visible.
+- **AI Gateway**: `AIGatewayViewModel` talks to `AIGatewayClient` (`https://ai-gateway.vercel.sh/v1`), caches the preferred model id, exposes provider-grouped catalogs with collapsible state, refreshes credits, and runs diagnostics chat calls; the UI keeps the key field empty after save for security.
+- **Speech-to-text / TTS tab**: `SonioxKeyViewModel` persists the API key, `TranscriptionManager` orchestrates upload → job creation → polling → transcript storage, and `TranscriptionJobManager`/`TranscriptionRetryManager` handle persistence + retries. UI surfaces job rows, sample tests, retry/cancel buttons, and opens `TranscriptViewerSheet` for finished transcripts.
+- **Background processing**: `BackgroundTranscriptionManager` configures a background `URLSession` for long uploads, emitting Notifications for progress/completion. Audio caching/download tasks use `URLSessionDownloadTask` with resumable progress observers.
+- **System integrations**: Info.plist enables `UIBackgroundModes=audio`, lock-screen controls, and entitlements for networking. App Intents scaffolding (`AudiobookCollectionEntity`, `PlayCollectionIntent`, etc. inside `AppIntents/`) is implemented but blocked on paid Apple Developer provisioning.
 
 ### Data Flow
+- Baidu OAuth (`BaiduAuthViewModel`) → `BaiduNetdiskBrowserView` fetches folder contents → `CreateCollectionView` persists them through `LibraryStore`/GRDB and optional `CloudKitLibrarySync`.
+- Library selections (`LibraryView`/`CollectionDetailView`) → `AudioPlayerViewModel` loads playlists + resume state → streaming URLs are minted by `BaiduNetdiskClient`, optionally cached via `AudioCacheManager`, and surfaced in `PlayingView`.
+- Playback ticks call `recordPlaybackProgress`, which updates GRDB and keeps history/quick-play tiles accurate; cache/download progress flows to `CacheManagementView` and `PlayingView` cards through `CacheStatusSnapshot`.
+- Any track can spawn a transcription job (`TranscriptionManager`), which uploads audio to Soniox, polls for completion, saves transcripts/segments in SQLite, and notifies the UI overlays + TTS tab badge.
+- AI Gateway traffic is isolated: user-supplied keys unlock model catalogs/credits/chat endpoints without touching audiobook data, but reuse the Keychain convention for secret storage.
+
 ### Phase 1: Foundation (MVP)
 - [x] Project setup with SwiftUI + AVFoundation
 - [x] Baidu OAuth2 authentication flow (authorization code + token exchange skeleton)
@@ -93,18 +103,18 @@ Generates all required iOS app icon sizes from a single source image.
 - []  Bookmarking for Netdisk path
 - [x] Local library management
 - [ ] Metadata display (title, artist, duration)
-- [ ] Playlist/collection organization
+- [x] Playlist/collection organization
 - [ ] Speed control (0.75x, 1x, 1.25x, 1.5x, etc.)
-- [ ] Seek bar with scrubbing
+- [x] Seek bar with scrubbing
 
 ### Phase 3: Enhancement
 - [ ] Sleep timer
-- [ ] Offline download support (cache audio locally)
+- [x] Offline download support (cache audio locally)
 - [ ] Search functionality
 - [ ] Custom sorting/filtering
 - [ ] iCloud sync for progress across devices
 - [ ] Dark mode support
-- [ ] Lock screen playback controls
+- [x] Lock screen playback controls
 
 ### Phase 4: Polish & Distribution
 - [ ] Unit tests
@@ -115,33 +125,6 @@ Generates all required iOS app icon sizes from a single source image.
 
 ---
 
-## Key Clarifications Needed
-### 1. **Authentication & Access**
-- [x] Do you need secure credential storage (Keychain)?
-Yes
-
-### 2. **Audio File Support**
-- [x] What audio formats do you primarily use? (MP3, M4A, FLAC, OGG, etc.) 
-MP3, M4A, FLAC
-
-### 4. **Data Storage & Sync**
-- [ ] Should playback progress sync across iOS devices? (requires iCloud or server backend)
-- [ ] Do you want local caching of frequently played audiobooks?
-Yes
-- [ ] Preferred local storage approach: SwiftData vs Core Data?
-目前使用 JSON 后续需要更改
-
-### 5. **UI/UX Preferences**
-- [x] Minimum iOS version? 
-IOS 16
-- [x] Support iPad as well?
-YES
-
-### 6. **Performance & Streaming**
-- [ ] Should audio stream directly from Baidu, or require local download?
-- [ ] Expected offline usage percentage?
-
----
 
 ## Technology Decisions
 
@@ -149,7 +132,7 @@ YES
 |-----------|---------|-----------------|-------|
 | UI Framework | UIKit vs SwiftUI | **SwiftUI** | Easier to maintain, modern iOS standard |
 | Audio Framework | AVFoundation vs MediaPlayer | **AVFoundation** | More control, better for custom UI |
-| Database | Core Data vs SwiftData | **SwiftData** | Newer, simpler, integrated with Concurrency |
+| Database | Core Data vs SwiftData vs GRDB | **GRDB + SQLite** | Handles library + transcription tables with JSON fallback and optional CloudKit sync |
 | Networking | URLSession vs Alamofire | **URLSession** | Built-in, sufficient for this use case |
 | Async Concurrency | Callbacks vs async/await | **async/await** | Modern Swift standard (iOS 13+) |
 
@@ -169,16 +152,6 @@ YES
 - **Adding localized strings without Xcode UI**: update `project.pbxproj` by creating a `PBXVariantGroup` named `Localizable.strings`, add language `PBXFileReference` entries (for example `en.lproj/Localizable.strings`, `zh-Hans.lproj/Localizable.strings`), include the group under the main app group, add a `PBXBuildFile`, and list it in the target’s Resources build phase so Xcode picks up the localized bundles automatically.
 5. **Privacy**: Securely store Baidu credentials in Keychain
 6. **App Store Policy**: Verify app complies with Apple's guidelines for cloud storage integration
-
----
-
-## Next Steps
-
-1. **Your Input**: Answer the clarification questions above
-2. **Project Structure**: Set up Xcode project with folder organization
-3. **Baidu API Research**: Identify required endpoints and authentication flow
-4. **Prototype**: Build basic MVP with authentication + file listing
-5. **Iterate**: Add features based on priority
 
 ---
 
@@ -320,9 +293,6 @@ YES
    - **Also Fixed**: Cache completion check - `getCachedAssetURL()` now verifies `metadata.cacheStatus == .complete` before returning URL
    - **Doc**: `local/stt-integration.md` Session 2025-11-10
 
-
-## Documentation Index
-- `local/docs/siri-collection-playback.md`: Siri/App Intents setup for triggering collection playback via voice and Shortcuts.
 
 ## Database Reference (STT & Library)
 - **Main Database**: `~/Library/Containers/6DAE9FFA-3650-44C2-9FD6-788F8AC6FB2E/Data/Library/Application Support/AudiobookPlayer/library.sqlite`

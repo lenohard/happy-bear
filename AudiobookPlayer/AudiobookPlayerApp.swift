@@ -42,7 +42,7 @@ struct SplashScreenView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 242 / 255, green: 242 / 255, blue: 239 / 255)
+            Color(red: 250 / 255, green: 248 / 255, blue: 245 / 255)
                             .ignoresSafeArea()
 
             VStack {
@@ -56,13 +56,13 @@ struct SplashScreenView: View {
         }
         .onAppear {
             // Fade in animation (0.4s)
-            withAnimation(.easeIn(duration: 0.4)) {
-                iconScale = 2.0
+            withAnimation(.easeIn(duration: 0.5)) {
+                iconScale = 2.5
             }
 
             // Dismiss after 2 seconds
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                withAnimation(.easeOut(duration: 0.6)) {
+                withAnimation(.easeOut(duration: 0.7)) {
                     iconOpacity = 0
                     onDismiss()
                 }
