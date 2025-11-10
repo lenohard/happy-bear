@@ -385,7 +385,6 @@ struct TTSTabView: View {
     @State private var testResult: String?
     @State private var testError: String?
     @State private var selectedJobForTranscript: TranscriptionJob?
-    @State private var showTranscriptViewer = false
     @State private var refreshTimer: Timer?
 
     var body: some View {
@@ -489,13 +488,11 @@ struct TTSTabView: View {
             .onDisappear {
                 stopAutoRefresh()
             }
-            .sheet(isPresented: $showTranscriptViewer) {
-                if let job = selectedJobForTranscript {
-                    TranscriptViewerSheet(
-                        trackId: job.trackId,
-                        trackName: lookupTrackName(for: job.trackId)
-                    )
-                }
+            .sheet(item: $selectedJobForTranscript) { job in
+                TranscriptViewerSheet(
+                    trackId: job.trackId,
+                    trackName: lookupTrackName(for: job.trackId)
+                )
             }
         }
     }
@@ -560,7 +557,6 @@ struct TTSTabView: View {
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 selectedJobForTranscript = job
-                                showTranscriptViewer = true
                             }
                     }
                 }

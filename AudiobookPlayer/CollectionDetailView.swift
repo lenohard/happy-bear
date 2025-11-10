@@ -18,7 +18,6 @@ struct CollectionDetailView: View {
     @State private var collectionTitleDraft = ""
     @State private var trackForTranscription: AudiobookTrack?
     @State private var trackForViewing: AudiobookTrack?
-    @State private var showTranscriptViewer = false
     @State private var transcriptStatusCache: [UUID: Bool] = [:]
 
     private var collection: AudiobookCollection? {
@@ -157,10 +156,8 @@ struct CollectionDetailView: View {
         .sheet(item: $trackForTranscription) { track in
             TranscriptionSheet(track: track, collectionID: collectionID)
         }
-        .sheet(isPresented: $showTranscriptViewer) {
-            if let track = trackForViewing {
-                TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
-            }
+        .sheet(item: $trackForViewing) { track in
+            TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
         }
     }
 
@@ -301,7 +298,6 @@ struct CollectionDetailView: View {
 
                         Button {
                             trackForViewing = track
-                            showTranscriptViewer = true
                         } label: {
                             Label(
                                 NSLocalizedString("view_transcript", comment: "View transcript menu item"),
@@ -490,26 +486,27 @@ struct CollectionDetailView: View {
     private func loadTranscriptStatus() {
         guard let collection else { return }
 
-        print("[CollectionDetailView] Loading transcript status for \(collection.tracks.count) tracks")
-
         Task {
             var newCache: [UUID: Bool] = [:]
             let dbManager = GRDBDatabaseManager.shared
+
+            do {
+                try await dbManager.initializeDatabase()
+            } catch {
+                await MainActor.run {
+                    self.transcriptStatusCache = [:]
+                }
+                return
+            }
 
             for track in collection.tracks {
                 do {
                     let hasTranscript = try await dbManager.hasCompletedTranscript(forTrackId: track.id.uuidString)
                     newCache[track.id] = hasTranscript
-                    if hasTranscript {
-                        print("[CollectionDetailView] Track \(track.displayName) HAS transcript")
-                    }
                 } catch {
-                    print("[CollectionDetailView] Error loading transcript status for track \(track.id): \(error)")
                     newCache[track.id] = false
                 }
             }
-
-            print("[CollectionDetailView] Transcript cache updated: \(newCache.filter { $0.value }.count) tracks with transcripts")
 
             await MainActor.run {
                 self.transcriptStatusCache = newCache
