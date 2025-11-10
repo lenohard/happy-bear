@@ -6,3 +6,9 @@ xcuserdata/
 *.pbxproj.bak
 local/
 test-1min.mp3
+
+# Build output
+build/
+
+# Xcode scheme management (user-specific)
+xcschememanagement.plist

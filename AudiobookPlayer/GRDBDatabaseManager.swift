@@ -21,6 +21,11 @@ actor GRDBDatabaseManager {
 
     /// Initialize the database with schema
     func initializeDatabase() throws {
+        if db != nil {
+            print("[GRDB] initializeDatabase skipped (already initialized)")
+            return
+        }
+
         print("[GRDB] initializeDatabase starting...")
         try DatabaseConfig.ensureDirectoryExists()
         print("[GRDB] Directory exists")

@@ -11,6 +11,9 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 
 **Project Root**: `~/projects/audiobook-player`
 
+### Build & Schemes
+- Shared Xcode scheme `AudiobookPlayer.xcodeproj/xcshareddata/xcschemes/AudiobookPlayer.xcscheme` lives in the repo so `xcodebuild -scheme AudiobookPlayer` (CI, scripts, other agents) can resolve SwiftPM packages. Keep it under version control; removing it breaks command-line builds.
+
 ---
 
 ### App Icon Generation
