@@ -46,14 +46,28 @@ final class LibraryStore: ObservableObject {
             // Load from SQLite database
             let dbCollections = try await dbManager.loadAllCollections()
             collections = dbCollections.sorted { $0.updatedAt > $1.updatedAt }
+
+            // Debug: print favorite count
+            let favoriteCount = collections.flatMap { $0.tracks }.filter { $0.isFavorite }.count
+            print("[FAVORITES] Loaded \(collections.count) collections with \(favoriteCount) total favorite tracks")
+            for collection in collections {
+                let collectionFavorites = collection.tracks.filter { $0.isFavorite }
+                if !collectionFavorites.isEmpty {
+                    print("[FAVORITES]   - \(collection.title): \(collectionFavorites.count) favorites")
+                }
+            }
+
             lastError = nil
 
             // Sync with remote if available
             if let syncEngine {
+                print("[FAVORITES] Before sync with remote: \(collections.flatMap { $0.tracks }.filter { $0.isFavorite }.count) favorites")
                 await synchronizeWithRemote(using: syncEngine)
+                print("[FAVORITES] After sync with remote: \(collections.flatMap { $0.tracks }.filter { $0.isFavorite }.count) favorites")
             }
         } catch {
             print("❌ Failed to load from GRDB: \(error)")
+
 
             // Fallback to JSON if GRDB fails
             do {
@@ -399,6 +413,8 @@ final class LibraryStore: ObservableObject {
         track.isFavorite.toggle()
         track.favoritedAt = track.isFavorite ? Date() : nil
 
+        print("[FAVORITES] Toggling track \(track.displayName) - isFavorite=\(track.isFavorite), collection=\(collection.title)")
+
         collection.tracks[trackIndex] = track
         collection.updatedAt = Date()
 
@@ -407,18 +423,22 @@ final class LibraryStore: ObservableObject {
 
         // Persist to database
         if !useFallbackJSON {
+            print("[FAVORITES] Using GRDB - saving favorite status...")
             Task(priority: .userInitiated) {
                 do {
                     // Only update favorite status in database - no need for full collection save
                     // Note: dbManager is an actor, so await is required for actor isolation
                     try await dbManager.setFavorite(track.isFavorite, for: trackID)
+                    print("[FAVORITES] ✅ Database save successful for track: \(track.displayName)")
                 } catch {
+                    print("[FAVORITES] ❌ Database save FAILED: \(error)")
                     await MainActor.run {
                         self.lastError = error
                     }
                 }
             }
         } else {
+            print("[FAVORITES] Using JSON fallback...")
             persistCurrentSnapshot()
         }
 
@@ -485,6 +505,8 @@ extension LibraryStore {
     }
 
     private func persistToDatabase(_ collection: AudiobookCollection) {
+        let favorites = collection.tracks.filter { $0.isFavorite }
+        print("[FAVORITES] persistToDatabase called for '\(collection.title)' with \(favorites.count) favorite tracks")
         Task(priority: .utility) {
             do {
                 try await dbManager.saveCollection(collection)

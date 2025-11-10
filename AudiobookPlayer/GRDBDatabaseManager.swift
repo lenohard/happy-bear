@@ -111,6 +111,10 @@ actor GRDBDatabaseManager {
             // Insert tracks
             print("[GRDB] Inserting \(collection.tracks.count) tracks")
             for (idx, track) in collection.tracks.enumerated() {
+                let isFavStr = track.isFavorite ? "✓" : "✗"
+                if track.isFavorite {
+                    print("[FAVORITES-DB] Saving favorite track: \(track.displayName)")
+                }
                 try db.execute(sql:
                     """
                     INSERT INTO tracks (
@@ -249,6 +253,12 @@ actor GRDBDatabaseManager {
                     arguments: [collectionId]
                 )
                 print("[GRDB] Found \(trackRows.count) tracks for collection \(collectionId)")
+
+                // Debug: Check for favorite status in raw rows
+                let favoriteCount = trackRows.filter { (($0["is_favorite"] as? Int) ?? 0) == 1 }.count
+                if favoriteCount > 0 {
+                    print("[FAVORITES-DB] Found \(favoriteCount) favorite tracks in raw database rows")
+                }
 
                 let playbackRows = try Row.fetchAll(
                     db,
@@ -431,8 +441,13 @@ actor GRDBDatabaseManager {
     func setFavorite(_ isFavorite: Bool, for trackId: UUID) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
+        print("[FAVORITES-DB] setFavorite called: trackId=\(trackId.uuidString), isFavorite=\(isFavorite)")
+
         try db.write { db in
-            try db.execute(sql: 
+            let intValue = isFavorite ? 1 : 0
+            print("[FAVORITES-DB] About to UPDATE with is_favorite=\(intValue)")
+
+            try db.execute(sql:
                 """
                 UPDATE tracks SET
                     is_favorite = ?,
@@ -440,11 +455,25 @@ actor GRDBDatabaseManager {
                 WHERE id = ?
                 """,
                 arguments: [
-                    isFavorite ? 1 : 0,
+                    intValue,
                     isFavorite ? Date() : nil,
                     trackId.uuidString
                 ]
             )
+
+            // Check how many rows were affected
+            let changes = db.changesCount
+            print("[FAVORITES-DB] UPDATE executed, affected \(changes) row(s)")
+
+            // Verify the update worked
+            if let row = try Row.fetchOne(db, sql: "SELECT is_favorite FROM tracks WHERE id = ?", arguments: [trackId.uuidString]) {
+                // Use typed subscript to properly extract the Int value
+                let intValue: Int? = row["is_favorite"]
+                let savedFavorite = (intValue ?? 0) == 1
+                print("[FAVORITES-DB] ✓ Verification: track \(trackId.uuidString) has is_favorite=\(intValue as Any), bool=\(savedFavorite)")
+            } else {
+                print("[FAVORITES-DB] ❌ ERROR: Track \(trackId.uuidString) not found in database!")
+            }
         }
     }
 
@@ -644,6 +673,10 @@ actor GRDBDatabaseManager {
             favoritedAt = Self.sqliteDateFormatter.date(from: dateString)
         } else {
             favoritedAt = nil
+        }
+
+        if isFavorite {
+            print("[FAVORITES-DB] Read favorite track from DB: \(displayName), favoritedAt=\(favoritedAt as Any)")
         }
 
         return AudiobookTrack(
