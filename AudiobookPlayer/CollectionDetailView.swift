@@ -19,6 +19,8 @@ struct CollectionDetailView: View {
     @State private var trackForTranscription: AudiobookTrack?
     @State private var trackForViewing: AudiobookTrack?
     @State private var transcriptStatusCache: [UUID: Bool] = [:]
+    @State private var pendingAutoFocusTrackId: UUID?
+    @State private var didAutoFocusTrack = false
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -68,13 +70,17 @@ struct CollectionDetailView: View {
             Text(NSLocalizedString("sign_in_on_sources_tab", comment: "Sign in on sources tab message"))
         }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
-            guard
-                audioPlayer.activeCollection?.id == collectionID,
-                let collection,
-                let track = audioPlayer.currentTrack
-            else { return }
+            let currentCollection = self.collection
 
-            recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
+            if
+                audioPlayer.activeCollection?.id == collectionID,
+                let collection = currentCollection,
+                let track = audioPlayer.currentTrack
+            {
+                recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
+            }
+
+            prepareAutoFocusTargetIfNeeded(for: currentCollection)
         }
         .onChange(of: audioPlayer.currentTime) { newValue in
             guard
@@ -143,10 +149,19 @@ struct CollectionDetailView: View {
             }
         }
         .onChange(of: collectionID) { _ in
+            resetAutoFocusState()
             loadTranscriptStatus()
+            prepareAutoFocusTargetIfNeeded(for: self.collection)
+        }
+        .onChange(of: collection?.tracks.map(\.id) ?? []) { _ in
+            prepareAutoFocusTargetIfNeeded(for: self.collection)
+        }
+        .onChange(of: audioPlayer.activeCollection?.id) { _ in
+            prepareAutoFocusTargetIfNeeded(for: self.collection)
         }
         .onAppear {
             loadTranscriptStatus()
+            prepareAutoFocusTargetIfNeeded(for: self.collection)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TranscriptionCompleted"))) { notification in
             print("[CollectionDetailView] Received TranscriptionCompleted notification")
@@ -185,11 +200,23 @@ struct CollectionDetailView: View {
     }
 
     private func listContent(_ collection: AudiobookCollection) -> some View {
-        List {
-            summarySection(collection)
-            tracksSection(collection)
+        ScrollViewReader { proxy in
+            List {
+                summarySection(collection)
+                tracksSection(collection)
+            }
+            .listStyle(.insetGrouped)
+            .onAppear {
+                prepareAutoFocusTargetIfNeeded(for: collection)
+                attemptAutoFocusIfNeeded(using: proxy)
+            }
+            .onChange(of: pendingAutoFocusTrackId) { _ in
+                attemptAutoFocusIfNeeded(using: proxy)
+            }
+            .onChange(of: filteredTracks.map(\.id)) { _ in
+                attemptAutoFocusIfNeeded(using: proxy)
+            }
         }
-        .listStyle(.insetGrouped)
     }
 
     @ViewBuilder
@@ -305,8 +332,65 @@ struct CollectionDetailView: View {
                             )
                         }
                     }
+                    .id(track.id)
                 }
             }
+        }
+    }
+
+    private func prepareAutoFocusTargetIfNeeded(for collection: AudiobookCollection?) {
+        guard !didAutoFocusTrack else { return }
+
+        guard let target = resolveAutoFocusTrackID(for: collection) else {
+            if pendingAutoFocusTrackId != nil {
+                pendingAutoFocusTrackId = nil
+            }
+            return
+        }
+
+        if pendingAutoFocusTrackId != target {
+            pendingAutoFocusTrackId = target
+        }
+    }
+
+    private func resetAutoFocusState() {
+        pendingAutoFocusTrackId = nil
+        didAutoFocusTrack = false
+    }
+
+    private func resolveAutoFocusTrackID(for collection: AudiobookCollection?) -> UUID? {
+        guard let collection else { return nil }
+
+        if
+            audioPlayer.activeCollection?.id == collection.id,
+            let activeId = audioPlayer.currentTrack?.id,
+            collection.tracks.contains(where: { $0.id == activeId })
+        {
+            return activeId
+        }
+
+        if
+            let lastPlayed = collection.lastPlayedTrackId,
+            collection.tracks.contains(where: { $0.id == lastPlayed })
+        {
+            return lastPlayed
+        }
+
+        return nil
+    }
+
+    private func attemptAutoFocusIfNeeded(using proxy: ScrollViewProxy) {
+        guard
+            !didAutoFocusTrack,
+            let targetId = pendingAutoFocusTrackId,
+            filteredTracks.contains(where: { $0.id == targetId })
+        else { return }
+
+        DispatchQueue.main.async {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                proxy.scrollTo(targetId, anchor: .center)
+            }
+            self.didAutoFocusTrack = true
         }
     }
 
