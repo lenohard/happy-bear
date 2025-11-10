@@ -3,14 +3,13 @@ import SwiftUI
 @MainActor
 final class TabSelectionManager: ObservableObject {
     @Published var selectedTab: Tab = .library
-    
+
     enum Tab: Int, CaseIterable {
         case library = 0
         case playing = 1
-        case sources = 2
-        case ai = 3
-        case tts = 4
-        case settings = 5
+        case ai = 2
+        case tts = 3
+        case settings = 4
 
         var title: String {
             switch self {
@@ -18,8 +17,6 @@ final class TabSelectionManager: ObservableObject {
                 return NSLocalizedString("library_tab", comment: "Tab for library")
             case .playing:
                 return NSLocalizedString("playing_tab", comment: "Tab for now playing")
-            case .sources:
-                return NSLocalizedString("sources_tab", comment: "Tab for sources")
             case .ai:
                 return NSLocalizedString("ai_tab", comment: "AI tab")
             case .tts:
@@ -35,8 +32,6 @@ final class TabSelectionManager: ObservableObject {
                 return "books.vertical"
             case .playing:
                 return "play.circle"
-            case .sources:
-                return "externaldrive.badge.icloud"
             case .ai:
                 return "brain"
             case .tts:
@@ -69,12 +64,6 @@ struct ContentView: View {
                     Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
                 }
                 .tag(TabSelectionManager.Tab.playing)
-
-            SourcesView()
-                .tabItem {
-                    Label(NSLocalizedString("sources_tab", comment: "Tab for sources"), systemImage: "externaldrive.badge.icloud")
-                }
-                .tag(TabSelectionManager.Tab.sources)
 
             AITabView()
                 .tabItem {
