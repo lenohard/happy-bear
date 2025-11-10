@@ -293,6 +293,14 @@ Generates all required iOS app icon sizes from a single source image.
    - **Also Fixed**: Cache completion check - `getCachedAssetURL()` now verifies `metadata.cacheStatus == .complete` before returning URL
    - **Doc**: `local/stt-integration.md` Session 2025-11-10
 
+10. **Simple Fixes Don't Require Testing**:
+   - For obvious, low-risk changes, skip the build/test step to save time and tokens
+   - ✅ **Examples of simple fixes**: Removing debug logs, fixing typos in comments, code formatting, string updates
+   - ❌ **Still needs testing**: Logic changes, API modifications, new features, refactoring
+   - **Workflow**: Make the change → commit directly → move on
+   - **Rationale**: Build verification takes time and tokens; trust that integration tests will catch regressions for complex changes
+   - **Example**: Removing `print()` statements doesn't need a full Xcode build cycle
+
 
 ## Database Reference (STT & Library)
 - **Main Database**: `~/Library/Containers/6DAE9FFA-3650-44C2-9FD6-788F8AC6FB2E/Data/Library/Application Support/AudiobookPlayer/library.sqlite`
