@@ -1,6 +1,8 @@
-# iOS Audiobook Player
+# happyBear
 
 An iOS app for playing audiobooks and audio files stored in Baidu Cloud Drive (百度云盘).
+
+> **Note**: The app displays as "happyBear" on iOS devices. The Xcode project and technical identifiers remain "AudiobookPlayer" for compatibility.
 
 ## Features (Planned)
 - 🎵 Stream audio directly from Baidu Cloud
