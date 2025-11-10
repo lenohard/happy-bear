@@ -407,9 +407,10 @@ final class LibraryStore: ObservableObject {
 
         // Persist to database
         if !useFallbackJSON {
-            Task(priority: .utility) {
+            Task(priority: .userInitiated) {
                 do {
                     // Only update favorite status in database - no need for full collection save
+                    // Note: dbManager is an actor, so await is required for actor isolation
                     try await dbManager.setFavorite(track.isFavorite, for: trackID)
                 } catch {
                     await MainActor.run {
