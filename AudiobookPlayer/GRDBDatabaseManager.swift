@@ -22,7 +22,6 @@ actor GRDBDatabaseManager {
     /// Initialize the database with schema
     func initializeDatabase() throws {
         if db != nil {
-            print("[GRDB] initializeDatabase skipped (already initialized)")
             return
         }
 
@@ -878,19 +877,15 @@ actor GRDBDatabaseManager {
             }
 
             let jobStatus: String = row["job_status"]
-            print("[GRDB] Track \(trackId) transcript status: \(jobStatus)")
             return jobStatus == "complete"
         }
 
-        print("[GRDB] Track \(trackId) hasCompletedTranscript: \(hasTranscript)")
         return hasTranscript
     }
 
     /// Load all transcript segments for a transcript
     func loadTranscriptSegments(forTranscriptId transcriptId: String) throws -> [TranscriptSegment] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
-
-        print("[GRDB] Loading segments for transcript: \(transcriptId)")
 
         let segments = try db.read { db in
             let rows = try Row.fetchAll(
