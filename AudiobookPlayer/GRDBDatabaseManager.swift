@@ -497,6 +497,27 @@ actor GRDBDatabaseManager {
         }
     }
 
+    /// Update collection's updatedAt timestamp (used when favorites change)
+    func updateCollectionTimestamp(_ collectionId: UUID, updatedAt: Date) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        print("[FAVORITES-DB] Updating collection timestamp: \(collectionId.uuidString) to \(updatedAt)")
+
+        try db.write { db in
+            try db.execute(sql:
+                """
+                UPDATE collections SET
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                arguments: [updatedAt, collectionId.uuidString]
+            )
+
+            let changes = db.changesCount
+            print("[FAVORITES-DB] Collection timestamp update affected \(changes) row(s)")
+        }
+    }
+
     // MARK: - Tag Operations
 
     /// Add tags to a collection

@@ -426,9 +426,14 @@ final class LibraryStore: ObservableObject {
             print("[FAVORITES] Using GRDB - saving favorite status...")
             Task(priority: .userInitiated) {
                 do {
-                    // Only update favorite status in database - no need for full collection save
-                    // Note: dbManager is an actor, so await is required for actor isolation
+                    // Update track favorite status
                     try await dbManager.setFavorite(track.isFavorite, for: trackID)
+                    print("[FAVORITES] ✅ Track favorite status saved")
+
+                    // CRITICAL: Update collection's updatedAt timestamp so CloudKit sync doesn't overwrite!
+                    try await dbManager.updateCollectionTimestamp(collectionID, updatedAt: collection.updatedAt)
+                    print("[FAVORITES] ✅ Collection timestamp updated - will prevent CloudKit overwrite")
+
                     print("[FAVORITES] ✅ Database save successful for track: \(track.displayName)")
                 } catch {
                     print("[FAVORITES] ❌ Database save FAILED: \(error)")
@@ -561,7 +566,10 @@ private extension LibraryStore {
 
     func synchronizeWithRemote(using syncEngine: LibrarySyncing) async {
         do {
+            print("[FAVORITES-SYNC] Starting CloudKit sync...")
             let remoteCollections = try await syncEngine.fetchRemoteCollections()
+            print("[FAVORITES-SYNC] Fetched \(remoteCollections.count) remote collections")
+
             let merged = await mergeLocalCollections(
                 currentCollections: collections,
                 remoteCollections: remoteCollections,
@@ -569,10 +577,19 @@ private extension LibraryStore {
             )
 
             if merged != collections {
+                print("[FAVORITES-SYNC] ⚠️ Collections changed after merge!")
+                let beforeFavorites = collections.flatMap { $0.tracks }.filter { $0.isFavorite }.count
+                let afterFavorites = merged.flatMap { $0.tracks }.filter { $0.isFavorite }.count
+                print("[FAVORITES-SYNC] Before merge: \(beforeFavorites) favorites")
+                print("[FAVORITES-SYNC] After merge: \(afterFavorites) favorites")
+
                 collections = merged
                 persistCurrentSnapshot()
+            } else {
+                print("[FAVORITES-SYNC] No changes after merge")
             }
         } catch {
+            print("[FAVORITES-SYNC] Sync failed: \(error)")
             // Ignore sync errors for now; local data remains authoritative offline.
         }
     }
@@ -588,9 +605,17 @@ private extension LibraryStore {
         await withTaskGroup(of: Void.self) { group in
             for (id, remote) in remoteByID {
                 if let local = merged[id] {
+                    let localFavorites = local.tracks.filter { $0.isFavorite }.count
+                    let remoteFavorites = remote.tracks.filter { $0.isFavorite }.count
+
                     if remote.updatedAt > local.updatedAt {
+                        print("[FAVORITES-SYNC] ⚠️ Remote is newer for '\(local.title)'")
+                        print("[FAVORITES-SYNC]   Local:  updatedAt=\(local.updatedAt), favorites=\(localFavorites)")
+                        print("[FAVORITES-SYNC]   Remote: updatedAt=\(remote.updatedAt), favorites=\(remoteFavorites)")
+                        print("[FAVORITES-SYNC]   ❌ Replacing local with remote (losing \(localFavorites) favorites!)")
                         merged[id] = remote
                     } else if local.updatedAt > remote.updatedAt {
+                        print("[FAVORITES-SYNC] ✅ Local is newer for '\(local.title)', pushing to CloudKit")
                         group.addTask {
                             try? await syncEngine.saveRemoteCollection(local)
                         }
