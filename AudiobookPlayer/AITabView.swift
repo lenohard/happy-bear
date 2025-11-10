@@ -172,8 +172,12 @@ struct AITabView: View {
                             modelRow(for: model)
                         }
                     } label: {
-                        Text(group.provider)
-                            .font(.headline)
+                        HStack(spacing: 10) {
+                            ProviderIconView(providerId: group.provider)
+                            Text(group.provider)
+                                .font(.headline)
+                            Spacer()
+                        }
                     }
                     .padding(.vertical, 4)
                 }
