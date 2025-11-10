@@ -169,7 +169,8 @@ final class AudioPlayerViewModel: ObservableObject {
             updateNowPlayingInfo()
 #endif
             refreshActiveCacheStatus()
-            autoCacheIfPossible(track)
+            // Disabled auto-cache to reduce battery drain - user must manually cache via cache sheet
+            // autoCacheIfPossible(track)
         } catch {
             statusMessage = "Playback error: \(error.localizedDescription)"
         }
@@ -219,7 +220,8 @@ final class AudioPlayerViewModel: ObservableObject {
             updateNowPlayingInfo()
 #endif
             refreshActiveCacheStatus()
-            autoCacheIfPossible(track)
+            // Disabled auto-cache to reduce battery drain - user must manually cache via cache sheet
+            // autoCacheIfPossible(track)
         } catch {
             statusMessage = "Playback error: \(error.localizedDescription)"
         }
@@ -620,9 +622,8 @@ final class AudioPlayerViewModel: ObservableObject {
             if let itemDuration = self.player?.currentItem?.duration.seconds, itemDuration.isFinite {
                 self.duration = max(self.duration, itemDuration)
             }
-#if os(iOS)
-            self.updateNowPlayingElapsedTime()
-#endif
+            // Lock screen elapsed time is automatically calculated by iOS based on playback rate
+            // Only need to update on events (seek, play, pause, track change) - not continuously
         }
     }
 
