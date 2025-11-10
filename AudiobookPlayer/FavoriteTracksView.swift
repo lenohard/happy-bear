@@ -17,6 +17,9 @@ struct FavoriteTracksView: View {
         List {
             if entries.isEmpty {
                 emptyState
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
             } else {
                 ForEach(entries) { entry in
                     FavoriteTrackRow(
@@ -51,17 +54,17 @@ struct FavoriteTracksView: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "heart")
-                .font(.system(size: 40))
+                .font(.system(size: 48))
                 .foregroundStyle(.secondary)
-            
+
             Text(NSLocalizedString("favorite_tracks_empty", comment: "Empty favorites message"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 24)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 40)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 60)
     }
     
     private func toggleFavorite(_ entry: LibraryStore.FavoriteTrackEntry) {

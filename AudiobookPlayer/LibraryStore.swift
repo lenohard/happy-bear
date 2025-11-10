@@ -409,8 +409,8 @@ final class LibraryStore: ObservableObject {
         if !useFallbackJSON {
             Task(priority: .utility) {
                 do {
+                    // Only update favorite status in database - no need for full collection save
                     try await dbManager.setFavorite(track.isFavorite, for: trackID)
-                    try await dbManager.saveCollection(collection)
                 } catch {
                     await MainActor.run {
                         self.lastError = error
