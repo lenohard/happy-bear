@@ -10,7 +10,8 @@ final class TabSelectionManager: ObservableObject {
         case sources = 2
         case ai = 3
         case tts = 4
-        
+        case settings = 5
+
         var title: String {
             switch self {
             case .library:
@@ -23,6 +24,8 @@ final class TabSelectionManager: ObservableObject {
                 return NSLocalizedString("ai_tab", comment: "AI tab")
             case .tts:
                 return NSLocalizedString("tts_tab", comment: "TTS tab")
+            case .settings:
+                return NSLocalizedString("settings_tab", comment: "Settings tab")
             }
         }
 
@@ -38,6 +41,8 @@ final class TabSelectionManager: ObservableObject {
                 return "brain"
             case .tts:
                 return "waveform"
+            case .settings:
+                return "gear"
             }
         }
     }
@@ -83,6 +88,12 @@ struct ContentView: View {
                 }
                 .badge(transcriptionManager.activeJobs.count)
                 .tag(TabSelectionManager.Tab.tts)
+
+            SettingsTabView()
+                .tabItem {
+                    Label(NSLocalizedString("settings_tab", comment: "Settings tab"), systemImage: "gear")
+                }
+                .tag(TabSelectionManager.Tab.settings)
         }
         .environmentObject(tabSelection)
     }
@@ -92,9 +103,9 @@ struct PlayingView: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
+    @EnvironmentObject private var tabSelection: TabSelectionManager
 
     @State private var missingAuthAlert = false
-    @State private var showingCacheManagement = false
     @State private var showingEphemeralSave = false
 
     private var currentPlayback: PlaybackSnapshot? {
@@ -167,24 +178,10 @@ struct PlayingView: View {
             }
             .navigationTitle(NSLocalizedString("playing_title", comment: "Playing tab title"))
         }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showingCacheManagement = true
-                } label: {
-                    Image(systemName: "internaldrive")
-                }
-                .accessibilityLabel("Open Cache Settings")
-            }
-        }
         .alert(NSLocalizedString("connect_baidu_first", comment: "Alert title"), isPresented: $missingAuthAlert) {
             Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
         } message: {
             Text(NSLocalizedString("connect_baidu_before_stream", comment: "Alert message to sign in before streaming"))
-        }
-        .sheet(isPresented: $showingCacheManagement) {
-            CacheManagementView()
-                .environmentObject(audioPlayer)
         }
         .sheet(isPresented: $showingEphemeralSave) {
             if let folderPath = audioPlayer.ephemeralContext?.sourceDirectory {
@@ -421,20 +418,7 @@ struct PlayingView: View {
             }
 
             if case .baidu = track.location {
-                let status = audioPlayer.cacheStatus(for: track)
-                Button {
-                    showingCacheManagement = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(statusTitle(for: status))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .buttonStyle(.plain)
+                DownloadButton(track: track, collection: collection)
             }
         }
         .padding(.horizontal, 4)
@@ -493,37 +477,6 @@ struct PlayingView: View {
     private func percentageString(_ value: Double) -> String {
         let percent = Int((value * 100).rounded())
         return "\(percent)%"
-    }
-
-    private func cacheAmountText(for status: AudioPlayerViewModel.CacheStatusSnapshot) -> String {
-        let cached = bytesString(status.cachedBytes)
-        let total = status.totalBytes.map(bytesString) ?? "--"
-        return "\(cached) of \(total) cached"
-    }
-
-    private func statusTitle(for status: AudioPlayerViewModel.CacheStatusSnapshot?) -> String {
-        guard let status else {
-            return "Streaming"
-        }
-
-        switch status.state {
-        case .fullyCached:
-            return NSLocalizedString("fully_cached", comment: "Cache status when fully cached")
-        case .partiallyCached:
-            return NSLocalizedString("partially_cached", comment: "Cache status when partially cached")
-        case .notCached:
-            return NSLocalizedString("not_cached", comment: "Cache status when not cached")
-        case .local:
-            return NSLocalizedString("local_file", comment: "Cache status for local file")
-        }
-    }
-
-    private func bytesString(_ value: Int) -> String {
-        guard value > 0 else { return "0 B" }
-        let formatter = ByteCountFormatter()
-        formatter.allowedUnits = [.useKB, .useMB, .useGB]
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: Int64(value))
     }
 
     private func resumePlayback(collection: AudiobookCollection, track: AudiobookTrack) {
@@ -702,157 +655,6 @@ private struct EmptyPlayingView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .secondarySystemBackground))
-    }
-}
-
-private struct CacheManagementView: View {
-    @Environment(\.dismiss) private var dismiss
-    @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
-
-    @State private var retentionDays: Int = 0
-    @State private var showClearAllConfirmation = false
-    @State private var showClearTrackConfirmation = false
-
-    private var currentTrack: AudiobookTrack? {
-        audioPlayer.currentTrack
-    }
-
-    private var currentTrackStatus: AudioPlayerViewModel.CacheStatusSnapshot? {
-        guard let track = currentTrack else { return nil }
-        return audioPlayer.cacheStatus(for: track)
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section(NSLocalizedString("cache_storage_section", comment: "Storage section title")) {
-                    HStack {
-                        Text(NSLocalizedString("cache_total_size", comment: "Total cache size label"))
-                        Spacer()
-                        Text(audioPlayer.formattedCacheSize())
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(NSLocalizedString("cache_folder", comment: "Cache folder label"))
-                        Text(audioPlayer.cacheDirectoryPath())
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .textSelection(.enabled)
-                    }
-
-                    Stepper(value: $retentionDays, in: 1...30, step: 1) {
-                        Text(String(format: NSLocalizedString("cache_retention_days", comment: "Cache retention days format"), retentionDays, retentionDays == 1 ? NSLocalizedString("cache_day", comment: "Day") : NSLocalizedString("cache_days", comment: "Days")))
-                    }
-                    .onChange(of: retentionDays) { newValue in
-                        audioPlayer.updateCacheRetention(days: newValue)
-                    }
-
-                    Button(role: .destructive) {
-                        showClearAllConfirmation = true
-                    } label: {
-                        Label(NSLocalizedString("cache_clear_all", comment: "Clear all cached audio"), systemImage: "trash.slash")
-                    }
-                }
-
-                if let track = currentTrack {
-                    Section(NSLocalizedString("cache_current_track_section", comment: "Current track section title")) {
-                        Text(track.displayName)
-                            .font(.headline)
-
-                        if let status = currentTrackStatus {
-                            // Compact status row: status + size + clear button in one line
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(statusTitle(for: status))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                    Text(cacheAmountText(for: status))
-                                        .font(.caption)
-                                        .foregroundStyle(.tertiary)
-                                }
-
-                                Spacer()
-
-                                if status.state != .notCached {
-                                    Button(role: .destructive) {
-                                        showClearTrackConfirmation = true
-                                    } label: {
-                                        Image(systemName: "trash")
-                                            .foregroundStyle(.red)
-                                    }
-                                }
-                            }
-
-                            if status.state != .fullyCached {
-                                Button {
-                                    audioPlayer.cacheTrackIfNeeded(track)
-                                } label: {
-                                    Label(NSLocalizedString("cache_download_offline", comment: "Download for offline listening"), systemImage: "arrow.down.circle")
-                                }
-                            }
-                        } else {
-                            Text(NSLocalizedString("cache_streaming_directly", comment: "Streaming directly from Baidu Netdisk"))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
-            .navigationTitle(NSLocalizedString("cache_settings_title", comment: "Cache settings title"))
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(NSLocalizedString("done_button", comment: "Done button")) { dismiss() }
-                }
-            }
-            .confirmationDialog(NSLocalizedString("cache_clear_all_title", comment: "Clear cached audio confirmation title"), isPresented: $showClearAllConfirmation, titleVisibility: .visible) {
-                Button(NSLocalizedString("cache_clear_all_confirm", comment: "Delete all cached audio button"), role: .destructive) {
-                    audioPlayer.clearAllCache()
-                }
-                Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) { }
-            } message: {
-                Text(NSLocalizedString("cache_clear_all_message", comment: "Clear all cached audio confirmation message"))
-            }
-            .confirmationDialog(NSLocalizedString("cache_clear_track_title", comment: "Remove cached copy of this track confirmation title"), isPresented: $showClearTrackConfirmation, titleVisibility: .visible) {
-                Button(NSLocalizedString("cache_clear_track_confirm", comment: "Remove track cache button"), role: .destructive) {
-                    if let track = currentTrack {
-                        audioPlayer.removeCache(for: track)
-                    }
-                }
-                Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) { }
-            } message: {
-                Text(NSLocalizedString("cache_clear_track_message", comment: "Remove track cache confirmation message"))
-            }
-            .onAppear {
-                retentionDays = audioPlayer.cacheRetentionDays()
-            }
-        }
-    }
-
-    private func cacheAmountText(for status: AudioPlayerViewModel.CacheStatusSnapshot) -> String {
-        let cached = bytesString(status.cachedBytes)
-        let total = status.totalBytes.map(bytesString) ?? "--"
-        return "\(cached) of \(total) cached"
-    }
-
-    private func statusTitle(for status: AudioPlayerViewModel.CacheStatusSnapshot) -> String {
-        switch status.state {
-        case .fullyCached:
-            return NSLocalizedString("fully_cached", comment: "Cache status when fully cached")
-        case .partiallyCached:
-            return NSLocalizedString("partially_cached", comment: "Cache status when partially cached")
-        case .notCached:
-            return NSLocalizedString("not_cached", comment: "Cache status when not cached")
-        case .local:
-            return NSLocalizedString("local_file", comment: "Cache status for local file")
-        }
-    }
-
-    private func bytesString(_ value: Int) -> String {
-        guard value > 0 else { return "0 B" }
-        let formatter = ByteCountFormatter()
-        formatter.allowedUnits = [.useKB, .useMB, .useGB]
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: Int64(value))
     }
 }
 

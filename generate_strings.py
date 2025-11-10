@@ -149,12 +149,27 @@ STRINGS = {
     "rename_track_title": ("Rename Track", "重命名曲目"),
     "name_field_label": ("Name", "名称"),
     "more_options_accessibility": ("More options", "更多选项"),
+
+    # Settings Tab
+    "settings_tab": ("Settings", "设置"),
+    "cache_management_row_title": ("Cache Management", "缓存管理"),
+
+    # Download Button
+    "download_button_download": ("Download", "下载"),
+    "download_button_downloading": ("Downloading…", "下载中…"),
+    "download_button_downloaded": ("Downloaded", "已下载"),
+
+    # Delete Cache
+    "delete_cache_title": ("Delete Cached Track", "删除缓存的音轨"),
+    "delete_cache_confirm": ("Delete", "删除"),
+    "delete_cache_message": ("Delete cached copy of \"%@\"?", "删除\"%@\"的缓存副本？"),
 }
 
 def generate_xcstrings():
     """Generate Localizable.xcstrings JSON structure."""
     xcstrings = {
         "sourceLanguage": "en",
+        "version": "1.0",
         "strings": {}
     }
 
