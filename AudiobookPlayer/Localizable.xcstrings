@@ -1184,6 +1184,61 @@
         }
       }
     },
+    "delete_transcript" : {
+      "comment" : "Delete transcript menu item",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除转录"
+          }
+        }
+      }
+    },
+    "delete_transcript_cancel" : {
+      "comment" : "Cancel delete transcript",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "delete_transcript_confirm" : {
+      "comment" : "Confirm delete transcript",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确认"
+          }
+        }
+      }
+    },
+    "delete_transcript_confirm_message" : {
+      "comment" : "Delete transcript confirm message",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要删除么"
+          }
+        }
+      }
+    },
+    "delete_transcript_confirm_title" : {
+      "comment" : "Delete transcript dialog title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确认删除"
+          }
+        }
+      }
+    },
     "Description (optional)" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1378,7 +1433,7 @@
 
     },
     "error_title" : {
-      "comment" : "Error title",
+      "comment" : "Error title\nGeneric error title",
       "localizations" : {
         "en" : {
           "stringUnit" : {

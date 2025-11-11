@@ -762,9 +762,6 @@ private struct TrackDetailRow: View {
                         HStack(spacing: 4) {
                             Image(systemName: "text.alignleft")
                                 .font(.caption2)
-                            Text(NSLocalizedString("transcript_label", comment: "Transcript badge label"))
-                                .font(.caption2)
-                                .fontWeight(.semibold)
                         }
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
