@@ -15,14 +15,20 @@ struct TrackPickerView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                if selectedEntries.isEmpty {
-                    emptyState
-                } else {
-                    selectedList
+            ZStack(alignment: .bottom) {
+                VStack(spacing: 0) {
+                    if selectedEntries.isEmpty {
+                        emptyState
+                    } else {
+                        selectedList
+                            .padding(.bottom, 80) // Space for sticky footer
+                    }
                 }
 
-                footerControls
+                // Sticky footer - always visible at bottom
+                if !selectedEntries.isEmpty {
+                    footerControls
+                }
             }
             .navigationTitle(NSLocalizedString("add_tracks_button", comment: "Track picker title"))
             .navigationBarTitleDisplayMode(.inline)
@@ -189,7 +195,11 @@ struct TrackPickerView: View {
             .padding(.horizontal)
             .padding(.bottom, 12)
         }
-        .background(Color(uiColor: .systemGroupedBackground))
+        .background(
+            Color(uiColor: .systemBackground)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, y: -2)
+        )
+        .ignoresSafeArea(edges: .bottom)
     }
 
     private func validateState() {
