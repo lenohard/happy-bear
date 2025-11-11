@@ -871,18 +871,32 @@ private struct TrackTitleTicker: View {
             Text(text)
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
                 .overlay(alignment: .leading) {
-                    GeometryReader { proxy in
-                        Color.clear
-                            .preference(key: ContentWidthPreferenceKey.self, value: proxy.size.width)
-                    }
+                    TrackTitleMeasurementView(text: text)
+                        .allowsHitTesting(false)
                 }
-                .offset(x: offset)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
         .clipped()
+        .overlay(alignment: .leading) {
+            Text(text)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .offset(x: offset)
+                .mask(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color.black.opacity(0), location: 0),
+                            .init(color: .black, location: 0.05),
+                            .init(color: .black, location: 0.95),
+                            .init(color: Color.black.opacity(0), location: 1)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+        }
+        .contentShape(Rectangle())
         .onPreferenceChange(ContentWidthPreferenceKey.self) { value in
             contentWidth = value
         }
@@ -933,6 +947,24 @@ private struct ContentWidthPreferenceKey: PreferenceKey {
 
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
+    }
+}
+
+private struct TrackTitleMeasurementView: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .foregroundStyle(.clear)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(key: ContentWidthPreferenceKey.self, value: proxy.size.width)
+                }
+            )
     }
 }
 

@@ -28,16 +28,25 @@ struct CreateCollectionView: View {
 
     var body: some View {
         NavigationView {
-            Group {
-                switch viewModel.state {
-                case .idle, .loading:
-                    loadingView
-                case .ready(let draft):
-                    readyView(draft: draft)
-                case .failed(let error):
-                    errorView(error: error)
+            ZStack(alignment: .bottom) {
+                Group {
+                    switch viewModel.state {
+                    case .idle, .loading:
+                        loadingView
+                    case .ready(let draft):
+                        readyView(draft: draft)
+                            .padding(.bottom, 80) // Space for sticky footer
+                    case .failed(let error):
+                        errorView(error: error)
+                    }
+                }
+
+                // Sticky footer - only show when ready
+                if case .ready(let draft) = viewModel.state {
+                    stickyFooter(draft: draft)
                 }
             }
+            .ignoresSafeArea(edges: .bottom)
             .navigationTitle("Import Audiobook")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -92,6 +101,10 @@ struct CreateCollectionView: View {
                     .onAppear {
                         if editedTitle.isEmpty {
                             editedTitle = draft.title
+                        }
+                        // Auto-select all tracks by default
+                        if selectedTrackIds.isEmpty {
+                            selectedTrackIds = Set(draft.tracks.map(\.id))
                         }
                     }
 
@@ -185,18 +198,6 @@ struct CreateCollectionView: View {
                     }
                 }
             }
-
-            Section {
-                Button(action: saveCollection) {
-                    HStack {
-                        Spacer()
-                        Text("Add to Library")
-                            .font(.headline)
-                        Spacer()
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-            }
         }
     }
 
@@ -230,6 +231,40 @@ struct CreateCollectionView: View {
             .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func stickyFooter(draft: CollectionDraft) -> some View {
+        VStack(spacing: 0) {
+            Divider()
+
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Selected Tracks")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text("\(selectedTrackIds.count) of \(draft.totalTrackCount)")
+                        .font(.headline)
+                }
+
+                Spacer()
+
+                Button {
+                    saveCollection()
+                } label: {
+                    Text("Add to Library")
+                        .fontWeight(.semibold)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedTrackIds.isEmpty)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 16)
+        }
+        .background(
+            Color(uiColor: .systemBackground)
+                .shadow(color: Color.black.opacity(0.1), radius: 8, y: -2)
+        )
     }
 
     private func saveCollection() {
