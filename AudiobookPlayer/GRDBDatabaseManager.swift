@@ -683,7 +683,8 @@ actor GRDBDatabaseManager {
         let checksum = row["checksum"] as? String
         let metadataJson = row["metadata_json"] as? String
         let metadata = metadataJson.flatMap { decodeJSON($0) as? [String: String] } ?? [:]
-        let isFavorite = (row["is_favorite"] as? Int ?? 0) == 1
+        let isFavoriteValue: Int? = row["is_favorite"]
+        let isFavorite = (isFavoriteValue ?? 0) == 1
 
         // Handle favoritedAt - GRDB returns DATETIME as String, not Date
         let favoritedAtValue = row["favorited_at"]
