@@ -29,6 +29,9 @@
     "%lld active" : {
 
     },
+    "%lld items selected" : {
+
+    },
     "%lld non-audio files" : {
 
     },
@@ -1293,6 +1296,9 @@
         }
       }
     },
+    "Done" : {
+
+    },
     "done_button" : {
       "comment" : "Done button",
       "localizations" : {
@@ -1922,6 +1928,9 @@
         }
       }
     },
+    "pause_track_button_accessibility" : {
+      "comment" : "Accessibility label for pause track button"
+    },
     "play_collection_accessibility" : {
       "comment" : "Play collection accessibility label",
       "localizations" : {
@@ -1972,6 +1981,12 @@
           }
         }
       }
+    },
+    "play_pause_button_hint" : {
+      "comment" : "Accessibility hint for play pause button"
+    },
+    "play_track_button_accessibility" : {
+      "comment" : "Accessibility label for play track button"
     },
     "playing_tab" : {
       "comment" : "Tab for now playing",
@@ -2652,6 +2667,9 @@
         }
       }
     },
+    "track_title_scroll_hint" : {
+      "comment" : "Accessibility hint for track title scroll"
+    },
     "Tracks" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3010,7 +3028,11 @@
         }
       }
     },
+    "Use This Folder (%lld files here)" : {
+
+    },
     "Use This Folder (%lld)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

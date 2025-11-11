@@ -75,7 +75,7 @@ struct BaiduNetdiskBrowserView: View {
                         Label {
                             let count = audioEntryCount
                             if count > 0 {
-                                Text("Use This Folder (\(count))")
+                                Text("Use This Folder (\(count) files here)")
                             } else {
                                 Text("Use This Folder")
                             }
@@ -83,7 +83,7 @@ struct BaiduNetdiskBrowserView: View {
                             Image(systemName: "folder.badge.plus")
                         }
                     }
-                    .disabled(audioEntryCount == 0 || viewModel.isLoading)
+                    .disabled(viewModel.isLoading)
                 }
             }
         }

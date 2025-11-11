@@ -21,7 +21,7 @@ struct TrackPickerView: View {
                         emptyState
                     } else {
                         selectedList
-                            .padding(.bottom, 80) // Space for sticky footer
+                            .padding(.bottom, 100) // Space for sticky footer
                     }
                 }
 
@@ -30,6 +30,7 @@ struct TrackPickerView: View {
                     footerControls
                 }
             }
+            .ignoresSafeArea(edges: .bottom) // Apply to entire ZStack
             .navigationTitle(NSLocalizedString("add_tracks_button", comment: "Track picker title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -193,13 +194,12 @@ struct TrackPickerView: View {
                 .disabled(selectedEntries.isEmpty)
             }
             .padding(.horizontal)
-            .padding(.bottom, 12)
+            .padding(.bottom, 20) // Account for safe area
         }
         .background(
             Color(uiColor: .systemBackground)
                 .shadow(color: Color.black.opacity(0.1), radius: 8, y: -2)
         )
-        .ignoresSafeArea(edges: .bottom)
     }
 
     private func validateState() {

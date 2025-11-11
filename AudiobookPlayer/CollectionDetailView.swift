@@ -667,14 +667,6 @@ struct CollectionDetailView: View {
     }
 }
 
-#Preview {
-    CollectionDetailView(collectionID: UUID())
-        .environmentObject(LibraryStore())
-        .environmentObject(AudioPlayerViewModel())
-        .environmentObject(BaiduAuthViewModel())
-        .environmentObject(TranscriptionManager())
-}
-
 private struct RenameEntryView: View {
     let title: String
     let fieldLabel: String
@@ -754,9 +746,8 @@ private struct TrackDetailRow: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    Text(track.displayName)
-                        .font(.body)
-                        .lineLimit(2)
+                    TrackTitleTicker(text: track.displayName)
+                        .accessibilityLabel(track.displayName)
 
                     if hasTranscript {
                         HStack(spacing: 4) {
@@ -785,24 +776,46 @@ private struct TrackDetailRow: View {
                 onToggleFavorite()
             }
 
-            statusIcon
+            playPauseButton
         }
-        .contentShape(Rectangle())
-        .onTapGesture(perform: onSelect)
     }
 
-    private var statusIcon: some View {
-        Group {
-            if isActive {
-                Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                    .foregroundStyle(Color.accentColor)
-                    .accessibilityHidden(true)
-            } else {
-                Image(systemName: "play.fill")
-                    .foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
+    private var playPauseButton: some View {
+        Button(action: onSelect) {
+            Group {
+                if isActive {
+                    Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                        .foregroundStyle(Color.accentColor)
+                } else {
+                    Image(systemName: "play.fill")
+                        .foregroundStyle(.tertiary)
+                }
             }
+            .font(.title3)
         }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(playPauseAccessibilityLabel))
+        .accessibilityHint(Text(NSLocalizedString("play_pause_button_hint", comment: "Accessibility hint for play pause button")))
+    }
+
+    private var playPauseAccessibilityLabel: String {
+        if isActive && isPlaying {
+            return String(
+                format: NSLocalizedString(
+                    "pause_track_button_accessibility",
+                    comment: "Accessibility label for pause track button"
+                ),
+                track.displayName
+            )
+        }
+
+        return String(
+            format: NSLocalizedString(
+                "play_track_button_accessibility",
+                comment: "Accessibility label for play track button"
+            ),
+            track.displayName
+        )
     }
 
     @ViewBuilder
@@ -842,6 +855,84 @@ private struct TrackDetailRow: View {
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
+    }
+}
+
+private struct TrackTitleTicker: View {
+    let text: String
+
+    @State private var contentWidth: CGFloat = 0
+    @State private var containerWidth: CGFloat = 0
+    @State private var offset: CGFloat = 0
+    @State private var animationTask: Task<Void, Never>?
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            Text(text)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .overlay(alignment: .leading) {
+                    GeometryReader { proxy in
+                        Color.clear
+                            .preference(key: ContentWidthPreferenceKey.self, value: proxy.size.width)
+                    }
+                }
+                .offset(x: offset)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .clipped()
+        .onPreferenceChange(ContentWidthPreferenceKey.self) { value in
+            contentWidth = value
+        }
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear {
+                        containerWidth = proxy.size.width
+                    }
+                    .onChange(of: proxy.size.width) { newValue in
+                        containerWidth = newValue
+                    }
+            }
+        )
+        .onTapGesture(perform: triggerScroll)
+        .onDisappear {
+            animationTask?.cancel()
+            animationTask = nil
+            offset = 0
+        }
+        .accessibilityHint(Text(NSLocalizedString("track_title_scroll_hint", comment: "Accessibility hint for track title scroll")))
+    }
+
+    private func triggerScroll() {
+        guard contentWidth > containerWidth else { return }
+
+        animationTask?.cancel()
+        let travelDistance = contentWidth - containerWidth
+        let duration = max(1.0, Double(travelDistance / 30))
+
+        animationTask = Task { @MainActor in
+            offset = 0
+            withAnimation(.linear(duration: duration)) {
+                offset = -travelDistance
+            }
+
+            try? await Task.sleep(nanoseconds: UInt64((duration + 0.1) * 1_000_000_000))
+
+            withAnimation(.easeOut(duration: 0.35)) {
+                offset = 0
+            }
+        }
+    }
+}
+
+private struct ContentWidthPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 
