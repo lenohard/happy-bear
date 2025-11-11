@@ -738,46 +738,32 @@ private struct TrackDetailRow: View {
     let onToggleFavorite: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 10) {
             Text(String(format: "%02d", index + 1))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .frame(width: 32, alignment: .leading)
+                .frame(width: 28, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    TrackTitleTicker(text: track.displayName)
-                        .accessibilityLabel(track.displayName)
+            VStack(alignment: .leading, spacing: 4) {
+                TrackTitleTicker(text: track.displayName)
+                    .accessibilityLabel(track.displayName)
 
-                    Spacer(minLength: 0)
+                if let summary = progressSummaryView {
+                    summary
                 }
 
-                playbackSummary
-
-                HStack(spacing: 6) {
-                    Text(formatBytes(track.fileSize))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-
-                    if hasTranscript {
-                        Image(systemName: "text.alignleft")
-                            .font(.caption2)
-                            .foregroundStyle(.blue)
-                            .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
-                    }
-
-                    Spacer(minLength: 0)
-                }
+                metadataRow
             }
-
-            Spacer()
+            .layoutPriority(1)
 
             FavoriteToggleButton(isFavorite: isFavorite) {
                 onToggleFavorite()
             }
+            .font(.headline)
 
             playPauseButton
         }
+        .padding(.vertical, 2)
     }
 
     private var playPauseButton: some View {
@@ -819,27 +805,61 @@ private struct TrackDetailRow: View {
     }
 
     @ViewBuilder
-    private var playbackSummary: some View {
+    private var progressSummaryView: some View {
         if let state = playbackState, state.position > 1 {
             if let duration = state.duration, duration > 0 {
                 let clampedPosition = min(state.position, duration)
-                ProgressView(value: clampedPosition, total: duration)
-                    .progressViewStyle(.linear)
-
-                HStack {
-                    Text("\(clampedPosition.formattedTimestamp) / \(duration.formattedTimestamp)")
-                    Spacer()
-                    Text(percentString(position: clampedPosition, duration: duration))
+                VStack(spacing: 2) {
+                    ProgressView(value: clampedPosition, total: duration)
+                        .progressViewStyle(.linear)
+                    HStack(spacing: 6) {
+                        Spacer(minLength: 0)
+                        Text(percentString(position: clampedPosition, duration: duration))
+                    }
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
                 }
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(.secondary)
             } else {
                 Text("Last position: \(state.position.formattedTimestamp)")
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
-        } else {
-            EmptyView()
+        }
+    }
+
+    private var metadataRow: some View {
+        HStack(spacing: 6) {
+            HStack(spacing: 4) {
+                Text(formatBytes(track.fileSize))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+
+                if hasTranscript {
+                    Image(systemName: "text.alignleft")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                        .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
+                }
+            }
+
+            Spacer()
+
+            if let state = playbackState, state.position > 1 {
+                HStack(spacing: 8) {
+                    if let duration = state.duration, duration > 0 {
+                        let clampedPosition = min(state.position, duration)
+                        Text("\(clampedPosition.formattedTimestamp) / \(duration.formattedTimestamp)")
+                    } else {
+                        Text("Last: \(state.position.formattedTimestamp)")
+                    }
+
+                    if let duration = state.duration, duration > 0 {
+                        Text(percentString(position: min(state.position, duration), duration: duration))
+                    }
+                }
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
+            }
         }
     }
 
@@ -915,7 +935,7 @@ private struct TrackTitleTicker: View {
         resetTickerState()
 
         let distance = measuredWidth - containerWidth
-        let duration = max(1.0, Double(distance / 35))
+        let duration = max(1.0, Double(distance / 60))
 
         animationTask = Task { @MainActor in
             isAnimating = true
