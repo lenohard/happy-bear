@@ -116,8 +116,8 @@ struct TranscriptSegment: Identifiable, Codable {
         let seconds = Double(ms) / 1000.0
         let hours = Int(seconds / 3600)
         let minutes = Int((seconds.truncatingRemainder(dividingBy: 3600)) / 60)
-        let secs = seconds.truncatingRemainder(dividingBy: 60)
-        return String(format: "%02d:%02d:%06.3f", hours, minutes, secs)
+        let secs = Int(seconds.truncatingRemainder(dividingBy: 60))
+        return String(format: "%02d:%02d:%02d", hours, minutes, secs)
     }
 }
 

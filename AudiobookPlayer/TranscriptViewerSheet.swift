@@ -168,11 +168,16 @@ struct TranscriptSegmentRowView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
-                // Timestamp
-                Text(segment.formattedStartTime)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 50, alignment: .leading)
+                // Timestamps (start and end)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(segment.formattedStartTime)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(segment.formattedEndTime)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: 60, alignment: .leading)
 
                 // Text
                 VStack(alignment: .leading, spacing: 4) {
@@ -210,11 +215,16 @@ struct SearchResultRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 12) {
-                // Timestamp
-                Text(result.segment.formattedStartTime)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 50, alignment: .leading)
+                // Timestamps (start and end)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(result.segment.formattedStartTime)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(result.segment.formattedEndTime)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(width: 60, alignment: .leading)
 
                 // Match info
                 VStack(alignment: .leading, spacing: 4) {
