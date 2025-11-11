@@ -27,17 +27,24 @@ struct BaiduNetdiskBrowserView: View {
     }
 
     var body: some View {
-        List {
-            if !viewModel.currentPath.isEmpty {
-                Text(viewModel.currentPath)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .listRowInsets(.init(top: 4, leading: 16, bottom: 4, trailing: 16))
+        VStack(spacing: 0) {
+            List {
+                if !viewModel.currentPath.isEmpty {
+                    Text(viewModel.currentPath)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .listRowInsets(.init(top: 4, leading: 16, bottom: 4, trailing: 16))
+                }
+
+                contentList
             }
 
-            contentList
+            // Sticky footer for multi-select mode
+            if onToggleSelection != nil && !selectedEntryIDs.isEmpty {
+                stickyFooter
+            }
         }
         .navigationTitle("Baidu Netdisk")
         .toolbar {
@@ -230,6 +237,34 @@ struct BaiduNetdiskBrowserView: View {
             if audioExtensions.contains(ext) {
                 partialResult += 1
             }
+        }
+    }
+
+    private var stickyFooter: some View {
+        VStack(spacing: 0) {
+            Divider()
+
+            HStack {
+                Text("\(selectedEntryIDs.count) items selected")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                Spacer()
+
+                Button {
+                    // Dismiss sheet - parent view (TrackPickerView) will handle the selections
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let rootViewController = windowScene.windows.first?.rootViewController {
+                        rootViewController.dismiss(animated: true)
+                    }
+                } label: {
+                    Text("Done")
+                        .fontWeight(.semibold)
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .padding()
+            .background(Color(uiColor: .systemBackground))
         }
     }
 
