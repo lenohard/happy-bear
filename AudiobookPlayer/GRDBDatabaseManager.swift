@@ -30,7 +30,11 @@ actor GRDBDatabaseManager {
         print("[GRDB] Directory exists")
 
         print("[GRDB] Creating DatabaseQueue with path: \(dbURL.path)")
-        let db = try DatabaseQueue(path: dbURL.path)
+        var configuration = Configuration()
+        // Disable foreign key constraints at the connection level
+        // We'll handle deletion order manually in deleteCollection()
+        configuration.foreignKeysEnabled = false
+        let db = try DatabaseQueue(path: dbURL.path, configuration: configuration)
         self.db = db
         print("[GRDB] DatabaseQueue created successfully")
 
@@ -66,9 +70,6 @@ actor GRDBDatabaseManager {
         print("[GRDB] Starting save for collection: \(collection.title)")
 
         try db.write { db in
-            // Temporarily disable foreign key constraints for deletion
-            try db.execute(sql: "PRAGMA foreign_keys = OFF")
-
             // Delete existing data in CORRECT DEPENDENCY ORDER
             // (reverse of creation order to respect foreign keys)
             print("[GRDB] Deleting playback states for collection: \(collection.id.uuidString)")
@@ -82,9 +83,6 @@ actor GRDBDatabaseManager {
 
             print("[GRDB] Deleting collection: \(collection.id.uuidString)")
             try db.execute(sql: "DELETE FROM collections WHERE id = ?", arguments: [collection.id.uuidString])
-
-            // Re-enable foreign key constraints
-            try db.execute(sql: "PRAGMA foreign_keys = ON")
 
             // Insert collection
             print("[GRDB] Inserting collection: \(collection.title)")
@@ -301,17 +299,11 @@ actor GRDBDatabaseManager {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
         try db.write { db in
-            // Temporarily disable foreign key constraints
-            try db.execute(sql: "PRAGMA foreign_keys = OFF")
-
             // Delete in reverse dependency order
             try db.execute(sql: "DELETE FROM playback_states WHERE collection_id = ?", arguments: [id.uuidString])
             try db.execute(sql: "DELETE FROM tracks WHERE collection_id = ?", arguments: [id.uuidString])
             try db.execute(sql: "DELETE FROM tags WHERE collection_id = ?", arguments: [id.uuidString])
             try db.execute(sql: "DELETE FROM collections WHERE id = ?", arguments: [id.uuidString])
-
-            // Re-enable foreign key constraints
-            try db.execute(sql: "PRAGMA foreign_keys = ON")
         }
     }
 
