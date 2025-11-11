@@ -2188,6 +2188,17 @@
         }
       }
     },
+    "search_in_transcript" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索转录内容"
+          }
+        }
+      }
+    },
     "search_tracks_prompt" : {
       "comment" : "Search tracks prompt",
       "localizations" : {

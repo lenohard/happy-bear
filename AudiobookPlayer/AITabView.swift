@@ -242,6 +242,17 @@ struct AITabView: View {
         return NSLocalizedString("ai_tab_model_group_other", comment: "")
     }
 
+    private func providerDisplayName(for model: AIModelInfo) -> String? {
+        if let ownedBy = model.ownedBy, !ownedBy.isEmpty {
+            return ownedBy
+        }
+        if let provider = model.metadata?.provider, !provider.isEmpty {
+            return provider
+        }
+        let fallback = providerName(for: model.id)
+        return fallback.isEmpty ? nil : fallback
+    }
+
     private func applyDefaultProviderCollapseIfNeeded(with models: [AIModelInfo]) {
         guard !models.isEmpty,
               collapsedProviderData.isEmpty,
@@ -264,10 +275,16 @@ struct AITabView: View {
             return nil
         }
         let displayName = model.name?.isEmpty == false ? model.name! : model.id
-        return String(
-            format: NSLocalizedString("ai_tab_selected_model_summary", comment: ""),
-            displayName
-        )
+        let provider = providerDisplayName(for: model)
+        if let provider {
+            return String(
+                format: NSLocalizedString("ai_tab_selected_model_summary", comment: ""),
+                displayName,
+                provider
+            )
+        } else {
+            return displayName
+        }
     }
 
     @ViewBuilder
