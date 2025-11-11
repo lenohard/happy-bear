@@ -749,25 +749,25 @@ private struct TrackDetailRow: View {
                     TrackTitleTicker(text: track.displayName)
                         .accessibilityLabel(track.displayName)
 
-                    if hasTranscript {
-                        HStack(spacing: 4) {
-                            Image(systemName: "text.alignleft")
-                                .font(.caption2)
-                        }
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.blue.opacity(0.12))
-                        .clipShape(Capsule())   
-                        .foregroundStyle(.blue)
-                        .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
-                    }
+                    Spacer(minLength: 0)
                 }
 
                 playbackSummary
 
-                Text(formatBytes(track.fileSize))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Text(formatBytes(track.fileSize))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+
+                    if hasTranscript {
+                        Image(systemName: "text.alignleft")
+                            .font(.caption2)
+                            .foregroundStyle(.blue)
+                            .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
+                    }
+
+                    Spacer(minLength: 0)
+                }
             }
 
             Spacer()
@@ -864,40 +864,62 @@ private struct TrackTitleTicker: View {
     @State private var measuredWidth: CGFloat = 0
     @State private var containerWidth: CGFloat = 0
     @State private var offset: CGFloat = 0
+    @State private var isAnimating = false
     @State private var animationTask: Task<Void, Never>?
 
     var body: some View {
-        Text(text)
-            .font(.subheadline.weight(.semibold))
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .background(TextWidthReader(text: text, width: $measuredWidth))
-            .overlay(alignment: .leading) {
-                if shouldScroll {
-                    ScrollingTitleOverlay(text: text, width: containerWidth, offset: offset)
-                        .allowsHitTesting(false)
-                }
+        ZStack(alignment: .leading) {
+            Text(text)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .opacity(shouldHideBaseLabel ? 0 : 1)
+
+            if shouldScroll {
+                ScrollingTitleOverlay(
+                    text: text,
+                    width: containerWidth,
+                    offset: offset,
+                    isAnimating: isAnimating
+                )
+                .allowsHitTesting(false)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(ContainerWidthReader(width: $containerWidth))
-            .contentShape(Rectangle())
-            .onTapGesture(perform: triggerScroll)
-            .onDisappear { animationTask?.cancel(); animationTask = nil; offset = 0 }
-            .accessibilityHint(Text(NSLocalizedString("track_title_scroll_hint", comment: "Accessibility hint for track title scroll")))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(TextWidthReader(text: text, width: $measuredWidth))
+        .background(ContainerWidthReader(width: $containerWidth))
+        .contentShape(Rectangle())
+        .onTapGesture(perform: triggerScroll)
+        .onDisappear { resetTickerState() }
+        .accessibilityHint(Text(NSLocalizedString("track_title_scroll_hint", comment: "Accessibility hint for track title scroll")))
     }
 
     private var shouldScroll: Bool {
         measuredWidth > containerWidth + 6
     }
 
+    private var shouldHideBaseLabel: Bool {
+        shouldScroll && isAnimating
+    }
+
+    private func resetTickerState() {
+        animationTask?.cancel()
+        animationTask = nil
+        offset = 0
+        isAnimating = false
+    }
+
     private func triggerScroll() {
         guard shouldScroll else { return }
 
-        animationTask?.cancel()
+        resetTickerState()
+
         let distance = measuredWidth - containerWidth
         let duration = max(1.0, Double(distance / 35))
 
         animationTask = Task { @MainActor in
+            isAnimating = true
+
             withAnimation(.linear(duration: duration)) {
                 offset = -distance
             }
@@ -907,6 +929,9 @@ private struct TrackTitleTicker: View {
             withAnimation(.easeOut(duration: 0.35)) {
                 offset = 0
             }
+
+            try? await Task.sleep(nanoseconds: 250_000_000)
+            isAnimating = false
         }
     }
 }
@@ -915,14 +940,13 @@ private struct ScrollingTitleOverlay: View {
     let text: String
     let width: CGFloat
     let offset: CGFloat
+    let isAnimating: Bool
 
     var body: some View {
         HStack(spacing: width * 0.25) {
-            Text(text)
-            Text(text)
+            marqueeText
+            marqueeText
         }
-        .font(.subheadline.weight(.semibold))
-        .lineLimit(1)
         .frame(width: max(width, 1), alignment: .leading)
         .offset(x: offset)
         .mask(
@@ -937,7 +961,14 @@ private struct ScrollingTitleOverlay: View {
                 endPoint: .trailing
             )
         )
-        .opacity(offset == 0 ? 0 : 1)
+        .opacity(isAnimating ? 1 : 0)
+    }
+
+    private var marqueeText: some View {
+        Text(text)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
     }
 }
 
