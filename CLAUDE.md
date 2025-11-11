@@ -188,17 +188,6 @@ Generates all required iOS app icon sizes from a single source image.
   - Solution: Saved all work in `feature/siri-control-wip` branch (commit: `ba67470`)
   - Action: When account upgraded to paid, restore from WIP branch and proceed with Phase 4 device testing
 
-### Session: 2025-11-03 (Continued - Multi-Language Phase 2)
-**Multi-Language Support Localization Setup** 📝
-- [x] Generated `.strings` files from `Localizable.xcstrings`:
-  - Created `AudiobookPlayer/en.lproj/Localizable.strings` with 62 English strings
-  - Created `AudiobookPlayer/zh-Hans.lproj/Localizable.strings` with 62 Chinese strings
-- [x] Verified all Chinese translations for accuracy and cultural appropriateness
-- [x] Built and verified app compiles without errors
-- ⚠️ **PENDING - Manual Xcode Setup Required**:
-  - Localization folders exist on filesystem but need to be added to Xcode project
-  - User must open project in Xcode and add `en.lproj` & `zh-Hans.lproj` to Build Phases > Copy Bundle Resources
-  - Once added: clean build, test in Chinese device language setting
 
 **Important Lesson - Xcode Project File Handling**:
 - ❌ DO NOT attempt to edit `project.pbxproj` via bash/Python scripts
@@ -271,18 +260,6 @@ Generates all required iOS app icon sizes from a single source image.
      // "search_files_prompt": "Search files" (English)
      // "search_files_prompt": "搜索文件" (Chinese)
      ```
-   - **Process**: When adding new UI strings:
-     1. Use descriptive localization keys in code
-     2. Add entries to `AudiobookPlayer/Localizable.xcstrings`
-     3. Generate `.strings` files via `generate_strings.py`
-     4. User manually adds to Xcode project
-     5. Test in both English and Chinese device settings
-
-6. **Avoid Over-Automation for Small Localization Changes**:
-   - ❌ **DON'T**: Build scripts to regenerate `.strings` files for small edits (3-5 strings)
-   - ✅ **DO**: Directly edit `en.lproj/Localizable.strings` and `zh-Hans.lproj/Localizable.strings` by hand (copy-paste, ~1 minute)
-   - ✅ **DO**: Update `generate_strings.py` SCRIPT dictionary for future regenerations
-   - **Lesson**: Task was 10 lines of manual edits, but I built a Python script instead (wasted ~15 minutes on automation). For surgical changes to static files, direct editing beats scripting.
 
 7. **App Intents & Siri Support - Requires Paid Developer Account**:
    - ❌ **FREE accounts cannot use App Intents**: Free and Team provisioning profiles lack `com.apple.developer.appintents` entitlement support
