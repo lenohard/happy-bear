@@ -305,3 +305,7 @@ Generates all required iOS app icon sizes from a single source image.
 
 ## Qwen Added Memories
 - UI Localization Best Practices: When writing UI code, always use localization keys for multi-language support. Use Text("search_files") with corresponding entries in Localizable.xcstrings, not hardcoded strings like Text("Search files"). Process: 1) Use descriptive localization keys in code, 2) Add entries to Localizable.xcstrings, 3) Generate .strings files via generate_strings.py, 4) User manually adds to Xcode project, 5) Test in both English and Chinese device settings.
+
+!!!!
+Leave the localizable.xcstrings for me, you just provide me with the entrys  in a local/new_xcstrings.md
+I will finish it manully in xcode.

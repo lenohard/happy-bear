@@ -961,6 +961,28 @@ actor GRDBDatabaseManager {
         return segments
     }
 
+    /// Delete transcript and associated segments for a track
+    func deleteTranscript(forTrackId trackId: String) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            if let transcriptRow = try Row.fetchOne(
+                db,
+                sql: "SELECT id FROM transcripts WHERE track_id = ?",
+                arguments: [trackId]
+            ), let transcriptId = transcriptRow["id"] as? String {
+                try db.execute(
+                    sql: "DELETE FROM transcript_segments WHERE transcript_id = ?",
+                    arguments: [transcriptId]
+                )
+                try db.execute(
+                    sql: "DELETE FROM transcripts WHERE id = ?",
+                    arguments: [transcriptId]
+                )
+            }
+        }
+    }
+
     /// Save transcript segments
     func saveTranscriptSegments(_ segments: [TranscriptSegment], for transcriptId: String) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }

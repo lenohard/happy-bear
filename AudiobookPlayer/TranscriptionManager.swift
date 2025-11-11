@@ -239,6 +239,16 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
     }
 
+    /// Delete transcript for a track
+    /// - Parameter trackId: UUID of the track
+    func deleteTranscript(forTrackId trackId: UUID) async throws {
+        do {
+            try await dbManager.deleteTranscript(forTrackId: trackId.uuidString)
+        } catch {
+            throw TranscriptionError.databaseError(error.localizedDescription)
+        }
+    }
+
     /// Retrieve all segments for a transcript
     /// - Parameter transcriptId: UUID of the transcript
     /// - Returns: Array of transcript segments

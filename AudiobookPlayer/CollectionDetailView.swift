@@ -6,6 +6,7 @@ struct CollectionDetailView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
+    @EnvironmentObject private var transcriptionManager: TranscriptionManager
 
     @State private var searchText = ""
     @State private var missingAuthAlert = false
@@ -21,6 +22,10 @@ struct CollectionDetailView: View {
     @State private var transcriptStatusCache: [UUID: Bool] = [:]
     @State private var pendingAutoFocusTrackId: UUID?
     @State private var didAutoFocusTrack = false
+    @State private var trackPendingTranscriptDeletion: AudiobookTrack?
+    @State private var showTranscriptDeletionDialog = false
+    @State private var transcriptDeletionError: String?
+    @State private var showTranscriptDeletionError = false
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -174,6 +179,31 @@ struct CollectionDetailView: View {
         .sheet(item: $trackForViewing) { track in
             TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
         }
+        .confirmationDialog(
+            NSLocalizedString("delete_transcript_confirm_title", comment: "Delete transcript dialog title"),
+            isPresented: $showTranscriptDeletionDialog,
+            presenting: trackPendingTranscriptDeletion
+        ) { track in
+            Button(NSLocalizedString("delete_transcript_confirm", comment: "Confirm delete transcript"), role: .destructive) {
+                deleteTranscript(for: track)
+            }
+            Button(NSLocalizedString("delete_transcript_cancel", comment: "Cancel delete transcript"), role: .cancel) {
+                trackPendingTranscriptDeletion = nil
+            }
+        } message: { track in
+            Text(String(format: NSLocalizedString("delete_transcript_confirm_message", comment: "Delete transcript confirm message"), track.displayName))
+        }
+        .alert(
+            NSLocalizedString("error_title", comment: "Generic error title"),
+            isPresented: $showTranscriptDeletionError,
+            presenting: transcriptDeletionError
+        ) { _ in
+            Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) {
+                showTranscriptDeletionError = false
+            }
+        } message: { error in
+            Text(error)
+        }
     }
 
     @ViewBuilder
@@ -323,13 +353,26 @@ struct CollectionDetailView: View {
                             )
                         }
 
-                        Button {
-                            trackForViewing = track
-                        } label: {
-                            Label(
-                                NSLocalizedString("view_transcript", comment: "View transcript menu item"),
-                                systemImage: "text.alignleft"
-                            )
+                        if transcriptStatusCache[track.id] ?? false {
+                            Button {
+                                trackForViewing = track
+                            } label: {
+                                Label(
+                                    NSLocalizedString("view_transcript", comment: "View transcript menu item"),
+                                    systemImage: "text.alignleft"
+                                )
+                            }
+
+                            if library.canModifyCollection(collectionID) {
+                                Button(role: .destructive) {
+                                    confirmDeleteTranscript(track)
+                                } label: {
+                                    Label(
+                                        NSLocalizedString("delete_transcript", comment: "Delete transcript menu item"),
+                                        systemImage: "trash"
+                                    )
+                                }
+                            }
                         }
                     }
                     .id(track.id)
@@ -597,6 +640,31 @@ struct CollectionDetailView: View {
             }
         }
     }
+
+    private func confirmDeleteTranscript(_ track: AudiobookTrack) {
+        trackPendingTranscriptDeletion = track
+        showTranscriptDeletionDialog = true
+    }
+
+    private func deleteTranscript(for track: AudiobookTrack) {
+        showTranscriptDeletionDialog = false
+        trackPendingTranscriptDeletion = nil
+
+        Task {
+            do {
+                try await transcriptionManager.deleteTranscript(forTrackId: track.id)
+                await MainActor.run {
+                    transcriptStatusCache[track.id] = false
+                }
+                loadTranscriptStatus()
+            } catch {
+                await MainActor.run {
+                    transcriptDeletionError = error.localizedDescription
+                    showTranscriptDeletionError = true
+                }
+            }
+        }
+    }
 }
 
 #Preview {
@@ -604,6 +672,7 @@ struct CollectionDetailView: View {
         .environmentObject(LibraryStore())
         .environmentObject(AudioPlayerViewModel())
         .environmentObject(BaiduAuthViewModel())
+        .environmentObject(TranscriptionManager())
 }
 
 private struct RenameEntryView: View {
@@ -690,10 +759,19 @@ private struct TrackDetailRow: View {
                         .lineLimit(2)
 
                     if hasTranscript {
-                        Image(systemName: "text.alignleft")
-                            .font(.caption)
-                            .foregroundStyle(.blue)
-                            .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
+                        HStack(spacing: 4) {
+                            Image(systemName: "text.alignleft")
+                                .font(.caption2)
+                            Text(NSLocalizedString("transcript_label", comment: "Transcript badge label"))
+                                .font(.caption2)
+                                .fontWeight(.semibold)
+                        }
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.blue.opacity(0.12))
+                        .clipShape(Capsule())
+                        .foregroundStyle(.blue)
+                        .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
                     }
                 }
 
