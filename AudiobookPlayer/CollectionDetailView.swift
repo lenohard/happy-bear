@@ -742,15 +742,13 @@ private struct TrackDetailRow: View {
             Text(String(format: "%02d", index + 1))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .frame(width: 28, alignment: .leading)
+                .frame(width: 24, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 4) {
                 TrackTitleTicker(text: track.displayName)
                     .accessibilityLabel(track.displayName)
 
-                if let summary = progressSummaryView {
-                    summary
-                }
+                progressSummaryView
 
                 metadataRow
             }
@@ -809,16 +807,8 @@ private struct TrackDetailRow: View {
         if let state = playbackState, state.position > 1 {
             if let duration = state.duration, duration > 0 {
                 let clampedPosition = min(state.position, duration)
-                VStack(spacing: 2) {
-                    ProgressView(value: clampedPosition, total: duration)
-                        .progressViewStyle(.linear)
-                    HStack(spacing: 6) {
-                        Spacer(minLength: 0)
-                        Text(percentString(position: clampedPosition, duration: duration))
-                    }
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                }
+                ProgressView(value: clampedPosition, total: duration)
+                    .progressViewStyle(.linear)
             } else {
                 Text("Last position: \(state.position.formattedTimestamp)")
                     .font(.caption2.monospacedDigit())
@@ -915,7 +905,7 @@ private struct TrackTitleTicker: View {
     }
 
     private var shouldScroll: Bool {
-        measuredWidth > containerWidth + 6
+            measuredWidth > containerWidth + 6
     }
 
     private var shouldHideBaseLabel: Bool {
