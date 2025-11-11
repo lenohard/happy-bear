@@ -757,7 +757,7 @@ private struct TrackDetailRow: View {
                         .padding(.horizontal, 6)
                         .padding(.vertical, 2)
                         .background(Color.blue.opacity(0.12))
-                        .clipShape(Capsule())
+                        .clipShape(Capsule())   
                         .foregroundStyle(.blue)
                         .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
                     }
@@ -861,79 +861,48 @@ private struct TrackDetailRow: View {
 private struct TrackTitleTicker: View {
     let text: String
 
-    @State private var contentWidth: CGFloat = 0
+    @State private var measuredWidth: CGFloat = 0
     @State private var containerWidth: CGFloat = 0
     @State private var offset: CGFloat = 0
     @State private var animationTask: Task<Void, Never>?
 
     var body: some View {
-        ZStack(alignment: .leading) {
-            Text(text)
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-                .overlay(alignment: .leading) {
-                    TrackTitleMeasurementView(text: text)
+        Text(text)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .background(TextWidthReader(text: text, width: $measuredWidth))
+            .overlay(alignment: .leading) {
+                if shouldScroll {
+                    ScrollingTitleOverlay(text: text, width: containerWidth, offset: offset)
                         .allowsHitTesting(false)
                 }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .clipped()
-        .overlay(alignment: .leading) {
-            Text(text)
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-                .offset(x: offset)
-                .mask(
-                    LinearGradient(
-                        stops: [
-                            .init(color: Color.black.opacity(0), location: 0),
-                            .init(color: .black, location: 0.05),
-                            .init(color: .black, location: 0.95),
-                            .init(color: Color.black.opacity(0), location: 1)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-        }
-        .contentShape(Rectangle())
-        .onPreferenceChange(ContentWidthPreferenceKey.self) { value in
-            contentWidth = value
-        }
-        .background(
-            GeometryReader { proxy in
-                Color.clear
-                    .onAppear {
-                        containerWidth = proxy.size.width
-                    }
-                    .onChange(of: proxy.size.width) { newValue in
-                        containerWidth = newValue
-                    }
             }
-        )
-        .onTapGesture(perform: triggerScroll)
-        .onDisappear {
-            animationTask?.cancel()
-            animationTask = nil
-            offset = 0
-        }
-        .accessibilityHint(Text(NSLocalizedString("track_title_scroll_hint", comment: "Accessibility hint for track title scroll")))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(ContainerWidthReader(width: $containerWidth))
+            .contentShape(Rectangle())
+            .onTapGesture(perform: triggerScroll)
+            .onDisappear { animationTask?.cancel(); animationTask = nil; offset = 0 }
+            .accessibilityHint(Text(NSLocalizedString("track_title_scroll_hint", comment: "Accessibility hint for track title scroll")))
+    }
+
+    private var shouldScroll: Bool {
+        measuredWidth > containerWidth + 6
     }
 
     private func triggerScroll() {
-        guard contentWidth > containerWidth else { return }
+        guard shouldScroll else { return }
 
         animationTask?.cancel()
-        let travelDistance = contentWidth - containerWidth
-        let duration = max(1.0, Double(travelDistance / 30))
+        let distance = measuredWidth - containerWidth
+        let duration = max(1.0, Double(distance / 35))
 
         animationTask = Task { @MainActor in
-            offset = 0
             withAnimation(.linear(duration: duration)) {
-                offset = -travelDistance
+                offset = -distance
             }
 
-            try? await Task.sleep(nanoseconds: UInt64((duration + 0.1) * 1_000_000_000))
+            try? await Task.sleep(nanoseconds: UInt64((duration + 0.15) * 1_000_000_000))
 
             withAnimation(.easeOut(duration: 0.35)) {
                 offset = 0
@@ -942,16 +911,39 @@ private struct TrackTitleTicker: View {
     }
 }
 
-private struct ContentWidthPreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
+private struct ScrollingTitleOverlay: View {
+    let text: String
+    let width: CGFloat
+    let offset: CGFloat
 
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
+    var body: some View {
+        HStack(spacing: width * 0.25) {
+            Text(text)
+            Text(text)
+        }
+        .font(.subheadline.weight(.semibold))
+        .lineLimit(1)
+        .frame(width: max(width, 1), alignment: .leading)
+        .offset(x: offset)
+        .mask(
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black, location: 0.05),
+                    .init(color: .black, location: 0.95),
+                    .init(color: .clear, location: 1)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
+        .opacity(offset == 0 ? 0 : 1)
     }
 }
 
-private struct TrackTitleMeasurementView: View {
+private struct TextWidthReader: View {
     let text: String
+    @Binding var width: CGFloat
 
     var body: some View {
         Text(text)
@@ -959,12 +951,25 @@ private struct TrackTitleMeasurementView: View {
             .lineLimit(1)
             .fixedSize(horizontal: true, vertical: false)
             .foregroundStyle(.clear)
-            .background(
+            .overlay(
                 GeometryReader { proxy in
                     Color.clear
-                        .preference(key: ContentWidthPreferenceKey.self, value: proxy.size.width)
+                        .onAppear { width = proxy.size.width }
+                        .onChange(of: proxy.size.width) { width = $0 }
                 }
             )
+    }
+}
+
+private struct ContainerWidthReader: View {
+    @Binding var width: CGFloat
+
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .onAppear { width = proxy.size.width }
+                .onChange(of: proxy.size.width) { width = $0 }
+        }
     }
 }
 
