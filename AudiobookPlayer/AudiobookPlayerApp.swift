@@ -57,7 +57,7 @@ struct SplashScreenView: View {
         .onAppear {
             // Fade in animation (0.4s)
             withAnimation(.easeIn(duration: 0.5)) {
-                iconScale = 2
+                iconScale = 1.5
             }
 
             // Dismiss after 2 seconds

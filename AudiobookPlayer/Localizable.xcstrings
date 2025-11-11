@@ -20,6 +20,9 @@
         }
       }
     },
+    "%@ provider" : {
+
+    },
     "%lld" : {
 
     },
@@ -965,7 +968,14 @@
       }
     },
     "Collection Details" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集详情"
+          }
+        }
+      }
     },
     "collection_not_found" : {
       "comment" : "Collection not found",
