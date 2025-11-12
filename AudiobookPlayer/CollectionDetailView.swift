@@ -304,6 +304,7 @@ struct CollectionDetailView: View {
             } else {
                 ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
                     let trackIsActive = isCurrentTrack(track: track)
+                    let hasTranscript = transcriptStatusCache[track.id] ?? false
                     TrackDetailRow(
                         index: index,
                         track: track,
@@ -311,7 +312,7 @@ struct CollectionDetailView: View {
                         isPlaying: trackIsActive && audioPlayer.isPlaying,
                         playbackState: collection.playbackState(for: track.id),
                         isFavorite: track.isFavorite,
-                        hasTranscript: transcriptStatusCache[track.id] ?? false,
+                        hasTranscript: hasTranscript,
                         onSelect: {
                             startPlayback(track, in: collection)
                         },
@@ -344,16 +345,18 @@ struct CollectionDetailView: View {
                         }
                     }
                     .contextMenu {
-                        Button {
-                            trackForTranscription = track
-                        } label: {
-                            Label(
-                                NSLocalizedString("transcribe_track_title", comment: "Transcribe track title"),
-                                systemImage: "waveform"
-                            )
+                        if !hasTranscript {
+                            Button {
+                                trackForTranscription = track
+                            } label: {
+                                Label(
+                                    NSLocalizedString("transcribe_track_title", comment: "Transcribe track title"),
+                                    systemImage: "waveform"
+                                )
+                            }
                         }
 
-                        if transcriptStatusCache[track.id] ?? false {
+                        if hasTranscript {
                             Button {
                                 trackForViewing = track
                             } label: {
