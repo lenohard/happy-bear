@@ -112,18 +112,26 @@ struct AITabView: View {
     private var modelsSection: some View {
         Section {
             if let summary = selectedModelSummary {
-                HStack(alignment: .center, spacing: 12) {
-                    Label(summary, systemImage: "star.circle.fill")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Button {
-                        Task { try? await gateway.refreshModels() }
-                    } label: {
-                        Image(systemName: "arrow.clockwise")
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(alignment: .center, spacing: 12) {
+                        Label(summary, systemImage: "star.circle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button {
+                            Task { try? await gateway.refreshModels() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+
+                    if let refreshText = lastRefreshDescription(for: gateway.lastModelRefreshDate) {
+                        Text(refreshText)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
                 }
                 .padding(.vertical, 4)
                 .listRowSeparator(.hidden)
@@ -322,6 +330,19 @@ struct AITabView: View {
         .padding(.vertical, 4)
     }
 
+    private func lastRefreshDescription(for date: Date?) -> String? {
+        guard let date else { return nil }
+
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        let relativeString = formatter.localizedString(for: date, relativeTo: Date())
+
+        return String(
+            format: NSLocalizedString("ai_tab_last_updated_template", comment: ""),
+            relativeString
+        )
+    }
+
     private var testerSection: some View {
         Section(header: Text(NSLocalizedString("ai_tab_tester_section", comment: ""))) {
             TextField(NSLocalizedString("ai_tab_system_prompt", comment: ""), text: $gateway.systemPrompt)
@@ -360,6 +381,11 @@ struct AITabView: View {
                         Text(String(format: NSLocalizedString("ai_tab_total_used_label", comment: ""), credits.totalUsed))
                             .font(.footnote)
                             .foregroundStyle(.secondary)
+                        if let refreshText = lastRefreshDescription(for: gateway.lastCreditsRefreshDate) {
+                            Text(refreshText)
+                                .font(.caption2)
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                     Spacer()
                     Button {

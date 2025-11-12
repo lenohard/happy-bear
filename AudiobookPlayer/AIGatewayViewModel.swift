@@ -26,6 +26,9 @@ final class AIGatewayViewModel: ObservableObject {
     @Published private(set) var generationError: String?
     @Published private(set) var modelErrorMessage: String?
 
+    @Published private(set) var lastModelRefreshDate: Date?
+    @Published private(set) var lastCreditsRefreshDate: Date?
+
     private let keyStore: AIGatewayAPIKeyStore
     private let client: AIGatewayClient
     private let defaults: UserDefaults
@@ -33,6 +36,10 @@ final class AIGatewayViewModel: ObservableObject {
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGateway")
 
     private let defaultModelKey = "ai_gateway_default_model"
+    private let modelsCacheKey = "ai_gateway_cached_models"
+    private let modelsCacheTimestampKey = "ai_gateway_cached_models_timestamp"
+    private let creditsCacheKey = "ai_gateway_cached_credits"
+    private let creditsCacheTimestampKey = "ai_gateway_cached_credits_timestamp"
 
     init(
         keyStore: AIGatewayAPIKeyStore = KeychainAIGatewayAPIKeyStore(),
@@ -44,6 +51,7 @@ final class AIGatewayViewModel: ObservableObject {
         self.defaults = defaults
 
         loadStoredKey()
+        loadCachedPayloads()
     }
 
     var hasValidKey: Bool {
@@ -139,6 +147,7 @@ final class AIGatewayViewModel: ObservableObject {
         do {
             let list = try await client.fetchModels(apiKey: resolvedKey)
             models = list
+            persistModelsCache(list)
             if !list.contains(where: { $0.id == selectedModelID }) {
                 selectedModelID = list.first?.id ?? selectedModelID
             }
@@ -158,6 +167,7 @@ final class AIGatewayViewModel: ObservableObject {
         do {
             let list = try await client.fetchModels(apiKey: key)
             models = list
+            persistModelsCache(list)
             if !list.contains(where: { $0.id == selectedModelID }) {
                 selectedModelID = list.first?.id ?? selectedModelID
             }
@@ -180,6 +190,7 @@ final class AIGatewayViewModel: ObservableObject {
             if let storedKey = try keyStore.loadKey() {
                 logger.debug("Loaded stored key for credits request")
                 credits = try await client.fetchCredits(apiKey: storedKey)
+                persistCreditsCache(credits)
             }
         } catch {
             logger.error("Failed fetching credits: \(error.localizedDescription)")
@@ -254,4 +265,58 @@ final class AIGatewayViewModel: ObservableObject {
         }
     }
 
+}
+
+// MARK: - Caching Helpers
+
+private extension AIGatewayViewModel {
+    func persistModelsCache(_ list: [AIModelInfo]) {
+        guard let data = try? JSONEncoder().encode(list) else { return }
+        defaults.set(data, forKey: modelsCacheKey)
+        let now = Date()
+        defaults.set(now, forKey: modelsCacheTimestampKey)
+        lastModelRefreshDate = now
+    }
+
+    func persistCreditsCache(_ credits: CreditsResponse?) {
+        guard let credits,
+              let data = try? JSONEncoder().encode(credits) else {
+            defaults.removeObject(forKey: creditsCacheKey)
+            defaults.removeObject(forKey: creditsCacheTimestampKey)
+            lastCreditsRefreshDate = nil
+            return
+        }
+
+        defaults.set(data, forKey: creditsCacheKey)
+        let now = Date()
+        defaults.set(now, forKey: creditsCacheTimestampKey)
+        lastCreditsRefreshDate = now
+    }
+
+    func loadCachedPayloads() {
+        loadCachedModels()
+        loadCachedCredits()
+    }
+
+    func loadCachedModels() {
+        guard let data = defaults.data(forKey: modelsCacheKey) else { return }
+        do {
+            models = try JSONDecoder().decode([AIModelInfo].self, from: data)
+            lastModelRefreshDate = defaults.object(forKey: modelsCacheTimestampKey) as? Date
+        } catch {
+            logger.error("Failed decoding cached models: \(error.localizedDescription)")
+            defaults.removeObject(forKey: modelsCacheKey)
+        }
+    }
+
+    func loadCachedCredits() {
+        guard let data = defaults.data(forKey: creditsCacheKey) else { return }
+        do {
+            credits = try JSONDecoder().decode(CreditsResponse.self, from: data)
+            lastCreditsRefreshDate = defaults.object(forKey: creditsCacheTimestampKey) as? Date
+        } catch {
+            logger.error("Failed decoding cached credits: \(error.localizedDescription)")
+            defaults.removeObject(forKey: creditsCacheKey)
+        }
+    }
 }
