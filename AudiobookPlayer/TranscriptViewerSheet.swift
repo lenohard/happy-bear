@@ -9,8 +9,11 @@ struct TranscriptViewerSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
+    @EnvironmentObject private var library: LibraryStore
+    @EnvironmentObject private var baiduAuth: BaiduAuthViewModel
     @StateObject private var viewModel: TranscriptViewModel
     @State private var selectedSegment: TranscriptSegment?
+    @State private var playbackAlertMessage: String?
 
     init(trackId: String, trackName: String) {
         self.trackId = trackId
@@ -66,7 +69,7 @@ struct TranscriptViewerSheet: View {
                 } else if viewModel.searchText.isEmpty {
                     // Full transcript view
                     ScrollView {
-                        VStack(alignment: .leading, spacing: 12) {
+                        LazyVStack(alignment: .leading, spacing: 10) {
                             ForEach(viewModel.segments) { segment in
                                 TranscriptSegmentRowView(
                                     segment: segment,
@@ -99,10 +102,12 @@ struct TranscriptViewerSheet: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         ScrollView {
-                            VStack(alignment: .leading, spacing: 12) {
-                                Text(String(format: NSLocalizedString("transcript_search_results", comment: ""), viewModel.searchText))
-                                    .font(.headline)
-                                    .padding(.horizontal)
+                            LazyVStack(alignment: .leading, spacing: 10) {
+                                SearchSummaryView(
+                                    query: viewModel.searchText,
+                                    totalMatches: viewModel.searchResults.count
+                                )
+                                .padding(.horizontal)
 
                                 ForEach(viewModel.searchResults) { result in
                                     SearchResultRow(
@@ -143,18 +148,57 @@ struct TranscriptViewerSheet: View {
         .task {
             await viewModel.loadTranscript()
         }
+        .alert(
+            NSLocalizedString("error_title", comment: "Generic error title"),
+            isPresented: Binding(
+                get: { playbackAlertMessage != nil },
+                set: { newValue in
+                    if !newValue {
+                        playbackAlertMessage = nil
+                    }
+                }
+            )
+        ) {
+            Button("ok_button", role: .cancel) {
+                playbackAlertMessage = nil
+            }
+        } message: {
+            Text(playbackAlertMessage ?? "")
+        }
     }
 
     // MARK: - Private Methods
 
     private func jumpToSegment(_ segment: TranscriptSegment) {
+        guard let context = resolveTrackContext() else {
+            playbackAlertMessage = NSLocalizedString(
+                "transcript_track_not_found_message",
+                comment: "Shown when transcript track cannot be located for playback"
+            )
+            return
+        }
+
         let position = viewModel.getPlaybackPosition(for: segment)
+
+        if audioPlayer.currentTrack?.id != context.track.id || audioPlayer.activeCollection?.id != context.collection.id {
+            audioPlayer.play(track: context.track, in: context.collection, token: baiduAuth.token)
+        }
+
         audioPlayer.seek(to: position)
 
         // Dismiss after a short delay to show selection
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             dismiss()
         }
+    }
+
+    private func resolveTrackContext() -> (track: AudiobookTrack, collection: AudiobookCollection)? {
+        for collection in library.collections {
+            if let track = collection.tracks.first(where: { $0.id.uuidString == trackId }) {
+                return (track, collection)
+            }
+        }
+        return nil
     }
 }
 
@@ -166,29 +210,34 @@ struct TranscriptSegmentRowView: View {
     let onTap: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                // Timestamps (start and end)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(segment.formattedStartTime)
-                        .font(.caption2)
+                        .font(.caption2.monospacedDigit())
                         .foregroundStyle(.secondary)
                     Text(segment.formattedEndTime)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .font(.caption2.monospacedDigit())
+                        .foregroundStyle(.tertiary)
                 }
-                .frame(width: 60, alignment: .leading)
+                .frame(width: 58, alignment: .leading)
 
-                // Text
                 VStack(alignment: .leading, spacing: 4) {
                     Text(segment.text)
                         .font(.body)
-                        .lineLimit(3)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
                     if let confidence = segment.confidence {
-                        Text(String(format: "Confidence: %.0f%%", confidence * 100))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text(
+                            String(
+                                format: NSLocalizedString("transcript_confidence_format", comment: "Transcript confidence percentage"),
+                                locale: .current,
+                                confidence * 100
+                            )
+                        )
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                     }
                 }
 
@@ -197,10 +246,16 @@ struct TranscriptSegmentRowView: View {
             .contentShape(Rectangle())
             .onTapGesture(perform: onTap)
         }
-        .padding()
-        .background(isSelected ? Color.blue.opacity(0.1) : Color(.systemBackground))
-        .cornerRadius(8)
-        .border(isSelected ? Color.blue : Color.clear, width: 2)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isSelected ? Color.accentColor.opacity(0.12) : Color(.systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1)
+        )
     }
 }
 
@@ -213,39 +268,95 @@ struct SearchResultRow: View {
     let onTap: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                // Timestamps (start and end)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(result.segment.formattedStartTime)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Text(result.segment.formattedEndTime)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(width: 60, alignment: .leading)
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 8) {
+                Text(result.segment.formattedStartTime)
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
 
-                // Match info
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(result.displayText)
-                        .font(.caption)
-                        .foregroundStyle(.blue)
-
-                    AttributedText(highlightedText)
-                        .font(.body)
-                        .lineLimit(2)
-                }
-
-                Spacer()
+                Text(matchCountText)
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(Color.accentColor.opacity(0.15))
+                    )
+                    .foregroundStyle(Color.accentColor)
             }
-            .contentShape(Rectangle())
-            .onTapGesture(perform: onTap)
+
+            AttributedText(highlightedText)
+                .font(.body)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding()
-        .background(isSelected ? Color.blue.opacity(0.1) : Color(.systemBackground))
-        .cornerRadius(8)
-        .border(isSelected ? Color.blue : Color.clear, width: 2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isSelected ? Color.accentColor.opacity(0.12) : Color(.systemBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
+    }
+
+    private var matchCountText: String {
+        if result.matchCount == 1 {
+            return NSLocalizedString("transcript_search_result_single", comment: "Single transcript search match")
+        } else {
+            return String(
+                format: NSLocalizedString("transcript_search_result_plural", comment: "Multiple transcript search matches"),
+                locale: .current,
+                result.matchCount
+            )
+        }
+    }
+}
+
+// MARK: - Search Summary
+
+private struct SearchSummaryView: View {
+    let query: String
+    let totalMatches: Int
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(
+                String(
+                    format: NSLocalizedString("transcript_search_results", comment: "Transcript search header"),
+                    locale: .current,
+                    query
+                )
+            )
+            .font(.headline)
+
+            Text(summaryCountText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var summaryCountText: String {
+        if totalMatches == 1 {
+            return NSLocalizedString(
+                "transcript_search_result_single",
+                comment: "Displayed when transcript search has exactly one match"
+            )
+        } else {
+            return String(
+                format: NSLocalizedString(
+                    "transcript_search_result_plural",
+                    comment: "Displayed when transcript search has multiple matches"
+                ),
+                locale: .current,
+                totalMatches
+            )
+        }
     }
 }
 
@@ -303,4 +414,6 @@ struct AttributedText: UIViewRepresentable {
 #Preview {
     TranscriptViewerSheet(trackId: "test-track-1", trackName: "Sample Audiobook Track")
         .environmentObject(AudioPlayerViewModel())
+        .environmentObject(LibraryStore(autoLoadOnInit: false))
+        .environmentObject(BaiduAuthViewModel())
 }

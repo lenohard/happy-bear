@@ -256,6 +256,7 @@
       }
     },
     "ai_tab_enter_key_hint" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -304,6 +305,7 @@
       }
     },
     "ai_tab_key_valid" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -635,6 +637,7 @@
       }
     },
     "ai_tab_unsaved_changes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -667,6 +670,7 @@
       }
     },
     "ai_tab_validating" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -681,6 +685,9 @@
           }
         }
       }
+    },
+    "API Key" : {
+
     },
     "Authorizing…" : {
 
@@ -1328,6 +1335,7 @@
     },
     "download_button_download" : {
       "comment" : "Download button label",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1939,7 +1947,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开藏书集合"
+            "value" : "打开合集"
           }
         }
       }
@@ -2394,6 +2402,7 @@
       }
     },
     "soniox_configured" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2424,6 +2433,7 @@
       }
     },
     "soniox_not_configured" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2760,6 +2770,59 @@
         }
       }
     },
+    "transcript_confidence_format" : {
+      "comment" : "Transcript confidence percentage",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Confidence %.0f%%"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置信度 %.0f%%"
+          }
+        }
+      }
+    },
+    "transcript_loading_short" : {
+      "comment" : "Transcript loading state chip",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查询中..."
+          }
+        }
+      }
+    },
+    "transcript_not_ready_short" : {
+      "comment" : "Transcript unavailable chip",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No transcript"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无转录"
+          }
+        }
+      }
+    },
     "transcript_search_no_matches" : {
       "localizations" : {
         "en" : {
@@ -2776,7 +2839,42 @@
         }
       }
     },
+    "transcript_search_result_plural" : {
+      "comment" : "Displayed when transcript search has multiple matches\nMultiple transcript search matches",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d matches"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 个匹配"
+          }
+        }
+      }
+    },
+    "transcript_search_result_single" : {
+      "comment" : "Displayed when transcript search has exactly one match\nSingle transcript search match",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 match"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1 个匹配"
+          }
+        }
+      }
+    },
     "transcript_search_results" : {
+      "comment" : "Transcript search header",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2788,6 +2886,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "\"%@\" 的结果"
+          }
+        }
+      }
+    },
+    "transcript_track_not_found_message" : {
+      "comment" : "Shown when transcript track cannot be located for playback",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Could not find the matching track in your library. Make sure the audiobook still exists before jumping to a transcript segment."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在资料库中找不到对应的音轨。跳转到转录片段前请确认该有声书仍然存在。"
           }
         }
       }

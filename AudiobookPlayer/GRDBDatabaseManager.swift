@@ -936,7 +936,8 @@ actor GRDBDatabaseManager {
             }
 
             let jobStatus: String = row["job_status"]
-            return jobStatus == "complete"
+            let normalized = jobStatus.lowercased()
+            return normalized == "complete" || normalized == "completed"
         }
 
         return hasTranscript

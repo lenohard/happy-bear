@@ -96,6 +96,9 @@ struct PlayingView: View {
 
     @State private var missingAuthAlert = false
     @State private var showingEphemeralSave = false
+    @State private var transcriptViewerTrack: AudiobookTrack?
+    @State private var transcriptStatus: TranscriptStatus = .unknown
+    @State private var transcriptStatusTask: Task<Void, Never>?
 
     private var currentPlayback: PlaybackSnapshot? {
         guard let currentTrack = audioPlayer.currentTrack else {
@@ -187,11 +190,21 @@ struct PlayingView: View {
                 EmptyView()
             }
         }
+        .sheet(item: $transcriptViewerTrack) { track in
+            TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
+        }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             syncPlaybackState()
+            refreshTranscriptStatus()
         }
         .onChange(of: audioPlayer.currentTime) { _ in
             syncPlaybackState()
+        }
+        .onAppear {
+            refreshTranscriptStatus()
+        }
+        .onDisappear {
+            transcriptStatusTask?.cancel()
         }
     }
 
@@ -207,16 +220,22 @@ struct PlayingView: View {
     @ViewBuilder
     private func livePlaybackCard(snapshot: PlaybackSnapshot) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(snapshot.collection.title)
-                    .font(.title3)
-                    .bold()
-                    .lineLimit(2)
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(snapshot.collection.title)
+                        .font(.title3)
+                        .bold()
+                        .lineLimit(2)
 
-                Text(snapshot.track.displayName)
-                    .font(.headline)
-                    .lineLimit(2)
-                    .foregroundStyle(.secondary)
+                    Text(snapshot.track.displayName)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                transcriptButton(for: snapshot.track)
             }
 
             liveTimeline()
@@ -251,6 +270,8 @@ struct PlayingView: View {
                 }
                 
                 Spacer()
+
+                transcriptButton(for: snapshot.track)
                 
                 FavoriteToggleButton(isFavorite: snapshot.track.isFavorite) {
                     library.toggleFavorite(for: snapshot.track.id, in: snapshot.collection.id)
@@ -411,6 +432,26 @@ struct PlayingView: View {
             }
         }
         .padding(.horizontal, 4)
+    }
+
+    @ViewBuilder
+    private func transcriptButton(for track: AudiobookTrack) -> some View {
+        if transcriptStatusForTrack(track) == .available {
+            Button {
+                transcriptViewerTrack = track
+            } label: {
+                Image(systemName: "text.alignleft")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                    .padding(10)
+                    .background(
+                        Circle()
+                            .fill(Color.accentColor)
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(NSLocalizedString("view_transcript", comment: "View transcript menu item"))
+        }
     }
 
     private var hasPreviousTrack: Bool {
@@ -600,6 +641,49 @@ struct PlayingView: View {
             entry.collection.id != snapshot.collection.id || entry.track.id != snapshot.track.id
         }
     }
+
+    private func refreshTranscriptStatus() {
+        transcriptStatusTask?.cancel()
+
+        guard
+            let collection = audioPlayer.activeCollection,
+            !collection.isEphemeral,
+            let track = audioPlayer.currentTrack
+        else {
+            transcriptStatus = .unavailable
+            return
+        }
+
+        transcriptStatus = .loading
+        transcriptStatusTask = Task {
+            do {
+                let manager = GRDBDatabaseManager.shared
+                try await manager.initializeDatabase()
+                let hasTranscript = try await manager.hasCompletedTranscript(forTrackId: track.id.uuidString)
+                await MainActor.run {
+                    transcriptStatus = hasTranscript ? .available : .unavailable
+                }
+            } catch {
+                await MainActor.run {
+                    transcriptStatus = .unavailable
+                }
+            }
+        }
+    }
+
+    private func transcriptStatusForTrack(_ track: AudiobookTrack) -> TranscriptStatus {
+        guard let currentTrack = audioPlayer.currentTrack, currentTrack.id == track.id else {
+            return .unavailable
+        }
+        return transcriptStatus
+    }
+}
+
+private enum TranscriptStatus {
+    case unknown
+    case loading
+    case available
+    case unavailable
 }
 
 private struct PlaybackSnapshot {
