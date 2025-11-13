@@ -14,6 +14,8 @@ struct AITabView: View {
     @State private var modelSearchText: String = ""
     @State private var isCredentialSectionExpanded = false
     @State private var hasAppliedDefaultCollapse = false
+    @State private var showAPIKey = false
+    @State private var isEditingGatewayKey = false
 
     var body: some View {
         NavigationStack {
@@ -52,61 +54,136 @@ struct AITabView: View {
                     applyDefaultProviderCollapseIfNeeded(with: gateway.models)
                 }
             }
+            .onAppear {
+                isEditingGatewayKey = !gateway.hasValidKey
+            }
+            .onChange(of: gateway.keyState) { state in
+                handleGatewayKeyStateChange(state)
+            }
         }
     }
 
     private var credentialsSection: some View {
         Section {
-            SecureField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
-                .textInputAutocapitalization(.never)
-                .disableAutocorrection(true)
-                .focused($focusedField, equals: .gateway)
-                .onChange(of: gateway.apiKey) { newValue in
-                    if !newValue.isEmpty {
-                        gateway.markKeyAsEditing()
+            gatewayKeyRow
+                .modifier(CredentialRowModifier(alignment: .leading))
+
+            HStack(spacing: 12) {
+                Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
+                    let pendingKey = gateway.apiKey
+                    focusedField = nil
+                    resignFirstResponder()
+                    Task {
+                        await gateway.saveAndValidateKey(using: pendingKey)
                     }
                 }
-                .modifier(CredentialRowModifier())
+                .buttonStyle(.borderless)
+                .disabled(gateway.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-            Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
-                let pendingKey = gateway.apiKey
-                focusedField = nil
-                resignFirstResponder()
-                Task { await gateway.saveAndValidateKey(using: pendingKey) }
+                Spacer()
+
+                Button(NSLocalizedString("credential_edit_button", comment: "")) {
+                    toggleGatewayEditing()
+                }
+                .buttonStyle(.borderless)
+                .disabled(!gateway.hasValidKey && gateway.apiKey.isEmpty)
             }
-            .buttonStyle(.borderless)
-            .modifier(CredentialRowModifier())
-
-            keyStateLabel
-                .modifier(CredentialRowModifier(alignment: .leading))
+            .modifier(CredentialRowModifier(alignment: .leading))
         } header: {
             Label(NSLocalizedString("ai_tab_credentials_section", comment: ""), systemImage: "key.horizontal")
                 .font(.headline)
         }
     }
 
-    @ViewBuilder
-    private var keyStateLabel: some View {
-        switch gateway.keyState {
-        case .unknown:
-            Text(NSLocalizedString("ai_tab_enter_key_hint", comment: ""))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-        case .editing:
-            Text(NSLocalizedString("ai_tab_unsaved_changes", comment: ""))
-                .font(.footnote)
-                .foregroundColor(.orange)
-        case .validating:
-            ProgressView(NSLocalizedString("ai_tab_validating", comment: ""))
-        case .valid:
-            Label(NSLocalizedString("ai_tab_key_valid", comment: ""), systemImage: "checkmark.seal")
-                .font(.footnote)
-                .foregroundColor(.green)
-        case .invalid(let message):
-            Label(message, systemImage: "exclamationmark.triangle")
-                .font(.footnote)
-                .foregroundColor(.red)
+    private var shouldShowGatewayKeyInput: Bool {
+        isEditingGatewayKey || !gateway.hasValidKey
+    }
+
+    private var gatewayKeyRow: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Group {
+                if shouldShowGatewayKeyInput {
+                    gatewayKeyInputField
+                } else if !gateway.storedKeyValue.isEmpty {
+                    Text(maskedAPIKey(gateway.storedKeyValue))
+                        .font(.system(.body, design: .monospaced))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
+                } else {
+                    Text(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button(action: { showAPIKey.toggle() }) {
+                Image(systemName: showAPIKey ? "eye.slash" : "eye")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
         }
+    }
+
+    @ViewBuilder
+    private var gatewayKeyInputField: some View {
+        Group {
+            if showAPIKey {
+                TextField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
+            } else {
+                SecureField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
+            }
+        }
+        .textInputAutocapitalization(.never)
+        .disableAutocorrection(true)
+        .focused($focusedField, equals: .gateway)
+        .onChange(of: gateway.apiKey) { newValue in
+            if !newValue.isEmpty {
+                gateway.markKeyAsEditing()
+            }
+        }
+    }
+
+    private func toggleGatewayEditing() {
+        guard gateway.hasValidKey else {
+            isEditingGatewayKey = true
+            focusedField = .gateway
+            return
+        }
+
+        if isEditingGatewayKey {
+            isEditingGatewayKey = false
+            gateway.apiKey = ""
+            focusedField = nil
+            showAPIKey = false
+            resignFirstResponder()
+        } else {
+            gateway.apiKey = gateway.storedKeyValue
+            isEditingGatewayKey = true
+            focusedField = .gateway
+        }
+    }
+
+    private func handleGatewayKeyStateChange(_ state: AIGatewayViewModel.KeyState) {
+        switch state {
+        case .valid:
+            isEditingGatewayKey = false
+            showAPIKey = false
+        case .editing, .invalid, .unknown:
+            isEditingGatewayKey = true
+        case .validating:
+            break
+        }
+    }
+
+    private func maskedAPIKey(_ apiKey: String) -> String {
+        if showAPIKey {
+            return apiKey
+        }
+        guard apiKey.count > 8 else { return String(repeating: "•", count: apiKey.count) }
+        let prefix = String(apiKey.prefix(4))
+        let suffix = String(apiKey.suffix(4))
+        return "\(prefix)...\(suffix)"
     }
 
     private var modelsSection: some View {
@@ -433,31 +510,35 @@ struct TTSTabView: View {
     @State private var testError: String?
     @State private var selectedJobForTranscript: TranscriptionJob?
     @State private var refreshTimer: Timer?
+    @State private var showSonioxKey = false
+    @State private var isEditingSonioxKey = false
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
-                    SecureField(
-                        NSLocalizedString("soniox_key_placeholder", comment: ""),
-                        text: $sonioxViewModel.apiKey
-                    )
-                    .textInputAutocapitalization(.never)
-                    .disableAutocorrection(true)
-                    .focused($isKeyFieldFocused)
-                    .modifier(CredentialRowModifier())
-
-                    Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
-                        let pendingKey = sonioxViewModel.apiKey
-                        isKeyFieldFocused = false
-                        resignFirstResponder()
-                        Task { await sonioxViewModel.saveKey(using: pendingKey) }
-                    }
-                    .buttonStyle(.borderless)
-                    .modifier(CredentialRowModifier())
-
-                    sonioxStatusContent
+                    sonioxKeyRow
                         .modifier(CredentialRowModifier(alignment: .leading))
+
+                    HStack(spacing: 12) {
+                        Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
+                            let pendingKey = sonioxViewModel.apiKey
+                            isKeyFieldFocused = false
+                            resignFirstResponder()
+                            Task { await sonioxViewModel.saveKey(using: pendingKey) }
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(sonioxViewModel.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                        Spacer()
+
+                        Button(NSLocalizedString("credential_edit_button", comment: "")) {
+                            toggleSonioxEditing()
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(!sonioxViewModel.keyExists)
+                    }
+                    .modifier(CredentialRowModifier(alignment: .leading))
                 } header: {
                     Label(NSLocalizedString("soniox_section_title", comment: ""), systemImage: "waveform")
                         .font(.headline)
@@ -541,26 +622,78 @@ struct TTSTabView: View {
                     trackName: lookupTrackName(for: job.trackId)
                 )
             }
+            .onAppear {
+                isEditingSonioxKey = !sonioxViewModel.keyExists
+            }
+            .onChange(of: sonioxViewModel.keyExists) { exists in
+                isEditingSonioxKey = !exists
+            }
+            .onChange(of: sonioxViewModel.statusMessage) { _ in
+                if sonioxViewModel.isSuccess {
+                    isEditingSonioxKey = false
+                    showSonioxKey = false
+                }
+            }
         }
     }
 
-    private var sonioxStatusContent: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if sonioxViewModel.keyExists {
-                Label(NSLocalizedString("soniox_configured", comment: ""), systemImage: "checkmark.seal")
-                    .font(.footnote)
-                    .foregroundColor(.green)
-            } else {
-                Label(NSLocalizedString("soniox_not_configured", comment: ""), systemImage: "exclamationmark.circle")
-                    .font(.footnote)
-                    .foregroundColor(.orange)
-            }
+    private var shouldShowSonioxKeyInput: Bool {
+        isEditingSonioxKey || !sonioxViewModel.keyExists
+    }
 
-            if let message = sonioxViewModel.statusMessage {
-                Text(message)
-                    .font(.footnote)
-                    .foregroundColor(sonioxViewModel.isSuccess ? .green : .red)
+    private var sonioxKeyRow: some View {
+        HStack(alignment: .center, spacing: 12) {
+            Group {
+                if shouldShowSonioxKeyInput {
+                    sonioxKeyInputField
+                } else if !sonioxViewModel.storedKeyValue.isEmpty {
+                    Text(maskedSonioxKey(sonioxViewModel.storedKeyValue))
+                        .font(.system(.body, design: .monospaced))
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .textSelection(.enabled)
+                } else {
+                    Text(NSLocalizedString("soniox_key_placeholder", comment: ""))
+                        .foregroundStyle(.secondary)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button(action: { showSonioxKey.toggle() }) {
+                Image(systemName: showSonioxKey ? "eye.slash" : "eye")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private var sonioxKeyInputField: some View {
+        Group {
+            if showSonioxKey {
+                TextField(NSLocalizedString("soniox_key_placeholder", comment: ""), text: $sonioxViewModel.apiKey)
+            } else {
+                SecureField(NSLocalizedString("soniox_key_placeholder", comment: ""), text: $sonioxViewModel.apiKey)
+            }
+        }
+        .textInputAutocapitalization(.never)
+        .disableAutocorrection(true)
+        .focused($isKeyFieldFocused)
+    }
+
+    private func toggleSonioxEditing() {
+        guard sonioxViewModel.keyExists else { return }
+
+        if isEditingSonioxKey {
+            isEditingSonioxKey = false
+            sonioxViewModel.apiKey = ""
+            isKeyFieldFocused = false
+            showSonioxKey = false
+            resignFirstResponder()
+        } else {
+            sonioxViewModel.apiKey = sonioxViewModel.storedKeyValue
+            isEditingSonioxKey = true
+            isKeyFieldFocused = true
         }
     }
 
@@ -627,6 +760,16 @@ struct TTSTabView: View {
                 Text("Transcription Jobs")
             }
         }
+    }
+
+    private func maskedSonioxKey(_ apiKey: String) -> String {
+        if showSonioxKey {
+            return apiKey
+        }
+        guard apiKey.count > 8 else { return String(repeating: "•", count: apiKey.count) }
+        let prefix = String(apiKey.prefix(4))
+        let suffix = String(apiKey.suffix(4))
+        return "\(prefix)...\(suffix)"
     }
 
     @MainActor

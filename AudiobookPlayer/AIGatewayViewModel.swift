@@ -12,6 +12,7 @@ final class AIGatewayViewModel: ObservableObject {
     }
 
     @Published var apiKey: String = ""
+    @Published private(set) var storedKeyValue: String = ""
     @Published private(set) var keyState: KeyState = .unknown
     @Published private(set) var models: [AIModelInfo] = []
     @Published private(set) var isFetchingModels = false
@@ -74,17 +75,20 @@ final class AIGatewayViewModel: ObservableObject {
                 logger.debug("Loaded stored AI key; length=\(stored.count)")
                 hasStoredKey = true
                 keyState = .valid
+                storedKeyValue = stored
                 // Don't populate apiKey field - keep it empty for security
                 // User will see empty field with "Key verified" status
             } else {
                 logger.debug("No stored AI key found")
                 hasStoredKey = false
                 keyState = .unknown
+                storedKeyValue = ""
             }
         } catch {
             logger.error("Failed loading stored AI key: \(error.localizedDescription)")
             hasStoredKey = false
             keyState = .invalid(error.localizedDescription)
+            storedKeyValue = ""
         }
     }
 
@@ -110,6 +114,7 @@ final class AIGatewayViewModel: ObservableObject {
         do {
             try keyStore.saveKey(trimmed)
             hasStoredKey = true
+            storedKeyValue = trimmed
             // Validate by fetching models with the new key
             try await refreshModels(with: trimmed)
             // Refresh credits immediately after validation

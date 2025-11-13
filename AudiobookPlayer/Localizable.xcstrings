@@ -686,9 +686,6 @@
         }
       }
     },
-    "API Key" : {
-
-    },
     "Authorizing…" : {
 
     },
@@ -1149,6 +1146,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在创建转录任务..."
+          }
+        }
+      }
+    },
+    "credential_edit_button" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit Key"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑密钥"
           }
         }
       }

@@ -8,6 +8,7 @@ class SonioxKeyViewModel: ObservableObject {
     @Published var keyExists: Bool = false
     @Published var statusMessage: String?
     @Published var isSuccess: Bool = false
+    @Published private(set) var storedKeyValue: String = ""
 
     private let keychainStore: SonioxAPIKeyStore = KeychainSonioxAPIKeyStore()
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "SonioxKey")
@@ -50,6 +51,7 @@ class SonioxKeyViewModel: ObservableObject {
             let key = try keychainStore.loadKey()
             await MainActor.run {
                 self.keyExists = key != nil
+                self.storedKeyValue = key ?? ""
                 if key != nil {
                     self.apiKey = ""  // Don't show the actual key
                 }
