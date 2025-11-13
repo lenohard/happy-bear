@@ -1,5 +1,8 @@
 # iOS Audiobook Player - Product Requirements & Architecture
 
+This Reop is upload to Github: https://github.com/lenohard/happy-bear.
+You can use deepwiki to query about detailas quickly  of this repo using deepwiki tool.
+
 # Current Task 
 local/PROD.md:
 @local/PROD.md

@@ -319,6 +319,16 @@
         }
       }
     },
+    "ai_tab_last_updated_template" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近更新:%@"
+          }
+        }
+      }
+    },
     "ai_tab_load_models" : {
       "localizations" : {
         "en" : {
@@ -1576,6 +1586,9 @@
           }
         }
       }
+    },
+    "Key" : {
+      "extractionState" : "manual"
     },
     "Last position: %@" : {
 
