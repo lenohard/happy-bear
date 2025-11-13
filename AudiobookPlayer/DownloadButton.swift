@@ -18,7 +18,7 @@ struct DownloadButton: View {
                     Button {
                         showDeleteConfirmation = true
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                             Text(NSLocalizedString("download_button_downloaded", comment: "Downloaded button label"))
@@ -39,16 +39,25 @@ struct DownloadButton: View {
                         Text(String(format: NSLocalizedString("delete_cache_message", comment: "Delete cached track message"), track.displayName))
                     }
 
-                case .partiallyCached, .notCached:
+                case .partiallyCached:
+                    // Download in progress - show circular progress indicator
+                    Button {
+                        // Allow canceling download by tapping
+                        audioPlayer.removeCache(for: track)
+                    } label: {
+                        CircularProgressView(progress: status.percentage)
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.orange)
+
+                case .notCached:
                     // Download state
                     Button {
                         audioPlayer.cacheTrackIfNeeded(track)
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.down.circle")
-                            Text(NSLocalizedString("download_button_download", comment: "Download button label"))
-                                .font(.subheadline)
-                        }
+                        Image(systemName: "arrow.down.circle")
+                            .font(.title3)
                     }
                     .buttonStyle(.bordered)
 
@@ -61,14 +70,42 @@ struct DownloadButton: View {
                 Button {
                     audioPlayer.cacheTrackIfNeeded(track)
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.down.circle")
-                        Text(NSLocalizedString("download_button_download", comment: "Download button label"))
-                            .font(.subheadline)
-                    }
+                    Image(systemName: "arrow.down.circle")
+                        .font(.title3)
                 }
                 .buttonStyle(.bordered)
             }
+        }
+    }
+}
+
+struct CircularProgressView: View {
+    let progress: Double
+    let lineWidth: CGFloat = 2.0
+    
+    var body: some View {
+        ZStack {
+            // Background circle
+            Circle()
+                .stroke(Color.gray.opacity(0.3), lineWidth: lineWidth)
+            
+            // Progress circle
+            Circle()
+                .trim(from: 0.0, to: CGFloat(min(progress, 1.0)))
+                .stroke(
+                    Color.accentColor,
+                    style: StrokeStyle(
+                        lineWidth: lineWidth,
+                        lineCap: .round
+                    )
+                )
+                .rotationEffect(Angle(degrees: -90))
+                .animation(.easeInOut(duration: 0.3), value: progress)
+            
+            // Download icon in the center
+            Image(systemName: "arrow.down")
+                .font(.system(size: 8, weight: .medium))
+                .foregroundColor(.accentColor)
         }
     }
 }
