@@ -108,6 +108,23 @@ class TranscriptViewModel: NSObject, ObservableObject {
         return segments.first { $0.startTimeMs <= timeMs && timeMs <= $0.endTimeMs }
     }
 
+    /// Finds the closest segment for a playback time, even if the exact time is between segments.
+    func segmentClosest(to timeSeconds: Double) -> TranscriptSegment? {
+        guard !segments.isEmpty else { return nil }
+
+        if let exact = getSegmentAtTime(timeSeconds) {
+            return exact
+        }
+
+        let timeMs = Int(timeSeconds * 1000)
+
+        if let next = segments.first(where: { $0.startTimeMs > timeMs }) {
+            return next
+        }
+
+        return segments.last
+    }
+
     /// Highlight matching text in a segment
     func highlightedSegmentText(_ segment: TranscriptSegment) -> NSAttributedString {
         let normalizedQuery = searchText.trimmingCharacters(in: .whitespacesAndNewlines)

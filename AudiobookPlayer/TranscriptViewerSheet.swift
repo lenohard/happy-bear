@@ -14,6 +14,9 @@ struct TranscriptViewerSheet: View {
     @StateObject private var viewModel: TranscriptViewModel
     @State private var selectedSegment: TranscriptSegment?
     @State private var playbackAlertMessage: String?
+    @State private var scrollTargetSegmentID: String?
+    @State private var scrollTargetShouldAnimate = true
+    @State private var lastAutoScrolledSegmentID: String?
 
     init(trackId: String, trackName: String) {
         self.trackId = trackId
@@ -31,99 +34,22 @@ struct TranscriptViewerSheet: View {
                 )
                 .padding()
 
-                // Content
-                if viewModel.isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let error = viewModel.errorMessage {
-                    VStack(spacing: 12) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.orange)
-
-                        Text(error)
-                            .font(.subheadline)
-                            .multilineTextAlignment(.center)
-
-                        Button(action: {
-                            Task { await viewModel.loadTranscript() }
-                        }) {
-                            Text("retry_button")
-                                .font(.headline)
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.segments.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "doc.text.magnifyingglass")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.gray)
-
-                        Text("no_transcript_found")
-                            .font(.headline)
-                    }
-                    .padding()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if viewModel.searchText.isEmpty {
-                    // Full transcript view
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 10) {
-                            ForEach(viewModel.segments) { segment in
-                                TranscriptSegmentRowView(
-                                    segment: segment,
-                                    isSelected: selectedSegment?.id == segment.id,
-                                    onTap: {
-                                        selectedSegment = segment
-                                        jumpToSegment(segment)
-                                    }
-                                )
+                ScrollViewReader { proxy in
+                    transcriptContent()
+                        .onChange(of: scrollTargetSegmentID) { target in
+                            guard let target else { return }
+                            let scrollAction = {
+                                proxy.scrollTo(target, anchor: .center)
                             }
-                        }
-                        .padding()
-                    }
-                } else {
-                    // Search results view
-                    if viewModel.searchResults.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 40))
-                                .foregroundStyle(.gray)
 
-                            Text("no_search_results")
-                                .font(.headline)
-
-                            Text("transcript_search_no_matches")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    } else {
-                        ScrollView {
-                            LazyVStack(alignment: .leading, spacing: 10) {
-                                SearchSummaryView(
-                                    query: viewModel.searchText,
-                                    totalMatches: viewModel.searchResults.count
-                                )
-                                .padding(.horizontal)
-
-                                ForEach(viewModel.searchResults) { result in
-                                    SearchResultRow(
-                                        result: result,
-                                        highlightedText: viewModel.highlightedSegmentText(result.segment),
-                                        isSelected: selectedSegment?.id == result.segment.id,
-                                        onTap: {
-                                            selectedSegment = result.segment
-                                            jumpToSegment(result.segment)
-                                        }
-                                    )
+                            if scrollTargetShouldAnimate {
+                                withAnimation(.easeInOut) {
+                                    scrollAction()
                                 }
+                            } else {
+                                scrollAction()
                             }
-                            .padding()
                         }
-                    }
                 }
             }
             .navigationTitle(trackName)
@@ -148,6 +74,23 @@ struct TranscriptViewerSheet: View {
         .task {
             await viewModel.loadTranscript()
         }
+        .onChange(of: segmentIDs) { _ in
+            lastAutoScrolledSegmentID = nil
+            focusOnCurrentPlayback(animated: false)
+        }
+        .onChange(of: audioPlayer.currentTrack?.id) { _ in
+            lastAutoScrolledSegmentID = nil
+            focusOnCurrentPlayback(animated: false)
+        }
+        .onChange(of: audioPlayer.currentTime) { _ in
+            focusOnCurrentPlayback(animated: true)
+        }
+        .onChange(of: viewModel.searchText) { newValue in
+            if newValue.isEmpty {
+                lastAutoScrolledSegmentID = nil
+                focusOnCurrentPlayback(animated: false)
+            }
+        }
         .alert(
             NSLocalizedString("error_title", comment: "Generic error title"),
             isPresented: Binding(
@@ -165,9 +108,106 @@ struct TranscriptViewerSheet: View {
         } message: {
             Text(playbackAlertMessage ?? "")
         }
-    }
+        }
 
-    // MARK: - Private Methods
+        // MARK: - Private Methods
+
+        @ViewBuilder
+        private func transcriptContent() -> some View {
+            if viewModel.isLoading {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error = viewModel.errorMessage {
+                VStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.orange)
+
+                    Text(error)
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+
+                    Button(action: {
+                        Task { await viewModel.loadTranscript() }
+                    }) {
+                        Text("retry_button")
+                            .font(.headline)
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.segments.isEmpty {
+                VStack(spacing: 12) {
+                    Image(systemName: "doc.text.magnifyingglass")
+                        .font(.system(size: 40))
+                        .foregroundStyle(.gray)
+
+                    Text("no_transcript_found")
+                        .font(.headline)
+                }
+                .padding()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if viewModel.searchText.isEmpty {
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        ForEach(viewModel.segments) { segment in
+                            TranscriptSegmentRowView(
+                                segment: segment,
+                                isSelected: selectedSegment?.id == segment.id,
+                                onTap: {
+                                    selectedSegment = segment
+                                    jumpToSegment(segment)
+                                }
+                            )
+                            .id(segment.id)
+                        }
+                    }
+                    .padding()
+                }
+            } else {
+                if viewModel.searchResults.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 40))
+                            .foregroundStyle(.gray)
+
+                        Text("no_search_results")
+                            .font(.headline)
+
+                        Text("transcript_search_no_matches")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 10) {
+                            SearchSummaryView(
+                                query: viewModel.searchText,
+                                totalMatches: viewModel.searchResults.count
+                            )
+                            .padding(.horizontal)
+
+                            ForEach(viewModel.searchResults) { result in
+                                SearchResultRow(
+                                    result: result,
+                                    highlightedText: viewModel.highlightedSegmentText(result.segment),
+                                    isSelected: selectedSegment?.id == result.segment.id,
+                                    onTap: {
+                                        selectedSegment = result.segment
+                                        jumpToSegment(result.segment)
+                                    }
+                                )
+                                .id(result.segment.id)
+                            }
+                        }
+                        .padding()
+                    }
+                }
+            }
+        }
 
     private func jumpToSegment(_ segment: TranscriptSegment) {
         guard let context = resolveTrackContext() else {
@@ -179,6 +219,7 @@ struct TranscriptViewerSheet: View {
         }
 
         let position = viewModel.getPlaybackPosition(for: segment)
+        lastAutoScrolledSegmentID = segment.id
 
         if audioPlayer.currentTrack?.id != context.track.id || audioPlayer.activeCollection?.id != context.collection.id {
             audioPlayer.play(track: context.track, in: context.collection, token: baiduAuth.token)
@@ -199,6 +240,41 @@ struct TranscriptViewerSheet: View {
             }
         }
         return nil
+    }
+
+    private func focusOnCurrentPlayback(animated: Bool) {
+        guard shouldAutoFollowPlayback,
+              let segment = viewModel.segmentClosest(to: audioPlayer.currentTime) else {
+            return
+        }
+
+        selectedSegment = segment
+
+        if lastAutoScrolledSegmentID == segment.id {
+            return
+        }
+
+        lastAutoScrolledSegmentID = segment.id
+        setScrollTarget(segment.id, animated: animated)
+    }
+
+    private func setScrollTarget(_ id: String, animated: Bool) {
+        scrollTargetShouldAnimate = animated
+        scrollTargetSegmentID = id
+    }
+
+    private var shouldAutoFollowPlayback: Bool {
+        guard isViewingCurrentTrack else { return false }
+        guard viewModel.searchText.isEmpty else { return false }
+        return !viewModel.segments.isEmpty
+    }
+
+    private var isViewingCurrentTrack: Bool {
+        audioPlayer.currentTrack?.id.uuidString == trackId
+    }
+
+    private var segmentIDs: [String] {
+        viewModel.segments.map { $0.id }
     }
 }
 
