@@ -689,6 +689,193 @@
     "Authorizing…" : {
 
     },
+    "backup_credentials_warning" : {
+      "comment" : "Credentials warning",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Warning: credentials are stored in plain text inside the archive. Share only with devices you trust."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "警告：私钥会以明文保存在压缩包中，仅与受信任的设备分享。"
+          }
+        }
+      }
+    },
+    "backup_export_button" : {
+      "comment" : "Export button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Data"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导出数据"
+          }
+        }
+      }
+    },
+    "backup_export_summary_format" : {
+      "comment" : "Export summary format",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup ready: %1$d collections, %2$d tracks"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份完成：%1$d 个集合，%2$d 条音轨"
+          }
+        }
+      }
+    },
+    "backup_exporting_status" : {
+      "comment" : "Exporting status",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preparing archive…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在准备压缩包…"
+          }
+        }
+      }
+    },
+    "backup_import_button" : {
+      "comment" : "Import button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import Data"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入数据"
+          }
+        }
+      }
+    },
+    "backup_import_summary_format" : {
+      "comment" : "Import summary format",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Imported %1$d collections (created %2$@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已导入 %1$d 个集合（备份时间：%2$@）"
+          }
+        }
+      }
+    },
+    "backup_import_warning" : {
+      "comment" : "Import warning",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import replaces your current library. Be sure to export a backup first."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入会替换当前资料库，请先导出备份。"
+          }
+        }
+      }
+    },
+    "backup_importing_status" : {
+      "comment" : "Importing status",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restoring data…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在恢复数据…"
+          }
+        }
+      }
+    },
+    "backup_include_credentials_label" : {
+      "comment" : "Include credentials toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include credentials (AI, TTS, Baidu)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "包含私钥"
+          }
+        }
+      }
+    },
+    "backup_restore_description" : {
+      "comment" : "Backup restore description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export your library, transcripts, and settings into a single ZIP so you can restore them on another device."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将资料库、转录和设置导出为单个 ZIP，以便在其他设备上恢复。"
+          }
+        }
+      }
+    },
+    "backup_restore_section_title" : {
+      "comment" : "Backup section title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Backup & Restore"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "备份与恢复"
+          }
+        }
+      }
+    },
     "Baidu Netdisk" : {
 
     },
@@ -1064,6 +1251,7 @@
     },
     "connect_baidu_alert_message" : {
       "comment" : "Alert message to sign in before importing",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1097,7 +1285,7 @@
       }
     },
     "connect_baidu_first" : {
-      "comment" : "Alert title\nConnect Baidu First alert\nConnect Baidu First alert title\nConnect Baidu first",
+      "comment" : "Alert title\nConnect Baidu First alert\nConnect Baidu first",
       "localizations" : {
         "en" : {
           "stringUnit" : {

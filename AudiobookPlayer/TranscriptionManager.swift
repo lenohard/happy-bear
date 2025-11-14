@@ -552,6 +552,12 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
     }
 
+    /// Reload both active and recent jobs after a full import/restore event.
+    func reloadJobsAfterImport() async {
+        await refreshActiveJobsFromDatabase()
+        await refreshAllRecentJobs()
+    }
+
     private func upsertActiveJob(_ job: TranscriptionJob) {
         if let index = activeJobs.firstIndex(where: { $0.id == job.id }) {
             activeJobs[index] = job

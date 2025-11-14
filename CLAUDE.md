@@ -3,6 +3,8 @@
 This Reop is upload to Github: https://github.com/lenohard/happy-bear.
 You can use deepwiki to query about detailas quickly  of this repo using deepwiki tool.
 
+Remeber use iphone 17 Pro simulator for building by default.
+
 # Current Task 
 local/PROD.md:
 @local/PROD.md
