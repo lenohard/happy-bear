@@ -48,9 +48,7 @@ struct DownloadButton: View {
                         CircularProgressView(progress: status.percentage)
                             .frame(width: 32, height: 32)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.orange)
-                    .shadow(radius: 0)
+                    .buttonStyle(.plain)
 
                 case .notCached:
                     // Download state
@@ -60,8 +58,7 @@ struct DownloadButton: View {
                         Image(systemName: "arrow.down.circle")
                             .font(.title3)
                     }
-                    .buttonStyle(.bordered)
-                    .shadow(radius: 0)
+                    .buttonStyle(.plain)
 
                 case .local:
                     // Local file - no download button needed
@@ -75,8 +72,7 @@ struct DownloadButton: View {
                     Image(systemName: "arrow.down.circle")
                         .font(.title3)
                 }
-                .buttonStyle(.bordered)
-                .shadow(radius: 0)
+                .buttonStyle(.plain)
             }
         }
     }
