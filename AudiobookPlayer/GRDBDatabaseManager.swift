@@ -377,7 +377,8 @@ actor GRDBDatabaseManager {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
         try db.write { db in
-            try db.execute(sql: 
+            // Update playback state
+            try db.execute(sql:
                 """
                 INSERT OR REPLACE INTO playback_states (
                     track_id, collection_id, position, duration, updated_at
@@ -389,6 +390,20 @@ actor GRDBDatabaseManager {
                     position,
                     duration,
                     Date()
+                ]
+            )
+
+            // Also update the last_played_track_id in the collection
+            try db.execute(sql:
+                """
+                UPDATE collections
+                SET last_played_track_id = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                arguments: [
+                    trackId.uuidString,
+                    Date(),
+                    collectionId.uuidString
                 ]
             )
         }
@@ -842,6 +857,84 @@ actor GRDBDatabaseManager {
 
         default:
             throw DatabaseError.inconsistentData("Unknown location type: \(type)")
+        }
+    }
+
+    // MARK: - Backup Helpers
+
+    struct TranscriptionStats {
+        let transcripts: Int
+        let segments: Int
+        let jobs: Int
+    }
+
+    func exportDatabaseSnapshot(to destinationURL: URL) throws {
+        try initializeDatabase()
+        guard let db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        let directory = destinationURL.deletingLastPathComponent()
+        try fileManager.createDirectory(at: directory, withIntermediateDirectories: true, attributes: nil)
+
+        try db.writeWithoutTransaction { database in
+            try database.execute(sql: "PRAGMA wal_checkpoint(TRUNCATE)")
+        }
+
+        if fileManager.fileExists(atPath: destinationURL.path) {
+            try fileManager.removeItem(at: destinationURL)
+        }
+
+        try fileManager.copyItem(at: dbURL, to: destinationURL)
+    }
+
+    func replaceDatabase(with snapshotURL: URL) throws {
+        guard fileManager.fileExists(atPath: snapshotURL.path) else {
+            throw DatabaseError.loadFailed("Snapshot not found at \(snapshotURL.path)")
+        }
+
+        if let existingDB = db {
+            existingDB.releaseMemory()
+        }
+        db = nil
+
+        try DatabaseConfig.ensureDirectoryExists()
+
+        let backupURL = dbURL.deletingLastPathComponent()
+            .appendingPathComponent("library.sqlite.backup-\(UUID().uuidString)")
+        var hasBackup = false
+
+        if fileManager.fileExists(atPath: dbURL.path) {
+            try fileManager.copyItem(at: dbURL, to: backupURL)
+            hasBackup = true
+        }
+
+        do {
+            if fileManager.fileExists(atPath: dbURL.path) {
+                try fileManager.removeItem(at: dbURL)
+            }
+
+            try fileManager.copyItem(at: snapshotURL, to: dbURL)
+
+            if hasBackup {
+                try? fileManager.removeItem(at: backupURL)
+            }
+        } catch {
+            if hasBackup {
+                try? fileManager.removeItem(at: dbURL)
+                try? fileManager.moveItem(at: backupURL, to: dbURL)
+            }
+            throw error
+        }
+    }
+
+    func fetchTranscriptionStats() throws -> TranscriptionStats {
+        try initializeDatabase()
+        guard let db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { database in
+            let transcriptCount = try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM transcripts") ?? 0
+            let segmentCount = try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM transcript_segments") ?? 0
+            let jobCount = try Int.fetchOne(database, sql: "SELECT COUNT(*) FROM transcription_jobs") ?? 0
+            return TranscriptionStats(transcripts: transcriptCount, segments: segmentCount, jobs: jobCount)
         }
     }
 
