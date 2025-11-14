@@ -1,5 +1,5 @@
 import Foundation
-import Compression
+import ZIPFoundation
 
 /// Coordinates export/import of user libraries, settings, and optional credentials.
 final class UserDataBackupManager {
@@ -151,7 +151,7 @@ final class UserDataBackupManager {
         try fileManager.createDirectory(at: credentialsDir, withIntermediateDirectories: true)
 
         let databaseDestination = databaseDir.appendingPathComponent(Constants.libraryFileName)
-        try dbManager.exportDatabaseSnapshot(to: databaseDestination)
+        try await dbManager.exportDatabaseSnapshot(to: databaseDestination)
 
         let collections = await MainActor.run { library.collections }
         let playbackSnapshot = makePlaybackSnapshot(from: collections)
@@ -165,7 +165,7 @@ final class UserDataBackupManager {
             includeCredentials: options.includeCredentials
         )
 
-        let stats = try dbManager.fetchTranscriptionStats()
+        let stats = try await dbManager.fetchTranscriptionStats()
         let manifest = BackupManifest(
             schemaVersion: Constants.schemaVersion,
             exportedAt: Date(),
@@ -187,7 +187,7 @@ final class UserDataBackupManager {
         if fileManager.fileExists(atPath: archiveURL.path) {
             try fileManager.removeItem(at: archiveURL)
         }
-        try fileManager.zipItem(at: workingDirectory, to: archiveURL, shouldKeepParent: false, compressionMethod: .deflate)
+        try zipDirectory(at: workingDirectory, to: archiveURL)
 
         return ExportResult(archiveURL: archiveURL, manifest: manifest)
     }
@@ -200,7 +200,7 @@ final class UserDataBackupManager {
 
         try fileManager.createDirectory(at: workingDirectory, withIntermediateDirectories: true)
         do {
-            try fileManager.unzipItem(at: archiveURL, to: workingDirectory)
+            try unzipItem(at: archiveURL, to: workingDirectory)
         } catch {
             throw BackupError.archiveCorrupt(error.localizedDescription)
         }
@@ -221,8 +221,8 @@ final class UserDataBackupManager {
             throw BackupError.databaseMissing
         }
 
-        try dbManager.replaceDatabase(with: dbSource)
-        try dbManager.initializeDatabase()
+        try await dbManager.replaceDatabase(with: dbSource)
+        try await dbManager.initializeDatabase()
 
         let settingsURL = workingDirectory
             .appendingPathComponent(Constants.metadataDirectory)
@@ -321,21 +321,21 @@ final class UserDataBackupManager {
         }
 
         var aiWritten = false
-        if let loadedKey = try? aiKeyStore.loadKey(), let keyValue = loadedKey, !keyValue.isEmpty {
+        if let keyValue = try? aiKeyStore.loadKey(), !keyValue.isEmpty {
             let blob = CredentialBlob(value: keyValue, savedAt: Date())
             try writeJSON(blob, to: directory.appendingPathComponent(Constants.aiCredentialFile))
             aiWritten = true
         }
 
         var sonioxWritten = false
-        if let loadedKey = try? sonioxKeyStore.loadKey(), let keyValue = loadedKey, !keyValue.isEmpty {
+        if let keyValue = try? sonioxKeyStore.loadKey(), !keyValue.isEmpty {
             let blob = CredentialBlob(value: keyValue, savedAt: Date())
             try writeJSON(blob, to: directory.appendingPathComponent(Constants.sonioxCredentialFile))
             sonioxWritten = true
         }
 
         var baiduWritten = false
-        if let loadedToken = try? baiduTokenStore.loadToken(), let token = loadedToken {
+        if let token = try? baiduTokenStore.loadToken() {
             try writeJSON(token, to: directory.appendingPathComponent(Constants.baiduCredentialFile))
             baiduWritten = true
         }
@@ -389,5 +389,58 @@ final class UserDataBackupManager {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(type, from: data)
+    }
+
+    // MARK: - ZIP Compression Helpers
+
+    /// Compress the export directory into a standard ZIP archive.
+    private func zipDirectory(at sourceURL: URL, to destinationURL: URL) throws {
+        if fileManager.fileExists(atPath: destinationURL.path) {
+            try fileManager.removeItem(at: destinationURL)
+        }
+
+        guard let archive = Archive(url: destinationURL, accessMode: .create) else {
+            throw BackupError.archiveCorrupt("Unable to create archive at \(destinationURL.lastPathComponent).")
+        }
+
+        let keys: Set<URLResourceKey> = [.isRegularFileKey, .isDirectoryKey]
+        guard let enumerator = fileManager.enumerator(at: sourceURL, includingPropertiesForKeys: Array(keys)) else {
+            throw BackupError.archiveCorrupt("Unable to enumerate export contents.")
+        }
+
+        for case let fileURL as URL in enumerator {
+            let resourceValues = try fileURL.resourceValues(forKeys: keys)
+            if resourceValues.isDirectory == true {
+                continue
+            }
+
+            var relativePath = fileURL.path
+            if relativePath.hasPrefix(sourceURL.path) {
+                relativePath.removeFirst(sourceURL.path.count)
+            }
+            relativePath = relativePath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            guard !relativePath.isEmpty else { continue }
+
+            try archive.addEntry(
+                with: relativePath,
+                fileURL: fileURL,
+                compressionMethod: .deflate
+            )
+        }
+    }
+
+    /// Extract a ZIP archive into the provided working directory.
+    private func unzipItem(at sourceURL: URL, to destinationURL: URL) throws {
+        try fileManager.createDirectory(at: destinationURL, withIntermediateDirectories: true)
+
+        guard let archive = Archive(url: sourceURL, accessMode: .read) else {
+            throw BackupError.archiveCorrupt("Unable to read archive at \(sourceURL.lastPathComponent).")
+        }
+
+        for entry in archive {
+            let outputURL = destinationURL.appendingPathComponent(entry.path)
+            try fileManager.createDirectory(at: outputURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+            _ = try archive.extract(entry, to: outputURL)
+        }
     }
 }

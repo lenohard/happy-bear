@@ -50,6 +50,10 @@ final class BaiduAuthViewModel: ObservableObject {
         try? tokenStore.clearToken()
     }
 
+    func reloadFromStore() {
+        loadPersistedToken()
+    }
+
     private func resolveService() async throws -> BaiduOAuthAuthorizing {
         if let service {
             return service
