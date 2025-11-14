@@ -382,6 +382,7 @@ class TranscriptionManager: NSObject, ObservableObject {
     }
 
     private func groupTokensIntoSegments(_ tokens: [SonioxToken], transcriptId: String) -> [TranscriptSegment] {
+        let maxSegmentDurationMs = 20_000  // Hard cap of 20 seconds per segment
         var segments: [TranscriptSegment] = []
         var currentSegment: (texts: [String], startMs: Int, endMs: Int, speaker: String?, language: String?)? = nil
 
@@ -389,6 +390,30 @@ class TranscriptionManager: NSObject, ObservableObject {
         func endsWithSentencePunctuation(_ text: String) -> Bool {
             let sentenceEnders: Set<Character> = [".", "。", "!", "！", "?", "？"]
             return sentenceEnders.contains(text.last ?? " ")
+        }
+
+        func finalizeCurrentSegment() {
+            guard let current = currentSegment else { return }
+            let fullText = combineTokens(current.texts, languageCode: current.language)
+            let segment = TranscriptSegment(
+                transcriptId: transcriptId,
+                text: fullText,
+                startTimeMs: current.startMs,
+                endTimeMs: current.endMs,
+                speaker: current.speaker,
+                language: current.language
+            )
+            segments.append(segment)
+            currentSegment = nil
+        }
+
+        func startNewSegment(text: String, startMs: Int, endMs: Int, speaker: String?, language: String?) {
+            currentSegment = (texts: [text], startMs: startMs, endMs: endMs, speaker: speaker, language: language)
+        }
+
+        func exceedsDurationLimit(with endMs: Int) -> Bool {
+            guard let current = currentSegment else { return false }
+            return (endMs - current.startMs) >= maxSegmentDurationMs
         }
 
         for token in tokens {
@@ -400,25 +425,21 @@ class TranscriptionManager: NSObject, ObservableObject {
 
             if currentSegment == nil {
                 // Start first segment
-                currentSegment = (texts: [text], startMs: startMs, endMs: endMs, speaker: speaker, language: language)
+                startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language)
             } else if let current = currentSegment {
                 let speakerChanged = speaker != current.speaker
 
                 if speakerChanged {
                     // Speaker changed - save current segment and start new one
-                    let fullText = combineTokens(current.texts, languageCode: current.language)
-                    let segment = TranscriptSegment(
-                        transcriptId: transcriptId,
-                        text: fullText,
-                        startTimeMs: current.startMs,
-                        endTimeMs: current.endMs,
-                        speaker: current.speaker,
-                        language: current.language
-                    )
-                    segments.append(segment)
-
-                    currentSegment = (texts: [text], startMs: startMs, endMs: endMs, speaker: speaker, language: language)
+                    finalizeCurrentSegment()
+                    startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language)
                 } else {
+                    if exceedsDurationLimit(with: endMs) {
+                        finalizeCurrentSegment()
+                        startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language)
+                        continue
+                    }
+
                     // Same speaker - add token to current segment
                     currentSegment?.texts.append(text)
                     currentSegment?.endMs = endMs
@@ -426,36 +447,14 @@ class TranscriptionManager: NSObject, ObservableObject {
                     // Check if this token ends with sentence punctuation
                     if endsWithSentencePunctuation(text) {
                         // Save current segment and start new one
-                        let fullText = combineTokens(currentSegment!.texts, languageCode: currentSegment!.language)
-                        let segment = TranscriptSegment(
-                            transcriptId: transcriptId,
-                            text: fullText,
-                            startTimeMs: currentSegment!.startMs,
-                            endTimeMs: currentSegment!.endMs,
-                            speaker: currentSegment!.speaker,
-                            language: currentSegment!.language
-                        )
-                        segments.append(segment)
-
-                        currentSegment = nil  // Reset for next segment
+                        finalizeCurrentSegment()
                     }
                 }
             }
         }
 
         // Save last segment if not already saved
-        if let current = currentSegment {
-            let fullText = combineTokens(current.texts, languageCode: current.language)
-            let segment = TranscriptSegment(
-                transcriptId: transcriptId,
-                text: fullText,
-                startTimeMs: current.startMs,
-                endTimeMs: current.endMs,
-                speaker: current.speaker,
-                language: current.language
-            )
-            segments.append(segment)
-        }
+        finalizeCurrentSegment()
 
         return segments
     }
