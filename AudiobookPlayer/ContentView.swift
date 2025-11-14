@@ -99,6 +99,7 @@ struct PlayingView: View {
     @State private var transcriptViewerTrack: AudiobookTrack?
     @State private var transcriptStatus: TranscriptStatus = .unknown
     @State private var transcriptStatusTask: Task<Void, Never>?
+    @State private var libraryLoaded = false
 
     private var currentPlayback: PlaybackSnapshot? {
         guard let currentTrack = audioPlayer.currentTrack else {
@@ -152,7 +153,7 @@ struct PlayingView: View {
     var body: some View {
         NavigationStack {
             Group {
-                if let snapshot = fallbackPlayback {
+                if libraryLoaded, let snapshot = fallbackPlayback {
                     ScrollView {
                         VStack(alignment: .leading, spacing: 20) {
                             primaryCard(for: snapshot)
@@ -164,7 +165,10 @@ struct PlayingView: View {
                         .padding(.vertical, 24)
                         .padding(.horizontal, 20)
                     }
+                } else if libraryLoaded {
+                    EmptyPlayingView()
                 } else {
+                    // Show a loading state while library is loading
                     EmptyPlayingView()
                 }
             }
@@ -200,8 +204,17 @@ struct PlayingView: View {
         .onChange(of: audioPlayer.currentTime) { _ in
             syncPlaybackState()
         }
+        .onChange(of: library.isLoading) { isLoading in
+            if !isLoading {
+                libraryLoaded = true
+            }
+        }
         .onAppear {
             refreshTranscriptStatus()
+            // If library is already loaded, mark it as loaded
+            if !library.isLoading {
+                libraryLoaded = true
+            }
         }
         .onDisappear {
             transcriptStatusTask?.cancel()
