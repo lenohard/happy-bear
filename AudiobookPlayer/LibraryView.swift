@@ -11,7 +11,6 @@ struct LibraryView: View {
 
     @State private var activeSource: ImportSource?
     @State private var pendingImport: PendingImport?
-    @State private var missingAuthAlert = false
     @State private var duplicateImport: DuplicateImportAlert?
     @State private var selectedCollectionID: UUID?
 
@@ -76,7 +75,7 @@ struct LibraryView: View {
                     Menu {
                         Button(NSLocalizedString("baidu_netdisk", comment: "Baidu netdisk source")) {
                             guard authViewModel.token != nil else {
-                                missingAuthAlert = true
+                                tabSelection.selectedTab = .settings
                                 return
                             }
                             activeSource = .baidu
@@ -112,11 +111,6 @@ struct LibraryView: View {
                         .overlay(Divider(), alignment: .top)
                 }
             }
-        }
-        .alert(NSLocalizedString("connect_baidu_first", comment: "Connect Baidu First alert title"), isPresented: $missingAuthAlert) {
-            Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
-        } message: {
-            Text(NSLocalizedString("connect_baidu_alert_message", comment: "Alert message to sign in before importing"))
         }
         .alert(item: $duplicateImport) { duplicate in
             Alert(
@@ -184,14 +178,14 @@ struct LibraryView: View {
     private func playTrack(_ track: AudiobookTrack, in collection: AudiobookCollection) {
         if case .baiduNetdisk(_, _) = collection.source {
             guard let token = authViewModel.token else {
-                missingAuthAlert = true
+                tabSelection.selectedTab = .settings
                 return
             }
             audioPlayer.play(track: track, in: collection, token: token)
         } else {
             audioPlayer.play(track: track, in: collection, token: nil)
         }
-        
+
         tabSelection.switchToPlayingTab()
     }
 }
