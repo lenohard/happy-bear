@@ -50,6 +50,7 @@ struct DownloadButton: View {
                     }
                     .buttonStyle(.bordered)
                     .tint(.orange)
+                    .shadow(radius: 0)
 
                 case .notCached:
                     // Download state
@@ -60,6 +61,7 @@ struct DownloadButton: View {
                             .font(.title3)
                     }
                     .buttonStyle(.bordered)
+                    .shadow(radius: 0)
 
                 case .local:
                     // Local file - no download button needed
@@ -74,6 +76,7 @@ struct DownloadButton: View {
                         .font(.title3)
                 }
                 .buttonStyle(.bordered)
+                .shadow(radius: 0)
             }
         }
     }
