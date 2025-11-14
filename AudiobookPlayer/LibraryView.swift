@@ -76,6 +76,7 @@ struct LibraryView: View {
                         Button(NSLocalizedString("baidu_netdisk", comment: "Baidu netdisk source")) {
                             guard authViewModel.token != nil else {
                                 tabSelection.selectedTab = .settings
+                                authViewModel.signIn()
                                 return
                             }
                             activeSource = .baidu
@@ -179,6 +180,7 @@ struct LibraryView: View {
         if case .baiduNetdisk(_, _) = collection.source {
             guard let token = authViewModel.token else {
                 tabSelection.selectedTab = .settings
+                authViewModel.signIn()
                 return
             }
             audioPlayer.play(track: track, in: collection, token: token)
