@@ -46,7 +46,7 @@ struct DownloadButton: View {
                         audioPlayer.removeCache(for: track)
                     } label: {
                         CircularProgressView(progress: status.percentage)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 24, height: 24)
                     }
                     .buttonStyle(.plain)
 
@@ -80,8 +80,8 @@ struct DownloadButton: View {
 
 struct CircularProgressView: View {
     let progress: Double
-    let lineWidth: CGFloat = 2.0
-    
+    let lineWidth: CGFloat = 1.5
+
     var body: some View {
         ZStack {
             // Background circle
