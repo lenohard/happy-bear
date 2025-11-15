@@ -16,6 +16,9 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 
 **Project Root**: `~/projects/audiobook-player`
 
+## Recent Lessons
+- **2025-11-15 – Keychain access in Mac DMG builds**: When packaging the Mac Catalyst build into an unsigned DMG for personal distribution, the app crashed with `Keychain error: 没有所需的授权`. The fix was to enable the **Keychain Sharing** capability so the Catalyst binary gets the required `keychain-access-groups` entitlement even when it is only signed with the free Personal Team certificate. Without that capability, importing backups that include credentials will fail on macOS because Keychain writes are denied.
+
 ### Build & Schemes
 - Shared Xcode scheme `AudiobookPlayer.xcodeproj/xcshareddata/xcschemes/AudiobookPlayer.xcscheme` lives in the repo so `xcodebuild -scheme AudiobookPlayer` (CI, scripts, other agents) can resolve SwiftPM packages. Keep it under version control; removing it breaks command-line builds.
 

@@ -45,7 +45,6 @@
 		8617DDF52EBE0A26006E7CA7 /* TranscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDE52EBE0A26006E7CA7 /* TranscriptionManager.swift */; };
 		8617DDF62EBE0A26006E7CA7 /* AIGatewayViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDC2EBE0A26006E7CA7 /* AIGatewayViewModel.swift */; };
 		8637370F2EBCF7120002CD46 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8637370E2EBCF7120002CD46 /* GRDB */; };
-		B6E1C0032F10B4B900C2ABF1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = B6E1C0022F10B4B900C2ABF1 /* ZIPFoundation */; };
 		8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */; };
 		8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */; };
 		8685F3632EBE204F003D8173 /* TemporaryPlaybackContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */; };
@@ -67,6 +66,7 @@
 		9AA2D81AAF724F08916ACE38 /* AudiobookPlayer/GRDBDatabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A3EA38DA804EB5B27139AA /* AudiobookPlayer/GRDBDatabaseManager.swift */; };
 		A1B2C3D52FEB123400000001 /* FavoriteToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */; };
 		A1B2C3D72FEB123400000002 /* FavoriteTracksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */; };
+		B6E1C0032F10B4B900C2ABF1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = B6E1C0022F10B4B900C2ABF1 /* ZIPFoundation */; };
 		C0E7E438067149FBAA94ECEA /* AudiobookPlayer/DatabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375BFCDDA1EF440F8C3033E5 /* AudiobookPlayer/DatabaseConfig.swift */; };
 		E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */; };
 /* End PBXBuildFile section */
@@ -85,7 +85,7 @@
 		6F6E7F762C4A9B0500AA00AA /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		6F6E7F772C4A9B0500AA00AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6F6E7F782C4A9B0500AA00AA /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
-		6F6E7F802C4A9B0500AA00AA /* AudiobookPlayer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AudiobookPlayer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		6F6E7F802C4A9B0500AA00AA /* HappyBear.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HappyBear.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F99A0002C4C200000AA00AA /* BaiduTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduTokenStore.swift; sourceTree = "<group>"; };
 		6F99A0022C4C200000AA00AA /* BaiduNetdiskClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduNetdiskClient.swift; sourceTree = "<group>"; };
 		6F99A0042C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduNetdiskBrowserViewModel.swift; sourceTree = "<group>"; };
@@ -126,6 +126,7 @@
 		86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheDownloadManager.swift; sourceTree = "<group>"; };
 		86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheProgressTracker.swift; sourceTree = "<group>"; };
 		86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDataBackupManager.swift; sourceTree = "<group>"; };
+		86FDF2062EC8F1F300DB7430 /* AudiobookPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AudiobookPlayer.entitlements; sourceTree = "<group>"; };
 		86FE17552EBFC7F200027E93 /* test-1min.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "test-1min.mp3"; sourceTree = "<group>"; };
 		86FE17592EC20F6400027E93 /* CacheManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManagementView.swift; sourceTree = "<group>"; };
 		86FE175A2EC20F6400027E93 /* DownloadButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadButton.swift; sourceTree = "<group>"; };
@@ -163,6 +164,7 @@
 		6F6E7F672C4A9B0500AA00AA /* AudiobookPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				86FDF2062EC8F1F300DB7430 /* AudiobookPlayer.entitlements */,
 				86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */,
 				86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */,
 				8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */,
@@ -236,7 +238,7 @@
 		6F6E7F7C2C4A9B0500AA00AA /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				6F6E7F802C4A9B0500AA00AA /* AudiobookPlayer.app */,
+				6F6E7F802C4A9B0500AA00AA /* HappyBear.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -274,13 +276,13 @@
 			);
 			dependencies = (
 			);
+			name = AudiobookPlayer;
 			packageProductDependencies = (
 				8637370E2EBCF7120002CD46 /* GRDB */,
 				B6E1C0022F10B4B900C2ABF1 /* ZIPFoundation */,
 			);
-			name = AudiobookPlayer;
 			productName = AudiobookPlayer;
-			productReference = 6F6E7F802C4A9B0500AA00AA /* AudiobookPlayer.app */;
+			productReference = 6F6E7F802C4A9B0500AA00AA /* HappyBear.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -415,10 +417,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AudiobookPlayer/AudiobookPlayer.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
-				DEVELOPMENT_TEAM = 285P3M6846;
+				DEVELOPMENT_TEAM = JKL28XPWH8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AudiobookPlayer/Info.plist;
@@ -435,7 +439,9 @@
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.audiobook;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = HappyBear;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -447,10 +453,12 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = AudiobookPlayer/AudiobookPlayer.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
-				DEVELOPMENT_TEAM = 285P3M6846;
+				DEVELOPMENT_TEAM = JKL28XPWH8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = AudiobookPlayer/Info.plist;
@@ -467,7 +475,9 @@
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.audiobook;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = HappyBear;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -504,6 +514,8 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development: 827500457@qq.com (55FGU37LWB)";
+				"CODE_SIGN_STYLE[sdk=*]" = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -563,6 +575,7 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development: 827500457@qq.com (55FGU37LWB)";
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;

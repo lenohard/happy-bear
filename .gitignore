@@ -12,3 +12,5 @@ build/
 
 # Xcode scheme management (user-specific)
 xcschememanagement.plist
+
+*.dmg
