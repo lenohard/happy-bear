@@ -15,6 +15,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published private(set) var currentTrack: AudiobookTrack?
     @Published private(set) var activeCacheStatus: CacheStatusSnapshot?
     @Published private(set) var ephemeralContext: TemporaryPlaybackContext?
+    @Published var playbackRate: Double
 
     private var playlist: [AudiobookTrack] = []
     private var player: AVPlayer?
@@ -27,6 +28,17 @@ final class AudioPlayerViewModel: ObservableObject {
     private let downloadManager: AudioCacheDownloadManager
     private let progressTracker: CacheProgressTracker
     private var cancellables: Set<AnyCancellable> = []
+    private let defaults: UserDefaults
+
+    private static let playbackRateDefaultsKey = "audio_player_playback_rate"
+    static let minPlaybackRate: Double = 0.5
+    static let maxPlaybackRate: Double = 3.0
+    static let presetPlaybackRates: [Double] = [0.5, 0.8, 1.0, 1.25, 1.5, 2.0, 3.0]
+
+    private static func clampPlaybackRate(_ rate: Double) -> Double {
+        let clampedLower = max(rate, minPlaybackRate)
+        return min(clampedLower, maxPlaybackRate)
+    }
 
     struct CacheStatusSnapshot {
         enum State {
@@ -53,12 +65,16 @@ final class AudioPlayerViewModel: ObservableObject {
 
     init(
         netdiskClient: BaiduNetdiskClient = BaiduNetdiskClient(),
-        cacheManager: AudioCacheManager = AudioCacheManager()
+        cacheManager: AudioCacheManager = AudioCacheManager(),
+        defaults: UserDefaults = .standard
     ) {
         self.netdiskClient = netdiskClient
         self.cacheManager = cacheManager
         self.downloadManager = AudioCacheDownloadManager(cacheManager: cacheManager)
         self.progressTracker = CacheProgressTracker(cacheManager: cacheManager)
+        self.defaults = defaults
+        let savedRate = defaults.object(forKey: Self.playbackRateDefaultsKey) as? Double
+        playbackRate = Self.clampPlaybackRate(savedRate ?? 1.0)
         configureAudioSession()
         observeCacheProgress()
 #if os(iOS)
@@ -278,9 +294,7 @@ final class AudioPlayerViewModel: ObservableObject {
             startPlaybackImmediately()
             isPlaying = true
         }
-#if os(iOS)
-        updateNowPlayingPlaybackRate()
-#endif
+        applyPlaybackRateToPlayer()
     }
 
     func skipForward(by seconds: Double = 30) {
@@ -289,6 +303,14 @@ final class AudioPlayerViewModel: ObservableObject {
 
     func skipBackward(by seconds: Double = 15) {
         skip(by: -seconds)
+    }
+
+    func updatePlaybackRate(_ rate: Double) {
+        let clamped = Self.clampPlaybackRate(rate)
+        guard playbackRate != clamped else { return }
+        playbackRate = clamped
+        defaults.set(clamped, forKey: Self.playbackRateDefaultsKey)
+        applyPlaybackRateToPlayer()
     }
 
     func seek(to time: Double) {
@@ -349,6 +371,19 @@ final class AudioPlayerViewModel: ObservableObject {
         progressTracker.clearProgress(for: track.id.uuidString)
         progressTracker.stopTracking(for: track.id.uuidString)
         refreshActiveCacheStatus()
+    }
+
+    private func applyPlaybackRateToPlayer() {
+        if let player {
+            if isPlaying {
+                player.rate = Float(playbackRate)
+            } else {
+                player.rate = 0
+            }
+        }
+#if os(iOS)
+        updateNowPlayingPlaybackRate()
+#endif
     }
 
     func cacheTrackIfNeeded(_ track: AudiobookTrack) {
@@ -516,6 +551,7 @@ final class AudioPlayerViewModel: ObservableObject {
         let playerItem = AVPlayerItem(asset: asset)
         player = AVPlayer(playerItem: playerItem)
         player?.automaticallyWaitsToMinimizeStalling = false
+        player?.rate = Float(playbackRate)
 
         addPeriodicTimeObserver()
         observeEnd(of: playerItem)
@@ -544,28 +580,20 @@ final class AudioPlayerViewModel: ObservableObject {
                 if autoPlay {
                     self.startPlaybackImmediately()
                     self.isPlaying = true
-#if os(iOS)
-                    self.updateNowPlayingPlaybackRate()
-#endif
+                    self.applyPlaybackRateToPlayer()
                 }
             }
             if !autoPlay {
                 isPlaying = false
-#if os(iOS)
-                updateNowPlayingPlaybackRate()
-#endif
+                applyPlaybackRateToPlayer()
             }
         } else if autoPlay {
             startPlaybackImmediately()
             isPlaying = true
-#if os(iOS)
-            updateNowPlayingPlaybackRate()
-#endif
+            applyPlaybackRateToPlayer()
         } else {
             isPlaying = false
-#if os(iOS)
-            updateNowPlayingPlaybackRate()
-#endif
+            applyPlaybackRateToPlayer()
         }
 
         pendingInitialSeek = nil
@@ -653,9 +681,10 @@ final class AudioPlayerViewModel: ObservableObject {
     func startPlaybackImmediately() {
         guard let player else { return }
         if player.currentItem != nil {
-            player.playImmediately(atRate: 1.0)
+            player.playImmediately(atRate: Float(playbackRate))
         } else {
             player.play()
+            player.rate = Float(playbackRate)
         }
     }
 
@@ -858,6 +887,9 @@ private extension AudioPlayerViewModel {
         commandCenter.togglePlayPauseCommand.isEnabled = true
         commandCenter.nextTrackCommand.isEnabled = true
         commandCenter.previousTrackCommand.isEnabled = true
+        commandCenter.changePlaybackPositionCommand.isEnabled = true
+        commandCenter.changePlaybackRateCommand.isEnabled = true
+        commandCenter.changePlaybackRateCommand.supportedPlaybackRates = AudioPlayerViewModel.presetPlaybackRates.map { NSNumber(value: $0) }
 
         let playTarget = commandCenter.playCommand.addTarget { [weak self] _ in
             self?.handleRemotePlayCommand() ?? .commandFailed
@@ -883,6 +915,24 @@ private extension AudioPlayerViewModel {
             self?.handleRemotePreviousCommand() ?? .commandFailed
         }
         remoteCommandTargets.append((commandCenter.previousTrackCommand, previousTarget))
+
+        let changePositionTarget = commandCenter.changePlaybackPositionCommand.addTarget { [weak self] event in
+            guard
+                let changeEvent = event as? MPChangePlaybackPositionCommandEvent
+            else {
+                return .commandFailed
+            }
+            return self?.handleRemoteChangePlaybackPosition(event: changeEvent) ?? .commandFailed
+        }
+        remoteCommandTargets.append((commandCenter.changePlaybackPositionCommand, changePositionTarget))
+
+        let changeRateTarget = commandCenter.changePlaybackRateCommand.addTarget { [weak self] event in
+            guard let rateEvent = event as? MPChangePlaybackRateCommandEvent else {
+                return .commandFailed
+            }
+            return self?.handleRemotePlaybackRateCommand(event: rateEvent) ?? .commandFailed
+        }
+        remoteCommandTargets.append((commandCenter.changePlaybackRateCommand, changeRateTarget))
     }
 
     func clearRemoteCommandTargets() {
@@ -899,7 +949,7 @@ private extension AudioPlayerViewModel {
         }
         startPlaybackImmediately()
         isPlaying = true
-        updateNowPlayingPlaybackRate()
+        applyPlaybackRateToPlayer()
         return .success
     }
 
@@ -909,7 +959,7 @@ private extension AudioPlayerViewModel {
         }
         player.pause()
         isPlaying = false
-        updateNowPlayingPlaybackRate()
+        applyPlaybackRateToPlayer()
         return .success
     }
 
@@ -935,6 +985,25 @@ private extension AudioPlayerViewModel {
         return didMove ? .success : .noActionableNowPlayingItem
     }
 
+    func handleRemotePlaybackRateCommand(event: MPChangePlaybackRateCommandEvent) -> MPRemoteCommandHandlerStatus {
+        updatePlaybackRate(Double(event.playbackRate))
+        return .success
+    }
+
+    func handleRemoteChangePlaybackPosition(event: MPChangePlaybackPositionCommandEvent) -> MPRemoteCommandHandlerStatus {
+        guard let player, let _ = currentTrack else { return .commandFailed }
+
+        let requestedTime = max(0, event.positionTime)
+        let playerDuration = player.currentItem?.duration.seconds
+        let fallbackDuration = playerDuration?.isFinite == true ? playerDuration! : duration
+        let upperBound = fallbackDuration.isFinite && fallbackDuration > 0 ? fallbackDuration : requestedTime
+        let clampedTime = max(0, min(requestedTime, upperBound))
+
+        seek(to: clampedTime)
+
+        return .success
+    }
+
     func updateNowPlayingInfo() {
         guard let collection = activeCollection, let track = currentTrack else {
             resetNowPlayingInfo()
@@ -945,8 +1014,8 @@ private extension AudioPlayerViewModel {
             MPMediaItemPropertyTitle: track.displayName,
             MPMediaItemPropertyAlbumTitle: collection.title,
             MPNowPlayingInfoPropertyElapsedPlaybackTime: currentTime,
-            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? 1.0 : 0.0,
-            MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0
+            MPNowPlayingInfoPropertyPlaybackRate: isPlaying ? playbackRate : 0.0,
+            MPNowPlayingInfoPropertyDefaultPlaybackRate: playbackRate
         ]
 
         if let author = collection.author {
@@ -1025,7 +1094,8 @@ private extension AudioPlayerViewModel {
 
     func updateNowPlayingPlaybackRate() {
         guard !nowPlayingInfo.isEmpty else { return }
-        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? playbackRate : 0.0
+        nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = playbackRate
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
 

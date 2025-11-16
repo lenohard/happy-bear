@@ -351,9 +351,71 @@ struct PlayingView: View {
         }
     }
 
+    private func playbackSpeedControls() -> some View {
+        let label = formattedSpeed(audioPlayer.playbackRate)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(NSLocalizedString("playback_speed_label", comment: "Playback speed label"))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+
+                Spacer()
+
+                Text(label)
+                    .font(.subheadline.monospacedDigit())
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color(uiColor: .tertiarySystemFill))
+                    )
+                    .accessibilityLabel(String(format: NSLocalizedString("playback_speed_value", comment: "Playback speed accessibility label"), label))
+            }
+
+            Slider(
+                value: Binding(
+                    get: { audioPlayer.playbackRate },
+                    set: { audioPlayer.updatePlaybackRate($0) }
+                ),
+                in: AudioPlayerViewModel.minPlaybackRate...AudioPlayerViewModel.maxPlaybackRate,
+                step: 0.05
+            )
+            .tint(.accentColor)
+            .accessibilityLabel(NSLocalizedString("playback_speed_label", comment: "Playback speed label"))
+            .accessibilityValue(label)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(AudioPlayerViewModel.presetPlaybackRates, id: \.self) { rate in
+                        let isSelected = abs(rate - audioPlayer.playbackRate) < 0.01
+                        Button {
+                            audioPlayer.updatePlaybackRate(rate)
+                        } label: {
+                            Text(formattedSpeed(rate))
+                                .font(.caption)
+                                .fontWeight(isSelected ? .semibold : .regular)
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 12)
+                                .background(
+                                    Capsule(style: .continuous)
+                                        .fill(isSelected ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
+                                )
+                                .foregroundStyle(isSelected ? Color.white : Color.accentColor)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+    }
+
     @ViewBuilder
     private func controlButtons(collection: AudiobookCollection, track: AudiobookTrack) -> some View {
         VStack(spacing: 16) {
+            playbackSpeedControls()
+
             HStack(spacing: 24) {
                 Button {
                     audioPlayer.skipBackward(by: 15)
@@ -515,6 +577,10 @@ struct PlayingView: View {
         let clamped = max(0, min(position / duration, 1))
         let percent = Int(round(clamped * 100))
         return "\(percent)%"
+    }
+
+    private func formattedSpeed(_ rate: Double) -> String {
+        rate.formatted(.number.precision(.fractionLength(0...2))) + "x"
     }
 
     private func percentageString(_ value: Double) -> String {

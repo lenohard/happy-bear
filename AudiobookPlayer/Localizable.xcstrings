@@ -2213,6 +2213,40 @@
     "play_track_button_accessibility" : {
       "comment" : "Accessibility label for play track button"
     },
+    "playback_speed_label" : {
+      "comment" : "Playback speed label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Playback Speed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放速度"
+          }
+        }
+      }
+    },
+    "playback_speed_value" : {
+      "comment" : "Playback speed accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ speed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 速度"
+          }
+        }
+      }
+    },
     "playing_tab" : {
       "comment" : "Tab for now playing",
       "localizations" : {
