@@ -992,15 +992,20 @@ private extension AudioPlayerViewModel {
 
     func handleRemoteChangePlaybackPosition(event: MPChangePlaybackPositionCommandEvent) -> MPRemoteCommandHandlerStatus {
         guard let player, let _ = currentTrack else { return .commandFailed }
-
         let requestedTime = max(0, event.positionTime)
         let playerDuration = player.currentItem?.duration.seconds
         let fallbackDuration = playerDuration?.isFinite == true ? playerDuration! : duration
         let upperBound = fallbackDuration.isFinite && fallbackDuration > 0 ? fallbackDuration : requestedTime
         let clampedTime = max(0, min(requestedTime, upperBound))
 
-        seek(to: clampedTime)
-
+        let target = CMTime(seconds: clampedTime, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
+        player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+            guard let self else { return }
+            self.currentTime = clampedTime
+#if os(iOS)
+            self.updateNowPlayingElapsedTime()
+#endif
+        }
         return .success
     }
 
