@@ -92,6 +92,33 @@ struct ContentView: View {
             handleResumeShortcut()
         }
     }
+
+    private func handleResumeShortcut() {
+        if let activeCollection = audioPlayer.activeCollection,
+           let currentTrack = audioPlayer.currentTrack {
+            playFromShortcut(collection: activeCollection, track: currentTrack)
+        } else {
+            for collection in library.collections {
+                if let track = collection.resumeTrack() {
+                    playFromShortcut(collection: collection, track: track)
+                    break
+                }
+            }
+        }
+
+        tabSelection.selectedTab = .playing
+    }
+
+    private func playFromShortcut(collection: AudiobookCollection, track: AudiobookTrack) {
+        if case .baiduNetdisk(_, _) = collection.source {
+            guard let token = authViewModel.token else {
+                return
+            }
+            audioPlayer.play(track: track, in: collection, token: token)
+        } else {
+            audioPlayer.play(track: track, in: collection, token: nil)
+        }
+    }
 }
 
 struct PlayingView: View {
@@ -604,22 +631,6 @@ struct PlayingView: View {
         } else {
             audioPlayer.play(track: track, in: collection, token: nil)
         }
-    }
-
-    private func handleResumeShortcut() {
-        if let activeCollection = audioPlayer.activeCollection,
-           let currentTrack = audioPlayer.currentTrack {
-            resumePlayback(collection: activeCollection, track: currentTrack)
-        } else {
-            for collection in library.collections {
-                if let track = collection.resumeTrack() {
-                    resumePlayback(collection: collection, track: track)
-                    break
-                }
-            }
-        }
-
-        tabSelection.selectedTab = .playing
     }
 
     private func syncPlaybackState() {

@@ -25,6 +25,8 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
   - Packaging guide: `DMG_PACKET_GUIDE.md`
   - Ensure entitlements: `AudiobookPlayer/AudiobookPlayer.entitlements` must include **Keychain Sharing** for Mac Catalyst builds to permit Keychain writes in unsigned DMG distribution scenarios.
 - **2025-11-10 – STT Simplification**: Removed `AudioFormatConverter.swift`, removed audio conversion logic from `TranscriptionManager.swift`, and removed `import AVFoundation` (Soniox supports common formats natively). Also fixed cache completion check: `getCachedAssetURL()` now returns a URL only when `metadata.cacheStatus == .complete`. Doc: `local/stt-integration.md`
+- **2025-11-17 – Transcription prep visibility**: The TTS tab job list and Playing tab HUD now show download/upload preparation states by emitting transient `downloading`/`uploading` jobs before Soniox assigns a job ID. This keeps users informed while we fetch/cache the audio without persisting half-finished jobs.
+- **2025-11-17 – AI transcript repair UX**: Transcript Viewer’s repair mode now defaults the low-confidence slider to 95%, surfaces icon-only toggles to show-only-selected or hide already AI-edited segments, and renders a sparkles badge next to the confidence label whenever a segment has `last_repair_model/at`. Logging also captures both the outbound prompt (with collection metadata) and the raw AI reply for easier debugging.
 
 ### Build & Schemes
 
@@ -74,8 +76,8 @@ Generates all required iOS app icon sizes from a single source image.
 
 ### Tabs & Primary Screens (5 tabs)
 
-1. `Library` (LibraryView.swift) shows the GRDB-backed collections list with quick-play buttons, duplicate-import detection, Baidu-only import menu, favorites shortcut, and inline error banner fed by `LibraryStore.lastError`.
-2. `Playing` (PlayingView in ContentView.swift) renders the active/last-played `PlaybackSnapshot`, playback history feed, progress bars, and exposes cache settings via the toolbar sheet; it gracefully falls back to persisted states when nothing is actively playing.
+1. `Playing` (PlayingView in ContentView.swift) now opens by default when the app launches, renders the active/last-played `PlaybackSnapshot`, playback history feed, progress bars, and exposes cache settings via the toolbar sheet; it gracefully falls back to persisted states when nothing is actively playing.
+2. `Library` (LibraryView.swift) shows the GRDB-backed collections list with quick-play buttons, duplicate-import detection, Baidu-only import menu, favorites shortcut, and inline error banner fed by `LibraryStore.lastError`.
 3. `AI` (AITabView.swift) manages the AI Gateway keychain secret, fetches credits/model catalogs from `AIGatewayClient`, lets users search/collapse provider groups, and runs quick chat/generation lookups for validation.
 4. `TTS` (TTSTabView embedded in AITabView.swift) is the Soniox/STT control room: users store their key, run a sample transcription, monitor active/recent jobs, jump into `TranscriptionSheet`/`TranscriptViewerSheet`, and the tab badge reflects `transcriptionManager.activeJobs`.
 5. `Settings` (SettingsTabView.swift) consolidates app configuration:
