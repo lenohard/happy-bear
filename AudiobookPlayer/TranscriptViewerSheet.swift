@@ -22,6 +22,7 @@ struct TranscriptViewerSheet: View {
     @State private var repairSelection = IndexSet()
     @State private var autoSelectThresholdPercent: Double = 95
     @State private var showSelectedOnly = false
+    @State private var hideRepairedSegments = false
 
     init(trackId: String, trackName: String) {
         self.trackId = trackId
@@ -212,6 +213,7 @@ struct TranscriptViewerSheet: View {
                                     isSelected: selectedSegment?.id == segment.id,
                                     isChecked: repairSelection.contains(index),
                                     showCheckbox: isRepairMode,
+                                    isRepaired: segment.lastRepairModel != nil || segment.lastRepairAt != nil,
                                     onTap: {
                                         if isRepairMode {
                                             toggleRepairSelection(index)
@@ -282,14 +284,24 @@ struct TranscriptViewerSheet: View {
                     placeholder: "search_in_transcript"
                 )
 
-                Button {
-                    showSelectedOnly.toggle()
-                } label: {
-                    Image(systemName: showSelectedOnly ? "list.bullet" : "line.3.horizontal.decrease")
+                if isRepairMode {
+                    Button {
+                        showSelectedOnly.toggle()
+                    } label: {
+                        Image(systemName: showSelectedOnly ? "list.bullet" : "line.3.horizontal.decrease")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(repairSelection.isEmpty)
+                    .accessibilityLabel("Toggle showing only selected segments")
+
+                    Button {
+                        hideRepairedSegments.toggle()
+                    } label: {
+                        Image(systemName: hideRepairedSegments ? "eye.slash" : "sparkles")
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityLabel("Hide already repaired segments")
                 }
-                .buttonStyle(.bordered)
-                .disabled(!isRepairMode || repairSelection.isEmpty)
-                .accessibilityLabel("Toggle showing only selected segments")
             }
 
             repairStatusSection()
@@ -413,8 +425,18 @@ struct TranscriptViewerSheet: View {
     private var displayedSegments: [(index: Int, segment: TranscriptSegment)] {
         let indices = Array(viewModel.segments.indices)
         let filtered: [Int]
-        if isRepairMode && showSelectedOnly {
-            filtered = indices.filter { repairSelection.contains($0) }
+        if isRepairMode {
+            var working = indices
+            if hideRepairedSegments {
+                working = working.filter { idx in
+                    let segment = viewModel.segments[idx]
+                    return segment.lastRepairModel == nil && segment.lastRepairAt == nil
+                }
+            }
+            if showSelectedOnly {
+                working = working.filter { repairSelection.contains($0) }
+            }
+            filtered = working
         } else {
             filtered = indices
         }
@@ -586,6 +608,7 @@ struct TranscriptSegmentRowView: View {
     let isSelected: Bool
     let isChecked: Bool
     let showCheckbox: Bool
+    let isRepaired: Bool
     let onTap: () -> Void
     let onCheck: () -> Void
 
@@ -594,6 +617,7 @@ struct TranscriptSegmentRowView: View {
         isSelected: Bool,
         isChecked: Bool = false,
         showCheckbox: Bool = false,
+        isRepaired: Bool = false,
         onTap: @escaping () -> Void,
         onCheck: @escaping () -> Void = {}
     ) {
@@ -601,6 +625,7 @@ struct TranscriptSegmentRowView: View {
         self.isSelected = isSelected
         self.isChecked = isChecked
         self.showCheckbox = showCheckbox
+        self.isRepaired = isRepaired
         self.onTap = onTap
         self.onCheck = onCheck
     }
@@ -624,6 +649,17 @@ struct TranscriptSegmentRowView: View {
                         .font(.body)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
+
+                    if isRepaired {
+                        HStack(spacing: 4) {
+                            Image(systemName: "sparkles")
+                                .font(.caption2)
+                                .foregroundStyle(.green)
+                            Text("AI 修订")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
 
                     if let confidence = segment.confidence {
                         Text(
