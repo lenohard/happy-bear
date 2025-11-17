@@ -20,7 +20,7 @@ struct TranscriptViewerSheet: View {
     @State private var lastAutoScrolledSegmentID: String?
     @State private var isRepairMode = false
     @State private var repairSelection = IndexSet()
-    @State private var autoSelectThresholdPercent: Double = 90
+    @State private var autoSelectThresholdPercent: Double = 95
     @State private var showSelectedOnly = false
 
     init(trackId: String, trackName: String) {
@@ -276,10 +276,24 @@ struct TranscriptViewerSheet: View {
 
     private var headerSection: some View {
         VStack(spacing: 8) {
-            SearchBar(
-                text: $viewModel.searchText,
-                placeholder: "search_in_transcript"
-            )
+            HStack(alignment: .center, spacing: 8) {
+                SearchBar(
+                    text: $viewModel.searchText,
+                    placeholder: "search_in_transcript"
+                )
+
+                Button {
+                    showSelectedOnly.toggle()
+                } label: {
+                    Label(
+                        showSelectedOnly ? "filter_show_all" : "filter_show_selected",
+                        systemImage: showSelectedOnly ? "list.bullet" : "line.3.horizontal.decrease"
+                    )
+                }
+                .buttonStyle(.bordered)
+                .disabled(!isRepairMode || repairSelection.isEmpty)
+                .accessibilityLabel("Toggle showing only selected segments")
+            }
 
             repairStatusSection()
 
@@ -445,10 +459,15 @@ struct TranscriptViewerSheet: View {
             return
         }
 
+        let context = resolveTrackContext()
+        let collection = context?.collection
+
         let indexes = IndexSet(repairSelection)
         await viewModel.repairSegments(
             at: indexes,
             trackTitle: trackName,
+            collectionTitle: collection?.title,
+            collectionDescription: collection?.description,
             model: aiGateway.selectedModelID,
             apiKey: apiKey
         )
@@ -515,19 +534,6 @@ struct TranscriptViewerSheet: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack {
-                Spacer()
-                Button {
-                    showSelectedOnly.toggle()
-                } label: {
-                    Label(
-                        showSelectedOnly ? "Show all segments" : "Show selected only",
-                        systemImage: showSelectedOnly ? "list.bullet" : "line.3.horizontal.decrease" 
-                    )
-                }
-                .buttonStyle(.bordered)
-                .disabled(repairSelection.isEmpty)
-            }
         }
         .padding(12)
         .background(
@@ -668,7 +674,7 @@ struct TranscriptSegmentRowView: View {
 private extension TranscriptViewerSheet {
     @ToolbarContentBuilder
     func repairToolbarItems() -> some ToolbarContent {
-        ToolbarItem {
+        ToolbarItem(placement: .topBarLeading) {
             Button {
                 if isRepairMode {
                     exitRepairMode()
@@ -676,11 +682,11 @@ private extension TranscriptViewerSheet {
                     startRepairMode()
                 }
             } label: {
-                Label(
-                    isRepairMode ? NSLocalizedString("ai_repair_cancel", comment: "") :
-                        NSLocalizedString("ai_repair_toggle", comment: ""),
-                    systemImage: isRepairMode ? "xmark.circle" : "wand.and.stars"
-                )
+                if isRepairMode {
+                    Label(NSLocalizedString("ai_repair_cancel", comment: ""), systemImage: "chevron.left")
+                } else {
+                    Label(NSLocalizedString("ai_repair_toggle", comment: ""), systemImage: "wand.and.stars")
+                }
             }
             .buttonStyle(.bordered)
             .disabled(viewModel.isLoading || viewModel.segments.isEmpty || (!isRepairMode && !hasAIRepairAccess))
