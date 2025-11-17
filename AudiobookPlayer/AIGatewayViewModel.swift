@@ -27,6 +27,12 @@ final class AIGatewayViewModel: ObservableObject {
     @Published private(set) var generationError: String?
     @Published private(set) var modelErrorMessage: String?
 
+    @Published var selectedModelID: String {
+        didSet {
+            defaults.set(selectedModelID, forKey: defaultModelKey)
+        }
+    }
+
     @Published private(set) var lastModelRefreshDate: Date?
     @Published private(set) var lastCreditsRefreshDate: Date?
 
@@ -37,6 +43,7 @@ final class AIGatewayViewModel: ObservableObject {
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGateway")
 
     private let defaultModelKey = "ai_gateway_default_model"
+    private let defaultModelFallback = "openai/gpt-4o-mini"
     private let modelsCacheKey = "ai_gateway_cached_models"
     private let modelsCacheTimestampKey = "ai_gateway_cached_models_timestamp"
     private let creditsCacheKey = "ai_gateway_cached_credits"
@@ -50,6 +57,7 @@ final class AIGatewayViewModel: ObservableObject {
         self.keyStore = keyStore
         self.client = client
         self.defaults = defaults
+        self.selectedModelID = defaults.string(forKey: defaultModelKey) ?? defaultModelFallback
 
         loadStoredKey()
         loadCachedPayloads()
@@ -62,11 +70,6 @@ final class AIGatewayViewModel: ObservableObject {
         default:
             return false
         }
-    }
-
-    var selectedModelID: String {
-        get { defaults.string(forKey: defaultModelKey) ?? "openai/gpt-4o-mini" }
-        set { defaults.set(newValue, forKey: defaultModelKey) }
     }
 
     func loadStoredKey() {

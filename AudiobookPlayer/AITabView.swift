@@ -16,49 +16,58 @@ struct AITabView: View {
     @State private var hasAppliedDefaultCollapse = false
     @State private var showAPIKey = false
     @State private var isEditingGatewayKey = false
+    @State private var isInitialScrollPerformed = false
 
     var body: some View {
         NavigationStack {
-            List {
-                credentialsSection
+            ScrollViewReader { proxy in
+                List {
+                    credentialsSection
 
-                if gateway.hasValidKey {
-                    testerSection
-                    creditsSection
-                    modelsSection
-                }
-            }
-            .navigationTitle(Text(NSLocalizedString("ai_tab_title", comment: "AI tab title")))
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
                     if gateway.hasValidKey {
-                        Button(action: { Task { await gateway.refreshCredits() } }) {
-                            Image(systemName: "arrow.clockwise")
+                        testerSection
+                        creditsSection
+                        modelsSection
+                    }
+                }
+                .navigationTitle(Text(NSLocalizedString("ai_tab_title", comment: "AI tab title")))
+                .toolbar {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        if gateway.hasValidKey {
+                            Button(action: { Task { await gateway.refreshCredits() } }) {
+                                Image(systemName: "arrow.clockwise")
+                            }
+                            .accessibilityLabel(Text(NSLocalizedString("ai_tab_refresh", comment: "")))
                         }
-                        .accessibilityLabel(Text(NSLocalizedString("ai_tab_refresh", comment: "")))
                     }
                 }
-            }
-            .task {
-                if gateway.hasValidKey {
-                    if gateway.models.isEmpty {
-                        try? await gateway.refreshModels()
-                    }
-                    if gateway.credits == nil {
-                        await gateway.refreshCredits()
+                .task {
+                    if gateway.hasValidKey {
+                        if gateway.models.isEmpty {
+                            try? await gateway.refreshModels()
+                        }
+                        if gateway.credits == nil {
+                            await gateway.refreshCredits()
+                        }
                     }
                 }
-            }
-            .onChange(of: gateway.models.isEmpty) { isEmpty in
-                if !isEmpty {
-                    applyDefaultProviderCollapseIfNeeded(with: gateway.models)
+                .onChange(of: gateway.models.isEmpty) { isEmpty in
+                    if !isEmpty {
+                        applyDefaultProviderCollapseIfNeeded(with: gateway.models)
+                        performInitialScrollIfNeeded(using: proxy)
+                    }
                 }
-            }
-            .onAppear {
-                isEditingGatewayKey = !gateway.hasValidKey
-            }
-            .onChange(of: gateway.keyState) { state in
-                handleGatewayKeyStateChange(state)
+                .onAppear {
+                    isEditingGatewayKey = !gateway.hasValidKey
+                    performInitialScrollIfNeeded(using: proxy)
+                }
+                .onChange(of: gateway.keyState) { state in
+                    handleGatewayKeyStateChange(state)
+                }
+                .onChange(of: gateway.selectedModelID) { newValue in
+                    expandProviderIfNeeded(for: newValue)
+                    scrollToModel(withID: newValue, using: proxy)
+                }
             }
         }
     }
@@ -255,6 +264,7 @@ struct AITabView: View {
                     DisclosureGroup(isExpanded: providerExpansionBinding(for: group.provider)) {
                         ForEach(group.models) { model in
                             modelRow(for: model)
+                                .id(model.id)
                         }
                     } label: {
                         HStack(spacing: 10) {
@@ -338,12 +348,44 @@ struct AITabView: View {
         return fallback.isEmpty ? nil : fallback
     }
 
+    private func formattedPricePerMillion(_ raw: String?, fallback: Double? = nil) -> String {
+        let sanitized: String? = {
+            guard var value = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
+                return nil
+            }
+            value = value.replacingOccurrences(of: "$", with: "")
+            value = value.replacingOccurrences(of: ",", with: "")
+            if let firstComponent = value.split(whereSeparator: { " /".contains($0) }).first {
+                return String(firstComponent)
+            }
+            return value
+        }()
+
+        guard let base = Double(sanitized ?? "") ?? fallback else {
+            return "-"
+        }
+
+        let perMillion = base * 1_000_000
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
+        formatter.minimumFractionDigits = perMillion < 1 ? 4 : 2
+        formatter.maximumFractionDigits = 6
+        return formatter.string(from: NSNumber(value: perMillion)) ?? "-"
+    }
+
     private func applyDefaultProviderCollapseIfNeeded(with models: [AIModelInfo]) {
         guard !models.isEmpty,
               collapsedProviderData.isEmpty,
               !hasAppliedDefaultCollapse else { return }
+
         let providers = Set(models.map { providerName(for: $0.id) })
-        collapsedModelProviders = providers
+        var collapsedProviders = providers
+        if let selectedProvider = models.first(where: { $0.id == gateway.selectedModelID }).map({ providerName(for: $0.id) }) {
+            collapsedProviders.remove(selectedProvider)
+        }
+
+        collapsedModelProviders = collapsedProviders
         hasAppliedDefaultCollapse = true
     }
 
@@ -353,6 +395,34 @@ struct AITabView: View {
         if model.id.lowercased().contains(query) { return true }
         if let description = model.description?.lowercased(), description.contains(query) { return true }
         return false
+    }
+
+    private func performInitialScrollIfNeeded(using proxy: ScrollViewProxy) {
+        guard !isInitialScrollPerformed, !gateway.models.isEmpty else { return }
+        isInitialScrollPerformed = true
+        expandProviderIfNeeded(for: gateway.selectedModelID)
+        scrollToModel(withID: gateway.selectedModelID, using: proxy, animated: false)
+    }
+
+    private func scrollToModel(withID id: String, using proxy: ScrollViewProxy, animated: Bool = true) {
+        guard gateway.models.contains(where: { $0.id == id }) else { return }
+        let scrollAction = {
+            proxy.scrollTo(id, anchor: .top)
+        }
+        if animated {
+            withAnimation(.easeInOut) { scrollAction() }
+        } else {
+            scrollAction()
+        }
+    }
+
+    private func expandProviderIfNeeded(for modelID: String) {
+        let provider = providerName(for: modelID)
+        var collapsed = collapsedModelProviders
+        if collapsed.contains(provider) {
+            collapsed.remove(provider)
+            collapsedModelProviders = collapsed
+        }
     }
 
     private var selectedModelSummary: String? {
@@ -391,10 +461,12 @@ struct AITabView: View {
                     .foregroundStyle(.secondary)
             }
             if let pricing = model.pricing {
+                let inputPrice = formattedPricePerMillion(pricing.input, fallback: model.metadata?.inputCost)
+                let outputPrice = formattedPricePerMillion(pricing.output, fallback: model.metadata?.outputCost)
                 Text(String(
                     format: NSLocalizedString("ai_tab_pricing_template", comment: ""),
-                    pricing.input ?? "-",
-                    pricing.output ?? "-"
+                    inputPrice,
+                    outputPrice
                 ))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
@@ -705,7 +777,7 @@ struct TTSTabView: View {
             Section {
                 // Active jobs (queued + processing/transcribing)
                 let activeJobs = transcriptionManager.allRecentJobs.filter {
-                    $0.status == "queued" || $0.status == "transcribing" || $0.status == "processing"
+                    $0.status == "queued" || $0.status == "downloading" || $0.status == "uploading" || $0.status == "transcribing" || $0.status == "processing"
                 }
                 if !activeJobs.isEmpty {
                     ForEach(activeJobs) { job in
@@ -810,7 +882,7 @@ struct TTSTabView: View {
             }
 
             // Progress bar for active jobs
-            if (job.status == "transcribing" || job.status == "processing"), let progress = job.progress {
+            if (job.status == "downloading" || job.status == "uploading" || job.status == "transcribing" || job.status == "processing"), let progress = job.progress {
                 ProgressView(value: progress, total: 1.0)
                     .progressViewStyle(.linear)
                 Text("\(Int(progress * 100))%")
@@ -838,6 +910,10 @@ struct TTSTabView: View {
         switch job.status {
         case "queued":
             return "Queued"
+        case "downloading":
+            return "Downloading audio"
+        case "uploading":
+            return "Uploading audio"
         case "transcribing", "processing":
             return "Transcribing..."
         case "completed":
@@ -853,6 +929,8 @@ struct TTSTabView: View {
         switch status {
         case "queued":
             return .orange
+        case "downloading", "uploading":
+            return .blue
         case "transcribing", "processing":
             return .blue
         case "completed":
@@ -870,6 +948,9 @@ struct TTSTabView: View {
         case "queued":
             Image(systemName: "clock")
                 .foregroundStyle(.orange)
+        case "downloading", "uploading":
+            ProgressView()
+                .scaleEffect(0.8)
         case "transcribing", "processing":
             ProgressView()
                 .scaleEffect(0.8)
