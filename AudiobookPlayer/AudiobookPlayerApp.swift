@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct AudiobookPlayerApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var audioPlayer = AudioPlayerViewModel()
     @StateObject private var libraryStore = LibraryStore()
     @StateObject private var baiduAuth = BaiduAuthViewModel()
@@ -30,6 +31,25 @@ struct AudiobookPlayerApp: App {
             }
         }
     }
+}
+
+// MARK: - App Delegate for Quick Actions
+
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication,
+                     performActionFor shortcutItem: UIApplicationShortcutItem,
+                     completionHandler: @escaping (Bool) -> Void) {
+        if shortcutItem.type == "com.senaca.AudiobookPlayer.continueLast" {
+            NotificationCenter.default.post(name: .resumePlaybackShortcut, object: nil)
+            completionHandler(true)
+        } else {
+            completionHandler(false)
+        }
+    }
+}
+
+extension Notification.Name {
+    static let resumePlaybackShortcut = Notification.Name("resumePlaybackShortcut")
 }
 
 // MARK: - Splash Screen

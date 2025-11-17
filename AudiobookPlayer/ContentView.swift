@@ -49,6 +49,9 @@ final class TabSelectionManager: ObservableObject {
 
 struct ContentView: View {
     @StateObject private var tabSelection = TabSelectionManager()
+    @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
+    @EnvironmentObject private var library: LibraryStore
+    @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
 
     var body: some View {
@@ -85,6 +88,9 @@ struct ContentView: View {
                 .tag(TabSelectionManager.Tab.settings)
         }
         .environmentObject(tabSelection)
+        .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
+            handleResumeShortcut()
+        }
     }
 }
 
@@ -598,6 +604,22 @@ struct PlayingView: View {
         } else {
             audioPlayer.play(track: track, in: collection, token: nil)
         }
+    }
+
+    private func handleResumeShortcut() {
+        if let activeCollection = audioPlayer.activeCollection,
+           let currentTrack = audioPlayer.currentTrack {
+            resumePlayback(collection: activeCollection, track: currentTrack)
+        } else {
+            for collection in library.collections {
+                if let track = collection.resumeTrack() {
+                    resumePlayback(collection: collection, track: track)
+                    break
+                }
+            }
+        }
+
+        tabSelection.selectedTab = .playing
     }
 
     private func syncPlaybackState() {

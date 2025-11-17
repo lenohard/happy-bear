@@ -44,6 +44,17 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemIconType</key>
+			<string>play</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Continue Last Play</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.senaca.AudiobookPlayer.continueLast</string>
+		</dict>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
