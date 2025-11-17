@@ -285,10 +285,7 @@ struct TranscriptViewerSheet: View {
                 Button {
                     showSelectedOnly.toggle()
                 } label: {
-                    Label(
-                        showSelectedOnly ? "filter_show_all" : "filter_show_selected",
-                        systemImage: showSelectedOnly ? "list.bullet" : "line.3.horizontal.decrease"
-                    )
+                    Image(systemName: showSelectedOnly ? "list.bullet" : "line.3.horizontal.decrease")
                 }
                 .buttonStyle(.bordered)
                 .disabled(!isRepairMode || repairSelection.isEmpty)
