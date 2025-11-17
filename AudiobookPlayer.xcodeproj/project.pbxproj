@@ -35,6 +35,7 @@
 		8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */; };
 		8617DDEB2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDE2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift */; };
 		8617DDEC2EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDE42EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift */; };
+		86C5F7012F0AFA4300647B2C /* AITranscriptRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */; };
 		8617DDED2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDA2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift */; };
 		8617DDEE2EBE0A26006E7CA7 /* SonioxAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDE32EBE0A26006E7CA7 /* SonioxAPI.swift */; };
 		8617DDF02EBE0A26006E7CA7 /* TranscriptionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDE62EBE0A26006E7CA7 /* TranscriptionSheet.swift */; };
@@ -123,6 +124,7 @@
 		8685F3672EBF3607003D8173 /* TranscriptViewerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptViewerSheet.swift; sourceTree = "<group>"; };
 		8685F3682EBF3607003D8173 /* TranscriptViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptViewModel.swift; sourceTree = "<group>"; };
 		8685F36E2EBF3813003D8173 /* AITabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITabView.swift; sourceTree = "<group>"; };
+		86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITranscriptRepair.swift; sourceTree = "<group>"; };
 		86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheDownloadManager.swift; sourceTree = "<group>"; };
 		86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheProgressTracker.swift; sourceTree = "<group>"; };
 		86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDataBackupManager.swift; sourceTree = "<group>"; };
@@ -179,6 +181,7 @@
 				8617DDDB2EBE0A26006E7CA7 /* AIGatewayModels.swift */,
 				8617DDDC2EBE0A26006E7CA7 /* AIGatewayViewModel.swift */,
 				8617DDDD2EBE0A26006E7CA7 /* AITabView.swift */,
+				86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */,
 				8617DDDE2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift */,
 				8617DDDF2EBE0A26006E7CA7 /* DatabaseConfig.swift */,
 				8617DDE02EBE0A26006E7CA7 /* DatabaseSchema.swift */,
@@ -367,6 +370,7 @@
 				8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */,
 				8617DDEB2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift in Sources */,
 				8617DDEC2EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift in Sources */,
+				86C5F7012F0AFA4300647B2C /* AITranscriptRepair.swift in Sources */,
 				8617DDED2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift in Sources */,
 				8617DDEE2EBE0A26006E7CA7 /* SonioxAPI.swift in Sources */,
 				8617DDF02EBE0A26006E7CA7 /* TranscriptionSheet.swift in Sources */,

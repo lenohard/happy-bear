@@ -50,6 +50,8 @@ actor GRDBDatabaseManager {
             print("[GRDB] Executing transcription schema...")
             try db.execute(sql: TranscriptionDatabaseSchema.createTableSQL)
             print("[GRDB] Transcription tables created")
+            try addTranscriptRepairColumnsIfNeeded(in: db)
+            print("[GRDB] Transcript repair columns ensured")
 
             // Insert schema version if not exists
             print("[GRDB] Inserting schema version...")
@@ -1094,8 +1096,9 @@ actor GRDBDatabaseManager {
                     INSERT INTO transcript_segments (
                         id, transcript_id, text,
                         start_time_ms, end_time_ms,
-                        confidence, speaker, language
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        confidence, speaker, language,
+                        last_repair_model, last_repair_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     arguments: [
                         segment.id,
@@ -1105,10 +1108,51 @@ actor GRDBDatabaseManager {
                         segment.endTimeMs,
                         segment.confidence,
                         segment.speaker,
-                        segment.language
+                        segment.language,
+                        segment.lastRepairModel,
+                        segment.lastRepairAt
                     ]
                 )
             }
+        }
+    }
+
+    /// Apply in-place transcript repairs and recompute full_text
+    func applyTranscriptRepairs(
+        transcriptId: String,
+        editedTextsBySegmentId: [String: String],
+        model: String,
+        repairedAt: Date = Date()
+    ) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            for (segmentId, newText) in editedTextsBySegmentId {
+                try db.execute(
+                    sql: """
+                        UPDATE transcript_segments
+                        SET text = ?, last_repair_model = ?, last_repair_at = ?
+                        WHERE id = ? AND transcript_id = ?
+                        """,
+                    arguments: [newText, model, repairedAt, segmentId, transcriptId]
+                )
+            }
+
+            let orderedTexts: [String] = try String.fetchAll(
+                db,
+                sql: "SELECT text FROM transcript_segments WHERE transcript_id = ? ORDER BY start_time_ms",
+                arguments: [transcriptId]
+            )
+            let fullText = orderedTexts.joined(separator: " ")
+
+            try db.execute(
+                sql: """
+                    UPDATE transcripts
+                    SET full_text = ?, updated_at = ?
+                    WHERE id = ?
+                    """,
+                arguments: [fullText, repairedAt, transcriptId]
+            )
         }
     }
     
@@ -1274,6 +1318,17 @@ actor GRDBDatabaseManager {
         let confidence = row["confidence"] as? Double
         let speaker = row["speaker"] as? String
         let language = row["language"] as? String
+        let lastRepairModel = row["last_repair_model"] as? String
+
+        let lastRepairAtValue = row["last_repair_at"]
+        let lastRepairDate: Date?
+        if let date = lastRepairAtValue as? Date {
+            lastRepairDate = date
+        } else if let dateString = lastRepairAtValue as? String {
+            lastRepairDate = Self.sqliteDateFormatter.date(from: dateString)
+        } else {
+            lastRepairDate = nil
+        }
 
         return TranscriptSegment(
             id: id,
@@ -1283,8 +1338,23 @@ actor GRDBDatabaseManager {
             endTimeMs: endTimeMs,
             confidence: confidence,
             speaker: speaker,
-            language: language
+            language: language,
+            lastRepairModel: lastRepairModel,
+            lastRepairAt: lastRepairDate
         )
+    }
+
+    private func addTranscriptRepairColumnsIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(transcript_segments)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("last_repair_model") {
+            try database.execute(sql: "ALTER TABLE transcript_segments ADD COLUMN last_repair_model TEXT")
+        }
+
+        if !existingColumns.contains("last_repair_at") {
+            try database.execute(sql: "ALTER TABLE transcript_segments ADD COLUMN last_repair_at DATETIME")
+        }
     }
 }
 

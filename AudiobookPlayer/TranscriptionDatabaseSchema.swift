@@ -33,6 +33,8 @@ enum TranscriptionDatabaseSchema {
         confidence REAL,
         speaker TEXT,
         language TEXT,
+        last_repair_model TEXT,
+        last_repair_at DATETIME,
         FOREIGN KEY (transcript_id) REFERENCES transcripts(id)
     );
 

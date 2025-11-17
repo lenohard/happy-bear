@@ -9,6 +9,9 @@ class TranscriptViewModel: NSObject, ObservableObject {
     @Published var searchText: String = ""
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var isRepairing = false
+    @Published var repairErrorMessage: String?
+    @Published var lastRepairResults: [TranscriptRepairResult] = []
 
     private let trackId: String
     private let dbManager: GRDBDatabaseManager
@@ -100,6 +103,50 @@ class TranscriptViewModel: NSObject, ObservableObject {
     /// Get the playback position (in seconds) for a segment
     func getPlaybackPosition(for segment: TranscriptSegment) -> TimeInterval {
         return TimeInterval(segment.startTimeMs) / 1000.0
+    }
+
+    func repairSegments(
+        at indexes: IndexSet,
+        trackTitle: String,
+        model: String,
+        apiKey: String,
+        repairManager: AITranscriptRepairManager = AITranscriptRepairManager()
+    ) async {
+        guard let transcript else {
+            repairErrorMessage = "Transcript not loaded."
+            return
+        }
+        lastRepairResults = []
+
+        let selections = indexes.compactMap { index -> TranscriptRepairSelection? in
+            guard segments.indices.contains(index) else { return nil }
+            return TranscriptRepairSelection(displayIndex: index, segment: segments[index])
+        }
+
+        guard !selections.isEmpty else {
+            repairErrorMessage = "No valid segments selected for repair."
+            return
+        }
+
+        isRepairing = true
+        repairErrorMessage = nil
+
+        do {
+            let results = try await repairManager.repairSegments(
+                transcriptId: transcript.id,
+                trackTitle: trackTitle,
+                selections: selections,
+                model: model,
+                apiKey: apiKey
+            )
+            lastRepairResults = results
+            let reloaded = try await dbManager.loadTranscriptSegments(forTranscriptId: transcript.id)
+            segments = reloaded
+        } catch {
+            repairErrorMessage = error.localizedDescription
+        }
+
+        isRepairing = false
     }
 
     /// Get segment at specific playback time

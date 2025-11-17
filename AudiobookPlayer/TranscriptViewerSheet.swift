@@ -11,12 +11,15 @@ struct TranscriptViewerSheet: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var baiduAuth: BaiduAuthViewModel
+    @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @StateObject private var viewModel: TranscriptViewModel
     @State private var selectedSegment: TranscriptSegment?
     @State private var playbackAlertMessage: String?
     @State private var scrollTargetSegmentID: String?
     @State private var scrollTargetShouldAnimate = true
     @State private var lastAutoScrolledSegmentID: String?
+    @State private var isRepairMode = false
+    @State private var repairSelection = IndexSet()
 
     init(trackId: String, trackName: String) {
         self.trackId = trackId
@@ -25,51 +28,19 @@ struct TranscriptViewerSheet: View {
     }
 
     var body: some View {
+        mainView
+    }
+
+    @ViewBuilder
+    private var mainView: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Search bar
-                SearchBar(
-                    text: $viewModel.searchText,
-                    placeholder: "search_in_transcript"
-                )
-                .padding()
-
-                ScrollViewReader { proxy in
-                    transcriptContent()
-                        .onChange(of: scrollTargetSegmentID) { target in
-                            guard let target else { return }
-                            let scrollAction = {
-                                proxy.scrollTo(target, anchor: .center)
-                            }
-
-                            if scrollTargetShouldAnimate {
-                                withAnimation(.easeInOut) {
-                                    scrollAction()
-                                }
-                            } else {
-                                scrollAction()
-                            }
-                        }
-                }
+                headerSection
+                transcriptScroll
             }
             .navigationTitle(trackName)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("close_button") {
-                        dismiss()
-                    }
-                }
-
-                if !viewModel.searchText.isEmpty {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(action: viewModel.clearSearch) {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
+            .toolbar { toolbarItems() }
         }
         .task {
             await viewModel.loadTranscript()
@@ -89,6 +60,8 @@ struct TranscriptViewerSheet: View {
             if newValue.isEmpty {
                 lastAutoScrolledSegmentID = nil
                 focusOnCurrentPlayback(animated: false)
+            } else if isRepairMode {
+                exitRepairMode()
             }
         }
         .alert(
@@ -111,6 +84,72 @@ struct TranscriptViewerSheet: View {
         }
 
         // MARK: - Private Methods
+
+        @ViewBuilder
+        private func repairStatusSection() -> some View {
+            Group {
+                if viewModel.isRepairing {
+                    repairBanner(
+                        icon: "wand.and.stars",
+                        text: NSLocalizedString("ai_repair_in_progress", comment: "AI repair in progress"),
+                        tint: .accentColor
+                    )
+                } else if let error = viewModel.repairErrorMessage {
+                    repairBanner(
+                        icon: "exclamationmark.triangle.fill",
+                        text: error,
+                        tint: .red
+                    ) {
+                        viewModel.repairErrorMessage = nil
+                    }
+                } else if let summary = repairSummaryText {
+                    repairBanner(
+                        icon: "checkmark.seal.fill",
+                        text: summary,
+                        tint: .green
+                    ) {
+                        viewModel.lastRepairResults = []
+                    }
+                }
+            }
+        }
+
+        private var repairSummaryText: String? {
+            let count = viewModel.lastRepairResults.count
+            guard count > 0 else { return nil }
+            if count == 1 {
+                return NSLocalizedString("ai_repair_applied_single", comment: "Single segment repaired")
+            }
+            let format = NSLocalizedString("ai_repair_applied_multiple", comment: "Multiple segments repaired")
+            return String(format: format, count)
+        }
+
+        @ViewBuilder
+    private func repairBanner(icon: String, text: String, tint: Color, dismissAction: (() -> Void)? = nil) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+                .padding(.top, 2)
+
+                Text(text)
+                    .font(.footnote)
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if let dismissAction {
+                    Button(action: dismissAction) {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(Color(.systemGray6))
+            )
+        }
 
         @ViewBuilder
         private func transcriptContent() -> some View {
@@ -151,13 +190,23 @@ struct TranscriptViewerSheet: View {
             } else if viewModel.searchText.isEmpty {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 10) {
-                        ForEach(viewModel.segments) { segment in
+                        ForEach(viewModel.segments.indices, id: \.self) { index in
+                            let segment = viewModel.segments[index]
                             TranscriptSegmentRowView(
                                 segment: segment,
                                 isSelected: selectedSegment?.id == segment.id,
+                                isChecked: repairSelection.contains(index),
+                                showCheckbox: isRepairMode,
                                 onTap: {
-                                    selectedSegment = segment
-                                    jumpToSegment(segment)
+                                    if isRepairMode {
+                                        toggleRepairSelection(index)
+                                    } else {
+                                        selectedSegment = segment
+                                        jumpToSegment(segment)
+                                    }
+                                },
+                                onCheck: {
+                                    toggleRepairSelection(index)
                                 }
                             )
                             .id(segment.id)
@@ -208,6 +257,59 @@ struct TranscriptViewerSheet: View {
                 }
             }
         }
+
+    private var headerSection: some View {
+        VStack(spacing: 8) {
+            SearchBar(
+                text: $viewModel.searchText,
+                placeholder: "search_in_transcript"
+            )
+
+            repairStatusSection()
+        }
+        .padding()
+    }
+
+    @ToolbarContentBuilder
+    private func toolbarItems() -> some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button("close_button") {
+                dismiss()
+            }
+        }
+
+        if !viewModel.searchText.isEmpty {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(action: viewModel.clearSearch) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+
+        repairToolbarItems()
+    }
+
+    @ViewBuilder
+    private var transcriptScroll: some View {
+        ScrollViewReader { proxy in
+            transcriptContent()
+                .onChange(of: scrollTargetSegmentID) { target in
+                    guard let target else { return }
+                    let scrollAction = {
+                        proxy.scrollTo(target, anchor: .center)
+                    }
+
+                    if scrollTargetShouldAnimate {
+                        withAnimation(.easeInOut) {
+                            scrollAction()
+                        }
+                    } else {
+                        scrollAction()
+                    }
+                }
+        }
+    }
 
     private func jumpToSegment(_ segment: TranscriptSegment) {
         guard let context = resolveTrackContext() else {
@@ -276,6 +378,58 @@ struct TranscriptViewerSheet: View {
     private var segmentIDs: [String] {
         viewModel.segments.map { $0.id }
     }
+
+    private func toggleRepairSelection(_ index: Int) {
+        if repairSelection.contains(index) {
+            repairSelection.remove(index)
+        } else {
+            repairSelection.insert(index)
+        }
+    }
+
+    private func exitRepairMode() {
+        isRepairMode = false
+        repairSelection.removeAll()
+    }
+
+    private func startRepairMode() {
+        guard hasAIRepairAccess else {
+            viewModel.repairErrorMessage = NSLocalizedString("ai_repair_missing_key", comment: "AI key missing")
+            return
+        }
+        repairSelection.removeAll()
+        viewModel.repairErrorMessage = nil
+        viewModel.lastRepairResults = []
+        isRepairMode = true
+    }
+
+    private func runRepair() async {
+        guard let apiKey = resolvedAIKey else {
+            viewModel.repairErrorMessage = NSLocalizedString("ai_repair_missing_key", comment: "")
+            return
+        }
+
+        let indexes = IndexSet(repairSelection)
+        await viewModel.repairSegments(
+            at: indexes,
+            trackTitle: trackName,
+            model: aiGateway.selectedModelID,
+            apiKey: apiKey
+        )
+
+        if viewModel.repairErrorMessage == nil {
+            exitRepairMode()
+        }
+    }
+
+    private var hasAIRepairAccess: Bool {
+        resolvedAIKey != nil
+    }
+
+    private var resolvedAIKey: String? {
+        let value = aiGateway.storedKeyValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return value.isEmpty ? nil : value
+    }
 }
 
 // MARK: - Segment Row Component
@@ -283,7 +437,26 @@ struct TranscriptViewerSheet: View {
 struct TranscriptSegmentRowView: View {
     let segment: TranscriptSegment
     let isSelected: Bool
+    let isChecked: Bool
+    let showCheckbox: Bool
     let onTap: () -> Void
+    let onCheck: () -> Void
+
+    init(
+        segment: TranscriptSegment,
+        isSelected: Bool,
+        isChecked: Bool = false,
+        showCheckbox: Bool = false,
+        onTap: @escaping () -> Void,
+        onCheck: @escaping () -> Void = {}
+    ) {
+        self.segment = segment
+        self.isSelected = isSelected
+        self.isChecked = isChecked
+        self.showCheckbox = showCheckbox
+        self.onTap = onTap
+        self.onCheck = onCheck
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -318,6 +491,15 @@ struct TranscriptSegmentRowView: View {
                 }
 
                 Spacer()
+
+                if showCheckbox {
+                    Button(action: onCheck) {
+                        Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
+                            .font(.title3)
+                            .foregroundStyle(isChecked ? Color.accentColor : Color.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
             .contentShape(Rectangle())
             .onTapGesture(perform: onTap)
@@ -332,6 +514,56 @@ struct TranscriptSegmentRowView: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1)
         )
+    }
+}
+
+// MARK: - Repair Toolbar
+
+private extension TranscriptViewerSheet {
+    @ToolbarContentBuilder
+    func repairToolbarItems() -> some ToolbarContent {
+        ToolbarItem {
+            Button {
+                if isRepairMode {
+                    exitRepairMode()
+                } else {
+                    startRepairMode()
+                }
+            } label: {
+                Label(
+                    isRepairMode ? NSLocalizedString("ai_repair_cancel", comment: "") :
+                        NSLocalizedString("ai_repair_toggle", comment: ""),
+                    systemImage: isRepairMode ? "xmark.circle" : "wand.and.stars"
+                )
+            }
+            .buttonStyle(.bordered)
+            .disabled(viewModel.isLoading || viewModel.segments.isEmpty || (!isRepairMode && !hasAIRepairAccess))
+        }
+
+        if isRepairMode {
+            ToolbarItem {
+                Button {
+                    Task { await runRepair() }
+                } label: {
+                    if viewModel.isRepairing {
+                        ProgressView()
+                    } else {
+                        Label(
+                            NSLocalizedString("ai_repair_apply", comment: "Apply repairs"),
+                            systemImage: "checkmark.seal"
+                        )
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isRepairing || repairSelection.isEmpty || !hasAIRepairAccess)
+            }
+        } else if !hasAIRepairAccess {
+            ToolbarItem {
+                Text(NSLocalizedString("ai_repair_missing_key_hint", comment: "Prompt to add AI key"))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
     }
 }
 
@@ -488,8 +720,5 @@ struct AttributedText: UIViewRepresentable {
 // MARK: - Preview
 
 #Preview {
-    TranscriptViewerSheet(trackId: "test-track-1", trackName: "Sample Audiobook Track")
-        .environmentObject(AudioPlayerViewModel())
-        .environmentObject(LibraryStore(autoLoadOnInit: false))
-        .environmentObject(BaiduAuthViewModel())
+    Text("TranscriptViewerSheet preview disabled for now")
 }

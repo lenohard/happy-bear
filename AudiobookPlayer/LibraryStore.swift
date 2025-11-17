@@ -302,25 +302,58 @@ final class LibraryStore: ObservableObject {
         collectionID: UUID,
         newTitle: String
     ) {
+        updateCollectionDetails(
+            collectionID: collectionID,
+            newTitle: newTitle,
+            newDescription: nil,
+            shouldUpdateDescription: false
+        )
+    }
+
+    func updateCollectionDetails(
+        collectionID: UUID,
+        newTitle: String,
+        newDescription: String?,
+        shouldUpdateDescription: Bool
+    ) {
         guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
             return
         }
 
-        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
+        let trimmedTitle = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedTitle.isEmpty else { return }
 
-        let clamped = String(trimmed.prefix(256))
+        let clampedTitle = String(trimmedTitle.prefix(256))
+        var normalizedDescription: String? = collections[index].description
+
+        if shouldUpdateDescription {
+            if let newDescription {
+                let trimmedDescription = newDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                normalizedDescription = trimmedDescription.isEmpty ? nil : String(trimmedDescription.prefix(1024))
+            } else {
+                normalizedDescription = nil
+            }
+        }
 
         var collection = collections[index]
-        guard collection.title != clamped else { return }
+        var didChange = false
 
-        collection.title = clamped
+        if collection.title != clampedTitle {
+            collection.title = clampedTitle
+            didChange = true
+        }
+
+        if shouldUpdateDescription && collection.description != normalizedDescription {
+            collection.description = normalizedDescription
+            didChange = true
+        }
+
+        guard didChange else { return }
+
         collection.updatedAt = Date()
-
         collections[index] = collection
         collections.sort { $0.updatedAt > $1.updatedAt }
 
-        // Persist to database
         if !useFallbackJSON {
             persistToDatabase(collection)
         } else {

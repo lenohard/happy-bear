@@ -65,6 +65,8 @@ struct TranscriptSegment: Identifiable, Codable {
     let confidence: Double?  // 0.0 - 1.0
     let speaker: String?  // Speaker identifier from diarization
     let language: String?  // Detected language for this segment
+    let lastRepairModel: String?
+    let lastRepairAt: Date?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -75,6 +77,8 @@ struct TranscriptSegment: Identifiable, Codable {
         case confidence
         case speaker
         case language
+        case lastRepairModel = "last_repair_model"
+        case lastRepairAt = "last_repair_at"
     }
 
     init(
@@ -85,7 +89,9 @@ struct TranscriptSegment: Identifiable, Codable {
         endTimeMs: Int,
         confidence: Double? = nil,
         speaker: String? = nil,
-        language: String? = nil
+        language: String? = nil,
+        lastRepairModel: String? = nil,
+        lastRepairAt: Date? = nil
     ) {
         self.id = id
         self.transcriptId = transcriptId
@@ -95,6 +101,8 @@ struct TranscriptSegment: Identifiable, Codable {
         self.confidence = confidence
         self.speaker = speaker
         self.language = language
+        self.lastRepairModel = lastRepairModel
+        self.lastRepairAt = lastRepairAt
     }
 
     /// Duration of this segment in milliseconds
@@ -262,6 +270,8 @@ struct TranscriptSegmentRow: Codable {
     let confidence: Double?
     let speaker: String?
     let language: String?
+    let lastRepairModel: String?
+    let lastRepairAt: Date?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -272,6 +282,8 @@ struct TranscriptSegmentRow: Codable {
         case confidence
         case speaker
         case language
+        case lastRepairModel = "last_repair_model"
+        case lastRepairAt = "last_repair_at"
     }
 
     init(from segment: TranscriptSegment) {
@@ -283,6 +295,8 @@ struct TranscriptSegmentRow: Codable {
         self.confidence = segment.confidence
         self.speaker = segment.speaker
         self.language = segment.language
+        self.lastRepairModel = segment.lastRepairModel
+        self.lastRepairAt = segment.lastRepairAt
     }
 }
 

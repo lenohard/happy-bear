@@ -384,7 +384,7 @@ class TranscriptionManager: NSObject, ObservableObject {
     private func groupTokensIntoSegments(_ tokens: [SonioxToken], transcriptId: String) -> [TranscriptSegment] {
         let maxSegmentDurationMs = 20_000  // Hard cap of 20 seconds per segment
         var segments: [TranscriptSegment] = []
-        var currentSegment: (texts: [String], startMs: Int, endMs: Int, speaker: String?, language: String?)? = nil
+        var currentSegment: (texts: [String], startMs: Int, endMs: Int, speaker: String?, language: String?, confidences: [Double])? = nil
 
         // Helper function to check if text ends with sentence-ending punctuation
         func endsWithSentencePunctuation(_ text: String) -> Bool {
@@ -395,11 +395,19 @@ class TranscriptionManager: NSObject, ObservableObject {
         func finalizeCurrentSegment() {
             guard let current = currentSegment else { return }
             let fullText = combineTokens(current.texts, languageCode: current.language)
+            let confidence: Double?
+            if current.confidences.isEmpty {
+                confidence = nil
+            } else {
+                let total = current.confidences.reduce(0, +)
+                confidence = total / Double(current.confidences.count)
+            }
             let segment = TranscriptSegment(
                 transcriptId: transcriptId,
                 text: fullText,
                 startTimeMs: current.startMs,
                 endTimeMs: current.endMs,
+                confidence: confidence,
                 speaker: current.speaker,
                 language: current.language
             )
@@ -407,8 +415,12 @@ class TranscriptionManager: NSObject, ObservableObject {
             currentSegment = nil
         }
 
-        func startNewSegment(text: String, startMs: Int, endMs: Int, speaker: String?, language: String?) {
-            currentSegment = (texts: [text], startMs: startMs, endMs: endMs, speaker: speaker, language: language)
+        func startNewSegment(text: String, startMs: Int, endMs: Int, speaker: String?, language: String?, confidence: Double?) {
+            var confidences: [Double] = []
+            if let confidence {
+                confidences.append(confidence)
+            }
+            currentSegment = (texts: [text], startMs: startMs, endMs: endMs, speaker: speaker, language: language, confidences: confidences)
         }
 
         func exceedsDurationLimit(with endMs: Int) -> Bool {
@@ -425,24 +437,27 @@ class TranscriptionManager: NSObject, ObservableObject {
 
             if currentSegment == nil {
                 // Start first segment
-                startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language)
+                startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language, confidence: token.confidence)
             } else if let current = currentSegment {
                 let speakerChanged = speaker != current.speaker
 
                 if speakerChanged {
                     // Speaker changed - save current segment and start new one
                     finalizeCurrentSegment()
-                    startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language)
+                    startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language, confidence: token.confidence)
                 } else {
                     if exceedsDurationLimit(with: endMs) {
                         finalizeCurrentSegment()
-                        startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language)
+                        startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language, confidence: token.confidence)
                         continue
                     }
 
                     // Same speaker - add token to current segment
                     currentSegment?.texts.append(text)
                     currentSegment?.endMs = endMs
+                    if let conf = token.confidence {
+                        currentSegment?.confidences.append(conf)
+                    }
 
                     // Check if this token ends with sentence punctuation
                     if endsWithSentencePunctuation(text) {

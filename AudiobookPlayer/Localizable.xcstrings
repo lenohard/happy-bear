@@ -91,6 +91,17 @@
         }
       }
     },
+    "add_description_button" : {
+      "comment" : "Add description button",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑介绍"
+          }
+        }
+      }
+    },
     "add_to_favorites" : {
       "comment" : "Add to favorites\nAdd to favorites button",
       "localizations" : {
@@ -121,6 +132,92 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加曲目"
+          }
+        }
+      }
+    },
+    "ai_repair_applied_multiple" : {
+      "comment" : "Multiple segments repaired",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "多行修复"
+          }
+        }
+      }
+    },
+    "ai_repair_applied_single" : {
+      "comment" : "Single segment repaired",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单行修复"
+          }
+        }
+      }
+    },
+    "ai_repair_apply" : {
+      "comment" : "Apply repairs",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复"
+          }
+        }
+      }
+    },
+    "ai_repair_cancel" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "ai_repair_in_progress" : {
+      "comment" : "AI repair in progress",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请求中"
+          }
+        }
+      }
+    },
+    "ai_repair_missing_key" : {
+      "comment" : "AI key missing",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI未配置"
+          }
+        }
+      }
+    },
+    "ai_repair_missing_key_hint" : {
+      "comment" : "Prompt to add AI key",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI未配置"
+          }
+        }
+      }
+    },
+    "ai_repair_toggle" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI修复"
           }
         }
       }
@@ -1181,6 +1278,12 @@
         }
       }
     },
+    "collection_description_empty" : {
+      "comment" : "Collection description empty placeholder"
+    },
+    "collection_description_field_label" : {
+      "comment" : "Collection description field label"
+    },
     "collection_not_found" : {
       "comment" : "Collection not found",
       "localizations" : {
@@ -1599,6 +1702,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已导入"
+          }
+        }
+      }
+    },
+    "edit_collection_details_action" : {
+      "comment" : "Edit collection details action",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑"
+          }
+        }
+      }
+    },
+    "edit_collection_details_title" : {
+      "comment" : "Edit collection details title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑集合"
           }
         }
       }
@@ -2387,6 +2512,7 @@
     },
     "rename_collection_title" : {
       "comment" : "Rename collection title",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

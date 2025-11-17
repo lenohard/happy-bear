@@ -15,8 +15,9 @@ struct CollectionDetailView: View {
     @State private var showDeleteConfirmation = false
     @State private var trackToRename: AudiobookTrack?
     @State private var trackTitleDraft = ""
-    @State private var showCollectionRenameSheet = false
+    @State private var showCollectionInfoSheet = false
     @State private var collectionTitleDraft = ""
+    @State private var collectionDescriptionDraft = ""
     @State private var trackForTranscription: AudiobookTrack?
     @State private var trackForViewing: AudiobookTrack?
     @State private var transcriptStatusCache: [UUID: Bool] = [:]
@@ -134,13 +135,15 @@ struct CollectionDetailView: View {
                 onCancel: cancelTrackRename
             )
         }
-        .sheet(isPresented: $showCollectionRenameSheet) {
-            RenameEntryView(
-                title: NSLocalizedString("rename_collection_title", comment: "Rename collection title"),
-                fieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
-                text: $collectionTitleDraft,
-                onSubmit: applyCollectionRename,
-                onCancel: cancelCollectionRename
+        .sheet(isPresented: $showCollectionInfoSheet) {
+            CollectionInfoEditorView(
+                title: NSLocalizedString("edit_collection_details_title", comment: "Edit collection details title"),
+                nameFieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
+                descriptionFieldLabel: NSLocalizedString("collection_description_field_label", comment: "Collection description field label"),
+                name: $collectionTitleDraft,
+                description: $collectionDescriptionDraft,
+                onSubmit: applyCollectionDetailsUpdate,
+                onCancel: cancelCollectionDetailsEdit
             )
         }
         .onChange(of: trackToRename) { newValue in
@@ -148,9 +151,10 @@ struct CollectionDetailView: View {
                 trackTitleDraft = ""
             }
         }
-        .onChange(of: showCollectionRenameSheet) { newValue in
+        .onChange(of: showCollectionInfoSheet) { newValue in
             if !newValue {
                 collectionTitleDraft = ""
+                collectionDescriptionDraft = ""
             }
         }
         .onChange(of: collectionID) { _ in
@@ -261,6 +265,23 @@ struct CollectionDetailView: View {
                     Text(description)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                } else if library.canModifyCollection(collectionID) {
+                    Button {
+                        beginEditingCollectionDetails(collection)
+                    } label: {
+                        Label(
+                            NSLocalizedString("add_description_button", comment: "Add description button"),
+                            systemImage: "plus.circle"
+                        )
+                        .labelStyle(.titleAndIcon)
+                        .font(.subheadline)
+                    }
+                    .buttonStyle(.borderless)
+                    .foregroundStyle(.secondary)
+                } else {
+                    Text(NSLocalizedString("collection_description_empty", comment: "Collection description empty placeholder"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
 
                 let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
@@ -273,10 +294,10 @@ struct CollectionDetailView: View {
                 if library.canModifyCollection(collectionID) {
                     Menu {
                         Button {
-                            beginRenamingCollection(collection)
+                            beginEditingCollectionDetails(collection)
                         } label: {
                             Label(
-                                NSLocalizedString("rename_action", comment: "Rename action"),
+                                NSLocalizedString("edit_collection_details_action", comment: "Edit collection details action"),
                                 systemImage: "pencil"
                             )
                         }
@@ -536,25 +557,43 @@ struct CollectionDetailView: View {
         )
     }
 
-    private func beginRenamingCollection(_ collection: AudiobookCollection) {
+    private func beginEditingCollectionDetails(_ collection: AudiobookCollection) {
         collectionTitleDraft = String(collection.title.prefix(256))
-        showCollectionRenameSheet = true
+        collectionDescriptionDraft = String((collection.description ?? "").prefix(1024))
+        showCollectionInfoSheet = true
     }
 
-    private func cancelCollectionRename() {
-        showCollectionRenameSheet = false
+    private func cancelCollectionDetailsEdit() {
+        showCollectionInfoSheet = false
         collectionTitleDraft = ""
+        collectionDescriptionDraft = ""
     }
 
-    private func applyCollectionRename() {
-        let trimmed = collectionTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        collectionTitleDraft = ""
-        showCollectionRenameSheet = false
+    private func applyCollectionDetailsUpdate() {
+        guard let collection else {
+            cancelCollectionDetailsEdit()
+            return
+        }
 
-        guard !trimmed.isEmpty else { return }
-        library.renameCollection(
+        let trimmedTitle = collectionTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedDescription = collectionDescriptionDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        collectionTitleDraft = ""
+        collectionDescriptionDraft = ""
+        showCollectionInfoSheet = false
+
+        guard !trimmedTitle.isEmpty else { return }
+
+        let clampedTitle = String(trimmedTitle.prefix(256))
+        let clampedDescription = trimmedDescription.isEmpty ? nil : String(trimmedDescription.prefix(1024))
+
+        guard clampedTitle != collection.title || clampedDescription != collection.description else { return }
+
+        library.updateCollectionDetails(
             collectionID: collectionID,
-            newTitle: String(trimmed.prefix(256))
+            newTitle: clampedTitle,
+            newDescription: clampedDescription,
+            shouldUpdateDescription: true
         )
     }
 
@@ -664,6 +703,82 @@ struct CollectionDetailView: View {
                 await MainActor.run {
                     transcriptDeletionError = error.localizedDescription
                     showTranscriptDeletionError = true
+                }
+            }
+        }
+    }
+}
+
+private struct CollectionInfoEditorView: View {
+    let title: String
+    let nameFieldLabel: String
+    let descriptionFieldLabel: String
+    @Binding var name: String
+    @Binding var description: String
+    let onSubmit: () -> Void
+    let onCancel: () -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var focusedField: Field?
+    @State private var didComplete = false
+
+    private enum Field {
+        case name
+        case description
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField(nameFieldLabel, text: $name)
+                        .focused($focusedField, equals: .name)
+                        .onAppear {
+                            focusedField = .name
+                        }
+                        .onChange(of: name) { newValue in
+                            if newValue.count > 256 {
+                                name = String(newValue.prefix(256))
+                            }
+                        }
+                        .textInputAutocapitalization(.words)
+
+                    TextField(descriptionFieldLabel, text: $description, axis: .vertical)
+                        .focused($focusedField, equals: .description)
+                        .lineLimit(3...6)
+                        .onChange(of: description) { newValue in
+                            if newValue.count > 1024 {
+                                description = String(newValue.prefix(1024))
+                            }
+                        }
+                        .textInputAutocapitalization(.sentences)
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(NSLocalizedString("cancel_button", comment: "Cancel button")) {
+                        didComplete = true
+                        onCancel()
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(NSLocalizedString("ok_button", comment: "OK button")) {
+                        didComplete = true
+                        onSubmit()
+                        dismiss()
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .onAppear {
+                didComplete = false
+            }
+            .onDisappear {
+                if !didComplete {
+                    onCancel()
                 }
             }
         }
