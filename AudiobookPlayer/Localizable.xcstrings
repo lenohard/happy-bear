@@ -54,6 +54,12 @@
     "%lld%%" : {
 
     },
+    "50%" : {
+
+    },
+    "100%" : {
+
+    },
     "access_token_acquired" : {
       "comment" : "Access token acquired",
       "localizations" : {
@@ -786,6 +792,16 @@
     "Authorizing…" : {
 
     },
+    "Auto-select low confidence segments" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选中所有低置信片段"
+          }
+        }
+      }
+    },
     "backup_credentials_warning" : {
       "comment" : "Credentials warning",
       "localizations" : {
@@ -1006,6 +1022,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "百度网盘"
+          }
+        }
+      }
+    },
+    "Below %lld%% · %lld matches found" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Below %1$lld%% · %2$lld matches found"
           }
         }
       }
@@ -1352,23 +1378,8 @@
         }
       }
     },
-    "connect_baidu_alert_message" : {
-      "comment" : "Alert message to sign in before importing",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open the Sources tab to sign in with your Baidu account before importing or streaming audio."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打开\"来源\"标签签入您的百度账户，然后再导入或流媒体音频。"
-          }
-        }
-      }
+    "Confidence threshold" : {
+
     },
     "connect_baidu_before_stream" : {
       "comment" : "Alert message to sign in before streaming",
@@ -1456,6 +1467,9 @@
           }
         }
       }
+    },
+    "Currently selected: %lld" : {
+
     },
     "delete_cache_confirm" : {
       "comment" : "Delete cached track button",
@@ -1668,6 +1682,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已下载"
+          }
+        }
+      }
+    },
+    "downloading_status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载"
           }
         }
       }
@@ -1921,7 +1946,7 @@
         }
       }
     },
-    "Key" : {
+    "Key 2" : {
       "extractionState" : "manual"
     },
     "Last position: %@" : {
@@ -2510,24 +2535,6 @@
         }
       }
     },
-    "rename_collection_title" : {
-      "comment" : "Rename collection title",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rename Collection"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重命名合集"
-          }
-        }
-      }
-    },
     "rename_track_title" : {
       "comment" : "Rename track title",
       "localizations" : {
@@ -2599,23 +2606,6 @@
         }
       }
     },
-    "scanning_folder" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scanning folder..."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在扫描文件夹..."
-          }
-        }
-      }
-    },
     "scopes_label" : {
       "comment" : "Scopes label",
       "localizations" : {
@@ -2667,6 +2657,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜索曲目"
+          }
+        }
+      }
+    },
+    "Select" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选中"
           }
         }
       }
@@ -2762,17 +2762,6 @@
         }
       }
     },
-    "soniox_configured" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已配置"
-          }
-        }
-      }
-    },
     "soniox_key_placeholder" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2789,17 +2778,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已保存"
-          }
-        }
-      }
-    },
-    "soniox_not_configured" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "未配置"
           }
         }
       }
@@ -2837,6 +2815,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "开始转录"
+          }
+        }
+      }
+    },
+    "status_downloading_audio" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在下载"
+          }
+        }
+      }
+    },
+    "status_uploading_audio" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在上传音频"
           }
         }
       }
@@ -3509,6 +3509,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在上传音频文件..."
+          }
+        }
+      }
+    },
+    "uploading_status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在上传"
           }
         }
       }

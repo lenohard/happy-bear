@@ -165,6 +165,8 @@ struct StatusBadge: View {
         switch status {
         case "queued":
             return .gray
+        case "downloading", "uploading":
+            return .blue
         case "uploading", "transcribing", "processing":
             return .blue
         case "completed":
@@ -180,6 +182,8 @@ struct StatusBadge: View {
         switch status {
         case "queued":
             return "queued_status"
+        case "downloading":
+            return "downloading_status"
         case "uploading":
             return "uploading_status"
         case "transcribing", "processing":

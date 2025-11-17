@@ -135,7 +135,7 @@ struct TranscriptionJob: Identifiable, Codable {
     let id: String  // UUID string
     let trackId: String  // FK to AudiobookTrack.id
     let sonioxJobId: String  // Soniox job ID
-    let status: String  // "queued", "transcribing", "completed", "failed"
+    let status: String  // "queued", "downloading", "uploading", "transcribing", "processing", "completed", "failed"
     let progress: Double?  // 0.0 - 1.0 (estimated)
     let createdAt: Date
     let completedAt: Date?
@@ -182,7 +182,7 @@ struct TranscriptionJob: Identifiable, Codable {
 
     /// Whether the job is still running
     var isRunning: Bool {
-        status == "queued" || status == "transcribing"
+        status == "queued" || status == "downloading" || status == "uploading" || status == "transcribing" || status == "processing"
     }
 
     /// Whether the job has completed successfully
@@ -201,12 +201,13 @@ extension TranscriptionJob {
         status: String? = nil,
         progress: Double? = nil,
         errorMessage: String? = nil,
+        sonioxJobId: String? = nil,
         lastAttemptAt: Date? = nil
     ) -> TranscriptionJob {
         TranscriptionJob(
             id: id,
             trackId: trackId,
-            sonioxJobId: sonioxJobId,
+            sonioxJobId: sonioxJobId ?? self.sonioxJobId,
             status: status ?? self.status,
             progress: progress ?? self.progress,
             createdAt: createdAt,

@@ -9,7 +9,7 @@ import AppKit
 struct AITabView: View {
     @EnvironmentObject private var gateway: AIGatewayViewModel
     @FocusState private var focusedField: KeyField?
-    @AppStorage("ai_tab_models_section_expanded_v2") private var isModelListExpanded = true
+    @AppStorage("ai_tab_models_section_expanded_v3") private var isModelListExpanded = false
     @AppStorage("ai_tab_collapsed_provider_data_v2") private var collapsedProviderData: Data = Data()
     @State private var modelSearchText: String = ""
     @State private var isCredentialSectionExpanded = false
@@ -200,7 +200,7 @@ struct AITabView: View {
             if let summary = selectedModelSummary {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(alignment: .center, spacing: 12) {
-                        Label(summary, systemImage: "star.circle.fill")
+                        Label(summary.title, systemImage: "star.circle.fill")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -211,6 +211,18 @@ struct AITabView: View {
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
+                    }
+
+                    if let description = summary.description, !description.isEmpty {
+                        Text(description)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let pricing = summary.pricing {
+                        Text(pricing)
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
                     }
 
                     if let refreshText = lastRefreshDescription(for: gateway.lastModelRefreshDate) {
@@ -425,21 +437,35 @@ struct AITabView: View {
         }
     }
 
-    private var selectedModelSummary: String? {
+    private var selectedModelSummary: (title: String, description: String?, pricing: String?)? {
         guard let model = gateway.models.first(where: { $0.id == gateway.selectedModelID }) else {
             return nil
         }
         let displayName = model.name?.isEmpty == false ? model.name! : model.id
         let provider = providerDisplayName(for: model)
+        let title: String
         if let provider {
-            return String(
+            title = String(
                 format: NSLocalizedString("ai_tab_selected_model_summary", comment: ""),
                 displayName,
                 provider
             )
         } else {
-            return displayName
+            title = displayName
         }
+
+        var pricingText: String?
+        if let pricing = model.pricing {
+            let inputPrice = formattedPricePerMillion(pricing.input, fallback: model.metadata?.inputCost)
+            let outputPrice = formattedPricePerMillion(pricing.output, fallback: model.metadata?.outputCost)
+            pricingText = String(
+                format: NSLocalizedString("ai_tab_pricing_template", comment: ""),
+                inputPrice,
+                outputPrice
+            )
+        }
+
+        return (title: title, description: model.description, pricing: pricingText)
     }
 
     @ViewBuilder
@@ -911,9 +937,9 @@ struct TTSTabView: View {
         case "queued":
             return "Queued"
         case "downloading":
-            return "Downloading audio"
+            return NSLocalizedString("status_downloading_audio", comment: "")
         case "uploading":
-            return "Uploading audio"
+            return NSLocalizedString("status_uploading_audio", comment: "")
         case "transcribing", "processing":
             return "Transcribing..."
         case "completed":

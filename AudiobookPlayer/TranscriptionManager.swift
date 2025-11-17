@@ -152,6 +152,7 @@ class TranscriptionManager: NSObject, ObservableObject {
 
         var pendingTranscriptId: String?
         var currentJobId: String?
+        var placeholderJob: TranscriptionJob?
 
         do {
             // Create or reuse transcript record
@@ -161,10 +162,30 @@ class TranscriptionManager: NSObject, ObservableObject {
                 language: languageHints.first ?? "en"
             )
             pendingTranscriptId = transcriptId
+
+            // Create placeholder job to surface download stage in UI
+            let job = try await dbManager.createTranscriptionJob(
+                trackId: trackIdStr,
+                sonioxJobId: "pending-download-\(UUID().uuidString)",
+                status: "downloading",
+                progress: 0.05
+            )
+            placeholderJob = job
+            currentJobId = job.id
+            upsertActiveJob(job)
+            await refreshAllRecentJobs()
+
             DispatchQueue.main.async { self.transcriptionProgress = 0.1 }
 
             // Step 1: Upload file to Soniox
             let fileId = try await sonioxAPI.uploadFile(fileURL: audioFileURL)
+
+            if let jobId = currentJobId {
+                try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.15)
+                updateActiveJob(jobId: jobId) { existing in
+                    existing.updating(status: "uploading", progress: 0.15, lastAttemptAt: Date())
+                }
+            }
 
             // Cleanup temporary file if needed
             cleanupTemporaryFileIfNeeded(audioFileURL)
@@ -182,10 +203,22 @@ class TranscriptionManager: NSObject, ObservableObject {
             // Update transcript with job ID
             try await updateTranscriptJobId(trackId: trackIdStr, jobId: transcriptionId, status: "processing")
             DispatchQueue.main.async { self.transcriptionProgress = 0.3 }
-
-            let job = try await dbManager.createTranscriptionJob(trackId: trackIdStr, sonioxJobId: transcriptionId)
-            currentJobId = job.id
-            upsertActiveJob(job)
+            if let jobId = currentJobId {
+                try await dbManager.updateJobSonioxId(jobId: jobId, sonioxJobId: transcriptionId)
+                try await dbManager.updateJobStatus(jobId: jobId, status: "processing", progress: 0.3)
+                updateActiveJob(jobId: jobId) { existing in
+                    existing.updating(status: "processing", progress: 0.3, sonioxJobId: transcriptionId, lastAttemptAt: Date())
+                }
+            } else {
+                let job = try await dbManager.createTranscriptionJob(
+                    trackId: trackIdStr,
+                    sonioxJobId: transcriptionId,
+                    status: "processing",
+                    progress: 0.3
+                )
+                currentJobId = job.id
+                upsertActiveJob(job)
+            }
 
             // Step 3: Poll for completion
             try await pollForCompletion(

@@ -11,28 +11,32 @@ extension GRDBDatabaseManager {
     /// Create a new transcription job record
     func createTranscriptionJob(
         trackId: String,
-        sonioxJobId: String
+        sonioxJobId: String,
+        status: String = "queued",
+        progress: Double? = nil
     ) throws -> TranscriptionJob {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
         let job = TranscriptionJob(
             trackId: trackId,
             sonioxJobId: sonioxJobId,
-            status: "queued"
+            status: status,
+            progress: progress
         )
 
         try db.write { db in
             try db.execute(sql: """
                 INSERT INTO transcription_jobs (
                     id, track_id, soniox_job_id, status,
-                    created_at, retry_count, last_attempt_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    progress, created_at, retry_count, last_attempt_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     job.id,
                     job.trackId,
                     job.sonioxJobId,
                     job.status,
+                    job.progress,
                     Self.sqliteDateFormatter.string(from: job.createdAt),
                     job.retryCount,
                     NSNull()
@@ -153,6 +157,25 @@ extension GRDBDatabaseManager {
                 arguments: [
                     status,
                     progress,
+                    Self.sqliteDateFormatter.string(from: Date()),
+                    jobId
+                ]
+            )
+        }
+    }
+
+    /// Update the Soniox job identifier (used when the job was created before Soniox returned an ID)
+    func updateJobSonioxId(jobId: String, sonioxJobId: String) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(sql: """
+                UPDATE transcription_jobs
+                SET soniox_job_id = ?, last_attempt_at = ?
+                WHERE id = ?
+                """,
+                arguments: [
+                    sonioxJobId,
                     Self.sqliteDateFormatter.string(from: Date()),
                     jobId
                 ]

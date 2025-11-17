@@ -21,6 +21,7 @@ struct TranscriptViewerSheet: View {
     @State private var isRepairMode = false
     @State private var repairSelection = IndexSet()
     @State private var autoSelectThresholdPercent: Double = 90
+    @State private var showSelectedOnly = false
 
     init(trackId: String, trackName: String) {
         self.trackId = trackId
@@ -191,26 +192,38 @@ struct TranscriptViewerSheet: View {
             } else if viewModel.searchText.isEmpty {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 10) {
-                        ForEach(viewModel.segments.indices, id: \.self) { index in
-                            let segment = viewModel.segments[index]
-                            TranscriptSegmentRowView(
-                                segment: segment,
-                                isSelected: selectedSegment?.id == segment.id,
-                                isChecked: repairSelection.contains(index),
-                                showCheckbox: isRepairMode,
-                                onTap: {
-                                    if isRepairMode {
+                        if displayedSegments.isEmpty && showSelectedOnly {
+                            VStack(spacing: 8) {
+                                Image(systemName: "line.3.horizontal.decrease")
+                                    .font(.system(size: 32))
+                                    .foregroundStyle(.secondary)
+                                Text("No segments match the current selection filter.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                        } else {
+                            ForEach(displayedSegments, id: \.index) { index, segment in
+                                TranscriptSegmentRowView(
+                                    segment: segment,
+                                    isSelected: selectedSegment?.id == segment.id,
+                                    isChecked: repairSelection.contains(index),
+                                    showCheckbox: isRepairMode,
+                                    onTap: {
+                                        if isRepairMode {
+                                            toggleRepairSelection(index)
+                                        } else {
+                                            selectedSegment = segment
+                                            jumpToSegment(segment)
+                                        }
+                                    },
+                                    onCheck: {
                                         toggleRepairSelection(index)
-                                    } else {
-                                        selectedSegment = segment
-                                        jumpToSegment(segment)
                                     }
-                                },
-                                onCheck: {
-                                    toggleRepairSelection(index)
-                                }
-                            )
-                            .id(segment.id)
+                                )
+                                .id(segment.id)
+                            }
                         }
                     }
                     .padding()
@@ -384,9 +397,23 @@ struct TranscriptViewerSheet: View {
         viewModel.segments.map { $0.id }
     }
 
+    private var displayedSegments: [(index: Int, segment: TranscriptSegment)] {
+        let indices = Array(viewModel.segments.indices)
+        let filtered: [Int]
+        if isRepairMode && showSelectedOnly {
+            filtered = indices.filter { repairSelection.contains($0) }
+        } else {
+            filtered = indices
+        }
+        return filtered.map { ($0, viewModel.segments[$0]) }
+    }
+
     private func toggleRepairSelection(_ index: Int) {
         if repairSelection.contains(index) {
             repairSelection.remove(index)
+            if repairSelection.isEmpty {
+                showSelectedOnly = false
+            }
         } else {
             repairSelection.insert(index)
         }
@@ -395,6 +422,7 @@ struct TranscriptViewerSheet: View {
     private func exitRepairMode() {
         isRepairMode = false
         repairSelection.removeAll()
+        showSelectedOnly = false
     }
 
     private func startRepairMode() {
@@ -403,6 +431,7 @@ struct TranscriptViewerSheet: View {
             return
         }
         repairSelection.removeAll()
+        showSelectedOnly = false
         viewModel.repairErrorMessage = nil
         viewModel.lastRepairResults = []
         isRepairMode = true
@@ -453,12 +482,15 @@ struct TranscriptViewerSheet: View {
                 Spacer()
 
                 Button {
-                    autoSelectLowConfidenceSegments()
+                    toggleLowConfidenceSelection()
                 } label: {
-                    Label("Select", systemImage: "line.3.horizontal.decrease.circle")
+                    Label(
+                        isThresholdSelectionActive ? "Unselect" : "Select",
+                        systemImage: isThresholdSelectionActive ? "arrow.uturn.backward.circle" : "line.3.horizontal.decrease.circle"
+                    )
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(viewModel.segments.isEmpty)
+                .disabled(lowConfidenceCandidateCount == 0)
             }
 
             Slider(
@@ -480,6 +512,20 @@ struct TranscriptViewerSheet: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            HStack {
+                Spacer()
+                Button {
+                    showSelectedOnly.toggle()
+                } label: {
+                    Label(
+                        showSelectedOnly ? "Show all segments" : "Show selected only",
+                        systemImage: showSelectedOnly ? "list.bullet" : "line.3.horizontal.decrease" 
+                    )
+                }
+                .buttonStyle(.bordered)
+                .disabled(repairSelection.isEmpty)
+            }
         }
         .padding(12)
         .background(
@@ -489,19 +535,39 @@ struct TranscriptViewerSheet: View {
     }
 
     private var lowConfidenceCandidateCount: Int {
-        let threshold = autoSelectThresholdPercent / 100
-        return viewModel.segments.filter { segment in
-            guard let confidence = segment.confidence else { return false }
-            return confidence < threshold
-        }.count
+        lowConfidenceIndexes.count
     }
 
-    private func autoSelectLowConfidenceSegments() {
-        repairSelection.removeAll()
+    private var lowConfidenceIndexes: IndexSet {
+        var indexes = IndexSet()
         let threshold = autoSelectThresholdPercent / 100
         for (index, segment) in viewModel.segments.enumerated() {
             guard let confidence = segment.confidence else { continue }
             if confidence < threshold {
+                indexes.insert(index)
+            }
+        }
+        return indexes
+    }
+
+    private var isThresholdSelectionActive: Bool {
+        let indexes = lowConfidenceIndexes
+        guard !indexes.isEmpty else { return false }
+        return indexes.allSatisfy { repairSelection.contains($0) }
+    }
+
+    private func toggleLowConfidenceSelection() {
+        let indexes = lowConfidenceIndexes
+        guard !indexes.isEmpty else { return }
+        if isThresholdSelectionActive {
+            for index in indexes {
+                repairSelection.remove(index)
+            }
+            if repairSelection.isEmpty {
+                showSelectedOnly = false
+            }
+        } else {
+            for index in indexes {
                 repairSelection.insert(index)
             }
         }
