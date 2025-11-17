@@ -204,7 +204,9 @@ struct TranscriptViewerSheet: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                         } else {
-                            ForEach(displayedSegments, id: \.index) { index, segment in
+                            ForEach(displayedSegments, id: \.index) { item in
+                                let index = item.index
+                                let segment = item.segment
                                 TranscriptSegmentRowView(
                                     segment: segment,
                                     isSelected: selectedSegment?.id == segment.id,

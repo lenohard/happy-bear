@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 struct TranscriptRepairPromptBuilder {
     let trackTitle: String
@@ -92,6 +93,7 @@ final class AITranscriptRepairManager {
     private let dbManager: GRDBDatabaseManager
     private let client: AIGatewayClient
     private let parser = TranscriptRepairParser()
+    private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AITranscriptRepair")
 
     private let systemPrompt = """
     You repair audiobook transcripts. Return JSON only: {"repairs":[{"index":NUMBER,"edited_text":"TEXT"}]}.
@@ -133,6 +135,10 @@ final class AITranscriptRepairManager {
             offset: offset
         )
 
+        logger.info(
+            "Sending AI transcript repair request (transcript: \(transcriptId, privacy: .public), model: \(model, privacy: .public), segments: \(selections.count))\nPrompt:\n\(userPrompt, privacy: .public)"
+        )
+
         let response: ChatCompletionsResponse
         do {
             response = try await client.sendChat(
@@ -150,6 +156,10 @@ final class AITranscriptRepairManager {
         guard let content = response.choices.first?.message.content else {
             throw AITranscriptRepairError.responseParseFailed
         }
+
+        logger.info(
+            "Received AI transcript repair response (id: \(response.id, privacy: .public), model: \(response.model, privacy: .public))\nContent:\n\(content, privacy: .public)"
+        )
 
         let parsed: TranscriptRepairResponse
         do {
