@@ -650,27 +650,23 @@ struct TranscriptSegmentRowView: View {
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    if isRepaired {
-                        HStack(spacing: 4) {
-                            Image(systemName: "sparkles")
-                                .font(.caption2)
-                                .foregroundStyle(.green)
-                            Text("AI 修订")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-
                     if let confidence = segment.confidence {
-                        Text(
-                            String(
-                                format: NSLocalizedString("transcript_confidence_format", comment: "Transcript confidence percentage"),
-                                locale: .current,
-                                confidence * 100
+                        HStack(spacing: 4) {
+                            if isRepaired {
+                                Image(systemName: "sparkles")
+                                    .font(.caption2)
+                                    .foregroundStyle(.green)
+                            }
+                            Text(
+                                String(
+                                    format: NSLocalizedString("transcript_confidence_format", comment: "Transcript confidence percentage"),
+                                    locale: .current,
+                                    confidence * 100
+                                )
                             )
-                        )
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .alignmentGuide(.top) { d in d[.top] }
