@@ -2,7 +2,7 @@ import SwiftUI
 
 @MainActor
 final class TabSelectionManager: ObservableObject {
-    @Published var selectedTab: Tab = .library
+    @Published var selectedTab: Tab = .playing
 
     enum Tab: Int, CaseIterable {
         case library = 0
