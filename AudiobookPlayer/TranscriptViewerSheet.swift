@@ -20,6 +20,7 @@ struct TranscriptViewerSheet: View {
     @State private var lastAutoScrolledSegmentID: String?
     @State private var isRepairMode = false
     @State private var repairSelection = IndexSet()
+    @State private var autoSelectThresholdPercent: Double = 90
 
     init(trackId: String, trackName: String) {
         self.trackId = trackId
@@ -266,6 +267,10 @@ struct TranscriptViewerSheet: View {
             )
 
             repairStatusSection()
+
+            if isRepairMode {
+                repairModeControls()
+            }
         }
         .padding()
     }
@@ -430,6 +435,77 @@ struct TranscriptViewerSheet: View {
         let value = aiGateway.storedKeyValue.trimmingCharacters(in: .whitespacesAndNewlines)
         return value.isEmpty ? nil : value
     }
+
+    @ViewBuilder
+    private func repairModeControls() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Auto-select low confidence segments")
+                        .font(.subheadline)
+                        .bold()
+
+                    Text("Below \(Int(autoSelectThresholdPercent))% · \(lowConfidenceCandidateCount) matches found")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Button {
+                    autoSelectLowConfidenceSegments()
+                } label: {
+                    Label("Select", systemImage: "line.3.horizontal.decrease.circle")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.segments.isEmpty)
+            }
+
+            Slider(
+                value: $autoSelectThresholdPercent,
+                in: 50...100,
+                step: 1
+            ) {
+                Text("Confidence threshold")
+            } minimumValueLabel: {
+                Text("50%")
+                    .font(.caption)
+            } maximumValueLabel: {
+                Text("100%")
+                    .font(.caption)
+            }
+
+            if repairSelection.count > 0 {
+                Text("Currently selected: \(repairSelection.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(.systemGray6))
+        )
+    }
+
+    private var lowConfidenceCandidateCount: Int {
+        let threshold = autoSelectThresholdPercent / 100
+        return viewModel.segments.filter { segment in
+            guard let confidence = segment.confidence else { return false }
+            return confidence < threshold
+        }.count
+    }
+
+    private func autoSelectLowConfidenceSegments() {
+        repairSelection.removeAll()
+        let threshold = autoSelectThresholdPercent / 100
+        for (index, segment) in viewModel.segments.enumerated() {
+            guard let confidence = segment.confidence else { continue }
+            if confidence < threshold {
+                repairSelection.insert(index)
+            }
+        }
+    }
 }
 
 // MARK: - Segment Row Component
@@ -470,6 +546,7 @@ struct TranscriptSegmentRowView: View {
                         .foregroundStyle(.tertiary)
                 }
                 .frame(width: 58, alignment: .leading)
+                .alignmentGuide(.top) { d in d[.top] }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(segment.text)
@@ -489,6 +566,7 @@ struct TranscriptSegmentRowView: View {
                         .foregroundStyle(.secondary)
                     }
                 }
+                .alignmentGuide(.top) { d in d[.top] }
 
                 Spacer()
 
