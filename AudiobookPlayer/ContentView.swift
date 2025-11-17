@@ -33,7 +33,7 @@ final class TabSelectionManager: ObservableObject {
             case .playing:
                 return "play.circle"
             case .ai:
-                return "brain"
+                return "sparkles"
             case .tts:
                 return "waveform"
             case .settings:
@@ -67,7 +67,7 @@ struct ContentView: View {
 
             AITabView()
                 .tabItem {
-                    Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "brain")
+                    Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "sparkles")
                 }
                 .tag(TabSelectionManager.Tab.ai)
 
