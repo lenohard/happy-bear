@@ -405,7 +405,14 @@ struct TranscriptViewerSheet: View {
 
     private func setScrollTarget(_ id: String, animated: Bool) {
         scrollTargetShouldAnimate = animated
-        scrollTargetSegmentID = id
+        // Reset the target before scheduling the actual scroll so ScrollViewReader
+        // sees a state change even if we're requesting the same segment ID twice.
+        scrollTargetSegmentID = nil
+
+        let targetID = id
+        DispatchQueue.main.async {
+            self.scrollTargetSegmentID = targetID
+        }
     }
 
     private var shouldAutoFollowPlayback: Bool {
