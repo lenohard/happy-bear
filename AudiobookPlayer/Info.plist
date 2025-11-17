@@ -50,7 +50,7 @@
 			<key>UIApplicationShortcutItemIconType</key>
 			<string>play</string>
 			<key>UIApplicationShortcutItemTitle</key>
-			<string>Continue Last Play</string>
+			<string>continue_last_play_shortcut</string>
 			<key>UIApplicationShortcutItemType</key>
 			<string>com.senaca.AudiobookPlayer.continueLast</string>
 		</dict>

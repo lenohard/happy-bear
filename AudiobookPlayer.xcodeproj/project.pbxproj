@@ -28,6 +28,7 @@
 		6FC0100B2C5B0C0000AA00AA /* TrackPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0100A2C5B0C0000AA00AA /* TrackPickerView.swift */; };
 		6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */; };
 		6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6FC0200A2C5B0C0000AA00AA /* Localizable.strings */; };
+		B1C5E0A22F12300000AAA001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1C5E09F2F12300000AAA001 /* InfoPlist.strings */; };
 		6FD0A0022C5B0C0000AA00AB /* AudioCacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0012C5B0C0000AA00AB /* AudioCacheManager.swift */; };
 		6FD0A0042C5B0C0000AA00AB /* CachedAudioAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */; };
 		8617DDE82EBE0A26006E7CA7 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */; };
@@ -85,6 +86,8 @@
 		6F6E7F742C4A9B0500AA00AA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6F6E7F762C4A9B0500AA00AA /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		6F6E7F772C4A9B0500AA00AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		B1C5E0A02F12300000AAA001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B1C5E0A12F12300000AAA001 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		6F6E7F782C4A9B0500AA00AA /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		6F6E7F802C4A9B0500AA00AA /* HappyBear.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HappyBear.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F99A0002C4C200000AA00AA /* BaiduTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduTokenStore.swift; sourceTree = "<group>"; };
@@ -166,6 +169,7 @@
 		6F6E7F672C4A9B0500AA00AA /* AudiobookPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				B1C5E09F2F12300000AAA001 /* InfoPlist.strings */,
 				86FDF2062EC8F1F300DB7430 /* AudiobookPlayer.entitlements */,
 				86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */,
 				86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */,
@@ -330,6 +334,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B1C5E0A22F12300000AAA001 /* InfoPlist.strings in Resources */,
 				6F6E7F7A2C4A9B0500AA00AA /* Assets.xcassets in Resources */,
 				6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */,
 				8617DDE82EBE0A26006E7CA7 /* Localizable.xcstrings in Resources */,
@@ -411,6 +416,15 @@
 			children = (
 			);
 			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		B1C5E09F2F12300000AAA001 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				B1C5E0A02F12300000AAA001 /* en */,
+				B1C5E0A12F12300000AAA001 /* zh-Hans */,
+			);
+			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
