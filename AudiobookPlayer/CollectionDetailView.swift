@@ -178,7 +178,12 @@ struct CollectionDetailView: View {
             loadTranscriptStatus()
         }
         .sheet(item: $trackForTranscription) { track in
-            TranscriptionSheet(track: track, collectionID: collectionID)
+            TranscriptionSheet(
+                track: track,
+                collectionID: collectionID,
+                collectionTitle: collection?.title ?? "",
+                collectionDescription: collection?.description
+            )
         }
         .sheet(item: $trackForViewing) { track in
             TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)

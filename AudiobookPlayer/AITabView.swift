@@ -610,6 +610,8 @@ struct TTSTabView: View {
     @State private var refreshTimer: Timer?
     @State private var showSonioxKey = false
     @State private var isEditingSonioxKey = false
+    @State private var showJobHistorySheet = false
+    @State private var jobActionError: String?
 
     var body: some View {
         NavigationStack {
@@ -699,6 +701,15 @@ struct TTSTabView: View {
             .refreshable {
                 await transcriptionManager.refreshAllRecentJobs()
             }
+            .sheet(isPresented: $showJobHistorySheet) {
+                TranscriptionHistorySheet(
+                    jobs: transcriptionManager.allRecentJobs,
+                    lookupTrackName: { lookupTrackName(for: $0) },
+                    onOpenTranscript: { job in selectedJobForTranscript = job },
+                    onRetry: retryJob,
+                    onDelete: deleteJob
+                )
+            }
             .onChange(of: transcriptionManager.activeJobs.count) { newCount in
                 // Auto-refresh all jobs when active job count changes (e.g., when job completes)
                 Task {
@@ -713,6 +724,16 @@ struct TTSTabView: View {
             }
             .onDisappear {
                 stopAutoRefresh()
+            }
+            .alert(isPresented: Binding(
+                get: { jobActionError != nil },
+                set: { if !$0 { jobActionError = nil } }
+            )) {
+                Alert(
+                    title: Text(NSLocalizedString("tts_jobs_action_error_title", comment: "")),
+                    message: Text(jobActionError ?? ""),
+                    dismissButton: .default(Text(NSLocalizedString("ok_button", comment: "OK button")))
+                )
             }
             .sheet(item: $selectedJobForTranscript) { job in
                 TranscriptViewerSheet(
@@ -801,41 +822,58 @@ struct TTSTabView: View {
     private var transcriptionJobsSection: some View {
         if !transcriptionManager.allRecentJobs.isEmpty {
             Section {
-                // Active jobs (queued + processing/transcribing)
+                // Active + paused jobs only by default
                 let activeJobs = transcriptionManager.allRecentJobs.filter {
-                    $0.status == "queued" || $0.status == "downloading" || $0.status == "uploading" || $0.status == "transcribing" || $0.status == "processing"
+                    $0.status == "queued"
+                    || $0.status == "downloading"
+                    || $0.status == "uploading"
+                    || $0.status == "transcribing"
+                    || $0.status == "processing"
+                    || $0.status == "paused"
                 }
+
                 if !activeJobs.isEmpty {
                     ForEach(activeJobs) { job in
-                        jobRow(for: job, status: "active")
+                        jobRow(for: job, status: job.status)
                             .contentShape(Rectangle())
                             .onTapGesture {
-                                // No action for active jobs (could add cancel in future)
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if job.isRunning {
+                                    Button(action: { pauseJob(job) }) {
+                                        Label(NSLocalizedString("tts_jobs_action_pause", comment: ""), systemImage: "pause.fill")
+                                    }
+                                    .tint(.orange)
+                                } else if job.status == "paused" {
+                                    Button(action: { resumeJob(job) }) {
+                                        Label(NSLocalizedString("tts_jobs_action_continue", comment: ""), systemImage: "play.fill")
+                                    }
+                                    .tint(.blue)
+                                }
+
+                                Button(role: .destructive, action: { deleteJob(job) }) {
+                                    Label(NSLocalizedString("tts_jobs_action_delete", comment: ""), systemImage: "trash")
+                                }
                             }
                     }
+                } else {
+                    Text(NSLocalizedString("tts_jobs_no_active", comment: ""))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
 
-                // Failed jobs
-                let failedJobs = transcriptionManager.allRecentJobs.filter { $0.status == "failed" }
-                if !failedJobs.isEmpty {
-                    ForEach(failedJobs) { job in
-                        jobRow(for: job, status: "failed")
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                // No action for failed jobs (could add retry in future)
-                            }
-                    }
-                }
-
-                // Completed jobs (last 10)
-                let completedJobs = transcriptionManager.allRecentJobs.filter { $0.status == "completed" }.prefix(10)
-                if !completedJobs.isEmpty {
-                    ForEach(Array(completedJobs)) { job in
-                        jobRow(for: job, status: "completed")
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedJobForTranscript = job
-                            }
+                let historyJobs = transcriptionManager.allRecentJobs.filter { $0.status == "completed" || $0.status == "failed" }
+                if !historyJobs.isEmpty {
+                    Button {
+                        showJobHistorySheet = true
+                    } label: {
+                        HStack {
+                            Label(NSLocalizedString("tts_jobs_history_button", comment: ""), systemImage: "clock.arrow.circlepath")
+                            Spacer()
+                            Text("\(historyJobs.count)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
             } header: {
@@ -946,6 +984,8 @@ struct TTSTabView: View {
             return "Completed"
         case "failed":
             return "Failed (retry \(job.retryCount))"
+        case "paused":
+            return NSLocalizedString("tts_jobs_status_paused", comment: "")
         default:
             return job.status.capitalized
         }
@@ -963,6 +1003,8 @@ struct TTSTabView: View {
             return .green
         case "failed":
             return .red
+        case "paused":
+            return .gray
         default:
             return .secondary
         }
@@ -986,6 +1028,9 @@ struct TTSTabView: View {
         case "failed":
             Image(systemName: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
+        case "paused":
+            Image(systemName: "pause.circle.fill")
+                .foregroundStyle(.orange)
         default:
             EmptyView()
         }
@@ -995,6 +1040,54 @@ struct TTSTabView: View {
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    private func pauseJob(_ job: TranscriptionJob) {
+        Task {
+            do {
+                try await transcriptionManager.pauseJob(jobId: job.id)
+            } catch {
+                await MainActor.run {
+                    jobActionError = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func resumeJob(_ job: TranscriptionJob) {
+        Task {
+            do {
+                try await transcriptionManager.resumeJob(jobId: job.id)
+            } catch {
+                await MainActor.run {
+                    jobActionError = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func retryJob(_ job: TranscriptionJob) {
+        Task {
+            do {
+                try await transcriptionManager.retryJob(jobId: job.id)
+            } catch {
+                await MainActor.run {
+                    jobActionError = error.localizedDescription
+                }
+            }
+        }
+    }
+
+    private func deleteJob(_ job: TranscriptionJob) {
+        Task {
+            do {
+                try await transcriptionManager.deleteJob(jobId: job.id)
+            } catch {
+                await MainActor.run {
+                    jobActionError = error.localizedDescription
+                }
+            }
+        }
     }
 
     // MARK: - Auto-refresh Timer
@@ -1114,5 +1207,155 @@ private struct CredentialRowModifier: ViewModifier {
             .frame(maxWidth: .infinity, alignment: alignment)
             .padding(.vertical, 8)
             .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
+    }
+}
+
+// MARK: - Transcription History Sheet
+
+struct TranscriptionHistorySheet: View {
+    let jobs: [TranscriptionJob]
+    let lookupTrackName: (String) -> String
+    let onOpenTranscript: (TranscriptionJob) -> Void
+    let onRetry: (TranscriptionJob) -> Void
+    let onDelete: (TranscriptionJob) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+
+    private var completedJobs: [TranscriptionJob] {
+        jobs.filter { $0.status == "completed" }
+            .sorted { ($0.completedAt ?? $0.createdAt) > ($1.completedAt ?? $1.createdAt) }
+    }
+
+    private var failedJobs: [TranscriptionJob] {
+        jobs.filter { $0.status == "failed" }
+            .sorted { ($0.lastAttemptAt ?? $0.createdAt) > ($1.lastAttemptAt ?? $1.createdAt) }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if completedJobs.isEmpty && failedJobs.isEmpty {
+                    Section {
+                        Text(NSLocalizedString("tts_jobs_history_empty", comment: ""))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.vertical, 12)
+                    }
+                } else {
+                    if !completedJobs.isEmpty {
+                        Section(header: Text(NSLocalizedString("tts_jobs_history_completed", comment: ""))) {
+                            ForEach(completedJobs) { job in
+                                historyRow(for: job)
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        dismiss()
+                                        DispatchQueue.main.async {
+                                            onOpenTranscript(job)
+                                        }
+                                    }
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button(role: .destructive) {
+                                            onDelete(job)
+                                        } label: {
+                                            Label(NSLocalizedString("tts_jobs_action_delete", comment: ""), systemImage: "trash")
+                                        }
+                                    }
+                            }
+                        }
+                    }
+
+                    if !failedJobs.isEmpty {
+                        Section(header: Text(NSLocalizedString("tts_jobs_history_failed", comment: ""))) {
+                            ForEach(failedJobs) { job in
+                                historyRow(for: job, showError: true)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                        Button {
+                                            onRetry(job)
+                                        } label: {
+                                            Label(NSLocalizedString("tts_jobs_action_retry", comment: ""), systemImage: "arrow.triangle.2.circlepath")
+                                        }
+                                        .tint(.blue)
+
+                                        Button(role: .destructive) {
+                                            onDelete(job)
+                                        } label: {
+                                            Label(NSLocalizedString("tts_jobs_action_delete", comment: ""), systemImage: "trash")
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle(Text(NSLocalizedString("tts_jobs_history_title", comment: "")))
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("done_button") {
+                        dismiss()
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
+    }
+
+    @ViewBuilder
+    private func historyRow(for job: TranscriptionJob, showError: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(lookupTrackName(job.trackId))
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .lineLimit(2)
+
+                    Text(statusText(for: job))
+                        .font(.caption)
+                        .foregroundStyle(statusColor(for: job.status))
+                }
+
+                Spacer()
+
+                Text(relativeDate(for: job.completedAt ?? job.lastAttemptAt ?? job.createdAt))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            if showError, let errorMessage = job.errorMessage {
+                Text(errorMessage)
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func statusText(for job: TranscriptionJob) -> String {
+        switch job.status {
+        case "completed":
+            return NSLocalizedString("completed_status", comment: "")
+        case "failed":
+            return NSLocalizedString("failed_status", comment: "")
+        default:
+            return job.status.capitalized
+        }
+    }
+
+    private func statusColor(for status: String) -> Color {
+        switch status {
+        case "completed":
+            return .green
+        case "failed":
+            return .red
+        default:
+            return .secondary
+        }
+    }
+
+    private func relativeDate(for date: Date) -> String {
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .abbreviated
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 }

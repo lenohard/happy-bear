@@ -4,6 +4,8 @@ import SwiftUI
 struct TranscriptionSheet: View {
     let track: AudiobookTrack
     let collectionID: UUID
+    let collectionTitle: String
+    let collectionDescription: String?
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
@@ -14,6 +16,48 @@ struct TranscriptionSheet: View {
     @State private var errorMessage: String?
     @State private var showError = false
     @State private var transcriptionCompleted = false
+    @State private var stage: Stage = .idle
+    @State private var downloadedBytes: Int64 = 0
+    @State private var totalBytes: Int64 = 0
+    @State private var contextText: String = ""
+
+    private enum Stage {
+        case idle
+        case downloading
+        case uploading
+        case transcribing
+        case processing
+        case finalizing
+        case completed
+
+        var messageKey: String {
+            switch self {
+            case .downloading:
+                return "transcription_step_downloading"
+            case .uploading:
+                return "transcription_step_uploading"
+            case .transcribing:
+                return "transcription_step_transcribing"
+            case .processing:
+                return "transcription_step_processing"
+            case .finalizing:
+                return "transcription_step_finalizing"
+            default:
+                return ""
+            }
+        }
+
+        init(jobStatus: String) {
+            switch jobStatus {
+            case "downloading": self = .downloading
+            case "uploading": self = .uploading
+            case "transcribing", "processing": self = .transcribing
+            case "completed": self = .completed
+            case "failed": self = .processing
+            default: self = .idle
+            }
+        }
+    }
 
     var body: some View {
         NavigationStack {
@@ -44,10 +88,26 @@ struct TranscriptionSheet: View {
                             .progressViewStyle(.linear)
                             .scaleEffect(y: 2)
 
-                        Text(statusMessage)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
+                        VStack(spacing: 4) {
+                            if !stage.messageKey.isEmpty {
+                                Text(NSLocalizedString(stage.messageKey, comment: ""))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            if stage == .downloading, totalBytes > 0 {
+                                Text(String(format: NSLocalizedString("transcription_progress_download", comment: ""), formatBytes(downloadedBytes), formatBytes(totalBytes)))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else if stage == .uploading, totalBytes > 0 {
+                                Text(String(format: NSLocalizedString("transcription_progress_upload", comment: ""), formatBytes(downloadedBytes), formatBytes(totalBytes)))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .multilineTextAlignment(.center)
+
+                        processTimeline
                     }
                     .padding(.horizontal, 32)
                 } else if transcriptionCompleted {
@@ -72,6 +132,8 @@ struct TranscriptionSheet: View {
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
+
+                        contextEditor
 
                         Button {
                             startTranscription()
@@ -109,19 +171,16 @@ struct TranscriptionSheet: View {
                     Text(error)
                 }
             }
+            .onAppear {
+                if contextText.isEmpty {
+                    contextText = buildDefaultContext()
+                }
+            }
         }
     }
 
     private var statusMessage: String {
-        if progress < 0.2 {
-            return NSLocalizedString("uploading_audio_file", comment: "Uploading audio file")
-        } else if progress < 0.3 {
-            return NSLocalizedString("creating_transcription_job", comment: "Creating transcription job")
-        } else if progress < 0.9 {
-            return NSLocalizedString("transcribing_audio", comment: "Transcribing audio")
-        } else {
-            return NSLocalizedString("finalizing_transcript", comment: "Finalizing transcript")
-        }
+        NSLocalizedString(stage.messageKey, comment: "")
     }
 
     private func startTranscription() {
@@ -129,22 +188,37 @@ struct TranscriptionSheet: View {
         progress = 0.0
         errorMessage = nil
         transcriptionCompleted = false
+        stage = .downloading
+        downloadedBytes = 0
+        totalBytes = max(track.fileSize, 0)
 
         Task {
             do {
                 // Resolve a local URL that can be uploaded to Soniox
                 let audioURL = try await getAudioFileURL(
                     track: track,
-                    token: authViewModel.token
+                    token: authViewModel.token,
+                    progressHandler: { received, total in
+                        await MainActor.run {
+                            downloadedBytes = received
+                            totalBytes = total
+                            if total > 0 {
+                                progress = min(0.2, max(0.05, Double(received) / Double(total) * 0.2))
+                            }
+                        }
+                    }
                 )
 
                 // Start transcription
+                stage = .uploading
+                downloadedBytes = track.fileSize
+                totalBytes = track.fileSize
                 try await transcriptionManager.transcribeTrack(
                     trackId: track.id,
                     collectionId: collectionID,
                     audioFileURL: audioURL,
                     languageHints: ["zh", "en"],
-                    context: track.displayName
+                    context: contextText
                 )
 
                 // Success
@@ -152,6 +226,7 @@ struct TranscriptionSheet: View {
                     isTranscribing = false
                     progress = 1.0
                     transcriptionCompleted = true
+                    stage = .completed
                 }
 
                 // Post notification for UI to refresh transcript status
@@ -181,14 +256,42 @@ struct TranscriptionSheet: View {
         Task {
             while isTranscribing {
                 await MainActor.run {
-                    progress = transcriptionManager.transcriptionProgress
+                    progress = max(progress, transcriptionManager.transcriptionProgress)
+                    if transcriptionManager.transcriptionProgress >= 0.25 {
+                        stage = .transcribing
+                    }
+                    if transcriptionManager.transcriptionProgress >= 0.9 {
+                        stage = .processing
+                    }
+                    if transcriptionManager.transcriptionProgress >= 0.98 {
+                        stage = .finalizing
+                    }
                 }
                 try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
             }
         }
+
+        // Mirror job status for stage detail
+        Task {
+            while isTranscribing {
+                if let job = transcriptionManager.activeJobs.first(where: { $0.trackId == track.id.uuidString }) {
+                    await MainActor.run {
+                        let inferredStage = Stage(jobStatus: job.status)
+                        if inferredStage != .idle {
+                            stage = inferredStage
+                        }
+                    }
+                }
+                try? await Task.sleep(nanoseconds: 500_000_000)
+            }
+        }
     }
 
-    private func getAudioFileURL(track: AudiobookTrack, token: BaiduOAuthToken?) async throws -> URL {
+    private func getAudioFileURL(
+        track: AudiobookTrack,
+        token: BaiduOAuthToken?,
+        progressHandler: @escaping (Int64, Int64) async -> Void = { _,_ in }
+    ) async throws -> URL {
         switch track.location {
         case let .baidu(fsId, path):
             guard let token else {
@@ -209,7 +312,8 @@ struct TranscriptionSheet: View {
             return try await downloadBaiduAsset(
                 track: track,
                 path: path,
-                token: token
+                token: token,
+                progressHandler: progressHandler
             )
 
         case let .local(bookmark):
@@ -219,7 +323,7 @@ struct TranscriptionSheet: View {
             if url.isFileURL {
                 return url
             }
-            return try await downloadExternalAsset(track: track, url: url)
+            return try await downloadExternalAsset(track: track, url: url, progressHandler: progressHandler)
         }
     }
 
@@ -230,18 +334,85 @@ struct TranscriptionSheet: View {
         return formatter.string(fromByteCount: bytes)
     }
 
-    private func downloadBaiduAsset(track: AudiobookTrack, path: String, token: BaiduOAuthToken) async throws -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
-        let tempFile = tempDir.appendingPathComponent(track.id.uuidString + "_temp_\(track.filename)")
+    @ViewBuilder
+    private var contextEditor: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(NSLocalizedString("transcription_context_field_label", comment: ""))
+                    .font(.subheadline)
+                Spacer()
+                Text(NSLocalizedString("transcription_context_info", comment: ""))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $contextText)
+                    .frame(minHeight: 100)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                    )
+
+                if contextText.isEmpty {
+                    Text(NSLocalizedString("transcription_context_placeholder", comment: ""))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 12)
+                }
+            }
+        }
+        .padding(.horizontal, 24)
+    }
+
+    @ViewBuilder
+    private var processTimeline: some View {
+        VStack(spacing: 8) {
+            timelineRow(label: NSLocalizedString("transcription_step_downloading", comment: ""), isActive: stage == .downloading || stage == .uploading || stage == .transcribing || stage == .processing || stage == .finalizing || stage == .completed)
+            timelineRow(label: NSLocalizedString("transcription_step_uploading", comment: ""), isActive: stage == .uploading || stage == .transcribing || stage == .processing || stage == .finalizing || stage == .completed)
+            timelineRow(label: NSLocalizedString("transcription_step_transcribing", comment: ""), isActive: stage == .transcribing || stage == .processing || stage == .finalizing || stage == .completed)
+            timelineRow(label: NSLocalizedString("transcription_step_processing", comment: ""), isActive: stage == .processing || stage == .finalizing || stage == .completed)
+        }
+    }
+
+    private func timelineRow(label: String, isActive: Bool) -> some View {
+        HStack(spacing: 8) {
+            Circle()
+                .fill(isActive ? Color.blue : Color.gray.opacity(0.3))
+                .frame(width: 10, height: 10)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(isActive ? .primary : .secondary)
+            Spacer()
+        }
+    }
+
+    private func buildDefaultContext() -> String {
+        let descriptionText = collectionDescription?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .nonEmpty ?? NSLocalizedString("transcription_context_no_description", comment: "")
+
+        return [
+            "Collection: \(collectionTitle)",
+            "Description: \(descriptionText)",
+            "Track: \(track.displayName)"
+        ].joined(separator: "\n")
+    }
+
+    private func downloadBaiduAsset(
+        track: AudiobookTrack,
+        path: String,
+        token: BaiduOAuthToken,
+        progressHandler: @escaping (Int64, Int64) async -> Void
+    ) async throws -> URL {
         let netdiskClient = BaiduNetdiskClient()
         let downloadURL = try netdiskClient.downloadURL(forPath: path, token: token)
-        let (localURL, _) = try await URLSession.shared.download(from: downloadURL)
-
-        try? FileManager.default.removeItem(at: tempFile)
-        try FileManager.default.moveItem(at: localURL, to: tempFile)
-
-        return tempFile
+        return try await downloadFile(
+            from: downloadURL,
+            suggestedFilename: track.id.uuidString + "_temp_\(track.filename)",
+            fallbackTotalBytes: track.fileSize,
+            progressHandler: progressHandler
+        )
     }
 
     private func resolveLocalBookmark(_ bookmark: Data) throws -> URL {
@@ -259,16 +430,61 @@ struct TranscriptionSheet: View {
         return url
     }
 
-    private func downloadExternalAsset(track: AudiobookTrack, url: URL) async throws -> URL {
+    private func downloadExternalAsset(
+        track: AudiobookTrack,
+        url: URL,
+        progressHandler: @escaping (Int64, Int64) async -> Void
+    ) async throws -> URL {
+        return try await downloadFile(
+            from: url,
+            suggestedFilename: track.id.uuidString + "_remote_\(track.filename)",
+            fallbackTotalBytes: track.fileSize,
+            progressHandler: progressHandler
+        )
+    }
+
+    private func downloadFile(
+        from url: URL,
+        suggestedFilename: String,
+        fallbackTotalBytes: Int64,
+        progressHandler: @escaping (Int64, Int64) async -> Void
+    ) async throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory
-        let tempFile = tempDir.appendingPathComponent(track.id.uuidString + "_remote_\(track.filename)")
-
-        let (localURL, _) = try await URLSession.shared.download(from: url)
-
+        let tempFile = tempDir.appendingPathComponent(suggestedFilename)
         try? FileManager.default.removeItem(at: tempFile)
-        try FileManager.default.moveItem(at: localURL, to: tempFile)
+        FileManager.default.createFile(atPath: tempFile.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: tempFile)
+        defer { try? handle.close() }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+        let expected = response.expectedContentLength > 0 ? response.expectedContentLength : fallbackTotalBytes
+
+        var received: Int64 = 0
+        var buffer = Data()
+        buffer.reserveCapacity(8192)
+        for try await byte in bytes {
+            buffer.append(byte)
+            received += 1
+            if buffer.count >= 8192 {
+                try handle.write(contentsOf: buffer)
+                buffer.removeAll(keepingCapacity: true)
+            }
+            await progressHandler(received, expected)
+        }
+
+        if !buffer.isEmpty {
+            try handle.write(contentsOf: buffer)
+        }
 
         return tempFile
+    }
+}
+
+private extension String {
+    var nonEmpty: String? {
+        isEmpty ? nil : self
     }
 }
 
@@ -287,7 +503,9 @@ struct TranscriptionSheet: View {
 
     TranscriptionSheet(
         track: sampleTrack,
-        collectionID: UUID()
+        collectionID: UUID(),
+        collectionTitle: "Sample Collection",
+        collectionDescription: "Description"
     )
     .environmentObject(TranscriptionManager())
     .environmentObject(BaiduAuthViewModel())

@@ -599,6 +599,46 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
     }
 
+    /// Pause a running job (local state only)
+    func pauseJob(jobId: String) async throws {
+        guard let job = try await dbManager.loadTranscriptionJob(jobId: jobId) else {
+            throw TranscriptionError.trackNotFound
+        }
+
+        try await dbManager.updateJobStatus(jobId: jobId, status: "paused", progress: job.progress)
+        updateActiveJob(jobId: jobId) { current in
+            current.updating(status: "paused", lastAttemptAt: Date())
+        }
+        await refreshActiveJobsFromDatabase()
+        await refreshAllRecentJobs()
+    }
+
+    /// Resume a paused job by re-polling Soniox
+    func resumeJob(jobId: String) async throws {
+        try await dbManager.updateJobStatus(jobId: jobId, status: "queued", progress: nil)
+        updateActiveJob(jobId: jobId) { current in
+            current.updating(status: "queued", progress: nil, lastAttemptAt: Date())
+        }
+        try await resumeTranscriptionJob(jobId: jobId)
+        await refreshActiveJobsFromDatabase()
+        await refreshAllRecentJobs()
+    }
+
+    /// Retry a failed job with exponential backoff
+    func retryJob(jobId: String) async throws {
+        try await retryFailedJob(jobId: jobId)
+        await refreshActiveJobsFromDatabase()
+        await refreshAllRecentJobs()
+    }
+
+    /// Delete a job record
+    func deleteJob(jobId: String) async throws {
+        try await dbManager.deleteTranscriptionJob(jobId: jobId)
+        removeActiveJob(jobId: jobId)
+        await refreshActiveJobsFromDatabase()
+        await refreshAllRecentJobs()
+    }
+
     /// Reload both active and recent jobs after a full import/restore event.
     func reloadJobsAfterImport() async {
         await refreshActiveJobsFromDatabase()
