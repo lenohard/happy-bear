@@ -37,7 +37,9 @@ final class AIGatewayClient {
         model: String,
         systemPrompt: String,
         userPrompt: String,
-        temperature: Double = 0.7
+        temperature: Double = 0.7,
+        onStreamDelta: ((String) -> Void)? = nil,
+        onStreamFallback: (() -> Void)? = nil
     ) async throws -> ChatCompletionsResponse {
         var payload: [String: Any] = [
             "model": model,
@@ -50,11 +52,21 @@ final class AIGatewayClient {
         ]
 
         do {
-            return try await streamChatCompletion(apiKey: apiKey, payload: payload)
+            return try await streamChatCompletion(apiKey: apiKey, payload: payload, onDelta: onStreamDelta)
         } catch {
             if let urlError = error as? URLError, urlError.code == .secureConnectionFailed {
                 payload["stream"] = false
-                return try await request(endpoint: "chat/completions", method: "POST", apiKey: apiKey, jsonBody: payload)
+                onStreamFallback?()
+                let fallback: ChatCompletionsResponse = try await request(
+                    endpoint: "chat/completions",
+                    method: "POST",
+                    apiKey: apiKey,
+                    jsonBody: payload
+                )
+                if let final = fallback.choices.first?.message.content, !final.isEmpty {
+                    onStreamDelta?(final)
+                }
+                return fallback
             }
             throw error
         }
@@ -79,7 +91,8 @@ final class AIGatewayClient {
 
     private func streamChatCompletion(
         apiKey: String,
-        payload: [String: Any]
+        payload: [String: Any],
+        onDelta: ((String) -> Void)? = nil
     ) async throws -> ChatCompletionsResponse {
         let url = baseURL.appendingPathComponent("chat/completions")
 
@@ -132,6 +145,7 @@ final class AIGatewayClient {
                 }
                 if let content = choice.delta?.content {
                     accumulatedText.append(content)
+                    onDelta?(content)
                 }
                 lastChoiceIndex = max(lastChoiceIndex, choice.index)
             }

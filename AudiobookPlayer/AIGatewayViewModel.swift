@@ -20,6 +20,9 @@ final class AIGatewayViewModel: ObservableObject {
     @Published private(set) var isFetchingCredits = false
     @Published private(set) var chatResponseText: String = ""
     @Published private(set) var chatUsageSummary: String = ""
+    @Published private(set) var chatStreamBuffer: String = ""
+    @Published private(set) var isChatTestRunning: Bool = false
+    @Published private(set) var chatStreamFallbackNotice: Bool = false
     @Published var chatPrompt: String = ""
     @Published var systemPrompt: String = NSLocalizedString("ai_tab_default_system_prompt", comment: "Default system prompt")
     @Published var generationLookupID: String = ""
@@ -207,10 +210,21 @@ final class AIGatewayViewModel: ObservableObject {
     }
 
     func runChatTest() async {
+        guard !isChatTestRunning else { return }
         guard hasStoredKey, !chatPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             chatResponseText = ""
+            chatStreamBuffer = ""
+            chatUsageSummary = ""
             return
         }
+
+        isChatTestRunning = true
+        chatResponseText = ""
+        chatUsageSummary = ""
+        chatStreamBuffer = ""
+        chatStreamFallbackNotice = false
+
+        defer { isChatTestRunning = false }
 
         do {
             guard let storedKey = try keyStore.loadKey() else { return }
@@ -220,7 +234,19 @@ final class AIGatewayViewModel: ObservableObject {
                 apiKey: storedKey,
                 model: selectedModelID,
                 systemPrompt: systemPrompt,
-                userPrompt: chatPrompt
+                userPrompt: chatPrompt,
+                temperature: 0.7,
+                onStreamDelta: { [weak self] delta in
+                    guard !delta.isEmpty else { return }
+                    Task { @MainActor in
+                        self?.chatStreamBuffer.append(delta)
+                    }
+                },
+                onStreamFallback: { [weak self] in
+                    Task { @MainActor in
+                        self?.chatStreamFallbackNotice = true
+                    }
+                }
             )
 
             if let content = result.choices.first?.message.content {

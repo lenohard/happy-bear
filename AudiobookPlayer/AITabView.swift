@@ -525,21 +525,57 @@ struct AITabView: View {
             TextField(NSLocalizedString("ai_tab_prompt_placeholder", comment: ""), text: $gateway.chatPrompt, axis: .vertical)
                 .lineLimit(3, reservesSpace: true)
 
-            Button(NSLocalizedString("ai_tab_run_test", comment: "")) {
+            Button {
                 Task { await gateway.runChatTest() }
+            } label: {
+                if gateway.isChatTestRunning {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                        Text(NSLocalizedString("ai_tab_run_test_running", comment: ""))
+                    }
+                } else {
+                    Text(NSLocalizedString("ai_tab_run_test", comment: ""))
+                }
             }
+            .buttonStyle(.borderedProminent)
+            .disabled(gateway.isChatTestRunning)
 
             if !gateway.chatResponseText.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(NSLocalizedString("ai_tab_response_label", comment: ""))
+                    if gateway.isChatTestRunning, !gateway.chatStreamBuffer.isEmpty {
+                        Text(NSLocalizedString("ai_tab_response_live", comment: ""))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(gateway.chatStreamBuffer)
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                    }
+
+                    Text(NSLocalizedString("ai_tab_response_final", comment: ""))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     Text(gateway.chatResponseText)
+                        .textSelection(.enabled)
                     if !gateway.chatUsageSummary.isEmpty {
                         Text(gateway.chatUsageSummary)
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
+                    if gateway.chatStreamFallbackNotice {
+                        Text(NSLocalizedString("ai_tab_streaming_disabled", comment: ""))
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            } else if gateway.isChatTestRunning, !gateway.chatStreamBuffer.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(NSLocalizedString("ai_tab_response_live", comment: ""))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(gateway.chatStreamBuffer)
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
                 }
             }
         }

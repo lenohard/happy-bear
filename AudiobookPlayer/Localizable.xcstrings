@@ -576,6 +576,38 @@
         }
       }
     },
+    "ai_tab_response_live" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Live Response"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实时响应"
+          }
+        }
+      }
+    },
+    "ai_tab_response_final" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final Response"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最终响应"
+          }
+        }
+      }
+    },
     "ai_tab_run_test" : {
       "localizations" : {
         "en" : {
@@ -592,6 +624,22 @@
         }
       }
     },
+    "ai_tab_run_test_running" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Running…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行中…"
+          }
+        }
+      }
+    },
     "ai_tab_save_key" : {
       "localizations" : {
         "en" : {
@@ -604,6 +652,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保存密钥"
+          }
+        }
+      }
+    },
+    "ai_tab_streaming_disabled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming disabled; fell back to full response."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "流式传输不可用，已回退到完整响应。"
           }
         }
       }
