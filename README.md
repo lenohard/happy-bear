@@ -80,6 +80,12 @@ xed AudiobookPlayer.xcodeproj
 - **AGENTS.md**: Project memory for AI agents and future sessions
 - **local/docs/**: Session-specific documentation
 
+### AI Provider Logos
+The AI tab pulls catalog logos from [models.dev](https://models.dev). To refresh or add providers:
+1. `python scripts/download_provider_logos.py` — fetch the latest SVGs into `local/provider-logos/`.
+2. `python scripts/build_provider_logo_assets.py` — convert those SVGs into PNGs and add them to `AudiobookPlayer/Assets.xcassets/ProviderLogos/`.
+3. Build the app; `ProviderIconView` automatically prefers the bundled PNGs and falls back to colored initials when missing.
+
 ## Current Development Focus
 - Improving library loading performance and user experience
 - Adding loading states and skeleton screens

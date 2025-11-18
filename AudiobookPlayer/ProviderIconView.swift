@@ -1,10 +1,33 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#elseif canImport(AppKit)
+import AppKit
+#endif
 
-/// Displays a provider icon using deterministic colored initials.
-/// Design principle: Simple, fast, and reliable without external dependencies.
 struct ProviderIconView: View {
     let providerId: String
     let size: CGFloat = 24
+
+    private var assetName: String {
+        // Replace characters that are not friendly for asset names
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "-_"))
+        let sanitized = providerId.unicodeScalars.map { allowed.contains($0) ? Character($0) : "-" }.reduce("") { $0 + String($1) }
+        return sanitized
+    }
+
+    private var assetImage: Image? {
+        #if canImport(UIKit)
+        if UIImage(named: assetName) != nil {
+            return Image(assetName)
+        }
+        #elseif canImport(AppKit)
+        if NSImage(named: assetName) != nil {
+            return Image(assetName)
+        }
+        #endif
+        return nil
+    }
 
     private var backgroundColor: Color {
         // Deterministic color based on provider name hash
@@ -24,15 +47,26 @@ struct ProviderIconView: View {
     }
 
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(backgroundColor.opacity(0.8))
+        Group {
+            if let assetImage {
+                assetImage
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size, height: size)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 0.5))
+            } else {
+                ZStack {
+                    Circle()
+                        .fill(backgroundColor.opacity(0.8))
 
-            Text(initials)
-                .font(.system(size: size * 0.4, weight: .bold))
-                .foregroundColor(.white)
+                    Text(initials)
+                        .font(.system(size: size * 0.4, weight: .bold))
+                        .foregroundColor(.white)
+                }
+                .frame(width: size, height: size)
+            }
         }
-        .frame(width: size, height: size)
         .accessibilityLabel(Text("\(providerId) provider"))
     }
 }
