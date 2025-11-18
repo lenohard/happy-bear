@@ -97,16 +97,16 @@ struct CollectionDetailView: View {
 
             recordPlayback(for: collection, track: track, position: newValue)
         }
-        .confirmationDialog(
+        .alert(
             NSLocalizedString("remove_track_action", comment: "Remove track dialog title"),
             isPresented: $showDeleteConfirmation,
             presenting: trackToDelete
         ) { _ in
-            Button(role: .destructive, action: deleteSelectedTrack) {
-                Text(NSLocalizedString("remove_track_action", comment: "Remove track action label"))
-            }
             Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) {
                 trackToDelete = nil
+            }
+            Button(NSLocalizedString("remove_track_action", comment: "Remove track action label"), role: .destructive) {
+                deleteSelectedTrack()
             }
         } message: { track in
             Text(removePrompt(for: track))
@@ -188,16 +188,16 @@ struct CollectionDetailView: View {
         .sheet(item: $trackForViewing) { track in
             TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
         }
-        .confirmationDialog(
+        .alert(
             NSLocalizedString("delete_transcript_confirm_title", comment: "Delete transcript dialog title"),
             isPresented: $showTranscriptDeletionDialog,
             presenting: trackPendingTranscriptDeletion
         ) { track in
-            Button(NSLocalizedString("delete_transcript_confirm", comment: "Confirm delete transcript"), role: .destructive) {
-                deleteTranscript(for: track)
-            }
             Button(NSLocalizedString("delete_transcript_cancel", comment: "Cancel delete transcript"), role: .cancel) {
                 trackPendingTranscriptDeletion = nil
+            }
+            Button(NSLocalizedString("delete_transcript_confirm", comment: "Confirm delete transcript"), role: .destructive) {
+                deleteTranscript(for: track)
             }
         } message: { track in
             Text(String(format: NSLocalizedString("delete_transcript_confirm_message", comment: "Delete transcript confirm message"), track.displayName))
