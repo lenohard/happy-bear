@@ -153,7 +153,6 @@ final class AITranscriptRepairManager {
                 model: model,
                 systemPrompt: systemPrompt,
                 userPrompt: userPrompt,
-                maxTokens: 512,
                 temperature: 0.2
             )
         } catch {

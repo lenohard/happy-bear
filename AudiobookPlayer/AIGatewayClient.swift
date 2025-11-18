@@ -37,21 +37,114 @@ final class AIGatewayClient {
         model: String,
         systemPrompt: String,
         userPrompt: String,
-        maxTokens: Int = 256,
         temperature: Double = 0.7
     ) async throws -> ChatCompletionsResponse {
-        let payload: [String: Any] = [
+        var payload: [String: Any] = [
             "model": model,
             "messages": [
                 ["role": "system", "content": systemPrompt],
                 ["role": "user", "content": userPrompt]
             ],
-            "max_tokens": maxTokens,
             "temperature": temperature,
-            "stream": false
+            "stream": true
         ]
 
-        return try await request(endpoint: "chat/completions", method: "POST", apiKey: apiKey, jsonBody: payload)
+        do {
+            return try await streamChatCompletion(apiKey: apiKey, payload: payload)
+        } catch {
+            if let urlError = error as? URLError, urlError.code == .secureConnectionFailed {
+                payload["stream"] = false
+                return try await request(endpoint: "chat/completions", method: "POST", apiKey: apiKey, jsonBody: payload)
+            }
+            throw error
+        }
+    }
+
+    private struct ChatStreamChunk: Decodable {
+        struct Choice: Decodable {
+            struct Delta: Decodable {
+                let role: String?
+                let content: String?
+            }
+
+            let index: Int
+            let delta: Delta?
+        }
+
+        let id: String
+        let model: String
+        let choices: [Choice]
+        let usage: ChatCompletionsResponse.Usage?
+    }
+
+    private func streamChatCompletion(
+        apiKey: String,
+        payload: [String: Any]
+    ) async throws -> ChatCompletionsResponse {
+        let url = baseURL.appendingPathComponent("chat/completions")
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+
+        let (bytes, response) = try await session.bytes(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AIGatewayRequestError(message: "Invalid server response.")
+        }
+
+        guard 200..<300 ~= httpResponse.statusCode else {
+            var body = Data()
+            for try await chunk in bytes {
+                body.append(chunk)
+            }
+            let message = String(data: body, encoding: .utf8) ?? "HTTP status \(httpResponse.statusCode)"
+            throw AIGatewayRequestError(message: message)
+        }
+
+        var accumulatedText = ""
+        var detectedRole = "assistant"
+        var responseID: String?
+        var responseModel: String?
+        var usage: ChatCompletionsResponse.Usage?
+        var lastChoiceIndex = 0
+        let decoder = JSONDecoder()
+
+        for try await line in bytes.lines {
+            guard line.hasPrefix("data:") else { continue }
+            let payloadString = line.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !payloadString.isEmpty else { continue }
+            if payloadString == "[DONE]" { break }
+            guard let data = payloadString.data(using: .utf8) else { continue }
+
+            let chunk = try decoder.decode(ChatStreamChunk.self, from: data)
+            responseID = chunk.id
+            responseModel = chunk.model
+            if let chunkUsage = chunk.usage {
+                usage = chunkUsage
+            }
+
+            for choice in chunk.choices {
+                if let role = choice.delta?.role {
+                    detectedRole = role
+                }
+                if let content = choice.delta?.content {
+                    accumulatedText.append(content)
+                }
+                lastChoiceIndex = max(lastChoiceIndex, choice.index)
+            }
+        }
+
+        guard let responseID, let responseModel else {
+            throw AIGatewayRequestError(message: "Streaming response missing metadata.")
+        }
+
+        let message = AIGatewayChatChoice.ChoiceMessage(role: detectedRole, content: accumulatedText)
+        let choice = AIGatewayChatChoice(index: lastChoiceIndex, message: message)
+
+        return ChatCompletionsResponse(id: responseID, model: responseModel, choices: [choice], usage: usage)
     }
 
     private func request<T: Decodable>(

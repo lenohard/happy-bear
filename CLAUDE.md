@@ -24,6 +24,8 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 
 ## Recent Lessons
 
+- **2025-11-18 – AI Gateway streaming + max token removal**: Chat/completions now streams by default (SSE via `URLSession.bytes`), stops sending `max_tokens` so each model uses its native cap, and automatically falls back to non-streaming if iOS reports `URLError.secureConnectionFailed` (TLS -1200/-9816). Fixed the endpoint path to always hit `/v1/chat/completions` when streaming.
+
 - **2025-11-18 – Transcription cache parity & progress smoothing**: Transcription now reuses the playback cache for Baidu tracks (keyed by real fsId) and downloads via `AudioCacheDownloadManager`, so transcription is as fast as the playing card and updates the same cache entry. Added cache hit/miss logs. The sheet’s download progress bar now only advances during the download stage and no longer flickers when later stages update overall progress.
 
 - **2025-11-17 – Transcription sheet progress + context**: The per-track transcription sheet now shows granular stages (download/upload/transcribe/process) with byte progress, and includes a user-editable context box that defaults to collection title/description + track name; context is sent via the Soniox `context` field. Progress UI polls active jobs to stay in sync with backend status.
