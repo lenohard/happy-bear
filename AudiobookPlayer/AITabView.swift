@@ -820,80 +820,63 @@ struct TTSTabView: View {
 
     @ViewBuilder
     private var transcriptionJobsSection: some View {
-        if !transcriptionManager.allRecentJobs.isEmpty {
-            Section {
-                // Active + paused jobs only by default
-                let activeJobs = transcriptionManager.allRecentJobs.filter {
-                    $0.status == "queued"
-                    || $0.status == "downloading"
-                    || $0.status == "uploading"
-                    || $0.status == "transcribing"
-                    || $0.status == "processing"
-                    || $0.status == "paused"
-                }
-
-                if !activeJobs.isEmpty {
-                    ForEach(activeJobs) { job in
-                        jobRow(for: job, status: job.status)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                if job.isRunning {
-                                    Button(action: { pauseJob(job) }) {
-                                        Label(NSLocalizedString("tts_jobs_action_pause", comment: ""), systemImage: "pause.fill")
-                                    }
-                                    .tint(.orange)
-                                } else if job.status == "paused" {
-                                    Button(action: { resumeJob(job) }) {
-                                        Label(NSLocalizedString("tts_jobs_action_continue", comment: ""), systemImage: "play.fill")
-                                    }
-                                    .tint(.blue)
+        Section {
+            let activeJobs = transcriptionManager.activeJobs
+            if !activeJobs.isEmpty {
+                ForEach(activeJobs) { job in
+                    jobRow(for: job, status: job.status)
+                        .contentShape(Rectangle())
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            if job.isRunning {
+                                Button(action: { pauseJob(job) }) {
+                                    Label(NSLocalizedString("tts_jobs_action_pause", comment: ""), systemImage: "pause.fill")
                                 }
-
-                                Button(role: .destructive, action: { deleteJob(job) }) {
-                                    Label(NSLocalizedString("tts_jobs_action_delete", comment: ""), systemImage: "trash")
+                                .tint(.orange)
+                            } else if job.status == "paused" {
+                                Button(action: { resumeJob(job) }) {
+                                    Label(NSLocalizedString("tts_jobs_action_continue", comment: ""), systemImage: "play.fill")
                                 }
+                                .tint(.blue)
                             }
-                    }
-                } else {
-                    Text(NSLocalizedString("tts_jobs_no_active", comment: ""))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
 
-                let historyJobs = transcriptionManager.allRecentJobs.filter { $0.status == "completed" || $0.status == "failed" }
-                if !historyJobs.isEmpty {
-                    Button {
-                        showJobHistorySheet = true
-                    } label: {
-                        HStack {
-                            Label(NSLocalizedString("tts_jobs_history_button", comment: ""), systemImage: "clock.arrow.circlepath")
-                            Spacer()
-                            Text("\(historyJobs.count)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            Button(role: .destructive, action: { deleteJob(job) }) {
+                                Label(NSLocalizedString("tts_jobs_action_delete", comment: ""), systemImage: "trash")
+                            }
                         }
-                    }
                 }
-            } header: {
-                HStack {
-                    Text("Transcription Jobs")
-                    Spacer()
-                    if !transcriptionManager.activeJobs.isEmpty {
-                        Text("\(transcriptionManager.activeJobs.count) active")
+            } else if !transcriptionManager.allRecentJobs.isEmpty {
+                Text(NSLocalizedString("tts_jobs_no_active", comment: ""))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text("No transcription jobs yet")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            let historyJobs = transcriptionManager.allRecentJobs.filter { $0.status == "completed" || $0.status == "failed" }
+            if !historyJobs.isEmpty {
+                Button {
+                    showJobHistorySheet = true
+                } label: {
+                    HStack {
+                        Label(NSLocalizedString("tts_jobs_history_button", comment: ""), systemImage: "clock.arrow.circlepath")
+                        Spacer()
+                        Text("\(historyJobs.count)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
-        } else {
-            Section {
-                Text("No transcription jobs yet")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            } header: {
+        } header: {
+            HStack {
                 Text("Transcription Jobs")
+                Spacer()
+                if !transcriptionManager.activeJobs.isEmpty {
+                    Text("\(transcriptionManager.activeJobs.count) active")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
     }

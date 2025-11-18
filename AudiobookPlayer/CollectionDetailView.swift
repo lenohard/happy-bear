@@ -331,6 +331,9 @@ struct CollectionDetailView: View {
                 ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
                     let trackIsActive = isCurrentTrack(track: track)
                     let hasTranscript = transcriptStatusCache[track.id] ?? false
+                    let activeJob = transcriptionManager.activeJobs.first(where: { $0.trackId == track.id.uuidString })
+                    let isTranscribingTrack = activeJob != nil
+
                     TrackDetailRow(
                         index: index,
                         track: track,
@@ -339,6 +342,7 @@ struct CollectionDetailView: View {
                         playbackState: collection.playbackState(for: track.id),
                         isFavorite: track.isFavorite,
                         hasTranscript: hasTranscript,
+                        isTranscribing: isTranscribingTrack,
                         onSelect: {
                             startPlayback(track, in: collection)
                         },
@@ -371,7 +375,16 @@ struct CollectionDetailView: View {
                         }
                     }
                     .contextMenu {
-                        if !hasTranscript {
+                        if isTranscribingTrack {
+                            Button {
+                                trackForTranscription = track
+                            } label: {
+                                Label(
+                                    NSLocalizedString("transcription_view_running_job", comment: "View running transcription"),
+                                    systemImage: "waveform.badge.exclamationmark"
+                                )
+                            }
+                        } else if !hasTranscript {
                             Button {
                                 trackForTranscription = track
                             } label: {
@@ -857,6 +870,7 @@ private struct TrackDetailRow: View {
     let playbackState: TrackPlaybackState?
     let isFavorite: Bool
     let hasTranscript: Bool
+    let isTranscribing: Bool
     let onSelect: () -> Void
     let onToggleFavorite: () -> Void
 
@@ -952,6 +966,18 @@ private struct TrackDetailRow: View {
                         .font(.caption2)
                         .foregroundStyle(.blue)
                         .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
+                }
+
+                if isTranscribing {
+                    HStack(spacing: 4) {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .progressViewStyle(.circular)
+                        Text(NSLocalizedString("transcription_step_transcribing", comment: ""))
+                            .font(.caption2)
+                    }
+                    .foregroundStyle(Color.blue)
+                    .accessibilityLabel(NSLocalizedString("transcription_view_running_job", comment: "View running transcription"))
                 }
             }
 

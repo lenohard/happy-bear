@@ -108,6 +108,8 @@ class TranscriptViewModel: NSObject, ObservableObject {
     func repairSegments(
         at indexes: IndexSet,
         trackTitle: String,
+        collectionTitle: String?,
+        collectionDescription: String?,
         model: String,
         apiKey: String,
         repairManager: AITranscriptRepairManager = AITranscriptRepairManager()
@@ -135,6 +137,8 @@ class TranscriptViewModel: NSObject, ObservableObject {
             let results = try await repairManager.repairSegments(
                 transcriptId: transcript.id,
                 trackTitle: trackTitle,
+                collectionTitle: collectionTitle,
+                collectionDescription: collectionDescription,
                 selections: selections,
                 model: model,
                 apiKey: apiKey

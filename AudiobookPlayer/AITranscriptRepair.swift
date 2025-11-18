@@ -3,17 +3,24 @@ import OSLog
 
 struct TranscriptRepairPromptBuilder {
     let trackTitle: String
+    let collectionTitle: String?
+    let collectionDescription: String?
     let instructions: String
 
-    func makeUserPrompt(from segments: [TranscriptSegment], offset: Int = 0) -> String {
+    func makeUserPrompt(from selections: [TranscriptRepairSelection]) -> String {
         var lines: [String] = []
         lines.append("Track: \(trackTitle)")
+        if let collectionTitle, !collectionTitle.isEmpty {
+            lines.append("Collection: \(collectionTitle)")
+        }
+        if let collectionDescription, !collectionDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            lines.append("Collection description: \(collectionDescription)")
+        }
         lines.append(instructions)
         lines.append("Segments")
-        for (idx, segment) in segments.enumerated() {
-            let label = idx + offset
-            let text = segment.text.replacingOccurrences(of: "\n", with: " ")
-            lines.append("[\(label)] \(text)")
+        for selection in selections {
+            let text = selection.segment.text.replacingOccurrences(of: "\n", with: " ")
+            lines.append("[\(selection.displayIndex)] \(text)")
         }
         return lines.joined(separator: "\n")
     }
@@ -112,10 +119,11 @@ final class AITranscriptRepairManager {
     func repairSegments(
         transcriptId: String,
         trackTitle: String,
+        collectionTitle: String?,
+        collectionDescription: String?,
         selections: [TranscriptRepairSelection],
         model: String,
-        apiKey: String,
-        offset: Int = 0
+        apiKey: String
     ) async throws -> [TranscriptRepairResult] {
         guard !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw AITranscriptRepairError.missingAPIKey
@@ -127,13 +135,12 @@ final class AITranscriptRepairManager {
 
         let promptBuilder = TranscriptRepairPromptBuilder(
             trackTitle: trackTitle,
+            collectionTitle: collectionTitle,
+            collectionDescription: collectionDescription,
             instructions: "Clean the transcript text while keeping timestamps and speaker order untouched."
         )
 
-        let userPrompt = promptBuilder.makeUserPrompt(
-            from: selections.map { $0.segment },
-            offset: offset
-        )
+        let userPrompt = promptBuilder.makeUserPrompt(from: selections)
 
         logger.info(
             "Sending AI transcript repair request (transcript: \(transcriptId, privacy: .public), model: \(model, privacy: .public), segments: \(selections.count))\nPrompt:\n\(userPrompt, privacy: .public)"
