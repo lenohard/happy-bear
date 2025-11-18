@@ -47,6 +47,11 @@ struct CreateCollectionView: View {
                 }
             }
             .ignoresSafeArea(edges: .bottom)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    resignFirstResponder()   // allow taps outside fields to hide keyboard
+                }
+            )
             .navigationTitle("Import Audiobook")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

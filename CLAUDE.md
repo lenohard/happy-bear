@@ -26,6 +26,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 
 - **2025-11-18 – AI Gateway streaming + max token removal**: Chat/completions now streams by default (SSE via `URLSession.bytes`), stops sending `max_tokens` so each model uses its native cap, and automatically falls back to non-streaming if iOS reports `URLError.secureConnectionFailed` (TLS -1200/-9816). Fixed the endpoint path to always hit `/v1/chat/completions` when streaming.
 - **2025-11-18 – AI tab tester feedback**: The AI tab's "Run Test" button now disables while streaming, shows a spinner, renders incremental chunks live, and flags when TLS issues force a non-streaming fallback so users stop re-tapping blindly.
+- **2025-11-18 – Tap-to-dismiss keyboard**: `CreateCollectionView` and `AITabView` now attach a background `TapGesture` that calls `resignFirstResponder()` so iPhone users can hide the keyboard by tapping outside focused fields. Reuse this helper whenever we add new SwiftUI forms that rely on `Form`/`List`, since those containers don’t dismiss on their own.
 
 - **2025-11-18 – Transcription cache parity & progress smoothing**: Transcription now reuses the playback cache for Baidu tracks (keyed by real fsId) and downloads via `AudioCacheDownloadManager`, so transcription is as fast as the playing card and updates the same cache entry. Added cache hit/miss logs. The sheet’s download progress bar now only advances during the download stage and no longer flickers when later stages update overall progress.
 

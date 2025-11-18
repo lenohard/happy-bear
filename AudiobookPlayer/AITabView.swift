@@ -30,6 +30,12 @@ struct AITabView: View {
                         modelsSection
                     }
                 }
+                .simultaneousGesture(
+                    TapGesture().onEnded {
+                        focusedField = nil
+                        resignFirstResponder()   // hide keyboard when tapping outside fields
+                    }
+                )
                 .navigationTitle(Text(NSLocalizedString("ai_tab_title", comment: "AI tab title")))
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
