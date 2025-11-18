@@ -11,6 +11,7 @@ final class AudioCacheDownloadManager {
 
     private var activeDownloads: [String: URLSessionTask] = [:]
     private var progressObservers: [String: NSKeyValueObservation] = [:]
+    private var completions: [String: (Result<URL, Error>) -> Void] = [:]
     private let session: URLSession
     private let cacheManager: AudioCacheManager
 
@@ -32,7 +33,8 @@ final class AudioCacheDownloadManager {
         filename: String,
         streamingURL: URL,
         cacheSizeBytes: Int,
-        progressCallback: @escaping ProgressCallback
+        progressCallback: @escaping ProgressCallback,
+        completion: ((Result<URL, Error>) -> Void)? = nil
     ) async {
         if activeDownloads[trackId] != nil {
             return
@@ -51,7 +53,8 @@ final class AudioCacheDownloadManager {
             trackId: trackId,
             baiduFileId: baiduFileId,
             totalBytes: cacheSizeBytes,
-            progressCallback: progressCallback
+            progressCallback: progressCallback,
+            completion: completion
         )
 
         let observation = task.progress.observe(\.fractionCompleted, options: [.new]) { progress, _ in
@@ -66,6 +69,7 @@ final class AudioCacheDownloadManager {
 
         progressObservers[trackId] = observation
         activeDownloads[trackId] = task
+        if let completion { completions[trackId] = completion }
         task.resume()
     }
 
@@ -74,6 +78,7 @@ final class AudioCacheDownloadManager {
         activeDownloads.removeValue(forKey: trackId)
         progressObservers[trackId]?.invalidate()
         progressObservers.removeValue(forKey: trackId)
+        completions.removeValue(forKey: trackId)
     }
 
     func isDownloading(trackId: String) -> Bool {
@@ -93,6 +98,7 @@ final class AudioCacheDownloadManager {
         activeDownloads.removeAll()
         progressObservers.values.forEach { $0.invalidate() }
         progressObservers.removeAll()
+        completions.removeAll()
     }
 
     private func downloadAudio(
@@ -101,7 +107,8 @@ final class AudioCacheDownloadManager {
         trackId: String,
         baiduFileId: String,
         totalBytes: Int,
-        progressCallback: @escaping ProgressCallback
+        progressCallback: @escaping ProgressCallback,
+        completion: ((Result<URL, Error>) -> Void)?
     ) -> URLSessionDownloadTask {
         let request = URLRequest(url: url)
 
@@ -115,7 +122,8 @@ final class AudioCacheDownloadManager {
                     trackId: trackId,
                     baiduFileId: baiduFileId,
                     totalBytes: totalBytes,
-                    progressCallback: progressCallback
+                    progressCallback: progressCallback,
+                    completion: completion
                 )
             }
         }
@@ -131,18 +139,21 @@ final class AudioCacheDownloadManager {
         trackId: String,
         baiduFileId: String,
         totalBytes: Int,
-        progressCallback: @escaping ProgressCallback
+        progressCallback: @escaping ProgressCallback,
+        completion: ((Result<URL, Error>) -> Void)?
     ) async {
         defer {
             activeDownloads.removeValue(forKey: trackId)
             progressObservers[trackId]?.invalidate()
             progressObservers.removeValue(forKey: trackId)
+            completions.removeValue(forKey: trackId)
         }
 
         if let error = error {
             if (error as NSError).code != NSURLErrorCancelled {
                 print("Download error for track \(trackId): \(error.localizedDescription)")
             }
+            completion?(.failure(error))
             return
         }
 
@@ -171,8 +182,38 @@ final class AudioCacheDownloadManager {
             Task { @MainActor in
                 progressCallback(DownloadProgress(trackId: trackId, downloadedRange: range, totalBytes: fileSize))
             }
+
+            completion?(.success(destinationURL))
         } catch {
             print("Failed to write cache file for track \(trackId): \(error.localizedDescription)")
+            completion?(.failure(error))
+        }
+    }
+
+    /// Convenience async helper for one-shot downloads with completion when the
+    /// file is fully written to cache.
+    func downloadOnce(
+        trackId: String,
+        baiduFileId: String,
+        filename: String,
+        streamingURL: URL,
+        cacheSizeBytes: Int,
+        progressCallback: @escaping ProgressCallback
+    ) async throws -> URL {
+        try await withCheckedThrowingContinuation { continuation in
+            Task {
+                await startCaching(
+                    trackId: trackId,
+                    baiduFileId: baiduFileId,
+                    filename: filename,
+                    streamingURL: streamingURL,
+                    cacheSizeBytes: cacheSizeBytes,
+                    progressCallback: progressCallback,
+                    completion: { result in
+                        continuation.resume(with: result)
+                    }
+                )
+            }
         }
     }
 

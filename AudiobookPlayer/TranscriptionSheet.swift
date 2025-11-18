@@ -20,6 +20,8 @@ struct TranscriptionSheet: View {
     @State private var downloadedBytes: Int64 = 0
     @State private var totalBytes: Int64 = 0
     @State private var contextText: String = ""
+    @State private var mirroredJobId: String?
+    @State private var downloadJobId: String?
 
     private enum Stage {
         case idle
@@ -175,6 +177,10 @@ struct TranscriptionSheet: View {
                 if contextText.isEmpty {
                     contextText = buildDefaultContext()
                 }
+                mirrorExistingJobIfNeeded()
+            }
+            .onReceive(transcriptionManager.$activeJobs) { _ in
+                mirrorExistingJobIfNeeded()
             }
         }
     }
@@ -184,6 +190,10 @@ struct TranscriptionSheet: View {
     }
 
     private func startTranscription() {
+        if transcriptionManager.activeJobs.contains(where: { $0.trackId == track.id.uuidString }) {
+            mirrorExistingJobIfNeeded()
+            return
+        }
         isTranscribing = true
         progress = 0.0
         errorMessage = nil
@@ -194,6 +204,12 @@ struct TranscriptionSheet: View {
 
         Task {
             do {
+                if downloadJobId == nil {
+                    if let placeholder = await transcriptionManager.beginDownloadJob(for: track.id) {
+                        downloadJobId = placeholder.id
+                        mirroredJobId = placeholder.id
+                    }
+                }
                 // Resolve a local URL that can be uploaded to Soniox
                 let audioURL = try await getAudioFileURL(
                     track: track,
@@ -202,9 +218,13 @@ struct TranscriptionSheet: View {
                         await MainActor.run {
                             downloadedBytes = received
                             totalBytes = total
-                            if total > 0 {
-                                progress = min(0.2, max(0.05, Double(received) / Double(total) * 0.2))
+                            if total > 0, stage == .downloading, progress < 0.25 {
+                                let fraction = max(Double(received) / Double(total), 0.02)
+                                progress = min(0.25, fraction * 0.25)
                             }
+                        }
+                        if let jobId = downloadJobId {
+                            await transcriptionManager.updateDownloadProgress(jobId: jobId, receivedBytes: received, totalBytes: total)
                         }
                     }
                 )
@@ -218,7 +238,8 @@ struct TranscriptionSheet: View {
                     collectionId: collectionID,
                     audioFileURL: audioURL,
                     languageHints: ["zh", "en"],
-                    context: contextText
+                    context: contextText,
+                    existingJobId: downloadJobId ?? mirroredJobId
                 )
 
                 // Success
@@ -241,6 +262,7 @@ struct TranscriptionSheet: View {
                 // Auto-dismiss after 2 seconds
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
                 await MainActor.run {
+                    downloadJobId = nil
                     dismiss()
                 }
             } catch {
@@ -280,6 +302,9 @@ struct TranscriptionSheet: View {
                         if inferredStage != .idle {
                             stage = inferredStage
                         }
+                        if let jobProgress = job.progress {
+                            progress = max(progress, jobProgress)
+                        }
                     }
                 }
                 try? await Task.sleep(nanoseconds: 500_000_000)
@@ -309,12 +334,14 @@ struct TranscriptionSheet: View {
                 return cachedURL
             }
 
-            return try await downloadBaiduAsset(
+            let (url, _) = try await downloadBaiduAsset(
                 track: track,
                 path: path,
+                fsId: fsId,
                 token: token,
                 progressHandler: progressHandler
             )
+            return url
 
         case let .local(bookmark):
             return try resolveLocalBookmark(bookmark)
@@ -323,7 +350,8 @@ struct TranscriptionSheet: View {
             if url.isFileURL {
                 return url
             }
-            return try await downloadExternalAsset(track: track, url: url, progressHandler: progressHandler)
+            let (url, _) = try await downloadExternalAsset(track: track, url: url, progressHandler: progressHandler)
+            return url
         }
     }
 
@@ -402,17 +430,53 @@ struct TranscriptionSheet: View {
     private func downloadBaiduAsset(
         track: AudiobookTrack,
         path: String,
+        fsId: Int64,
         token: BaiduOAuthToken,
         progressHandler: @escaping (Int64, Int64) async -> Void
-    ) async throws -> URL {
+    ) async throws -> (URL, Int64) {
+        let cacheManager = AudioCacheManager()
+        let baiduFileId = String(fsId)
         let netdiskClient = BaiduNetdiskClient()
         let downloadURL = try netdiskClient.downloadURL(forPath: path, token: token)
-        return try await downloadFile(
-            from: downloadURL,
-            suggestedFilename: track.id.uuidString + "_temp_\(track.filename)",
-            fallbackTotalBytes: track.fileSize,
-            progressHandler: progressHandler
+
+        // If already cached (complete), use it directly
+        if let cached = cacheManager.getCachedAssetURL(
+            for: track.id.uuidString,
+            baiduFileId: baiduFileId,
+            filename: track.filename
+        ) {
+            print("[Transcription] Cache hit for track \(track.id) fsId=\(fsId) -> \(cached.lastPathComponent)")
+            return (cached, track.fileSize)
+        }
+
+        print("[Transcription] Cache miss for track \(track.id) fsId=\(fsId); starting cache download")
+
+        // Otherwise download via the cache download manager (same fast path as playback)
+        let cacheURL = cacheManager.createCacheFile(
+            trackId: track.id.uuidString,
+            baiduFileId: baiduFileId,
+            filename: track.filename,
+            fileSizeBytes: Int(track.fileSize)
         )
+
+        let downloadManager = AudioCacheDownloadManager(cacheManager: cacheManager)
+        let downloadedURL = try await downloadManager.downloadOnce(
+            trackId: track.id.uuidString,
+            baiduFileId: baiduFileId,
+            filename: track.filename,
+            streamingURL: downloadURL,
+            cacheSizeBytes: Int(track.fileSize)
+        ) { progress in
+            let received = Int64(progress.downloadedRange.end)
+            let total = Int64(progress.totalBytes)
+            Task { await progressHandler(received, total) }
+        }
+
+        print("[Transcription] Cache download complete for track \(track.id) fsId=\(fsId) -> \(downloadedURL.lastPathComponent)")
+
+        cacheManager.markCacheAsComplete(trackId: track.id.uuidString, baiduFileId: baiduFileId)
+
+        return (downloadedURL, track.fileSize)
     }
 
     private func resolveLocalBookmark(_ bookmark: Data) throws -> URL {
@@ -434,9 +498,10 @@ struct TranscriptionSheet: View {
         track: AudiobookTrack,
         url: URL,
         progressHandler: @escaping (Int64, Int64) async -> Void
-    ) async throws -> URL {
+    ) async throws -> (URL, Int64) {
         return try await downloadFile(
             from: url,
+            destinationURL: nil,
             suggestedFilename: track.id.uuidString + "_remote_\(track.filename)",
             fallbackTotalBytes: track.fileSize,
             progressHandler: progressHandler
@@ -445,40 +510,122 @@ struct TranscriptionSheet: View {
 
     private func downloadFile(
         from url: URL,
+        destinationURL: URL?,
         suggestedFilename: String,
         fallbackTotalBytes: Int64,
         progressHandler: @escaping (Int64, Int64) async -> Void
-    ) async throws -> URL {
-        let tempDir = FileManager.default.temporaryDirectory
-        let tempFile = tempDir.appendingPathComponent(suggestedFilename)
-        try? FileManager.default.removeItem(at: tempFile)
-        FileManager.default.createFile(atPath: tempFile.path, contents: nil)
+    ) async throws -> (URL, Int64) {
+        let tempFile: URL
+        if let destinationURL {
+            tempFile = destinationURL
+            try? FileManager.default.removeItem(at: tempFile)
+            FileManager.default.createFile(atPath: tempFile.path, contents: nil)
+        } else {
+            let tempDir = FileManager.default.temporaryDirectory
+            tempFile = tempDir.appendingPathComponent(suggestedFilename)
+            try? FileManager.default.removeItem(at: tempFile)
+            FileManager.default.createFile(atPath: tempFile.path, contents: nil)
+        }
+
         let handle = try FileHandle(forWritingTo: tempFile)
         defer { try? handle.close() }
 
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         let (bytes, response) = try await URLSession.shared.bytes(for: request)
-        let expected = response.expectedContentLength > 0 ? response.expectedContentLength : fallbackTotalBytes
+        let resolvedTotal = response.expectedContentLength > 0 ? response.expectedContentLength : (fallbackTotalBytes > 0 ? fallbackTotalBytes : 0)
 
         var received: Int64 = 0
         var buffer = Data()
-        buffer.reserveCapacity(8192)
+        let chunkSize = 64 * 1024
+        buffer.reserveCapacity(chunkSize)
+        var lastReported: Int64 = 0
+        var lastReportTime = Date()
+
         for try await byte in bytes {
             buffer.append(byte)
             received += 1
-            if buffer.count >= 8192 {
+
+            if buffer.count >= chunkSize {
                 try handle.write(contentsOf: buffer)
                 buffer.removeAll(keepingCapacity: true)
             }
-            await progressHandler(received, expected)
+
+            let bytesDelta = received - lastReported
+            let timeDelta = Date().timeIntervalSince(lastReportTime)
+            if bytesDelta >= Int64(chunkSize) || timeDelta >= 0.2 {
+                lastReported = received
+                lastReportTime = Date()
+                let totalForProgress = resolvedTotal > 0 ? resolvedTotal : max(fallbackTotalBytes, received)
+                await progressHandler(received, totalForProgress)
+            }
         }
 
         if !buffer.isEmpty {
             try handle.write(contentsOf: buffer)
         }
 
-        return tempFile
+        if received != lastReported {
+            let totalForProgress = resolvedTotal > 0 ? resolvedTotal : max(fallbackTotalBytes, received)
+            await progressHandler(received, totalForProgress)
+        }
+
+        return (tempFile, resolvedTotal)
+    }
+}
+
+extension TranscriptionSheet {
+    private func mirrorExistingJobIfNeeded() {
+        guard let job = transcriptionManager.activeJobs.first(where: { $0.trackId == track.id.uuidString }) else {
+            if mirroredJobId != nil && !isTranscribing {
+                stage = .idle
+                progress = 0.0
+                downloadedBytes = 0
+            }
+            mirroredJobId = nil
+            downloadJobId = nil
+            return
+        }
+
+        mirroredJobId = job.id
+        downloadJobId = job.id
+        totalBytes = max(track.fileSize, 0)
+        stage = Stage(jobStatus: job.status)
+        let jobProgress = job.progress ?? defaultProgress(for: stage)
+        progress = max(progress, jobProgress)
+
+        if stage == .downloading {
+            let computed = Int64(Double(totalBytes) * jobProgress)
+            if computed > downloadedBytes {
+                downloadedBytes = computed
+            }
+        } else if stage == .uploading {
+            downloadedBytes = totalBytes
+        }
+
+        if !isTranscribing {
+            isTranscribing = true
+            transcriptionCompleted = false
+        }
+    }
+
+    private func defaultProgress(for stage: Stage) -> Double {
+        switch stage {
+        case .downloading:
+            return 0.1
+        case .uploading:
+            return 0.2
+        case .transcribing:
+            return 0.6
+        case .processing:
+            return 0.85
+        case .finalizing:
+            return 0.95
+        case .completed:
+            return 1.0
+        case .idle:
+            return 0.0
+        }
     }
 }
 

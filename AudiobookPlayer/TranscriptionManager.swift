@@ -131,7 +131,8 @@ class TranscriptionManager: NSObject, ObservableObject {
         collectionId: UUID,
         audioFileURL: URL,
         languageHints: [String] = ["zh", "en"],
-        context: String? = nil
+        context: String? = nil,
+        existingJobId: String? = nil
     ) async throws {
         // Reload API key in case it was saved after app launch
         reloadSonioxAPIKey()
@@ -151,8 +152,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
 
         var pendingTranscriptId: String?
-        var currentJobId: String?
-        var placeholderJob: TranscriptionJob?
+        var currentJobId: String? = existingJobId
 
         do {
             // Create or reuse transcript record
@@ -163,17 +163,18 @@ class TranscriptionManager: NSObject, ObservableObject {
             )
             pendingTranscriptId = transcriptId
 
-            // Create placeholder job to surface download stage in UI
-            let job = try await dbManager.createTranscriptionJob(
-                trackId: trackIdStr,
-                sonioxJobId: "pending-download-\(UUID().uuidString)",
-                status: "downloading",
-                progress: 0.05
-            )
-            placeholderJob = job
-            currentJobId = job.id
-            upsertActiveJob(job)
-            await refreshAllRecentJobs()
+            // Create placeholder job if one was not registered during download
+            if currentJobId == nil {
+                let job = try await dbManager.createTranscriptionJob(
+                    trackId: trackIdStr,
+                    sonioxJobId: "pending-download-\(UUID().uuidString)",
+                    status: "downloading",
+                    progress: 0.05
+                )
+                currentJobId = job.id
+                upsertActiveJob(job)
+                await refreshAllRecentJobs()
+            }
 
             DispatchQueue.main.async { self.transcriptionProgress = 0.1 }
 
@@ -209,15 +210,6 @@ class TranscriptionManager: NSObject, ObservableObject {
                 updateActiveJob(jobId: jobId) { existing in
                     existing.updating(status: "processing", progress: 0.3, sonioxJobId: transcriptionId, lastAttemptAt: Date())
                 }
-            } else {
-                let job = try await dbManager.createTranscriptionJob(
-                    trackId: trackIdStr,
-                    sonioxJobId: transcriptionId,
-                    status: "processing",
-                    progress: 0.3
-                )
-                currentJobId = job.id
-                upsertActiveJob(job)
             }
 
             // Step 3: Poll for completion
@@ -258,6 +250,45 @@ class TranscriptionManager: NSObject, ObservableObject {
                 removeActiveJob(jobId: jobId)
             }
             throw error
+        }
+    }
+
+    /// Register a placeholder job so UI can show download state before the Soniox upload begins
+    func beginDownloadJob(for trackId: UUID) async -> TranscriptionJob? {
+        let trackIdStr = trackId.uuidString
+
+        if let existing = activeJobs.first(where: { $0.trackId == trackIdStr }) {
+            return existing
+        }
+
+        do {
+            let job = try await dbManager.createTranscriptionJob(
+                trackId: trackIdStr,
+                sonioxJobId: "pending-download-\(UUID().uuidString)",
+                status: "downloading",
+                progress: 0.02
+            )
+            upsertActiveJob(job)
+            await refreshAllRecentJobs()
+            return job
+        } catch {
+            print("[TranscriptionManager] Failed to create download placeholder: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    /// Update placeholder progress while downloading source audio
+    func updateDownloadProgress(jobId: String, receivedBytes: Int64, totalBytes: Int64) async {
+        guard totalBytes > 0 else { return }
+        let fraction = max(0.0, min(Double(receivedBytes) / Double(totalBytes), 1.0))
+
+        do {
+            try await dbManager.updateJobStatus(jobId: jobId, status: "downloading", progress: fraction)
+            updateActiveJob(jobId: jobId) { current in
+                current.updating(status: "downloading", progress: fraction)
+            }
+        } catch {
+            print("[TranscriptionManager] Failed to update download progress: \(error.localizedDescription)")
         }
     }
 
@@ -416,49 +447,99 @@ class TranscriptionManager: NSObject, ObservableObject {
 
     private func groupTokensIntoSegments(_ tokens: [SonioxToken], transcriptId: String) -> [TranscriptSegment] {
         let maxSegmentDurationMs = 20_000  // Hard cap of 20 seconds per segment
-        var segments: [TranscriptSegment] = []
-        var currentSegment: (texts: [String], startMs: Int, endMs: Int, speaker: String?, language: String?, confidences: [Double])? = nil
+        let preferredBreakCharacters: Set<Character> = [",", "，", ".", "。", "!", "！", "?", "？", ";", "；", "、"]
 
-        // Helper function to check if text ends with sentence-ending punctuation
+        struct SegmentToken {
+            let text: String
+            let startMs: Int
+            let endMs: Int
+            let confidence: Double?
+        }
+
+        struct PartialSegment {
+            var tokens: [SegmentToken]
+            var speaker: String?
+            var language: String?
+        }
+
+        var segments: [TranscriptSegment] = []
+        var currentSegment: PartialSegment? = nil
+
+        func averageConfidence(for tokens: [SegmentToken]) -> Double? {
+            let confidences = tokens.compactMap { $0.confidence }
+            guard !confidences.isEmpty else { return nil }
+            let total = confidences.reduce(0, +)
+            return total / Double(confidences.count)
+        }
+
+        func appendSegment(from tokens: [SegmentToken], speaker: String?, language: String?) {
+            guard let first = tokens.first, let last = tokens.last else { return }
+            let fullText = combineTokens(tokens.map { $0.text }, languageCode: language)
+            let confidence = averageConfidence(for: tokens)
+            let segment = TranscriptSegment(
+                transcriptId: transcriptId,
+                text: fullText,
+                startTimeMs: first.startMs,
+                endTimeMs: last.endMs,
+                confidence: confidence,
+                speaker: speaker,
+                language: language
+            )
+            segments.append(segment)
+        }
+
+        func finalizeCurrentSegment() {
+            guard let current = currentSegment else { return }
+            appendSegment(from: current.tokens, speaker: current.speaker, language: current.language)
+            currentSegment = nil
+        }
+
+        func splitCurrentSegment(at index: Int) {
+            guard var current = currentSegment, !current.tokens.isEmpty else { return }
+            let clampedIndex = max(0, min(index, current.tokens.count - 1))
+            let leadingTokens = Array(current.tokens[...clampedIndex])
+            appendSegment(from: leadingTokens, speaker: current.speaker, language: current.language)
+
+            let trailingStart = clampedIndex + 1
+            if trailingStart < current.tokens.count {
+                current.tokens = Array(current.tokens[trailingStart...])
+                currentSegment = current
+            } else {
+                currentSegment = nil
+            }
+        }
+
+        func startNewSegment(with token: SegmentToken, speaker: String?, language: String?) {
+            currentSegment = PartialSegment(tokens: [token], speaker: speaker, language: language)
+        }
+
+        func appendToken(_ token: SegmentToken) {
+            guard var current = currentSegment else { return }
+            current.tokens.append(token)
+            currentSegment = current
+        }
+
+        func exceedsDurationLimit(with newEndMs: Int) -> Bool {
+            guard let start = currentSegment?.tokens.first?.startMs else { return false }
+            return (newEndMs - start) >= maxSegmentDurationMs
+        }
+
         func endsWithSentencePunctuation(_ text: String) -> Bool {
             let sentenceEnders: Set<Character> = [".", "。", "!", "！", "?", "？"]
             return sentenceEnders.contains(text.last ?? " ")
         }
 
-        func finalizeCurrentSegment() {
-            guard let current = currentSegment else { return }
-            let fullText = combineTokens(current.texts, languageCode: current.language)
-            let confidence: Double?
-            if current.confidences.isEmpty {
-                confidence = nil
-            } else {
-                let total = current.confidences.reduce(0, +)
-                confidence = total / Double(current.confidences.count)
-            }
-            let segment = TranscriptSegment(
-                transcriptId: transcriptId,
-                text: fullText,
-                startTimeMs: current.startMs,
-                endTimeMs: current.endMs,
-                confidence: confidence,
-                speaker: current.speaker,
-                language: current.language
-            )
-            segments.append(segment)
-            currentSegment = nil
-        }
+        func lastPreferredBreakIndex() -> Int? {
+            guard let tokens = currentSegment?.tokens, !tokens.isEmpty else { return nil }
+            guard let start = tokens.first?.startMs else { return nil }
 
-        func startNewSegment(text: String, startMs: Int, endMs: Int, speaker: String?, language: String?, confidence: Double?) {
-            var confidences: [Double] = []
-            if let confidence {
-                confidences.append(confidence)
+            for (index, token) in tokens.enumerated().reversed() {
+                guard token.text.contains(where: { preferredBreakCharacters.contains($0) }) else { continue }
+                if (token.endMs - start) <= maxSegmentDurationMs {
+                    return index
+                }
             }
-            currentSegment = (texts: [text], startMs: startMs, endMs: endMs, speaker: speaker, language: language, confidences: confidences)
-        }
-
-        func exceedsDurationLimit(with endMs: Int) -> Bool {
-            guard let current = currentSegment else { return false }
-            return (endMs - current.startMs) >= maxSegmentDurationMs
+            return nil
         }
 
         for token in tokens {
@@ -467,41 +548,54 @@ class TranscriptionManager: NSObject, ObservableObject {
             let text = token.text
             let speaker = token.speaker ?? "unknown"
             let language = token.language
+            let segmentToken = SegmentToken(text: text, startMs: startMs, endMs: endMs, confidence: token.confidence)
 
             if currentSegment == nil {
-                // Start first segment
-                startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language, confidence: token.confidence)
-            } else if let current = currentSegment {
-                let speakerChanged = speaker != current.speaker
+                startNewSegment(with: segmentToken, speaker: speaker, language: language)
+                continue
+            }
 
-                if speakerChanged {
-                    // Speaker changed - save current segment and start new one
-                    finalizeCurrentSegment()
-                    startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language, confidence: token.confidence)
+            let currentSpeaker = currentSegment?.speaker ?? "unknown"
+            let speakerChanged = currentSpeaker != speaker
+
+            if speakerChanged {
+                finalizeCurrentSegment()
+                startNewSegment(with: segmentToken, speaker: speaker, language: language)
+                continue
+            }
+
+            if var updated = currentSegment, updated.language == nil, let language {
+                updated.language = language
+                currentSegment = updated
+            }
+
+            if exceedsDurationLimit(with: endMs) {
+                if let breakIndex = lastPreferredBreakIndex() {
+                    splitCurrentSegment(at: breakIndex)
+                    if currentSegment == nil {
+                        startNewSegment(with: segmentToken, speaker: speaker, language: language)
+                    } else if exceedsDurationLimit(with: endMs) {
+                        finalizeCurrentSegment()
+                        startNewSegment(with: segmentToken, speaker: speaker, language: language)
+                    } else {
+                        appendToken(segmentToken)
+                        if endsWithSentencePunctuation(text) {
+                            finalizeCurrentSegment()
+                        }
+                    }
                 } else {
-                    if exceedsDurationLimit(with: endMs) {
-                        finalizeCurrentSegment()
-                        startNewSegment(text: text, startMs: startMs, endMs: endMs, speaker: speaker, language: language, confidence: token.confidence)
-                        continue
-                    }
-
-                    // Same speaker - add token to current segment
-                    currentSegment?.texts.append(text)
-                    currentSegment?.endMs = endMs
-                    if let conf = token.confidence {
-                        currentSegment?.confidences.append(conf)
-                    }
-
-                    // Check if this token ends with sentence punctuation
-                    if endsWithSentencePunctuation(text) {
-                        // Save current segment and start new one
-                        finalizeCurrentSegment()
-                    }
+                    finalizeCurrentSegment()
+                    startNewSegment(with: segmentToken, speaker: speaker, language: language)
                 }
+                continue
+            }
+
+            appendToken(segmentToken)
+            if endsWithSentencePunctuation(text) {
+                finalizeCurrentSegment()
             }
         }
 
-        // Save last segment if not already saved
         finalizeCurrentSegment()
 
         return segments
@@ -615,10 +709,6 @@ class TranscriptionManager: NSObject, ObservableObject {
 
     /// Resume a paused job by re-polling Soniox
     func resumeJob(jobId: String) async throws {
-        try await dbManager.updateJobStatus(jobId: jobId, status: "queued", progress: nil)
-        updateActiveJob(jobId: jobId) { current in
-            current.updating(status: "queued", progress: nil, lastAttemptAt: Date())
-        }
         try await resumeTranscriptionJob(jobId: jobId)
         await refreshActiveJobsFromDatabase()
         await refreshAllRecentJobs()
@@ -645,7 +735,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         await refreshAllRecentJobs()
     }
 
-    private func upsertActiveJob(_ job: TranscriptionJob) {
+    func upsertActiveJob(_ job: TranscriptionJob) {
         if let index = activeJobs.firstIndex(where: { $0.id == job.id }) {
             activeJobs[index] = job
         } else {
@@ -653,13 +743,13 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
     }
 
-    private func updateActiveJob(jobId: String, transform: (TranscriptionJob) -> TranscriptionJob) {
+    func updateActiveJob(jobId: String, transform: (TranscriptionJob) -> TranscriptionJob) {
         if let index = activeJobs.firstIndex(where: { $0.id == jobId }) {
             activeJobs[index] = transform(activeJobs[index])
         }
     }
 
-    private func removeActiveJob(jobId: String) {
+    func removeActiveJob(jobId: String) {
         activeJobs.removeAll { $0.id == jobId }
     }
 

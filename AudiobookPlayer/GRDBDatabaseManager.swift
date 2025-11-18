@@ -456,6 +456,30 @@ actor GRDBDatabaseManager {
         }
     }
 
+    /// Load a single track (and its owning collection) by track UUID
+    /// Returns nil if the track does not exist.
+    func loadTrack(id: UUID) throws -> (track: AudiobookTrack, collectionId: UUID)? {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT * FROM tracks WHERE id = ?",
+                arguments: [id.uuidString]
+            ) else {
+                return nil
+            }
+
+            guard let collectionIdStr = row["collection_id"] as? String,
+                  let collectionId = UUID(uuidString: collectionIdStr),
+                  let track = try reconstructTrack(row: row) else {
+                return nil
+            }
+
+            return (track, collectionId)
+        }
+    }
+
     // MARK: - Favorite Operations
 
     /// Toggle favorite status for a track

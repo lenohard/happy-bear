@@ -16,9 +16,17 @@ local/PROD.md:
 
 An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云盘), with seamless integration for importing, managing, and playing audio files.
 
+## Collaboration Notes (2025-11-17)
+- When a task mainly requires configuration or mechanical asset edits (e.g., Xcode plist/localization wiring), prefer to document the exact steps and hand it to the user unless they explicitly ask for a full implementation. Always describe the workflow first so they can decide whether to run it themselves.
+- Document those steps in `local/task-*.md` so future sessions can reuse them without re-reading diffs.
+
 **Project Root**: `~/projects/audiobook-player`
 
 ## Recent Lessons
+
+- **2025-11-18 – Transcription cache parity & progress smoothing**: Transcription now reuses the playback cache for Baidu tracks (keyed by real fsId) and downloads via `AudioCacheDownloadManager`, so transcription is as fast as the playing card and updates the same cache entry. Added cache hit/miss logs. The sheet’s download progress bar now only advances during the download stage and no longer flickers when later stages update overall progress.
+
+- **2025-11-17 – Transcription sheet progress + context**: The per-track transcription sheet now shows granular stages (download/upload/transcribe/process) with byte progress, and includes a user-editable context box that defaults to collection title/description + track name; context is sent via the Soniox `context` field. Progress UI polls active jobs to stay in sync with backend status.
 
 - **2025-11-15 – Keychain access in Mac Catalyst DMG builds**: When packaging the Mac Catalyst build into an unsigned DMG for personal distribution, the app crashed with `Keychain error: 没有所需的授权`. The fix was to enable the **Keychain Sharing** capability so the Catalyst binary gets the required `keychain-access-groups` entitlement even when it is only signed with the free Personal Team certificate. Without that capability, importing backups that include credentials will fail on macOS because Keychain writes are denied.
   - DMG packaging script: `scripts/package-maccatalyst-dmg.sh`
@@ -27,6 +35,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **2025-11-10 – STT Simplification**: Removed `AudioFormatConverter.swift`, removed audio conversion logic from `TranscriptionManager.swift`, and removed `import AVFoundation` (Soniox supports common formats natively). Also fixed cache completion check: `getCachedAssetURL()` now returns a URL only when `metadata.cacheStatus == .complete`. Doc: `local/stt-integration.md`
 - **2025-11-17 – Transcription prep visibility**: The TTS tab job list and Playing tab HUD now show download/upload preparation states by emitting transient `downloading`/`uploading` jobs before Soniox assigns a job ID. This keeps users informed while we fetch/cache the audio without persisting half-finished jobs.
 - **2025-11-17 – AI transcript repair UX**: Transcript Viewer’s repair mode now defaults the low-confidence slider to 95%, surfaces icon-only toggles to show-only-selected or hide already AI-edited segments, and renders a sparkles badge next to the confidence label whenever a segment has `last_repair_model/at`. Logging also captures both the outbound prompt (with collection metadata) and the raw AI reply for easier debugging.
+- **2025-11-17 – Transcript viewer initial focus fix**: When opening the transcript sheet for the actively playing track we now reset the scroll target before reapplying it so `ScrollViewReader` always scrolls immediately to the highlighted segment instead of waiting for the next playback tick.
 
 ### Build & Schemes
 
@@ -188,8 +197,6 @@ Generates all required iOS app icon sizes from a single source image.
 ## Xcode Project Tips
 
 - **Localization Resource Handling (no pbxproj script edits)**: Generate resource files (`.lproj` / `.strings` / `.xcassets`) via scripts, then add them through Xcode UI (Build Phases → Copy Bundle Resources). Do **not** modify `project.pbxproj` programmatically.
-- **Localization workflow**: Provide only the key entries in `local/new_xcstrings.md`; manually merge into `AudiobookPlayer/Localizable.xcstrings` within Xcode. Validate structure and keys using `scripts/validate_localization.sh`, and follow the Localizable.xcstrings corruption protection notes.
-
 5. **Privacy**: Securely store Baidu credentials in Keychain
 6. **App Store Policy**: Verify app complies with Apple's guidelines for cloud storage integration
 
