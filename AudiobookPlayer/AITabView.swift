@@ -255,7 +255,10 @@ struct AITabView: View {
             DisclosureGroup(isExpanded: $isModelListExpanded) {
                 modelsListContent
             } label: {
-                Text(NSLocalizedString("ai_tab_models_section", comment: ""))
+                collapsibleSectionHeader(
+                    title: NSLocalizedString("ai_tab_models_section", comment: ""),
+                    isExpanded: $isModelListExpanded
+                )
             }
         }
     }
@@ -279,18 +282,14 @@ struct AITabView: View {
                     .padding(.vertical, 8)
             } else {
                 ForEach(groups, id: \.provider) { group in
-                    DisclosureGroup(isExpanded: providerExpansionBinding(for: group.provider)) {
+                    let binding = providerExpansionBinding(for: group.provider)
+                    DisclosureGroup(isExpanded: binding) {
                         ForEach(group.models) { model in
                             modelRow(for: model)
                                 .id(model.id)
                         }
                     } label: {
-                        HStack(spacing: 10) {
-                            ProviderIconView(providerId: group.provider)
-                            Text(group.provider)
-                                .font(.headline)
-                            Spacer()
-                        }
+                        providerDisclosureLabel(for: group.provider, binding: binding)
                     }
                     .padding(.vertical, 4)
                 }
@@ -509,6 +508,35 @@ struct AITabView: View {
             .buttonStyle(.bordered)
         }
         .padding(.vertical, 4)
+    }
+
+    private func collapsibleSectionHeader(title: String, isExpanded: Binding<Bool>) -> some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.headline)
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut) {
+                isExpanded.wrappedValue.toggle()
+            }
+        }
+    }
+
+    private func providerDisclosureLabel(for provider: String, binding: Binding<Bool>) -> some View {
+        HStack(spacing: 10) {
+            ProviderIconView(providerId: provider)
+            Text(provider)
+                .font(.headline)
+            Spacer()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut) {
+                binding.wrappedValue.toggle()
+            }
+        }
     }
 
     private func lastRefreshDescription(for date: Date?) -> String? {

@@ -54,12 +54,6 @@
     "%lld%%" : {
 
     },
-    "50%" : {
-
-    },
-    "100%" : {
-
-    },
     "access_token_acquired" : {
       "comment" : "Access token acquired",
       "localizations" : {
@@ -560,7 +554,24 @@
         }
       }
     },
+    "ai_tab_response_final" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Final Response"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最终响应"
+          }
+        }
+      }
+    },
     "ai_tab_response_label" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -588,22 +599,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "实时响应"
-          }
-        }
-      }
-    },
-    "ai_tab_response_final" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Final Response"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最终响应"
           }
         }
       }
@@ -656,22 +651,6 @@
         }
       }
     },
-    "ai_tab_streaming_disabled" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Streaming disabled; fell back to full response."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "流式传输不可用，已回退到完整响应。"
-          }
-        }
-      }
-    },
     "ai_tab_selected_model_summary" : {
       "localizations" : {
         "en" : {
@@ -700,6 +679,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "设为默认"
+          }
+        }
+      }
+    },
+    "ai_tab_streaming_disabled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Streaming disabled; fell back to full response."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "流式传输不可用，已回退到完整响应。"
           }
         }
       }
@@ -1022,16 +1017,6 @@
         }
       }
     },
-    "Below %lld%% · %lld matches found" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Below %1$lld%% · %2$lld matches found"
-          }
-        }
-      }
-    },
     "browse_baidu_netdisk" : {
       "comment" : "Browse Baidu netdisk",
       "localizations" : {
@@ -1304,7 +1289,15 @@
       "comment" : "Collection description empty placeholder"
     },
     "collection_description_field_label" : {
-      "comment" : "Collection description field label"
+      "comment" : "Collection description field label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "填写合集的介绍"
+          }
+        }
+      }
     },
     "collection_not_found" : {
       "comment" : "Collection not found",
@@ -1858,9 +1851,6 @@
           }
         }
       }
-    },
-    "Hide already repaired segments" : {
-
     },
     "Import Audiobook" : {
       "localizations" : {
@@ -2515,6 +2505,198 @@
         }
       }
     },
+    "repair_controls_toggle" : {
+      "comment" : "Toggle repair controls",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toggle repair controls"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "展开/折叠修复设置"
+          }
+        }
+      }
+    },
+    "repair_stats_characters" : {
+      "comment" : "Selected characters",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Characters"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选中字数"
+          }
+        }
+      }
+    },
+    "repair_stats_matches" : {
+      "comment" : "Matching low confidence segments",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matches"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低置信匹配数"
+          }
+        }
+      }
+    },
+    "repair_stats_repaired" : {
+      "comment" : "Repaired segments",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repaired"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已修复"
+          }
+        }
+      }
+    },
+    "repair_stats_segments" : {
+      "comment" : "Total segments",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Segments"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分段总数"
+          }
+        }
+      }
+    },
+    "repair_stats_selected" : {
+      "comment" : "Selected segments",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已选"
+          }
+        }
+      }
+    },
+    "repair_stats_summary_format" : {
+      "comment" : "Stats summary format",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Matches %@ · Selected %@ / %@ · Repaired %@ · Characters %@ / %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "匹配 %@ · 已选 %@/%@ · 已修复 %@ · 字符 %@/%@"
+          }
+        }
+      }
+    },
+    "repair_threshold_summary" : {
+      "comment" : "Threshold summary",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Below %1$d%% · %2$d matches found"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低于 %1$d%% · 找到 %2$d 条"
+          }
+        }
+      }
+    },
+    "repair_toggle_hide_repaired" : {
+      "comment" : "Toggle label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide repaired"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "过滤已修复"
+          }
+        }
+      }
+    },
+    "repair_toggle_select_all" : {
+      "comment" : "Toggle label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select all"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全选"
+          }
+        }
+      }
+    },
+    "repair_toggle_selected_only" : {
+      "comment" : "Toggle label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected only"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "只看选中"
+          }
+        }
+      }
+    },
     "resume_listening" : {
       "comment" : "Resume listening label",
       "localizations" : {
@@ -2873,9 +3055,6 @@
           }
         }
       }
-    },
-    "Toggle showing only selected segments" : {
-
     },
     "Total Size" : {
       "localizations" : {

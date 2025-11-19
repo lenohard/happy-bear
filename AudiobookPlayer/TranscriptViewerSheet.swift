@@ -23,6 +23,7 @@ struct TranscriptViewerSheet: View {
     @State private var autoSelectThresholdPercent: Double = 95
     @State private var showSelectedOnly = false
     @State private var hideRepairedSegments = false
+    @State private var repairControlsExpanded = true
 
     init(trackId: String, trackName: String) {
         self.trackId = trackId
@@ -84,75 +85,83 @@ struct TranscriptViewerSheet: View {
         } message: {
             Text(playbackAlertMessage ?? "")
         }
+        .onChange(of: hideRepairedSegments) { newValue in
+            if newValue {
+                pruneSelectionForHiddenSegments()
+            }
         }
+        .onChange(of: viewModel.segments.count) { _ in
+            pruneSelectionForHiddenSegments()
+        }
+    }
 
-        // MARK: - Private Methods
+    // MARK: - Private Methods
 
-        @ViewBuilder
-        private func repairStatusSection() -> some View {
-            Group {
-                if viewModel.isRepairing {
-                    repairBanner(
-                        icon: "wand.and.stars",
-                        text: NSLocalizedString("ai_repair_in_progress", comment: "AI repair in progress"),
-                        tint: .accentColor
-                    )
-                } else if let error = viewModel.repairErrorMessage {
-                    repairBanner(
-                        icon: "exclamationmark.triangle.fill",
-                        text: error,
-                        tint: .red
-                    ) {
-                        viewModel.repairErrorMessage = nil
-                    }
-                } else if let summary = repairSummaryText {
-                    repairBanner(
-                        icon: "checkmark.seal.fill",
-                        text: summary,
-                        tint: .green
-                    ) {
-                        viewModel.lastRepairResults = []
-                    }
+    @ViewBuilder
+    private func repairStatusSection() -> some View {
+        Group {
+            if viewModel.isRepairing {
+                repairBanner(
+                    icon: "wand.and.stars",
+                    text: NSLocalizedString("ai_repair_in_progress", comment: "AI repair in progress"),
+                    tint: .accentColor
+                )
+            } else if let error = viewModel.repairErrorMessage {
+                repairBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    text: error,
+                    tint: .red
+                ) {
+                    viewModel.repairErrorMessage = nil
+                }
+            } else if let summary = repairSummaryText {
+                repairBanner(
+                    icon: "checkmark.seal.fill",
+                    text: summary,
+                    tint: .green
+                ) {
+                    viewModel.lastRepairResults = []
                 }
             }
         }
+    }
 
-        private var repairSummaryText: String? {
-            let count = viewModel.lastRepairResults.count
-            guard count > 0 else { return nil }
-            if count == 1 {
-                return NSLocalizedString("ai_repair_applied_single", comment: "Single segment repaired")
-            }
-            let format = NSLocalizedString("ai_repair_applied_multiple", comment: "Multiple segments repaired")
-            return String(format: format, count)
+    private var repairSummaryText: String? {
+        let count = viewModel.lastRepairResults.count
+        guard count > 0 else { return nil }
+        if count == 1 {
+            return NSLocalizedString("ai_repair_applied_single", comment: "Single segment repaired")
         }
+        let format = NSLocalizedString("ai_repair_applied_multiple", comment: "Multiple segments repaired")
+        return String(format: format, count)
+    }
 
-        @ViewBuilder
+    @ViewBuilder
     private func repairBanner(icon: String, text: String, tint: Color, dismissAction: (() -> Void)? = nil) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: icon)
                 .foregroundStyle(tint)
                 .padding(.top, 2)
 
-                Text(text)
-                    .font(.footnote)
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            Text(text)
+                .font(.footnote)
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                if let dismissAction {
-                    Button(action: dismissAction) {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
+            if let dismissAction {
+                Button(action: dismissAction) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
                 }
+                .buttonStyle(.plain)
             }
-            .padding(8)
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color(.systemGray6))
-            )
         }
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(.systemGray6))
+        )
+    }
 
         @ViewBuilder
         private func transcriptContent() -> some View {
@@ -286,27 +295,21 @@ struct TranscriptViewerSheet: View {
 
                 if isRepairMode {
                     Button {
-                        showSelectedOnly.toggle()
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            repairControlsExpanded.toggle()
+                        }
                     } label: {
-                        Image(systemName: showSelectedOnly ? "list.bullet" : "line.3.horizontal.decrease")
+                        Image(systemName: repairControlsExpanded ? "chevron.up.circle" : "slider.horizontal.3")
+                            .font(.title3)
                     }
                     .buttonStyle(.bordered)
-                    .disabled(repairSelection.isEmpty)
-                    .accessibilityLabel("Toggle showing only selected segments")
-
-                    Button {
-                        hideRepairedSegments.toggle()
-                    } label: {
-                        Image(systemName: hideRepairedSegments ? "eye.slash" : "sparkles")
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("Hide already repaired segments")
+                    .accessibilityLabel(Text(NSLocalizedString("repair_controls_toggle", comment: "Toggle repair controls")))
                 }
             }
 
             repairStatusSection()
 
-            if isRepairMode {
+            if isRepairMode && repairControlsExpanded {
                 repairModeControls()
             }
         }
@@ -465,6 +468,7 @@ struct TranscriptViewerSheet: View {
         isRepairMode = false
         repairSelection.removeAll()
         showSelectedOnly = false
+        repairControlsExpanded = true
     }
 
     private func startRepairMode() {
@@ -477,6 +481,7 @@ struct TranscriptViewerSheet: View {
         viewModel.repairErrorMessage = nil
         viewModel.lastRepairResults = []
         isRepairMode = true
+        repairControlsExpanded = true
     }
 
     private func runRepair() async {
@@ -515,51 +520,79 @@ struct TranscriptViewerSheet: View {
     @ViewBuilder
     private func repairModeControls() -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Auto-select low confidence segments")
-                        .font(.subheadline)
-                        .bold()
+            // Toggle row
+            HStack(alignment: .center, spacing: 10) {
+                Toggle(NSLocalizedString("repair_toggle_selected_only", comment: "Toggle label"), isOn: $showSelectedOnly)
+                    .disabled(repairSelection.isEmpty)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
 
-                    Text("Below \(Int(autoSelectThresholdPercent))% · \(lowConfidenceCandidateCount) matches found")
+                Toggle(NSLocalizedString("repair_toggle_hide_repaired", comment: "Toggle label"), isOn: $hideRepairedSegments)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Toggle(NSLocalizedString("repair_toggle_select_all", comment: "Toggle label"), isOn: selectAllBinding)
+                    .disabled(viewModel.segments.isEmpty)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .font(.footnote)
+            .toggleStyle(.switch)
+            .controlSize(.mini)
+
+            // Slider + action row
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Auto-select low confidence segments")
+                            .font(.subheadline)
+                            .bold()
+                        Text(thresholdSummaryText)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        toggleLowConfidenceSelection()
+                    } label: {
+                        Label(
+                            isThresholdSelectionActive ? "Unselect" : "Select",
+                            systemImage: isThresholdSelectionActive ? "arrow.uturn.backward.circle" : "line.3.horizontal.decrease.circle"
+                        )
+                        .font(.footnote.weight(.semibold))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(lowConfidenceCandidateCount == 0)
+                }
+
+                HStack(spacing: 12) {
+                    Slider(
+                        value: $autoSelectThresholdPercent,
+                        in: 50...100,
+                        step: 1
+                    ) {
+                        Text("Confidence threshold")
+                    }
+                    Text("\(Int(autoSelectThresholdPercent))%")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .frame(width: 44, alignment: .trailing)
                 }
-
-                Spacer()
-
-                Button {
-                    toggleLowConfidenceSelection()
-                } label: {
-                    Label(
-                        isThresholdSelectionActive ? "Unselect" : "Select",
-                        systemImage: isThresholdSelectionActive ? "arrow.uturn.backward.circle" : "line.3.horizontal.decrease.circle"
-                    )
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(lowConfidenceCandidateCount == 0)
             }
 
-            Slider(
-                value: $autoSelectThresholdPercent,
-                in: 50...100,
-                step: 1
-            ) {
-                Text("Confidence threshold")
-            } minimumValueLabel: {
-                Text("50%")
-                    .font(.caption)
-            } maximumValueLabel: {
-                Text("100%")
-                    .font(.caption)
-            }
+            Text(statsSummaryText)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
 
             if repairSelection.count > 0 {
                 Text("Currently selected: \(repairSelection.count)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-
         }
         .padding(12)
         .background(
@@ -570,6 +603,44 @@ struct TranscriptViewerSheet: View {
 
     private var lowConfidenceCandidateCount: Int {
         lowConfidenceIndexes.count
+    }
+
+    private var repairedSegmentsCount: Int {
+        viewModel.segments.filter { $0.lastRepairModel != nil || $0.lastRepairAt != nil }.count
+    }
+
+    private var selectedCharacterCount: Int {
+        repairSelection.reduce(0) { partialResult, index in
+            guard index < viewModel.segments.count else { return partialResult }
+            return partialResult + viewModel.segments[index].text.count
+        }
+    }
+
+    private var areAllSegmentsSelected: Bool {
+        !viewModel.segments.isEmpty && repairSelection.count == viewModel.segments.count
+    }
+
+    private var thresholdSummaryText: String {
+        let format = NSLocalizedString("repair_threshold_summary", comment: "Threshold summary")
+        return String(format: format, Int(autoSelectThresholdPercent), lowConfidenceCandidateCount)
+    }
+
+    private var totalCharacterCount: Int {
+        viewModel.segments.reduce(0) { $0 + $1.text.count }
+    }
+
+    private var selectAllBinding: Binding<Bool> {
+        Binding(
+            get: { areAllSegmentsSelected },
+            set: { newValue in
+                if newValue {
+                    selectAllRepairableSegments()
+                } else {
+                    repairSelection.removeAll()
+                    showSelectedOnly = false
+                }
+            }
+        )
     }
 
     private var lowConfidenceIndexes: IndexSet {
@@ -605,6 +676,50 @@ struct TranscriptViewerSheet: View {
                 repairSelection.insert(index)
             }
         }
+    }
+
+    private func selectAllRepairableSegments() {
+        repairSelection = IndexSet(viewModel.segments.indices)
+    }
+
+    private func pruneSelectionForHiddenSegments() {
+        let validUpperBound = viewModel.segments.count
+        var filtered = IndexSet(repairSelection.filter { $0 < validUpperBound })
+
+        if hideRepairedSegments {
+            let allowed = Set(viewModel.segments.enumerated().compactMap { idx, segment in
+                (segment.lastRepairModel == nil && segment.lastRepairAt == nil) ? idx : nil
+            })
+            filtered = IndexSet(filtered.filter { allowed.contains($0) })
+        }
+
+        repairSelection = filtered
+        if repairSelection.isEmpty {
+            showSelectedOnly = false
+        }
+    }
+
+    private var statsSummaryText: String {
+        let matches = formattedCount(lowConfidenceCandidateCount)
+        let selected = formattedCount(repairSelection.count)
+        let totalSegments = formattedCount(viewModel.segments.count)
+        let repaired = formattedCount(repairedSegmentsCount)
+        let selectedChars = formattedCount(selectedCharacterCount)
+        let totalChars = formattedCount(totalCharacterCount)
+
+        let format = NSLocalizedString("repair_stats_summary_format", comment: "Stats summary format")
+        return String(format: format, matches, selected, totalSegments, repaired, selectedChars, totalChars)
+    }
+
+    private func formattedCount(_ count: Int) -> String {
+        numberFormatter.string(from: NSNumber(value: count)) ?? "\(count)"
+    }
+
+    private var numberFormatter: NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 0
+        return formatter
     }
 }
 
