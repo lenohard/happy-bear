@@ -136,6 +136,9 @@
         }
       }
     },
+    "AI Jobs" : {
+
+    },
     "ai_repair_applied_multiple" : {
       "comment" : "Multiple segments repaired",
       "localizations" : {
@@ -426,6 +429,102 @@
         }
       }
     },
+    "ai_tab_missing_model" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Select a model before generating."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "生成之前请先选择模型。"
+          }
+        }
+      }
+    },
+    "ai_job_status_queued" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Queued"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "排队中"
+          }
+        }
+      }
+    },
+    "ai_job_status_running" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Generating…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "生成中…"
+          }
+        }
+      }
+    },
+    "ai_job_status_completed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Completed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "已完成"
+          }
+        }
+      }
+    },
+    "ai_job_status_failed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "失败"
+          }
+        }
+      }
+    },
+    "ai_job_status_canceled" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Canceled"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "已取消"
+          }
+        }
+      }
+    },
     "ai_tab_model_group_other" : {
       "localizations" : {
         "en" : {
@@ -555,6 +654,7 @@
       }
     },
     "ai_tab_response_final" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -588,6 +688,7 @@
       }
     },
     "ai_tab_response_live" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -631,6 +732,108 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "运行中…"
+          }
+        }
+      }
+    },
+    "ai_tab_jobs_section" : {
+      "comment" : "AI jobs section header title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI Jobs"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 任务"
+          }
+        }
+      }
+    },
+    "ai_tab_jobs_show_button" : {
+      "comment" : "Button label to expand job list",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show AI Jobs"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "展开任务列表"
+          }
+        }
+      }
+    },
+    "ai_tab_jobs_collapsed_hint" : {
+      "comment" : "Helper text when job list is collapsed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tap the header or button to view current and recent jobs."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点按标题或按钮查看当前与历史任务。"
+          }
+        }
+      }
+    },
+    "ai_tab_jobs_empty" : {
+      "comment" : "Shown when no jobs exist after expanding",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No AI jobs yet."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无 AI 任务。"
+          }
+        }
+      }
+    },
+    "ai_tab_cancel_job" : {
+      "comment" : "Button label to cancel a queued AI job",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancel"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
+    },
+    "ai_tab_job_interrupted" : {
+      "comment" : "Shown when an AI generation job was interrupted by an app restart",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The app was restarted while this job was running. Please run it again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用在此任务运行时被重启，请重新运行。"
           }
         }
       }
@@ -2095,6 +2298,9 @@
         }
       }
     },
+    "No AI jobs yet." : {
+
+    },
     "No results for \"%@\"" : {
 
     },
@@ -3204,6 +3410,217 @@
     },
     "track_title_scroll_hint" : {
       "comment" : "Accessibility hint for track title scroll"
+    },
+    "track_summary_missing_track" : {
+      "comment" : "Error shown when track cannot be identified for summary generation",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Track not found."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Track not found."
+          }
+        }
+      }
+    },
+    "track_summary_requires_transcript" : {
+      "comment" : "Error shown when summary is requested without a transcript",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Transcript required before generating a summary."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Transcript required before generating a summary."
+          }
+        }
+      }
+    },
+    "track_summary_transcript_not_ready" : {
+      "comment" : "Error shown when transcript is still processing",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Transcript is still processing. Try again later."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Transcript is still processing. Try again later."
+          }
+        }
+      }
+    },
+    "track_summary_card_title" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Track Summary"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "音轨概要"
+          }
+        }
+      }
+    },
+    "track_summary_generate_cta" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Generate a synopsis and timestamped outline from the transcript."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "根据转录生成简介和带时间戳的大纲。"
+          }
+        }
+      }
+    },
+    "track_summary_generate_button" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Generate Summary"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "生成概要"
+          }
+        }
+      }
+    },
+    "track_summary_regenerate_button" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Regenerate"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "重新生成"
+          }
+        }
+      }
+    },
+    "track_summary_retry_button" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Retry"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "重试"
+          }
+        }
+      }
+    },
+    "track_summary_sections_header" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Sections"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "章节"
+          }
+        }
+      }
+    },
+    "track_summary_keywords_label" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Keywords"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "关键词"
+          }
+        }
+      }
+    },
+    "track_summary_last_generated_format" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Updated %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "更新时间 %@"
+          }
+        }
+      }
+    },
+    "track_summary_generic_error" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Something went wrong while generating this summary."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "生成概要时出现问题。"
+          }
+        }
+      }
+    },
+    "track_summary_missing_key_hint" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Add your AI key in the AI tab to enable summaries."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "在 AI 标签页添加 API 密钥以启用概要功能。"
+          }
+        }
+      }
     },
     "Tracks" : {
       "localizations" : {
