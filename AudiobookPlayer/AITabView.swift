@@ -8,6 +8,7 @@ import AppKit
 
 struct AITabView: View {
     @EnvironmentObject private var gateway: AIGatewayViewModel
+    @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @FocusState private var focusedField: KeyField?
     @AppStorage("ai_tab_models_section_expanded_v3") private var isModelListExpanded = false
     @AppStorage("ai_tab_collapsed_provider_data_v2") private var collapsedProviderData: Data = Data()
@@ -26,6 +27,7 @@ struct AITabView: View {
 
                     if gateway.hasValidKey {
                         testerSection
+                        aiJobsSection
                         creditsSection
                         modelsSection
                     }
@@ -397,12 +399,8 @@ struct AITabView: View {
               !hasAppliedDefaultCollapse else { return }
 
         let providers = Set(models.map { providerName(for: $0.id) })
-        var collapsedProviders = providers
-        if let selectedProvider = models.first(where: { $0.id == gateway.selectedModelID }).map({ providerName(for: $0.id) }) {
-            collapsedProviders.remove(selectedProvider)
-        }
-
-        collapsedModelProviders = collapsedProviders
+        // Collapse ALL providers by default on app restart
+        collapsedModelProviders = providers
         hasAppliedDefaultCollapse = true
     }
 
@@ -417,8 +415,8 @@ struct AITabView: View {
     private func performInitialScrollIfNeeded(using proxy: ScrollViewProxy) {
         guard !isInitialScrollPerformed, !gateway.models.isEmpty else { return }
         isInitialScrollPerformed = true
-        expandProviderIfNeeded(for: gateway.selectedModelID)
-        scrollToModel(withID: gateway.selectedModelID, using: proxy, animated: false)
+        // Don't auto-expand provider or scroll to model on app restart
+        // Keep all groups collapsed initially as requested
     }
 
     private func scrollToModel(withID id: String, using proxy: ScrollViewProxy, animated: Bool = true) {
@@ -539,7 +537,7 @@ struct AITabView: View {
         }
     }
 
-    private func lastRefreshDescription(for date: Date?) -> String? {
+private func lastRefreshDescription(for date: Date?) -> String? {
         guard let date else { return nil }
 
         let formatter = RelativeDateTimeFormatter()
@@ -560,9 +558,9 @@ struct AITabView: View {
                 .lineLimit(3, reservesSpace: true)
 
             Button {
-                Task { await gateway.runChatTest() }
+                Task { await gateway.enqueueChatTest(using: aiGenerationManager) }
             } label: {
-                if gateway.isChatTestRunning {
+                if chatJobInProgress != nil {
                     HStack(spacing: 8) {
                         ProgressView()
                             .progressViewStyle(.circular)
@@ -573,43 +571,37 @@ struct AITabView: View {
                 }
             }
             .buttonStyle(.borderedProminent)
-            .disabled(gateway.isChatTestRunning)
+            .disabled(chatJobInProgress != nil || gateway.chatPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
 
-            if !gateway.chatResponseText.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    if gateway.isChatTestRunning, !gateway.chatStreamBuffer.isEmpty {
-                        Text(NSLocalizedString("ai_tab_response_live", comment: ""))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(gateway.chatStreamBuffer)
-                            .font(.system(.body, design: .monospaced))
-                            .textSelection(.enabled)
-                    }
+            if let error = gateway.chatTesterError, !error.isEmpty {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
 
-                    Text(NSLocalizedString("ai_tab_response_final", comment: ""))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(gateway.chatResponseText)
-                        .textSelection(.enabled)
-                    if !gateway.chatUsageSummary.isEmpty {
-                        Text(gateway.chatUsageSummary)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                    if gateway.chatStreamFallbackNotice {
-                        Text(NSLocalizedString("ai_tab_streaming_disabled", comment: ""))
-                            .font(.footnote)
-                            .foregroundStyle(.tertiary)
+            if let job = mostRecentChatJob {
+                chatJobResultCard(job)
+            }
+        }
+    }
+
+    private var aiJobsSection: some View {
+        Section(header: Text("AI Jobs")) {
+            if aiGenerationManager.activeJobs.isEmpty && aiJobHistory.isEmpty {
+                Text("No AI jobs yet.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else {
+                if !aiGenerationManager.activeJobs.isEmpty {
+                    ForEach(aiGenerationManager.activeJobs) { job in
+                        aiJobRow(job, showDelete: false)
                     }
                 }
-            } else if gateway.isChatTestRunning, !gateway.chatStreamBuffer.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(NSLocalizedString("ai_tab_response_live", comment: ""))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(gateway.chatStreamBuffer)
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
+
+                if !aiJobHistory.isEmpty {
+                    ForEach(aiJobHistory) { job in
+                        aiJobRow(job)
+                    }
                 }
             }
         }
@@ -658,6 +650,187 @@ struct AITabView: View {
 
 private enum KeyField: Hashable {
     case gateway
+}
+
+private extension AITabView {
+    var chatJobInProgress: AIGenerationJob? {
+        aiGenerationManager.activeJobs.first { $0.type == .chatTester }
+    }
+
+    var mostRecentChatJob: AIGenerationJob? {
+        let chatJobs = aiGenerationManager.recentJobs.filter { $0.type == .chatTester }
+        if let lastId = gateway.lastChatJobId, let match = chatJobs.first(where: { $0.id == lastId }) {
+            return match
+        }
+        return chatJobs.first
+    }
+
+    var aiJobHistory: [AIGenerationJob] {
+        Array(aiGenerationManager.recentJobs.filter { $0.isTerminal }.prefix(5))
+    }
+
+    @ViewBuilder
+    func chatJobResultCard(_ job: AIGenerationJob) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(statusColor(for: job))
+                    .frame(width: 10, height: 10)
+                Text(chatJobStatusText(job))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(job.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            if let text = job.streamedOutput ?? job.finalOutput, !text.isEmpty {
+                Text(text)
+                    .font(.system(.body, design: .monospaced))
+                    .textSelection(.enabled)
+            } else if job.status == .failed, let error = job.errorMessage {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            } else {
+                Text(NSLocalizedString("ai_tab_no_content", comment: ""))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let usage = job.decodedUsage() {
+                let text = String(
+                    format: NSLocalizedString("ai_tab_usage_summary", comment: ""),
+                    usage.promptTokens ?? 0,
+                    usage.completionTokens ?? 0,
+                    usage.totalTokens ?? 0,
+                    usage.cost ?? 0
+                )
+                Text(text)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            if job.decodedMetadata()?.flagEnabled("stream_fallback") == true {
+                Text(NSLocalizedString("ai_tab_streaming_disabled", comment: ""))
+                    .font(.footnote)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(.systemGray6))
+        )
+    }
+
+    func chatJobStatusText(_ job: AIGenerationJob) -> String {
+        switch job.status {
+        case .queued:
+            return "Queued"
+        case .running, .streaming:
+            return "Running"
+        case .completed:
+            return "Completed"
+        case .failed:
+            return "Failed"
+        case .canceled:
+            return "Canceled"
+        }
+    }
+
+    func statusColor(for job: AIGenerationJob) -> Color {
+        switch job.status {
+        case .completed:
+            return .green
+        case .failed:
+            return .red
+        case .canceled:
+            return .gray
+        default:
+            return .orange
+        }
+    }
+
+    @ViewBuilder
+    func aiJobRow(_ job: AIGenerationJob, showDelete: Bool = true) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text(jobTitle(for: job))
+                    .font(.headline)
+                Spacer()
+                Text(chatJobStatusText(job))
+                    .font(.caption)
+                    .foregroundStyle(statusColor(for: job))
+            }
+
+            if let detail = jobDetail(for: job), !detail.isEmpty {
+                Text(detail)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack(spacing: 12) {
+                Text(job.createdAt.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Spacer()
+                if showDelete {
+                    Button(role: .destructive) {
+                        Task { await aiGenerationManager.deleteJob(job) }
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .buttonStyle(.borderless)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    func jobTitle(for job: AIGenerationJob) -> String {
+        switch job.type {
+        case .chatTester:
+            return "Chat Tester"
+        case .transcriptRepair:
+            return job.displayName ?? "Transcript Repair"
+        case .trackSummary:
+            return "Track Summary"
+        }
+    }
+
+    func jobDetail(for job: AIGenerationJob) -> String? {
+        switch job.type {
+        case .chatTester:
+            if let output = job.streamedOutput ?? job.finalOutput, !output.isEmpty {
+                return truncate(output)
+            }
+            if let prompt = job.userPrompt, !prompt.isEmpty {
+                return truncate(prompt)
+            }
+            return nil
+        case .transcriptRepair:
+            if let results = job.decodedMetadata()?.repairResults {
+                if results.isEmpty {
+                    return "No changes."
+                }
+                return "Updated \(results.count) segment(s)."
+            }
+            if let payload = job.decodedPayload(TranscriptRepairJobPayload.self) {
+                return "Queued \(payload.selectionIndexes.count) segment(s)."
+            }
+            return nil
+        case .trackSummary:
+            return job.finalOutput
+        }
+    }
+
+    func truncate(_ text: String, limit: Int = 160) -> String {
+        if text.count <= limit { return text }
+        let endIndex = text.index(text.startIndex, offsetBy: limit)
+        return String(text[..<endIndex]) + "…"
+    }
 }
 
 func resignFirstResponder() {
