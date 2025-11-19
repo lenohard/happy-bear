@@ -12,6 +12,7 @@ struct AITabView: View {
     @FocusState private var focusedField: KeyField?
     @AppStorage("ai_tab_models_section_expanded_v3") private var isModelListExpanded = false
     @AppStorage("ai_tab_collapsed_provider_data_v2") private var collapsedProviderData: Data = Data()
+    @AppStorage("ai_tab_jobs_section_expanded_v1") private var isJobSectionExpanded = false
     @State private var modelSearchText: String = ""
     @State private var isCredentialSectionExpanded = false
     @State private var hasAppliedDefaultCollapse = false
@@ -586,9 +587,20 @@ private func lastRefreshDescription(for date: Date?) -> String? {
     }
 
     private var aiJobsSection: some View {
-        Section(header: Text("AI Jobs")) {
-            if aiGenerationManager.activeJobs.isEmpty && aiJobHistory.isEmpty {
-                Text("No AI jobs yet.")
+        Section(header: jobsSectionHeader) {
+            if !isJobSectionExpanded {
+                Button(NSLocalizedString("ai_tab_jobs_show_button", comment: "")) {
+                    withAnimation(.easeInOut) {
+                        isJobSectionExpanded = true
+                    }
+                }
+                .buttonStyle(.bordered)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Text(NSLocalizedString("ai_tab_jobs_collapsed_hint", comment: ""))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            } else if aiGenerationManager.activeJobs.isEmpty && aiJobHistory.isEmpty {
+                Text(NSLocalizedString("ai_tab_jobs_empty", comment: ""))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
@@ -603,6 +615,23 @@ private func lastRefreshDescription(for date: Date?) -> String? {
                         aiJobRow(job)
                     }
                 }
+            }
+        }
+    }
+
+    private var jobsSectionHeader: some View {
+        HStack(spacing: 8) {
+            Text(NSLocalizedString("ai_tab_jobs_section", comment: ""))
+                .font(.headline)
+            Spacer()
+            Image(systemName: isJobSectionExpanded ? "chevron.up" : "chevron.down")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut) {
+                isJobSectionExpanded.toggle()
             }
         }
     }
@@ -776,6 +805,12 @@ private extension AITabView {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 Spacer()
+                if job.status == .queued {
+                    Button(NSLocalizedString("ai_tab_cancel_job", comment: "")) {
+                        Task { await aiGenerationManager.cancelJob(job) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
                 if showDelete {
                     Button(role: .destructive) {
                         Task { await aiGenerationManager.deleteJob(job) }
