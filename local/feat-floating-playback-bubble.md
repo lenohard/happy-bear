@@ -1,0 +1,63 @@
+# Feature: Floating Playback Bubble
+
+## Overview
+A system-wide floating bubble (similar to iOS AssistiveTouch) that provides persistent access to playback controls and the Playing screen from any tab.
+
+## Goals
+- **Accessibility**: Allow users to control playback without navigating back to the Playing tab.
+- **Space Efficiency**: Replace the traditional bottom "mini-player" bar to save vertical screen real estate.
+- **Context Awareness**: Automatically hide when on the Playing screen to avoid redundancy.
+
+## Design Specification
+
+### UI Component
+- **Shape**: Circular, ~60x60pt.
+- **Content**: 
+  - Background: Current Track Artwork (masked to circle).
+  - Overlay: Subtle shadow/stroke for contrast.
+  - State: Dimmed or overlay icon when paused.
+- **Position**: Floats above all other views (ZStack overlay in ContentView).
+
+### Interactions & Gestures
+- **Drag**: 
+  - User can drag the bubble anywhere on screen.
+  - On release, animates and snaps to nearest lateral edge (Left/Right) to avoid blocking center content.
+  - **Safe Area**: Respects top/bottom safe areas.
+- **Single Tap**: Toggle Play/Pause.
+- **Double Tap**: Open **Playing Tab** (Maximize).
+- **Long Press**: Show Context Menu.
+  - "Hide for this session"
+  - "Settings"
+
+### Visibility Logic
+- **Playing Tab**: Bubble **fades out** when user enters the Playing tab. **Fades in** when leaving.
+- **Keyboard**: Should remain above keyboard or move out of way (standard ZStack behavior usually handles "above", but might cover input. Acceptable for MVP).
+- **Empty State**: Hidden if no track is loaded/playing.
+
+### Persistence
+- **Position**: Remember last X/Y coordinate (relative to edge) across app launches.
+- **Preference**: 
+  - **Settings Toggle**: "Enable Floating Bubble" (Default: On).
+  - **Session Hide**: If hidden via menu, restores on next app launch or via Settings toggle.
+
+## Implementation Status (2025-11-20)
+
+### Completed ✅
+- Created `FloatingPlaybackBubbleViewModel.swift` - manages position, snapping, and visibility state
+- Created `FloatingPlaybackBubbleView.swift` - UI component with gestures
+- Integrated bubble into `ContentView.swift` as overlay
+- Added Settings toggle in `SettingsTabView.swift`
+- Created shared `Color+Hex.swift` extension
+- Fixed Color redeclaration error
+- Committed to git: `b6f8453`
+- **2025-11-20** – Restored bubble hit-testing/dragging, corrected pause vs play icon logic, and applied a translucent (0.8 opacity) treatment so the bubble feels lighter on top of content.
+- **2025-11-20** – Added user-configurable transparency (Settings ▸ Floating Player slider) and replaced the SwiftUI context menu with a centered confirmation dialog so the long-press actions always appear near the middle of the screen. Implemented a custom passthrough long-press recognizer so taps/drags were expected to remain immediate, but simulator testing still shows no drag/tap events being delivered.
+
+### Known Bugs 🐛
+1. **Bubble ignores tap/drag** (2025-11-20): After introducing the transparency slider and UIKit-based long-press overlay, the view once again stops receiving hit tests. Need to inspect gesture stacking (possibly move back to SwiftUI `contextMenu` or inject the recognizer lower in the hierarchy).
+
+### Next Steps
+- [ ] Re-enable tap/drag gestures while keeping centered long-press actions
+- [ ] Test all interactions thoroughly
+- [ ] Add fade in/out animations for Playing tab
+- [ ] Verify position persistence across app launches

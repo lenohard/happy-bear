@@ -4,7 +4,7 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 *.pbxproj.bak
-local/
+!local/
 test-1min.mp3
 
 # Build output

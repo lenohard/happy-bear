@@ -1,0 +1,169 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                    SwiftAISDK PLAYGROUND - QUICK CHEATSHEET                ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📍 LOCATION
+─────────────────────────────────────────────────────────────────────────────
+Playground: /Users/senaca/Documents/swift-ai-sdk Playground/
+Docs:       /Users/senaca/projects/audiobook-player/local/swiftaisdk-*.md
+
+🚀 QUICK START (2 MIN)
+─────────────────────────────────────────────────────────────────────────────
+1. export OPENAI_API_KEY='sk-...'
+2. open "/Users/senaca/Documents/swift-ai-sdk Playground/Playground.xcworkspace"
+3. Press Cmd+Enter
+4. Check console for ✅ or ❌
+
+📋 6 TESTS INCLUDED
+─────────────────────────────────────────────────────────────────────────────
+TEST 1: Basic connectivity              (1-2 sec, $0.00001)
+TEST 2: Streaming output                (2-3 sec, $0.00002)
+TEST 3: Structured JSON objects         (2-3 sec, $0.00002)
+TEST 4: Provider comparison             (8-15 sec, $0.00005)
+TEST 5: Batch track title suggestion    (3-5 sec, $0.00002) ⭐ YOUR USE CASE
+TEST 6: Collection categorization       (2-3 sec, $0.00003)
+
+💰 COST COMPARISON
+─────────────────────────────────────────────────────────────────────────────
+Provider              | Model              | Cost per 1M tokens | Best For
+────────────────────────────────────────────────────────────────────────────
+OpenAI                | GPT-4 Mini         | $0.15 (in)         | General purpose
+Anthropic             | Claude 3 Haiku     | $0.25 (in)         | Budget-friendly ⭐
+Google                | Gemini Flash       | $0.075 (in)        | Competitive price
+Groq                  | Llama 70B          | FREE (tier)        | Development
+────────────────────────────────────────────────────────────────────────────
+(in) = input tokens | 1 token ≈ 0.75 words
+
+🎯 MOST COMMON WORKFLOW
+─────────────────────────────────────────────────────────────────────────────
+Day 1: Verify playground works
+       → Run all 6 tests
+       → Check for ✅ symbols
+       → Cost: $0.001-0.005
+
+Day 2: Test your real use case (batch rename)
+       → Focus on TEST 5
+       → Use 10 real poor track names
+       → Evaluate quality and cost
+       → Cost: $0.000005-0.00001
+
+Day 3: Compare providers
+       → Run TEST 4 with different models
+       → Pick best cost/quality fit
+       → Cost: $0.00001-0.00005
+
+Day 4: Plan integration
+       → Document findings
+       → Sketch "Suggest Titles" UI
+       → Start app integration
+
+⚠️ COMMON ISSUES
+─────────────────────────────────────────────────────────────────────────────
+Problem                        | Solution
+──────────────────────────────────────────────────────────────────────────────
+"Module not found"             | Wait for .build/, restart Xcode
+"Invalid API key"              | Check no spaces, use sk-... format
+"Request timeout"              | Check internet, try simpler prompt
+"Rate limit exceeded"          | Wait 60 sec, use Haiku instead
+"JSON parsing error"           | Field names must match exactly
+"Task never completes"         | Show console (Cmd+Shift+Y)
+──────────────────────────────────────────────────────────────────────────────
+
+📚 DOCUMENTATION FILES
+─────────────────────────────────────────────────────────────────────────────
+SWIFTAISDK_EXPLORATION_PACKAGE.md    ← START HERE
+swiftaisdk-research.md               ← Deep dive on features
+swiftaisdk-playground-guide.md       ← Test explanations
+swiftaisdk-quick-reference.md        ← Quick lookup
+swiftaisdk-playground-debugging.md   ← Troubleshooting
+
+💡 CODE SNIPPETS
+─────────────────────────────────────────────────────────────────────────────
+
+Simple text:
+  let response = try await generateText(
+    model: openai("gpt-4-mini"),
+    prompt: "Your question"
+  )
+  print(response.text)
+
+Streaming:
+  let stream = try await streamText(model: openai("gpt-4-mini"), prompt: "...")
+  for try await delta in stream.textStream {
+    print(delta, terminator: "")
+  }
+
+Structured (JSON object):
+  struct MyData: Codable { let field: String }
+  let data = try await generateObject(
+    model: openai("gpt-4-mini"),
+    prompt: "...",
+    type: MyData.self
+  )
+
+Different providers:
+  openai("gpt-4-mini")          // Fast, good quality
+  anthropic("claude-3-haiku")   // Cheap, good quality ⭐
+  google("gemini-2.0-flash")    // Competitive
+  groq("llama-70b-8192")        // Free tier
+
+📊 EXPECTED COSTS
+─────────────────────────────────────────────────────────────────────────────
+Rename 5 tracks:        ~$0.00001   (1 second)
+Rename 10 tracks:       ~$0.00002   (2 seconds)
+Rename 50 tracks:       ~$0.0001    (10 seconds)
+Rename 100 tracks:      ~$0.0002    (20 seconds)
+Rename 500 tracks:      ~$0.001     (100 seconds)
+Rename 1000 tracks:     ~$0.002     (200 seconds)
+
+Total daily testing:    ~$0.001-0.005 (basically free)
+
+✅ SUCCESS INDICATORS
+─────────────────────────────────────────────────────────────────────────────
+You'll see this in console:
+✅ OpenAI API key loaded
+=== TEST 1: Basic Text Generation ===
+✅ Response: SwiftAISDK is a unified AI SDK...
+=== TEST 2: Streaming Response ===
+✅ Streaming: Haiku speaks in code...
+
+If you see ✅ symbols → Playground is working! 🎉
+
+🔑 ENVIRONMENT SETUP
+─────────────────────────────────────────────────────────────────────────────
+Terminal:
+  export OPENAI_API_KEY='sk-...'
+  export ANTHROPIC_API_KEY='sk-...'  # optional
+
+Persistent (.zshrc):
+  echo "export OPENAI_API_KEY='sk-...'" >> ~/.zshrc
+  source ~/.zshrc
+
+Verify:
+  echo $OPENAI_API_KEY | head -c 10  # Should show: sk-xxxxxxx
+
+🎓 LEARNING PATH
+─────────────────────────────────────────────────────────────────────────────
+1. Read this cheatsheet (2 min)
+2. Read quick-reference.md (5 min)
+3. Run playground (5 min)
+4. Check console output against debugging.md (5 min)
+5. Test your use case (20 min)
+6. Document findings (10 min)
+7. Plan integration (15 min)
+
+Total: ~1 hour to fully understand and test
+
+📞 NEXT ACTIONS
+─────────────────────────────────────────────────────────────────────────────
+1. Set OPENAI_API_KEY environment variable
+2. Open playground workspace
+3. Run with Cmd+Enter
+4. Document results in local/swiftaisdk-test-results.md
+5. Share findings when ready
+6. Start app integration when approved
+
+═════════════════════════════════════════════════════════════════════════════
+Last Updated: 2025-11-07
+Status: Ready to test 🚀
+═════════════════════════════════════════════════════════════════════════════
