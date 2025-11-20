@@ -65,6 +65,13 @@ A system-wide floating bubble (similar to iOS AssistiveTouch) that provides pers
   - **Fix**: Removed the `if tabSelection.selectedTab != .playing` condition so bubble stays visible on all tabs.
   - **Result**: Bubble now appears when app starts (if track is loaded) and remains visible across all tabs.
 
+- **2025-11-20 Evening** – Enhanced Bubble UX:
+  - **Interaction Feedback**: Added iOS AssistiveTouch-style scale animation (1.15x) when dragging or tapping.
+  - **Progress Indicator**: Added a circular progress ring around the bubble that fills up as the track plays.
+    - Visuals: Subtle white track with a bright white progress stroke.
+    - Logic: Calculates `currentTime / duration`, handles edge cases.
+  - **Animation**: Smooth spring animations for interaction and linear animation for progress updates.
+
 ### Known Bugs 🐛
 None currently.
 

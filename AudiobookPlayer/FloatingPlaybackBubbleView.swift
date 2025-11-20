@@ -8,7 +8,9 @@ struct FloatingPlaybackBubbleView: View {
     
     // For drag gesture state
     @GestureState private var dragOffset: CGSize = .zero
+    @GestureState private var isDragging: Bool = false
     @State private var showingBubbleMenu = false
+    @State private var isInteracting: Bool = false // Track tap/drag interactions for scale feedback
     
     private var bubbleOpacity: Double {
         min(max(storedOpacity, 0.2), 1.0)
@@ -25,9 +27,15 @@ struct FloatingPlaybackBubbleView: View {
                             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
                     )
                     .contentShape(Circle()) // Define hit area for the bubble
+                    .scaleEffect(isInteracting ? 1.15 : 1.0) // iOS AssistiveTouch-style enlarge on interaction
+                    .animation(.spring(response: 0.25, dampingFraction: 0.6), value: isInteracting)
                     .simultaneousGesture(
                         LongPressGesture(minimumDuration: 0.5)
+                            .onChanged { _ in
+                                isInteracting = true
+                            }
                             .onEnded { _ in
+                                isInteracting = false
                                 showingBubbleMenu = true
                             }
                     )
@@ -36,7 +44,11 @@ struct FloatingPlaybackBubbleView: View {
                             .updating($dragOffset) { value, state, _ in
                                 state = value.translation
                             }
+                            .onChanged { _ in
+                                isInteracting = true
+                            }
                             .onEnded { value in
+                                isInteracting = false
                                 let newPosition = CGPoint(
                                     x: viewModel.position.x + value.translation.width,
                                     y: viewModel.position.y + value.translation.height
@@ -48,15 +60,25 @@ struct FloatingPlaybackBubbleView: View {
                     .simultaneousGesture(
                         TapGesture(count: 2)
                             .onEnded {
+                                isInteracting = true
                                 withAnimation {
                                     tabSelection.switchToPlayingTab()
+                                }
+                                // Reset interaction state after animation
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    isInteracting = false
                                 }
                             }
                     )
                     .simultaneousGesture(
                         TapGesture(count: 1)
                             .onEnded {
+                                isInteracting = true
                                 audioPlayer.togglePlayback()
+                                // Reset interaction state after brief delay
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    isInteracting = false
+                                }
                             }
                     )
                     .opacity(bubbleOpacity)
@@ -90,12 +112,33 @@ struct FloatingPlaybackBubbleView: View {
         }
     }
     
+    private var progress: Double {
+        guard audioPlayer.duration > 0 else { return 0 }
+        return min(max(audioPlayer.currentTime / audioPlayer.duration, 0), 1)
+    }
+
     @ViewBuilder
     private func bubbleContent(track: AudiobookTrack) -> some View {
         ZStack {
             // iOS-style gray background
             Circle()
                 .fill(Color(white: 0.2))
+            
+            // Progress Track
+            Circle()
+                .stroke(Color.white.opacity(0.15), lineWidth: 3)
+                .padding(2)
+            
+            // Progress Indicator
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(
+                    Color.white,
+                    style: StrokeStyle(lineWidth: 3, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .padding(2)
+                .animation(.linear(duration: 0.5), value: progress)
             
             // Play/Pause icon
             Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
