@@ -543,16 +543,23 @@ struct AITabView: View {
         }
     }
 
-private func lastRefreshDescription(for date: Date?) -> String? {
+    private static let refreshDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .autoupdatingCurrent
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        formatter.doesRelativeDateFormatting = false
+        return formatter
+    }()
+
+    private func lastRefreshDescription(for date: Date?) -> String? {
         guard let date else { return nil }
 
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .abbreviated
-        let relativeString = formatter.localizedString(for: date, relativeTo: Date())
+        let timestamp = Self.refreshDateFormatter.string(from: date)
 
         return String(
             format: NSLocalizedString("ai_tab_last_updated_template", comment: ""),
-            relativeString
+            timestamp
         )
     }
 
