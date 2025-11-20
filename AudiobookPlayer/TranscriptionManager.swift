@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 // MARK: - Transcription Manager
 
@@ -53,6 +54,8 @@ class TranscriptionManager: NSObject, ObservableObject {
     let pollingInterval: TimeInterval = 2.0  // Poll every 2 seconds
     let maxPollingDuration: TimeInterval = 3600  // Max 1 hour
     private var pollingTask: Task<Void, Never>?
+    private let logger = Logger(subsystem: "com.wdh.audiobook", category: "TranscriptionManager")
+    private var downloadProgressMilestones: [String: Double] = [:]
 
     init(
         databaseManager: GRDBDatabaseManager = .shared,
@@ -104,14 +107,14 @@ class TranscriptionManager: NSObject, ObservableObject {
     func reloadSonioxAPIKey() {
         do {
             if let keyFromKeychain = try keychainStore.loadKey() {
-                print("[TranscriptionManager] Reloading Soniox API key from Keychain")
+                logger.info("[TranscriptionManager] Reloading Soniox API key from Keychain")
                 self.sonioxAPI = SonioxAPI(apiKey: keyFromKeychain)
             } else {
-                print("[TranscriptionManager] No Soniox API key found in Keychain")
+                logger.info("[TranscriptionManager] No Soniox API key found in Keychain")
                 self.sonioxAPI = nil
             }
         } catch {
-            print("[TranscriptionManager] Failed to reload Soniox key from Keychain: \(error.localizedDescription)")
+            logger.error("[TranscriptionManager] Failed to reload Soniox key from Keychain: \(error.localizedDescription, privacy: .public)")
             self.sonioxAPI = nil
         }
     }
@@ -143,6 +146,12 @@ class TranscriptionManager: NSObject, ObservableObject {
 
         let trackIdStr = trackId.uuidString
         let collectionIdStr = collectionId.uuidString
+        let fileAttributes = try? FileManager.default.attributesOfItem(atPath: audioFileURL.path)
+        let fileSizeBytes = (fileAttributes?[.size] as? NSNumber)?.int64Value ?? 0
+
+        logger.info(
+            "[TranscriptionManager] Begin transcription for track \(trackIdStr, privacy: .public) collection \(collectionIdStr, privacy: .public) existingJob=\(existingJobId ?? "nil", privacy: .public) file=\(audioFileURL.lastPathComponent, privacy: .public) size=\(fileSizeBytes, privacy: .public)"
+        )
 
         DispatchQueue.main.async {
             self.isTranscribing = true
@@ -162,6 +171,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 language: languageHints.first ?? "en"
             )
             pendingTranscriptId = transcriptId
+            logger.debug("[TranscriptionManager] Ensured pending transcript \(transcriptId, privacy: .public) for track \(trackIdStr, privacy: .public)")
 
             // Create placeholder job if one was not registered during download
             if currentJobId == nil {
@@ -174,12 +184,16 @@ class TranscriptionManager: NSObject, ObservableObject {
                 currentJobId = job.id
                 upsertActiveJob(job)
                 await refreshAllRecentJobs()
+                logger.info("[TranscriptionManager] Created placeholder job \(job.id, privacy: .public) for track \(trackIdStr, privacy: .public)")
+            } else if let jobId = currentJobId {
+                logger.debug("[TranscriptionManager] Reusing existing job \(jobId, privacy: .public) for track \(trackIdStr, privacy: .public)")
             }
 
             DispatchQueue.main.async { self.transcriptionProgress = 0.1 }
 
             // Step 1: Upload file to Soniox
             let fileId = try await sonioxAPI.uploadFile(fileURL: audioFileURL)
+            logger.info("[TranscriptionManager] Upload complete for track \(trackIdStr, privacy: .public); fileId=\(fileId, privacy: .public) size=\(fileSizeBytes, privacy: .public)")
 
             if let jobId = currentJobId {
                 try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.15)
@@ -200,6 +214,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 enableSpeakerDiarization: true,
                 context: context
             )
+            logger.info("[TranscriptionManager] Created Soniox transcription \(transcriptionId, privacy: .public) for track \(trackIdStr, privacy: .public); hints=\(languageHints.joined(separator: ","), privacy: .public) contextLen=\(context?.count ?? 0, privacy: .public)")
 
             // Update transcript with job ID
             try await updateTranscriptJobId(trackId: trackIdStr, jobId: transcriptionId, status: "processing")
@@ -212,6 +227,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 }
             }
 
+            logger.info("[TranscriptionManager] Starting poll for Soniox job \(transcriptionId, privacy: .public) (db job \(currentJobId ?? "nil", privacy: .public)) track \(trackIdStr, privacy: .public)")
             // Step 3: Poll for completion
             try await pollForCompletion(
                 transcriptionId: transcriptionId,
@@ -229,6 +245,8 @@ class TranscriptionManager: NSObject, ObservableObject {
             if let jobId = currentJobId {
                 try await dbManager.markJobCompleted(jobId: jobId)
                 removeActiveJob(jobId: jobId)
+                downloadProgressMilestones[jobId] = nil
+                logger.info("[TranscriptionManager] Job \(jobId, privacy: .public) completed successfully for track \(trackIdStr, privacy: .public)")
             }
 
             DispatchQueue.main.async {
@@ -236,6 +254,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 self.currentTrackId = nil
                 self.transcriptionProgress = 1.0
             }
+            logger.info("[TranscriptionManager] Finished transcription for track \(trackIdStr, privacy: .public)")
         } catch {
             DispatchQueue.main.async {
                 self.isTranscribing = false
@@ -248,6 +267,8 @@ class TranscriptionManager: NSObject, ObservableObject {
             if let jobId = currentJobId {
                 try? await dbManager.markJobFailed(jobId: jobId, errorMessage: error.localizedDescription)
                 removeActiveJob(jobId: jobId)
+                downloadProgressMilestones[jobId] = nil
+                logger.error("[TranscriptionManager] Job \(jobId, privacy: .public) failed for track \(trackIdStr, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
             throw error
         }
@@ -258,6 +279,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         let trackIdStr = trackId.uuidString
 
         if let existing = activeJobs.first(where: { $0.trackId == trackIdStr }) {
+            logger.debug("[TranscriptionManager] Reusing existing active job \(existing.id, privacy: .public) for track \(trackIdStr, privacy: .public)")
             return existing
         }
 
@@ -270,9 +292,10 @@ class TranscriptionManager: NSObject, ObservableObject {
             )
             upsertActiveJob(job)
             await refreshAllRecentJobs()
+            logger.info("[TranscriptionManager] Created download placeholder job \(job.id, privacy: .public) for track \(trackIdStr, privacy: .public)")
             return job
         } catch {
-            print("[TranscriptionManager] Failed to create download placeholder: \(error.localizedDescription)")
+            logger.error("[TranscriptionManager] Failed to create download placeholder: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -281,14 +304,22 @@ class TranscriptionManager: NSObject, ObservableObject {
     func updateDownloadProgress(jobId: String, receivedBytes: Int64, totalBytes: Int64) async {
         guard totalBytes > 0 else { return }
         let fraction = max(0.0, min(Double(receivedBytes) / Double(totalBytes), 1.0))
+        let previous = downloadProgressMilestones[jobId] ?? -1
+        if previous < 0 {
+            logger.debug("[TranscriptionManager] Download job \(jobId, privacy: .public) started (totalBytes=\(totalBytes, privacy: .public))")
+        }
 
         do {
             try await dbManager.updateJobStatus(jobId: jobId, status: "downloading", progress: fraction)
             updateActiveJob(jobId: jobId) { current in
                 current.updating(status: "downloading", progress: fraction)
             }
+            downloadProgressMilestones[jobId] = fraction
+            if fraction >= 0.99 && previous < 0.99 {
+                logger.info("[TranscriptionManager] Download job \(jobId, privacy: .public) completed (bytes=\(receivedBytes, privacy: .public)/\(totalBytes, privacy: .public))")
+            }
         } catch {
-            print("[TranscriptionManager] Failed to update download progress: \(error.localizedDescription)")
+            logger.error("[TranscriptionManager] Failed to update download progress: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -369,12 +400,19 @@ class TranscriptionManager: NSObject, ObservableObject {
     ) async throws {
         let startTime = Date()
         var pollCount = 0
+        var lastStatus: String?
+
+        logger.info("[TranscriptionManager] Polling Soniox job \(transcriptionId, privacy: .public) for track \(trackId, privacy: .public); dbJob=\(jobId ?? "nil", privacy: .public)")
 
         while Date().timeIntervalSince(startTime) < maxPollingDuration {
             pollCount += 1
 
             do {
                 let status = try await sonioxAPI.checkTranscriptionStatus(transcriptionId: transcriptionId)
+                if status.status != lastStatus {
+                    logger.info("[TranscriptionManager] Soniox job \(transcriptionId, privacy: .public) status=\(status.status, privacy: .public) poll=\(pollCount)")
+                    lastStatus = status.status
+                }
 
                 if status.status == "completed" {
                     // Get transcript and save segments
@@ -392,8 +430,10 @@ class TranscriptionManager: NSObject, ObservableObject {
                     if let jobId {
                         try await dbManager.updateJobStatus(jobId: jobId, status: "completed", progress: 1.0)
                     }
+                    logger.info("[TranscriptionManager] Soniox job \(transcriptionId, privacy: .public) completed for track \(trackId, privacy: .public)")
                     return
                 } else if status.status == "error" {
+                    logger.error("[TranscriptionManager] Soniox job \(transcriptionId, privacy: .public) errored: \(status.error_message ?? "unknown", privacy: .public)")
                     if let jobId {
                         try await dbManager.markJobFailed(jobId: jobId, errorMessage: status.error_message ?? "Unknown error")
                         removeActiveJob(jobId: jobId)
@@ -419,10 +459,12 @@ class TranscriptionManager: NSObject, ObservableObject {
                 // Wait before next poll
                 try await Task.sleep(nanoseconds: UInt64(pollingInterval * 1_000_000_000))
             } catch let error as SonioxAPI.APIError {
+                logger.error("[TranscriptionManager] Polling failed for \(transcriptionId, privacy: .public): \(error.localizedDescription, privacy: .public)")
                 throw TranscriptionError.transcriptionFailed(error.localizedDescription)
             }
         }
 
+        logger.error("[TranscriptionManager] Polling timeout for Soniox job \(transcriptionId, privacy: .public)")
         throw TranscriptionError.pollingTimeout
     }
 
@@ -685,7 +727,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 self.activeJobs = jobs
             }
         } catch {
-            print("[TranscriptionManager] Failed to refresh active jobs: \(error.localizedDescription)")
+            logger.error("[TranscriptionManager] Failed to refresh active jobs: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -697,7 +739,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 self.allRecentJobs = jobs
             }
         } catch {
-            print("[TranscriptionManager] Failed to refresh all jobs: \(error.localizedDescription)")
+            logger.error("[TranscriptionManager] Failed to refresh all jobs: \(error.localizedDescription, privacy: .public)")
         }
     }
 

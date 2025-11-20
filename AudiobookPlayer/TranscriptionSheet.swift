@@ -1,4 +1,5 @@
 import SwiftUI
+import OSLog
 
 /// Sheet for transcribing a single track
 struct TranscriptionSheet: View {
@@ -22,6 +23,7 @@ struct TranscriptionSheet: View {
     @State private var contextText: String = ""
     @State private var mirroredJobId: String?
     @State private var downloadJobId: String?
+    private let logger = Logger(subsystem: "com.wdh.audiobook", category: "TranscriptionSheet")
 
     private enum Stage {
         case idle
@@ -49,6 +51,18 @@ struct TranscriptionSheet: View {
             }
         }
 
+        var debugName: String {
+            switch self {
+            case .idle: return "idle"
+            case .downloading: return "downloading"
+            case .uploading: return "uploading"
+            case .transcribing: return "transcribing"
+            case .processing: return "processing"
+            case .finalizing: return "finalizing"
+            case .completed: return "completed"
+            }
+        }
+
         init(jobStatus: String) {
             switch jobStatus {
             case "downloading": self = .downloading
@@ -59,6 +73,19 @@ struct TranscriptionSheet: View {
             default: self = .idle
             }
         }
+    }
+
+    @MainActor
+    private func setStage(_ newStage: Stage, reason: String) {
+        let previous = stage
+        if previous == newStage {
+            logger.debug("[TranscriptionSheet] Stage remains \(previous.debugName, privacy: .public) – \(reason, privacy: .public)")
+            return
+        }
+        logger.info(
+            "[TranscriptionSheet] Stage \(previous.debugName, privacy: .public) → \(newStage.debugName, privacy: .public) – track \(track.id.uuidString, privacy: .public); reason: \(reason, privacy: .public)"
+        )
+        stage = newStage
     }
 
     var body: some View {
@@ -189,8 +216,11 @@ struct TranscriptionSheet: View {
         NSLocalizedString(stage.messageKey, comment: "")
     }
 
+    @MainActor
     private func startTranscription() {
+        logger.info("[TranscriptionSheet] User initiated transcription for track \(track.id.uuidString, privacy: .public) (\(track.displayName, privacy: .public)) size=\(track.fileSize) bytes")
         if transcriptionManager.activeJobs.contains(where: { $0.trackId == track.id.uuidString }) {
+            logger.info("[TranscriptionSheet] Existing job already running for track \(track.id.uuidString, privacy: .public) – mirroring instead of starting a duplicate")
             mirrorExistingJobIfNeeded()
             return
         }
@@ -198,16 +228,20 @@ struct TranscriptionSheet: View {
         progress = 0.0
         errorMessage = nil
         transcriptionCompleted = false
-        stage = .downloading
         downloadedBytes = 0
         totalBytes = max(track.fileSize, 0)
+        setStage(.downloading, reason: "User tapped Start; beginning cache download")
 
         Task {
             do {
-                if downloadJobId == nil {
+                let hasDownloadJob = await MainActor.run { downloadJobId != nil }
+                if !hasDownloadJob {
                     if let placeholder = await transcriptionManager.beginDownloadJob(for: track.id) {
-                        downloadJobId = placeholder.id
-                        mirroredJobId = placeholder.id
+                        await MainActor.run {
+                            downloadJobId = placeholder.id
+                            mirroredJobId = placeholder.id
+                        }
+                        logger.info("[TranscriptionSheet] Created placeholder download job \(placeholder.id, privacy: .public) for track \(track.id.uuidString, privacy: .public)")
                     }
                 }
                 // Resolve a local URL that can be uploaded to Soniox
@@ -224,23 +258,32 @@ struct TranscriptionSheet: View {
                                 progress = max(progress, scaledProgress)
                             }
                         }
-                        if let jobId = downloadJobId {
+                        let jobId = await MainActor.run { downloadJobId }
+                        if let jobId {
                             await transcriptionManager.updateDownloadProgress(jobId: jobId, receivedBytes: received, totalBytes: total)
                         }
                     }
                 )
 
+                logger.info("[TranscriptionSheet] Cache download finished for track \(track.id.uuidString, privacy: .public); local file \(audioURL.lastPathComponent, privacy: .public)")
+
                 // Start transcription
-                stage = .uploading
-                downloadedBytes = track.fileSize
-                totalBytes = track.fileSize
+                await setStage(.uploading, reason: "Cache resolved; starting Soniox upload")
+                await MainActor.run {
+                    downloadedBytes = track.fileSize
+                    totalBytes = track.fileSize
+                }
+
+                let existingJobId = await MainActor.run { downloadJobId ?? mirroredJobId }
+                logger.info("[TranscriptionSheet] Handing upload to TranscriptionManager job=\(existingJobId ?? "nil", privacy: .public)")
+
                 try await transcriptionManager.transcribeTrack(
                     trackId: track.id,
                     collectionId: collectionID,
                     audioFileURL: audioURL,
                     languageHints: ["zh", "en"],
                     context: contextText,
-                    existingJobId: downloadJobId ?? mirroredJobId
+                    existingJobId: existingJobId
                 )
 
                 // Success
@@ -248,7 +291,7 @@ struct TranscriptionSheet: View {
                     isTranscribing = false
                     progress = 1.0
                     transcriptionCompleted = true
-                    stage = .completed
+                    setStage(.completed, reason: "TranscriptionManager finished successfully")
                 }
 
                 // Post notification for UI to refresh transcript status
@@ -258,7 +301,7 @@ struct TranscriptionSheet: View {
                     userInfo: ["trackId": track.id.uuidString, "collectionId": collectionID.uuidString]
                 )
 
-                print("[TranscriptionSheet] Posted TranscriptionCompleted notification for track: \(track.id)")
+                logger.info("[TranscriptionSheet] Posted TranscriptionCompleted notification for track \(track.id.uuidString, privacy: .public)")
 
                 // Auto-dismiss after 2 seconds
                 try? await Task.sleep(nanoseconds: 2_000_000_000)
@@ -267,6 +310,7 @@ struct TranscriptionSheet: View {
                     dismiss()
                 }
             } catch {
+                logger.error("[TranscriptionSheet] Transcription failed for track \(track.id.uuidString, privacy: .public): \(error.localizedDescription, privacy: .public)")
                 await MainActor.run {
                     isTranscribing = false
                     errorMessage = error.localizedDescription
@@ -277,17 +321,22 @@ struct TranscriptionSheet: View {
 
         // Monitor progress from TranscriptionManager
         Task {
-            while isTranscribing {
+            while await MainActor.run(body: { isTranscribing }) {
                 await MainActor.run {
-                    progress = max(progress, transcriptionManager.transcriptionProgress)
-                    if transcriptionManager.transcriptionProgress >= 0.25 {
-                        stage = .transcribing
+                    let managerProgress = transcriptionManager.transcriptionProgress
+                    let updated = max(progress, managerProgress)
+                    if updated != progress {
+                        logger.debug("[TranscriptionSheet] Manager progress advanced to \(managerProgress, privacy: .public)")
+                        progress = updated
                     }
-                    if transcriptionManager.transcriptionProgress >= 0.9 {
-                        stage = .processing
+                    if managerProgress >= 0.25 {
+                        setStage(.transcribing, reason: "Manager progress crossed 25% (\(managerProgress))")
                     }
-                    if transcriptionManager.transcriptionProgress >= 0.98 {
-                        stage = .finalizing
+                    if managerProgress >= 0.9 {
+                        setStage(.processing, reason: "Manager progress crossed 90% (\(managerProgress))")
+                    }
+                    if managerProgress >= 0.98 {
+                        setStage(.finalizing, reason: "Manager progress crossed 98% (\(managerProgress))")
                     }
                 }
                 try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
@@ -296,12 +345,15 @@ struct TranscriptionSheet: View {
 
         // Mirror job status for stage detail
         Task {
-            while isTranscribing {
-                if let job = transcriptionManager.activeJobs.first(where: { $0.trackId == track.id.uuidString }) {
+            while await MainActor.run(body: { isTranscribing }) {
+                let job = await MainActor.run {
+                    transcriptionManager.activeJobs.first(where: { $0.trackId == track.id.uuidString })
+                }
+                if let job {
                     await MainActor.run {
                         let inferredStage = Stage(jobStatus: job.status)
                         if inferredStage != .idle {
-                            stage = inferredStage
+                            setStage(inferredStage, reason: "Mirroring job \(job.id) status=\(job.status)")
                         }
                         if let jobProgress = job.progress {
                             progress = max(progress, jobProgress)
@@ -576,31 +628,38 @@ struct TranscriptionSheet: View {
 }
 
 extension TranscriptionSheet {
+    @MainActor
     private func mirrorExistingJobIfNeeded() {
         guard let job = transcriptionManager.activeJobs.first(where: { $0.trackId == track.id.uuidString }) else {
             if mirroredJobId != nil && !isTranscribing {
-                stage = .idle
+                setStage(.idle, reason: "Detached from job; active job disappeared")
                 progress = 0.0
                 downloadedBytes = 0
+                logger.info("[TranscriptionSheet] Cleared mirrored job for track \(track.id.uuidString, privacy: .public)")
             }
             mirroredJobId = nil
             downloadJobId = nil
             return
         }
 
+        if job.id != mirroredJobId {
+            logger.info("[TranscriptionSheet] Now mirroring job \(job.id, privacy: .public) status=\(job.status, privacy: .public) progress=\(job.progress ?? -1)")
+        }
+
         mirroredJobId = job.id
         downloadJobId = job.id
         totalBytes = max(track.fileSize, 0)
-        stage = Stage(jobStatus: job.status)
-        let jobProgress = job.progress ?? defaultProgress(for: stage)
+        let newStage = Stage(jobStatus: job.status)
+        setStage(newStage, reason: "MirrorExistingJob refresh (status=\(job.status))")
+        let jobProgress = job.progress ?? defaultProgress(for: newStage)
         progress = max(progress, jobProgress)
 
-        if stage == .downloading {
+        if newStage == .downloading {
             let computed = Int64(Double(totalBytes) * jobProgress)
             if computed > downloadedBytes {
                 downloadedBytes = computed
             }
-        } else if stage == .uploading {
+        } else if newStage == .uploading {
             downloadedBytes = totalBytes
         }
 

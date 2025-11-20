@@ -1,17 +1,33 @@
 # Current Features & Bugs
 ### Feat:
 
+### Feat: add feeddbuck for click or drag the bubbble, jjust liek the ios assssitantBubble will enlarge upon interaction. 
+
+### Bug: frequent and random crash during summary.
+
+### Feat: update the token count so far during the generating of the summary.
+
 ### Support Reasonning Models
 Doc: `local/support-reasoning-models.md`
 Notes: Audit the current AI usage, add a toggle for reasoning-enabled tester jobs, capture `message.reasoning` + `reasoning_details`, and surface it alongside career usage metrics.
 
 ### Scroll 卡顿
 
-### The lastupdated for ai credit, current updlate every second
+### Bug: AI credit last updated label loops every second
+Doc: `local/bug-ai-credit-last-update.md`
+Notes: Balance's "最近更新" text should only change after a manual/initial refresh, not every second while idle.
 
 ### Add a indicator in collectionDetail page for the track with summary.
+Doc: `local/collection-detail-summary-indicator.md`
+Notes: Surface a small icon on each track row to signal that an AI-generated summary is already available.
 
-### summary 的重新生成和生成用同一个按钮
+### Feat: Track summary in transcript viewer
+Doc: `local/feat-transcript-view-summary.md`
+Notes: Show the existing Track Summary card whenever the transcript viewer is opened from a collection detail track row so listeners can read/seek via the summary from the same context.
+
+### summary 的重新生成和生成用同一个按钮 at the end of the title line of 'track summary'
+Doc: `local/task-track-summary-button.md`
+Notes: Move the single (Re)Generate CTA into the Track Summary title row so users always tap the same button whether creating or refreshing a summary, and drop the duplicate buttons from the body states.
 
 ### Feat: Genreate Audiobook Using STT and add Background Music
 
@@ -22,6 +38,11 @@ Notes: Audit the current AI usage, add a toggle for reasoning-enabled tester job
 # History: Completed Features & Bugs
 
 ## ✅ Completed Features
+### Bug: Floating bubble hidden on Playing tab
+**Doc**: `local/feat-floating-playback-bubble.md`
+**Notes**: Bubble was hidden when on the Playing tab and wouldn't appear at app start. Removed the tab-based conditional check in ContentView.swift so the bubble stays visible on all tabs.
+**Commit**: `94f35b8` - fix: floating bubble now visible on all tabs
+
 ### Bug: AI tester job stuck running after crash
 Doc: `local/bug-ai-job-stuck-running.md`
 Notes: Mark lingering `running/streaming` AI tester jobs as failed on relaunch so the Run button unlocks, and kick queued jobs so they resume.

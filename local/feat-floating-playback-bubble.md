@@ -30,7 +30,7 @@ A system-wide floating bubble (similar to iOS AssistiveTouch) that provides pers
   - "Settings"
 
 ### Visibility Logic
-- **Playing Tab**: Bubble **fades out** when user enters the Playing tab. **Fades in** when leaving.
+- **All Tabs**: Bubble remains visible on all tabs, including the Playing tab.
 - **Keyboard**: Should remain above keyboard or move out of way (standard ZStack behavior usually handles "above", but might cover input. Acceptable for MVP).
 - **Empty State**: Hidden if no track is loaded/playing.
 
@@ -60,9 +60,13 @@ A system-wide floating bubble (similar to iOS AssistiveTouch) that provides pers
   - Removed duplicate file `AudiobookPlayer/Views/Components/FloatingPlaybackBubbleView.swift`.
   - All interactions now working: drag, tap, double-tap, long-press, and opacity slider.
 
+- **2025-11-20 Evening** – Fixed bubble visibility:
+  - **Bug**: Bubble was hidden when on the Playing tab due to conditional check in ContentView.
+  - **Fix**: Removed the `if tabSelection.selectedTab != .playing` condition so bubble stays visible on all tabs.
+  - **Result**: Bubble now appears when app starts (if track is loaded) and remains visible across all tabs.
+
 ### Known Bugs 🐛
 None currently.
 
 ### Next Steps
-- [ ] Add fade in/out animations for Playing tab
 - [ ] Verify position persistence across app launches

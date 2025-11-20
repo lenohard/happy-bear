@@ -5,10 +5,13 @@ You can use deepwiki to query about detailas quickly of this repo using deepwiki
 
 Remeber use iphone 17 Pro simulator for building by default.
 
+
+(Be aware that the folder ./local/ is not ignored by git for this repository.)
 # Current Task
 
 local/PROD.md:
 @local/PROD.md
+
 
 - Background audio + enhanced playback controls completed 2025-11-03
 

@@ -214,23 +214,6 @@
         }
       }
     },
-    "ai_job_detail_reasoning_summary" : {
-      "comment" : "Label shown when reasoning data is available in metadata summary",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "Reasoning captured"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "包含推理"
-          }
-        }
-      }
-    },
     "ai_job_detail_missing" : {
       "comment" : "Missing job message",
       "localizations" : {
@@ -299,6 +282,23 @@
         }
       }
     },
+    "ai_job_detail_prompts_header" : {
+      "comment" : "Prompts section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Prompts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "提示词"
+          }
+        }
+      }
+    },
     "ai_job_detail_reasoning_header" : {
       "comment" : "Header for reasoning section",
       "localizations" : {
@@ -316,19 +316,19 @@
         }
       }
     },
-    "ai_job_detail_prompts_header" : {
-      "comment" : "Prompts section header",
+    "ai_job_detail_reasoning_summary" : {
+      "comment" : "Label shown when reasoning data is available in metadata summary",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "needsReview",
-            "value" : "Prompts"
+            "value" : "Reasoning captured"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needsReview",
-            "value" : "提示词"
+            "value" : "包含推理"
           }
         }
       }
@@ -401,23 +401,6 @@
         }
       }
     },
-    "ai_job_detail_usage_reasoning" : {
-      "comment" : "Label for reasoning token usage",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "Reasoning tokens: %d"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "推理 token：%d"
-          }
-        }
-      }
-    },
     "ai_job_detail_usage_cost" : {
       "comment" : "Label for cost display",
       "localizations" : {
@@ -465,6 +448,23 @@
           "stringUnit" : {
             "state" : "needsReview",
             "value" : "提示 token：%d"
+          }
+        }
+      }
+    },
+    "ai_job_detail_usage_reasoning" : {
+      "comment" : "Label for reasoning token usage",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Reasoning tokens: %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "推理 token：%d"
           }
         }
       }
@@ -1155,6 +1155,23 @@
         }
       }
     },
+    "ai_tab_reasoning_toggle" : {
+      "comment" : "Toggle label for requesting reasoning output",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Include reasoning"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "包含推理"
+          }
+        }
+      }
+    },
     "ai_tab_refresh" : {
       "localizations" : {
         "en" : {
@@ -1334,23 +1351,6 @@
         }
       }
     },
-    "ai_tab_reasoning_toggle" : {
-      "comment" : "Toggle label for requesting reasoning output",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "Include reasoning"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "包含推理"
-          }
-        }
-      }
-    },
     "ai_tab_tester_section" : {
       "localizations" : {
         "en" : {
@@ -1400,22 +1400,6 @@
         }
       }
     },
-    "ai_tab_usage_summary" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Used %lld prompt + %lld completion tokens"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "使用了 %lld 提示词 + %lld 完成 tokens"
-          }
-        }
-      }
-    },
     "ai_tab_usage_reasoning" : {
       "comment" : "Additional line for reasoning token usage",
       "localizations" : {
@@ -1429,6 +1413,22 @@
           "stringUnit" : {
             "state" : "needsReview",
             "value" : "推理 token：%lld"
+          }
+        }
+      }
+    },
+    "ai_tab_usage_summary" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Used %lld prompt + %lld completion tokens"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用了 %lld 提示词 + %lld 完成 tokens"
           }
         }
       }
@@ -4082,6 +4082,23 @@
         }
       }
     },
+    "track_summary_indicator_label" : {
+      "comment" : "Track summary availability indicator",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Track summary available"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "音轨概要已就绪"
+          }
+        }
+      }
+    },
     "track_summary_keywords_label" : {
       "comment" : "Keywords label",
       "localizations" : {
@@ -4185,6 +4202,7 @@
     },
     "track_summary_retry_button" : {
       "comment" : "Retry summary generation button",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

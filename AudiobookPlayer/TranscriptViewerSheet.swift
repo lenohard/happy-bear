@@ -6,6 +6,7 @@ import SwiftUI
 struct TranscriptViewerSheet: View {
     let trackId: String
     let trackName: String
+    private let showTrackSummary: Bool
 
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
@@ -14,6 +15,7 @@ struct TranscriptViewerSheet: View {
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @StateObject private var viewModel: TranscriptViewModel
+    @StateObject private var trackSummaryViewModel = TrackSummaryViewModel()
     @State private var selectedSegment: TranscriptSegment?
     @State private var playbackAlertMessage: String?
     @State private var scrollTargetSegmentID: String?
@@ -27,9 +29,10 @@ struct TranscriptViewerSheet: View {
     @State private var repairControlsExpanded = true
     @State private var lastObservedRepairJobId: String?
 
-    init(trackId: String, trackName: String) {
+    init(trackId: String, trackName: String, showTrackSummary: Bool = false) {
         self.trackId = trackId
         self.trackName = trackName
+        self.showTrackSummary = showTrackSummary
         _viewModel = StateObject(wrappedValue: TranscriptViewModel(trackId: trackId))
     }
 
@@ -41,6 +44,17 @@ struct TranscriptViewerSheet: View {
     private var mainView: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                if showTrackSummary, let context = resolveTrackContext() {
+                    TrackSummaryCard(
+                        track: context.track,
+                        isTranscriptAvailable: viewModel.transcript != nil,
+                        viewModel: trackSummaryViewModel,
+                        seekAndPlayAction: { time in seekAndPlay(to: time) }
+                    )
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                    .padding(.bottom, 4)
+                }
                 headerSection
                 transcriptScroll
             }
@@ -51,6 +65,10 @@ struct TranscriptViewerSheet: View {
         .task {
             await viewModel.loadTranscript()
             handleRepairJobUpdates()
+            if showTrackSummary {
+                trackSummaryViewModel.setTrackId(trackId)
+                handleTrackSummaryJobUpdates()
+            }
         }
         .onChange(of: segmentIDs) { _ in
             lastAutoScrolledSegmentID = nil
@@ -98,9 +116,15 @@ struct TranscriptViewerSheet: View {
         }
         .onChange(of: aiGenerationManager.recentJobs) { _ in
             handleRepairJobUpdates()
+            handleTrackSummaryJobUpdates()
         }
         .onChange(of: aiGenerationManager.activeJobs) { _ in
             handleRepairJobUpdates()
+            handleTrackSummaryJobUpdates()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .transcriptDidFinalize)) { notification in
+            guard let completedTrackId = notification.userInfo?["trackId"] as? String else { return }
+            handleTrackSummaryTranscriptFinalized(trackId: completedTrackId)
         }
     }
 
@@ -385,6 +409,26 @@ struct TranscriptViewerSheet: View {
         audioPlayer.seek(to: position)
 
         // Dismiss after a short delay to show selection
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            dismiss()
+        }
+    }
+
+    private func seekAndPlay(to time: TimeInterval) {
+        guard let context = resolveTrackContext() else {
+            playbackAlertMessage = NSLocalizedString(
+                "transcript_track_not_found_message",
+                comment: "Shown when transcript track cannot be located for playback"
+            )
+            return
+        }
+
+        if audioPlayer.currentTrack?.id != context.track.id || audioPlayer.activeCollection?.id != context.collection.id {
+            audioPlayer.play(track: context.track, in: context.collection, token: baiduAuth.token)
+        }
+
+        audioPlayer.seek(to: time)
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             dismiss()
         }
@@ -985,6 +1029,20 @@ private extension TranscriptViewerSheet {
         default:
             break
         }
+    }
+
+    func handleTrackSummaryJobUpdates() {
+        guard showTrackSummary else { return }
+        trackSummaryViewModel.handleJobUpdates(
+            activeJobs: aiGenerationManager.activeJobs,
+            recentJobs: aiGenerationManager.recentJobs
+        )
+    }
+
+    func handleTrackSummaryTranscriptFinalized(trackId: String) {
+        guard showTrackSummary else { return }
+        guard trackId == self.trackId else { return }
+        trackSummaryViewModel.handleTranscriptFinalized(trackId: trackId)
     }
 }
 

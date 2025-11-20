@@ -13,7 +13,7 @@ struct SettingsTabView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
-    @AppStorage("floatingBubbleOpacity") private var floatingBubbleOpacity: Double = 0.5
+    @AppStorage("floatingBubbleOpacity") private var floatingBubbleOpacity: Double = 0.8
     @State private var selectedNetdiskEntry: BaiduNetdiskEntry?
     @State private var showingBaiduImport = false
     @State private var importFromPath: String?

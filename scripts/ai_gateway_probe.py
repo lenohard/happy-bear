@@ -113,7 +113,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="System prompt text",
     )
     sub_chat.add_argument("--max-tokens", type=int, default=256)
-    sub_chat.add_argument("--temperature", type=float, default=0.7)
+    sub_chat.add_argument("--temperature", type=float, default=0.2)
     sub_chat.set_defaults(func=cmd_chat)
 
     sub_credits = sub.add_parser("credits", help="Inspect credit balance")

@@ -68,12 +68,17 @@ struct TrackSummaryCard: View {
 
             Spacer()
 
-            if viewModel.hasSummaryContent() && isTranscriptAvailable && aiGateway.hasValidKey {
-                Button(NSLocalizedString("track_summary_regenerate_button", comment: "Regenerate summary button")) {
-                    Task { await triggerGeneration() }
+            if shouldShowActionButton {
+                if isActionInFlight {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Button(actionButtonTitle) {
+                        Task { await triggerGeneration() }
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(isActionDisabled)
                 }
-                .buttonStyle(.bordered)
-                .disabled(viewModel.activeJob?.isActive == true)
             }
         }
     }
@@ -122,12 +127,6 @@ struct TrackSummaryCard: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-
-            Button(NSLocalizedString("track_summary_generate_button", comment: "Generate summary button")) {
-                Task { await triggerGeneration() }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(viewModel.activeJob?.isActive == true)
         }
     }
 
@@ -141,22 +140,6 @@ struct TrackSummaryCard: View {
                 Text(statsText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-
-            HStack {
-                Button(NSLocalizedString("track_summary_retry_button", comment: "Retry summary generation button")) {
-                    Task { await triggerGeneration() }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.activeJob?.isActive == true)
-
-                if let summary = viewModel.summary, summary.isReady {
-                    Button(NSLocalizedString("track_summary_regenerate_button", comment: "Regenerate summary button")) {
-                        Task { await triggerGeneration() }
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(viewModel.activeJob?.isActive == true)
-                }
             }
         }
     }
@@ -315,6 +298,26 @@ struct TrackSummaryCard: View {
 
     private var canCollapseSummary: Bool {
         viewModel.hasSummaryContent()
+    }
+
+    private var shouldShowActionButton: Bool {
+        isTranscriptAvailable && aiGateway.hasValidKey
+    }
+
+    private var isActionInFlight: Bool {
+        viewModel.isLoading || (viewModel.activeJob?.isActive == true)
+    }
+
+    private var isActionDisabled: Bool {
+        isActionInFlight
+    }
+
+    private var actionButtonTitle: String {
+        if viewModel.hasSummaryContent() {
+            return NSLocalizedString("track_summary_regenerate_button", comment: "Regenerate summary button")
+        } else {
+            return NSLocalizedString("track_summary_generate_button", comment: "Generate summary button")
+        }
     }
 
     private func formattedNumber(_ value: Int) -> String {

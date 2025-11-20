@@ -47,6 +47,28 @@ extension GRDBDatabaseManager {
         return (summary, sections)
     }
 
+    func fetchTrackIdsWithCompletedSummaries(trackIds: [String]) throws -> Set<String> {
+        guard !trackIds.isEmpty else { return [] }
+        try initializeDatabase()
+        guard let db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { database in
+            let placeholders = trackIds.map { _ in "?" }.joined(separator: ", ")
+            let sql = """
+                SELECT track_id FROM track_summaries
+                WHERE track_id IN (
+                    \(placeholders)
+                )
+                AND status = ?
+                AND summary_body IS NOT NULL
+                AND summary_body != ''
+            """
+            let arguments = StatementArguments(trackIds + [TrackSummary.Status.complete.rawValue])
+            let rows = try Row.fetchAll(database, sql: sql, arguments: arguments)
+            return Set(rows.compactMap { $0["track_id"] as? String })
+        }
+    }
+
     // MARK: - Upserts & Status
 
     @discardableResult

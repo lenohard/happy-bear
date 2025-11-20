@@ -9,6 +9,7 @@ actor AIGenerationJobExecutor {
     private let trackSummaryGenerator: TrackSummaryGenerator
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGenerationExecutor")
     private var isProcessing = false
+    private var streamBuffers: [String: String] = [:]
 
     init(
         dbManager: GRDBDatabaseManager = .shared,
@@ -82,7 +83,8 @@ actor AIGenerationJobExecutor {
         let payload = job.decodedPayload(ChatTesterJobPayload.self)
         let temperature = payload?.temperature ?? 0.7
         let reasoningConfig = payload?.reasoning
-        var streamBuffer = job.streamedOutput ?? ""
+        setInitialStreamBuffer(job.streamedOutput ?? "", for: job.id)
+        defer { clearStreamBuffer(for: job.id) }
         var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
 
         try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: 0.05)
@@ -97,13 +99,7 @@ actor AIGenerationJobExecutor {
             onStreamDelta: { [weak self] delta in
                 guard let self else { return }
                 Task {
-                    guard !delta.isEmpty else { return }
-                    streamBuffer.append(delta)
-                    do {
-                        try await self.dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: streamBuffer)
-                    } catch {
-                        self.logger.error("Failed to update AI stream: \(error.localizedDescription, privacy: .public)")
-                    }
+                    await self.persistStreamDelta(delta, for: job.id)
                 }
             },
             onStreamFallback: { [weak self] in
@@ -117,7 +113,8 @@ actor AIGenerationJobExecutor {
             }
         )
 
-        let content = response.choices.first?.message.content ?? streamBuffer
+        let content = response.choices.first?.message.content ?? currentStreamBuffer(for: job.id)
+        clearStreamBuffer(for: job.id)
         if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
             metadata = metadata.updatingReasoning(snapshot)
         }
@@ -209,6 +206,8 @@ actor AIGenerationJobExecutor {
         try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .running, progress: 0.05)
 
         var loadedTranscript: Transcript?
+        setInitialStreamBuffer(job.streamedOutput ?? "", for: job.id)
+        defer { clearStreamBuffer(for: job.id) }
 
         do {
             try await dbManager.initializeDatabase()
@@ -243,7 +242,6 @@ actor AIGenerationJobExecutor {
             )
 
             let prompts = trackSummaryGenerator.makePrompts(from: context)
-            var streamBuffer = job.streamedOutput ?? ""
             var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
 
             try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: 0.2)
@@ -257,13 +255,7 @@ actor AIGenerationJobExecutor {
                 onStreamDelta: { [weak self] delta in
                     guard let self else { return }
                     Task {
-                        guard !delta.isEmpty else { return }
-                        streamBuffer.append(delta)
-                        do {
-                            try await self.dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: streamBuffer)
-                        } catch {
-                            self.logger.error("Failed updating summary stream: \(error.localizedDescription, privacy: .public)")
-                        }
+                        await self.persistStreamDelta(delta, for: job.id)
                     }
                 },
                 onStreamFallback: { [weak self] in
@@ -277,7 +269,7 @@ actor AIGenerationJobExecutor {
                 }
             )
 
-            let rawText = response.choices.first?.message.content ?? streamBuffer
+            let rawText = response.choices.first?.message.content ?? currentStreamBuffer(for: job.id)
             try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
 
             if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
@@ -362,5 +354,29 @@ actor AIGenerationJobExecutor {
         guard let usage else { return nil }
         guard let data = try? JSONEncoder().encode(usage) else { return nil }
         return String(data: data, encoding: .utf8)
+    }
+
+    private func setInitialStreamBuffer(_ initial: String, for jobId: String) {
+        streamBuffers[jobId] = initial
+    }
+
+    private func currentStreamBuffer(for jobId: String) -> String {
+        streamBuffers[jobId] ?? ""
+    }
+
+    private func clearStreamBuffer(for jobId: String) {
+        streamBuffers[jobId] = nil
+    }
+
+    private func persistStreamDelta(_ delta: String, for jobId: String) async {
+        guard !delta.isEmpty else { return }
+        var buffer = streamBuffers[jobId] ?? ""
+        buffer.append(delta)
+        streamBuffers[jobId] = buffer
+        do {
+            try await dbManager.updateAIGenerationJobStream(jobId: jobId, streamedOutput: buffer)
+        } catch {
+            logger.error("Failed updating stream buffer for job \(jobId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
     }
 }

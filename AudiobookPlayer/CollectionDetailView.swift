@@ -1,4 +1,5 @@
 import SwiftUI
+import GRDB
 
 struct CollectionDetailView: View {
     let collectionID: UUID
@@ -7,6 +8,7 @@ struct CollectionDetailView: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
+    @EnvironmentObject private var aiGenerationManager: AIGenerationManager
 
     @State private var searchText = ""
     @State private var missingAuthAlert = false
@@ -27,6 +29,8 @@ struct CollectionDetailView: View {
     @State private var showTranscriptDeletionDialog = false
     @State private var transcriptDeletionError: String?
     @State private var showTranscriptDeletionError = false
+    @State private var tracksWithSummaries: Set<UUID> = []
+    @State private var summaryIndicatorTask: Task<Void, Never>?
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -161,9 +165,11 @@ struct CollectionDetailView: View {
             resetAutoFocusState()
             loadTranscriptStatus()
             prepareAutoFocusTargetIfNeeded(for: self.collection)
+            refreshTrackSummaryIndicators(for: self.collection)
         }
         .onChange(of: collection?.tracks.map(\.id) ?? []) { _ in
             prepareAutoFocusTargetIfNeeded(for: self.collection)
+            refreshTrackSummaryIndicators(for: self.collection)
         }
         .onChange(of: audioPlayer.activeCollection?.id) { _ in
             prepareAutoFocusTargetIfNeeded(for: self.collection)
@@ -171,6 +177,19 @@ struct CollectionDetailView: View {
         .onAppear {
             loadTranscriptStatus()
             prepareAutoFocusTargetIfNeeded(for: self.collection)
+            refreshTrackSummaryIndicators(for: self.collection)
+        }
+        .onChange(of: aiGenerationManager.activeJobs) { jobs in
+            guard jobs.contains(where: { $0.type == .trackSummary }) else { return }
+            refreshTrackSummaryIndicators(for: self.collection)
+        }
+        .onChange(of: aiGenerationManager.recentJobs) { jobs in
+            guard jobs.contains(where: { $0.type == .trackSummary }) else { return }
+            refreshTrackSummaryIndicators(for: self.collection)
+        }
+        .onDisappear {
+            summaryIndicatorTask?.cancel()
+            summaryIndicatorTask = nil
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TranscriptionCompleted"))) { notification in
             print("[CollectionDetailView] Received TranscriptionCompleted notification")
@@ -186,7 +205,7 @@ struct CollectionDetailView: View {
             )
         }
         .sheet(item: $trackForViewing) { track in
-            TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
+            TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName, showTrackSummary: true)
         }
         .alert(
             NSLocalizedString("delete_transcript_confirm_title", comment: "Delete transcript dialog title"),
@@ -342,6 +361,7 @@ struct CollectionDetailView: View {
                         playbackState: collection.playbackState(for: track.id),
                         isFavorite: track.isFavorite,
                         hasTranscript: hasTranscript,
+                        hasSummary: tracksWithSummaries.contains(track.id),
                         isTranscribing: isTranscribingTrack,
                         onSelect: {
                             startPlayback(track, in: collection)
@@ -421,6 +441,39 @@ struct CollectionDetailView: View {
                 }
             }
         }
+    }
+
+    private func refreshTrackSummaryIndicators(for collection: AudiobookCollection?) {
+        summaryIndicatorTask?.cancel()
+
+        guard let collection else {
+            tracksWithSummaries = []
+            summaryIndicatorTask = nil
+            return
+        }
+
+        let trackIds = collection.tracks.map { $0.id.uuidString }
+        guard !trackIds.isEmpty else {
+            tracksWithSummaries = []
+            summaryIndicatorTask = nil
+            return
+        }
+
+        let task = Task.detached { [trackIds] in
+            var readyTrackIds = Set<UUID>()
+            do {
+                let completedIds = try await GRDBDatabaseManager.shared.fetchTrackIdsWithCompletedSummaries(trackIds: trackIds)
+                readyTrackIds = Set(completedIds.compactMap { UUID(uuidString: $0) })
+            } catch {
+                print("[CollectionDetailView] Failed to refresh summary indicators: \(error.localizedDescription)")
+            }
+
+            await MainActor.run {
+                tracksWithSummaries = readyTrackIds
+            }
+        }
+
+        summaryIndicatorTask = task
     }
 
     private func prepareAutoFocusTargetIfNeeded(for collection: AudiobookCollection?) {
@@ -870,6 +923,7 @@ private struct TrackDetailRow: View {
     let playbackState: TrackPlaybackState?
     let isFavorite: Bool
     let hasTranscript: Bool
+    let hasSummary: Bool
     let isTranscribing: Bool
     let onSelect: () -> Void
     let onToggleFavorite: () -> Void
@@ -966,6 +1020,13 @@ private struct TrackDetailRow: View {
                         .font(.caption2)
                         .foregroundStyle(.blue)
                         .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
+                }
+
+                if hasSummary {
+                    Image(systemName: "text.book.closed")
+                        .font(.caption2)
+                        .foregroundStyle(.purple)
+                        .accessibilityLabel(NSLocalizedString("track_summary_indicator_label", comment: "Track summary availability indicator"))
                 }
 
                 if isTranscribing {

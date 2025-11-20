@@ -99,10 +99,7 @@ struct ContentView: View {
             }
             .overlay(alignment: .topLeading) {
                 // Floating Playback Bubble
-                // Only show if not on Playing tab
-                if tabSelection.selectedTab != .playing {
-                    FloatingPlaybackBubbleView(viewModel: bubbleViewModel)
-                }
+                FloatingPlaybackBubbleView(viewModel: bubbleViewModel)
             }
             .environmentObject(tabSelection)
             .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
