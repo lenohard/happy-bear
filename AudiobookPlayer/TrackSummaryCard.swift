@@ -53,7 +53,7 @@ struct TrackSummaryCard: View {
                     HStack(spacing: 6) {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.accentColor)
+                            .foregroundStyle(Color.accentColor)
                         Label(NSLocalizedString("track_summary_card_title", comment: "Track summary card title"), systemImage: "text.book.closed")
                             .font(.headline)
                     }
