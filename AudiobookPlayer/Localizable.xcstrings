@@ -64,6 +64,9 @@
     "%lld%%" : {
 
     },
+    "•" : {
+
+    },
     "access_token_acquired" : {
       "comment" : "Access token acquired",
       "localizations" : {
@@ -4791,6 +4794,160 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重试一遍"
+          }
+        }
+      }
+    },
+    "tts_files_delete_action" : {
+      "comment" : "Delete action label used on the Soniox files list",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Delete"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
+          }
+        }
+      }
+    },
+    "tts_files_empty_state" : {
+      "comment" : "Text shown when the Soniox files list is empty",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No uploaded files yet"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "尚未上传文件"
+          }
+        }
+      }
+    },
+    "tts_files_no_key_message" : {
+      "comment" : "Prompt telling users to save a Soniox key before viewing files",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Add a Soniox API key on the TTS tab to view uploads."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请先在 TTS 选项卡保存 Soniox API 密钥"
+          }
+        }
+      }
+    },
+    "tts_files_refresh_button" : {
+      "comment" : "Toolbar button that refreshes the Soniox files list",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Refresh"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新"
+          }
+        }
+      }
+    },
+    "tts_files_section_description" : {
+      "comment" : "Helper text describing the Soniox files list page",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "View uploads stored on Soniox and delete leftovers."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看上传到 Soniox 的音频并删除遗留文件。"
+          }
+        }
+      }
+    },
+    "tts_files_section_header" : {
+      "comment" : "Section header for Soniox files management within the TTS tab",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Files"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件"
+          }
+        }
+      }
+    },
+    "tts_files_section_label" : {
+      "comment" : "Label describing how to manage Soniox uploads",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Manage Soniox files"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "管理 Soniox 文件"
+          }
+        }
+      }
+    },
+    "tts_files_unknown_name" : {
+      "comment" : "Placeholder text for a Soniox file that lacks a name",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unnamed file"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无名文件"
+          }
+        }
+      }
+    },
+    "tts_files_view_title" : {
+      "comment" : "Navigation title for the Soniox files list",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Soniox files"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Soniox 文件"
           }
         }
       }

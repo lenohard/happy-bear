@@ -7,6 +7,75 @@ struct SonioxFileResponse: Decodable {
     let id: String
 }
 
+/// Metadata for a file stored on Soniox
+struct SonioxFile: Decodable, Identifiable {
+    let id: String
+    let filename: String?
+    let sizeBytes: Int?
+    let createdAt: Date?
+
+    var displayName: String {
+        if let filename, !filename.isEmpty {
+            return filename
+        }
+        return id
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case filename
+        case sizeBytes = "size"
+        case createdAt = "created_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        filename = try container.decodeIfPresent(String.self, forKey: .filename)
+
+        if let intValue = try? container.decode(Int.self, forKey: .sizeBytes) {
+            sizeBytes = intValue
+        } else if let stringValue = try? container.decode(String.self, forKey: .sizeBytes), let intValue = Int(stringValue) {
+            sizeBytes = intValue
+        } else if let doubleValue = try? container.decode(Double.self, forKey: .sizeBytes) {
+            sizeBytes = Int(doubleValue)
+        } else {
+            sizeBytes = nil
+        }
+
+        if let timestamp = try? container.decode(Double.self, forKey: .createdAt) {
+            createdAt = Date(timeIntervalSince1970: timestamp)
+        } else if let stringValue = try? container.decode(String.self, forKey: .createdAt) {
+            createdAt = Self.parseDate(from: stringValue)
+        } else {
+            createdAt = nil
+        }
+    }
+
+    private static func parseDate(from value: String) -> Date? {
+        if let date = iso8601WithFractional.date(from: value) {
+            return date
+        }
+        return iso8601WithoutFractional.date(from: value)
+    }
+
+    private static let iso8601WithFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let iso8601WithoutFractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+}
+
+private struct SonioxFilesListResponse: Decodable {
+    let files: [SonioxFile]
+}
+
 /// Request payload for creating transcription
 struct SonioxTranscriptionRequest: Encodable {
     let file_id: String
@@ -248,6 +317,33 @@ class SonioxAPI {
         // 204 or 200 are both acceptable for DELETE
         guard httpResponse.statusCode == 204 || httpResponse.statusCode == 200 else {
             throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to delete transcription")
+        }
+    }
+
+    /// List all files uploaded to Soniox
+    func listFiles() async throws -> [SonioxFile] {
+        let endpoint = baseURL.appendingPathComponent("v1/files")
+        var request = URLRequest(url: endpoint)
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await session.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "Failed to list files")
+        }
+
+        let decoder = JSONDecoder()
+        do {
+            return try decoder.decode([SonioxFile].self, from: data)
+        } catch let firstError {
+            if let wrapper = try? decoder.decode(SonioxFilesListResponse.self, from: data) {
+                return wrapper.files
+            }
+            throw firstError
         }
     }
 

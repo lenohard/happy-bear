@@ -10,17 +10,9 @@ struct AITabView: View {
     @EnvironmentObject private var gateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @FocusState private var focusedField: KeyField?
-    @AppStorage("ai_tab_models_section_expanded_v3") private var isModelListExpanded = false
-    @AppStorage("ai_tab_collapsed_provider_data_v2") private var collapsedProviderData: Data = Data()
-    @AppStorage("ai_tab_jobs_section_expanded_v1") private var isJobSectionExpanded = false
-    @AppStorage("ai_tab_tester_reasoning_enabled_v1") private var isTesterReasoningEnabled = false
-    @State private var modelSearchText: String = ""
     @State private var isCredentialSectionExpanded = false
-    @State private var hasAppliedDefaultCollapse = false
     @State private var showAPIKey = false
     @State private var isEditingGatewayKey = false
-    @State private var isInitialScrollPerformed = false
-    @State private var selectedJobForDetail: AIGenerationJob?
 
     var body: some View {
         NavigationStack {
@@ -30,9 +22,15 @@ struct AITabView: View {
 
                     if gateway.hasValidKey {
                         testerSection
-                        aiJobsSection
                         creditsSection
-                        modelsSection
+                        
+                        Section {
+                            NavigationLink {
+                                AIDetailView()
+                            } label: {
+                                Label(NSLocalizedString("ai_tasks_and_models_link", comment: "Link to AI Tasks and Models"), systemImage: "list.bullet.rectangle.portrait")
+                            }
+                        }
                     }
                 }
                 .simultaneousGesture(
@@ -62,28 +60,12 @@ struct AITabView: View {
                         }
                     }
                 }
-                .onChange(of: gateway.models.isEmpty) { isEmpty in
-                    if !isEmpty {
-                        applyDefaultProviderCollapseIfNeeded(with: gateway.models)
-                        performInitialScrollIfNeeded(using: proxy)
-                    }
-                }
-                .onAppear {
-                    isEditingGatewayKey = !gateway.hasValidKey
-                    performInitialScrollIfNeeded(using: proxy)
-                }
                 .onChange(of: gateway.keyState) { state in
                     handleGatewayKeyStateChange(state)
                 }
-                .onChange(of: gateway.selectedModelID) { newValue in
-                    expandProviderIfNeeded(for: newValue)
-                    scrollToModel(withID: newValue, using: proxy)
-                }
             }
         }
-        .sheet(item: $selectedJobForDetail) { job in
-            AIGenerationJobDetailView(jobId: job.id)
-        }
+    }
     }
 
     private var credentialsSection: some View {
@@ -209,339 +191,7 @@ struct AITabView: View {
         return "\(prefix)...\(suffix)"
     }
 
-    private var modelsSection: some View {
-        Section {
-            if let summary = selectedModelSummary {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .center, spacing: 12) {
-                        Label(summary.title, systemImage: "star.circle.fill")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Button {
-                            Task { try? await gateway.refreshModels() }
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                    }
 
-                    if let description = summary.description, !description.isEmpty {
-                        Text(description)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if let pricing = summary.pricing {
-                        Text(pricing)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-
-                    if let refreshText = lastRefreshDescription(for: gateway.lastModelRefreshDate) {
-                        Text(refreshText)
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
-                }
-                .padding(.vertical, 4)
-                .listRowSeparator(.hidden)
-            }
-
-            if !gateway.models.isEmpty {
-                TextField(
-                    NSLocalizedString("ai_tab_models_search_placeholder", comment: ""),
-                    text: $modelSearchText
-                )
-                .textInputAutocapitalization(.never)
-                .disableAutocorrection(true)
-                .textFieldStyle(.roundedBorder)
-                .listRowSeparator(.hidden)
-            }
-
-            DisclosureGroup(isExpanded: $isModelListExpanded) {
-                modelsListContent
-            } label: {
-                collapsibleSectionHeader(
-                    title: NSLocalizedString("ai_tab_models_section", comment: ""),
-                    isExpanded: $isModelListExpanded
-                )
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var modelsListContent: some View {
-        if gateway.isFetchingModels {
-            ProgressView()
-        } else if let error = gateway.modelErrorMessage {
-            Text(error)
-                .foregroundColor(.red)
-        } else if gateway.models.isEmpty {
-            Button(NSLocalizedString("ai_tab_load_models", comment: "")) {
-                Task { try? await gateway.refreshModels() }
-            }
-        } else {
-            let groups = filteredModelGroups
-            if groups.isEmpty {
-                Text(NSLocalizedString("ai_tab_models_search_no_results", comment: ""))
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 8)
-            } else {
-                ForEach(groups, id: \.provider) { group in
-                    let binding = providerExpansionBinding(for: group.provider)
-                    DisclosureGroup(isExpanded: binding) {
-                        ForEach(group.models) { model in
-                            modelRow(for: model)
-                                .id(model.id)
-                        }
-                    } label: {
-                        providerDisclosureLabel(for: group.provider, binding: binding)
-                    }
-                    .padding(.vertical, 4)
-                }
-            }
-        }
-    }
-
-    private var groupedModels: [(provider: String, models: [AIModelInfo])]
-    {
-        let grouped = Dictionary(grouping: gateway.models) { providerName(for: $0.id) }
-        return grouped
-            .map { (provider: $0.key, models: $0.value.sorted { ($0.name ?? $0.id) < ($1.name ?? $1.id) }) }
-            .sorted { $0.provider.localizedCaseInsensitiveCompare($1.provider) == .orderedAscending }
-    }
-
-    private var filteredModelGroups: [(provider: String, models: [AIModelInfo])] {
-        let groups = groupedModels
-        let trimmed = modelSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return groups }
-        let query = trimmed.lowercased()
-
-        return groups.compactMap { group in
-            let providerMatches = group.provider.lowercased().contains(query)
-            let models = providerMatches ? group.models : group.models.filter { modelMatches($0, query: query) }
-            guard !models.isEmpty else { return nil }
-            return (provider: group.provider, models: models)
-        }
-    }
-
-    private func providerExpansionBinding(for provider: String) -> Binding<Bool> {
-        Binding(
-            get: { !collapsedModelProviders.contains(provider) },
-            set: { isExpanded in
-                var providers = collapsedModelProviders
-                if isExpanded {
-                    providers.remove(provider)
-                } else {
-                    providers.insert(provider)
-                }
-                collapsedModelProviders = providers
-            }
-        )
-    }
-
-    private var collapsedModelProviders: Set<String> {
-        get {
-            guard !collapsedProviderData.isEmpty,
-                  let decoded = try? JSONDecoder().decode(Set<String>.self, from: collapsedProviderData) else {
-                return []
-            }
-            return decoded
-        }
-        nonmutating set {
-            collapsedProviderData = (try? JSONEncoder().encode(newValue)) ?? Data()
-        }
-    }
-
-    private func providerName(for modelID: String) -> String {
-        if let prefix = modelID.split(separator: "/").first, !prefix.isEmpty {
-            return String(prefix)
-        }
-        return NSLocalizedString("ai_tab_model_group_other", comment: "")
-    }
-
-    private func providerDisplayName(for model: AIModelInfo) -> String? {
-        if let ownedBy = model.ownedBy, !ownedBy.isEmpty {
-            return ownedBy
-        }
-        if let provider = model.metadata?.provider, !provider.isEmpty {
-            return provider
-        }
-        let fallback = providerName(for: model.id)
-        return fallback.isEmpty ? nil : fallback
-    }
-
-    private func formattedPricePerMillion(_ raw: String?, fallback: Double? = nil) -> String {
-        let sanitized: String? = {
-            guard var value = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else {
-                return nil
-            }
-            value = value.replacingOccurrences(of: "$", with: "")
-            value = value.replacingOccurrences(of: ",", with: "")
-            if let firstComponent = value.split(whereSeparator: { " /".contains($0) }).first {
-                return String(firstComponent)
-            }
-            return value
-        }()
-
-        guard let base = Double(sanitized ?? "") ?? fallback else {
-            return "-"
-        }
-
-        let perMillion = base * 1_000_000
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.usesGroupingSeparator = false
-        formatter.minimumFractionDigits = perMillion < 1 ? 4 : 2
-        formatter.maximumFractionDigits = 6
-        return formatter.string(from: NSNumber(value: perMillion)) ?? "-"
-    }
-
-    private func applyDefaultProviderCollapseIfNeeded(with models: [AIModelInfo]) {
-        guard !models.isEmpty,
-              collapsedProviderData.isEmpty,
-              !hasAppliedDefaultCollapse else { return }
-
-        let providers = Set(models.map { providerName(for: $0.id) })
-        // Collapse ALL providers by default on app restart
-        collapsedModelProviders = providers
-        hasAppliedDefaultCollapse = true
-    }
-
-    private func modelMatches(_ model: AIModelInfo, query: String) -> Bool {
-        let displayName = (model.name ?? model.id).lowercased()
-        if displayName.contains(query) { return true }
-        if model.id.lowercased().contains(query) { return true }
-        if let description = model.description?.lowercased(), description.contains(query) { return true }
-        return false
-    }
-
-    private func performInitialScrollIfNeeded(using proxy: ScrollViewProxy) {
-        guard !isInitialScrollPerformed, !gateway.models.isEmpty else { return }
-        isInitialScrollPerformed = true
-        // Don't auto-expand provider or scroll to model on app restart
-        // Keep all groups collapsed initially as requested
-    }
-
-    private func scrollToModel(withID id: String, using proxy: ScrollViewProxy, animated: Bool = true) {
-        guard gateway.models.contains(where: { $0.id == id }) else { return }
-        let scrollAction = {
-            proxy.scrollTo(id, anchor: .top)
-        }
-        if animated {
-            withAnimation(.easeInOut) { scrollAction() }
-        } else {
-            scrollAction()
-        }
-    }
-
-    private func expandProviderIfNeeded(for modelID: String) {
-        let provider = providerName(for: modelID)
-        var collapsed = collapsedModelProviders
-        if collapsed.contains(provider) {
-            collapsed.remove(provider)
-            collapsedModelProviders = collapsed
-        }
-    }
-
-    private var selectedModelSummary: (title: String, description: String?, pricing: String?)? {
-        guard let model = gateway.models.first(where: { $0.id == gateway.selectedModelID }) else {
-            return nil
-        }
-        let displayName = model.name?.isEmpty == false ? model.name! : model.id
-        let provider = providerDisplayName(for: model)
-        let title: String
-        if let provider {
-            title = String(
-                format: NSLocalizedString("ai_tab_selected_model_summary", comment: ""),
-                displayName,
-                provider
-            )
-        } else {
-            title = displayName
-        }
-
-        var pricingText: String?
-        if let pricing = model.pricing {
-            let inputPrice = formattedPricePerMillion(pricing.input, fallback: model.metadata?.inputCost)
-            let outputPrice = formattedPricePerMillion(pricing.output, fallback: model.metadata?.outputCost)
-            pricingText = String(
-                format: NSLocalizedString("ai_tab_pricing_template", comment: ""),
-                inputPrice,
-                outputPrice
-            )
-        }
-
-        return (title: title, description: model.description, pricing: pricingText)
-    }
-
-    @ViewBuilder
-    private func modelRow(for model: AIModelInfo) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(model.name ?? model.id)
-                    .font(.headline)
-                Spacer()
-                if model.id == gateway.selectedModelID {
-                    Label(NSLocalizedString("ai_tab_default_model", comment: ""), systemImage: "star.fill")
-                        .font(.caption)
-                        .foregroundColor(.yellow)
-                }
-            }
-            if let description = model.description, !description.isEmpty {
-                Text(description)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            if let pricing = model.pricing {
-                let inputPrice = formattedPricePerMillion(pricing.input, fallback: model.metadata?.inputCost)
-                let outputPrice = formattedPricePerMillion(pricing.output, fallback: model.metadata?.outputCost)
-                Text(String(
-                    format: NSLocalizedString("ai_tab_pricing_template", comment: ""),
-                    inputPrice,
-                    outputPrice
-                ))
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-            }
-            Button(NSLocalizedString("ai_tab_set_default", comment: "")) {
-                gateway.selectedModelID = model.id
-            }
-            .buttonStyle(.bordered)
-        }
-        .padding(.vertical, 4)
-    }
-
-    private func collapsibleSectionHeader(title: String, isExpanded: Binding<Bool>) -> some View {
-        HStack(spacing: 8) {
-            Text(title)
-                .font(.headline)
-            Spacer()
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(.easeInOut) {
-                isExpanded.wrappedValue.toggle()
-            }
-        }
-    }
-
-    private func providerDisclosureLabel(for provider: String, binding: Binding<Bool>) -> some View {
-        HStack(spacing: 10) {
-            ProviderIconView(providerId: provider)
-            Text(provider)
-                .font(.headline)
-            Spacer()
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(.easeInOut) {
-                binding.wrappedValue.toggle()
-            }
-        }
-    }
 
     private static let refreshDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -606,55 +256,7 @@ struct AITabView: View {
         }
     }
 
-    private var aiJobsSection: some View {
-        Section(header: jobsSectionHeader) {
-            if !isJobSectionExpanded {
-                Button(NSLocalizedString("ai_tab_jobs_show_button", comment: "")) {
-                    withAnimation(.easeInOut) {
-                        isJobSectionExpanded = true
-                    }
-                }
-                .buttonStyle(.bordered)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                Text(NSLocalizedString("ai_tab_jobs_collapsed_hint", comment: ""))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else if aiGenerationManager.activeJobs.isEmpty && aiJobHistory.isEmpty {
-                Text(NSLocalizedString("ai_tab_jobs_empty", comment: ""))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            } else {
-                if !aiGenerationManager.activeJobs.isEmpty {
-                    ForEach(aiGenerationManager.activeJobs) { job in
-                        aiJobRow(job, showDelete: false)
-                    }
-                }
 
-                if !aiJobHistory.isEmpty {
-                    ForEach(aiJobHistory) { job in
-                        aiJobRow(job)
-                    }
-                }
-            }
-        }
-    }
-
-    private var jobsSectionHeader: some View {
-        HStack(spacing: 8) {
-            Text(NSLocalizedString("ai_tab_jobs_section", comment: ""))
-                .font(.headline)
-            Spacer()
-            Image(systemName: isJobSectionExpanded ? "chevron.up" : "chevron.down")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-        }
-        .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(.easeInOut) {
-                isJobSectionExpanded.toggle()
-            }
-        }
-    }
 
     private var creditsSection: some View {
         Section(header: Text(NSLocalizedString("ai_tab_credits_section", comment: ""))) {
@@ -714,9 +316,7 @@ private extension AITabView {
         return chatJobs.first
     }
 
-    var aiJobHistory: [AIGenerationJob] {
-        Array(aiGenerationManager.recentJobs.filter { $0.isTerminal }.prefix(5))
-    }
+
 
     @ViewBuilder
     func chatJobResultCard(_ job: AIGenerationJob) -> some View {
@@ -812,95 +412,7 @@ private extension AITabView {
         }
     }
 
-    @ViewBuilder
-    func aiJobRow(_ job: AIGenerationJob, showDelete: Bool = true) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(jobTitle(for: job))
-                    .font(.headline)
-                Spacer()
-                Text(chatJobStatusText(job))
-                    .font(.caption)
-                    .foregroundStyle(statusColor(for: job))
-            }
 
-            if let detail = jobDetail(for: job), !detail.isEmpty {
-                Text(detail)
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-
-            HStack(spacing: 12) {
-                Text(job.createdAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Spacer()
-                if job.status == .queued {
-                    Button(NSLocalizedString("ai_tab_cancel_job", comment: "")) {
-                        Task { await aiGenerationManager.cancelJob(job) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                }
-                if showDelete {
-                    Button(role: .destructive) {
-                        Task { await aiGenerationManager.deleteJob(job) }
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .buttonStyle(.borderless)
-                }
-            }
-        }
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            selectedJobForDetail = job
-        }
-    }
-
-    func jobTitle(for job: AIGenerationJob) -> String {
-        switch job.type {
-        case .chatTester:
-            return NSLocalizedString("ai_job_type_chat_tester", comment: "")
-        case .transcriptRepair:
-            return job.displayName ?? NSLocalizedString("ai_job_type_transcript_repair", comment: "")
-        case .trackSummary:
-            return job.displayName ?? NSLocalizedString("ai_job_type_track_summary", comment: "")
-        }
-    }
-
-    func jobDetail(for job: AIGenerationJob) -> String? {
-        switch job.type {
-        case .chatTester:
-            if let output = job.streamedOutput ?? job.finalOutput, !output.isEmpty {
-                return truncate(output)
-            }
-            if let prompt = job.userPrompt, !prompt.isEmpty {
-                return truncate(prompt)
-            }
-            return nil
-        case .transcriptRepair:
-            if let results = job.decodedMetadata()?.repairResults {
-                if results.isEmpty {
-                    return "No changes."
-                }
-                return "Updated \(results.count) segment(s)."
-            }
-            if let payload = job.decodedPayload(TranscriptRepairJobPayload.self) {
-                return "Queued \(payload.selectionIndexes.count) segment(s)."
-            }
-            return nil
-        case .trackSummary:
-            return job.finalOutput
-        }
-    }
-
-    func truncate(_ text: String, limit: Int = 160) -> String {
-        if text.count <= limit { return text }
-        let endIndex = text.index(text.startIndex, offsetBy: limit)
-        return String(text[..<endIndex]) + "…"
-    }
-}
 
 func resignFirstResponder() {
 #if canImport(UIKit)
@@ -999,6 +511,7 @@ struct TTSTabView: View {
 
                     // Transcription Jobs Section
                     transcriptionJobsSection
+                    sonioxFilesSection
                 }
             }
             .navigationTitle(Text(NSLocalizedString("tts_tab_title", comment: "")))
@@ -1190,6 +703,25 @@ struct TTSTabView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var sonioxFilesSection: some View {
+        Section {
+            NavigationLink {
+                SonioxFilesListView()
+            } label: {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label(NSLocalizedString("tts_files_section_label", comment: ""), systemImage: "folder")
+                    Text(NSLocalizedString("tts_files_section_description", comment: ""))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.vertical, 4)
+            }
+        } header: {
+            Text(NSLocalizedString("tts_files_section_header", comment: ""))
         }
     }
 
@@ -1653,4 +1185,161 @@ struct TranscriptionHistorySheet: View {
         formatter.unitsStyle = .abbreviated
         return formatter.localizedString(for: date, relativeTo: Date())
     }
+}
+
+struct SonioxFilesListView: View {
+    @EnvironmentObject private var transcriptionManager: TranscriptionManager
+    @State private var files: [SonioxFile] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    @State private var deletingFileIDs: Set<String> = []
+
+    var body: some View {
+        List {
+            if isLoading {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+            } else if let errorMessage = errorMessage {
+                Text(errorMessage)
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            } else if files.isEmpty {
+                Text(NSLocalizedString("tts_files_empty_state", comment: ""))
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity)
+            } else {
+                ForEach(files) { file in
+                    fileRow(for: file)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(Text(NSLocalizedString("tts_files_view_title", comment: "")))
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    Task { await loadFiles() }
+                } label: {
+                    Label(NSLocalizedString("tts_files_refresh_button", comment: ""), systemImage: "arrow.clockwise")
+                }
+            }
+        }
+        .task { await loadFiles() }
+        .refreshable { await loadFiles() }
+    }
+
+    private func fileRow(for file: SonioxFile) -> some View {
+        let sizeDescription = sizeText(for: file)
+        return VStack(alignment: .leading, spacing: 4) {
+            Text(file.displayName)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            HStack(spacing: 6) {
+                if let sizeDescription {
+                    Text(sizeDescription)
+                }
+                if sizeDescription != nil && file.createdAt != nil {
+                    Text("•")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                if let createdAt = file.createdAt {
+                    Text(Self.fileDateFormatter.string(from: createdAt))
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 6)
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if deletingFileIDs.contains(file.id) {
+                Button {
+                } label: {
+                    ProgressView()
+                }
+                .disabled(true)
+            } else {
+                Button(role: .destructive) {
+                    Task { await deleteFile(file) }
+                } label: {
+                    Label(NSLocalizedString("tts_files_delete_action", comment: ""), systemImage: "trash")
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func loadFiles() async {
+        guard !isLoading else { return }
+
+        isLoading = true
+        errorMessage = nil
+        files = []
+        defer { isLoading = false }
+
+        transcriptionManager.reloadSonioxAPIKey()
+        guard let api = transcriptionManager.sonioxAPI else {
+            errorMessage = NSLocalizedString("tts_files_no_key_message", comment: "")
+            return
+        }
+
+        do {
+            let fetched = try await api.listFiles()
+            files = fetched.sorted(by: {
+                let lhs = $0.createdAt ?? .distantPast
+                let rhs = $1.createdAt ?? .distantPast
+                return lhs > rhs
+            })
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func deleteFile(_ file: SonioxFile) async {
+        deletingFileIDs.insert(file.id)
+        defer { deletingFileIDs.remove(file.id) }
+
+        transcriptionManager.reloadSonioxAPIKey()
+        guard let api = transcriptionManager.sonioxAPI else {
+            errorMessage = NSLocalizedString("tts_files_no_key_message", comment: "")
+            return
+        }
+
+        do {
+            try await api.deleteFile(fileId: file.id)
+            files.removeAll { $0.id == file.id }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func sizeText(for file: SonioxFile) -> String? {
+        guard let bytes = file.sizeBytes else { return nil }
+        return Self.fileSizeFormatter.string(fromByteCount: Int64(bytes))
+    }
+
+    private static let fileSizeFormatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter
+    }()
+
+    private static let fileDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .short
+        return formatter
+    }()
 }

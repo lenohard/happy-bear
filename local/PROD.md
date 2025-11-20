@@ -1,7 +1,13 @@
 # Current Features & Bugs
-### Feat:
+### Feat: use tarnscrit as context to chat with ai
 
 ### Feat: add feeddbuck for click or drag the bubbble, jjust liek the ios assssitantBubble will enlarge upon interaction. 
+
+### make the bubble to show the playing percentage?
+
+### soniox file list and delte manuagement
+**Doc**: `local/task-tts-files-management.md`
+**Notes**: Provide a Files page under the TTS tab so folks can inspect every Soniox upload and swipe to delete any leftovers.
 
 ### Bug: frequent and random crash during summary.
 
