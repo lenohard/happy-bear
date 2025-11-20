@@ -164,10 +164,12 @@ struct AIGenerationUsageSnapshot: Codable, Equatable {
     let completionTokens: Int?
     let totalTokens: Int?
     let cost: Double?
+    let reasoningTokens: Int?
 }
 
 struct ChatTesterJobPayload: Codable, Equatable {
     let temperature: Double
+    let reasoning: AIGatewayReasoningConfig?
 }
 
 struct TranscriptRepairJobPayload: Codable, Equatable {
@@ -190,6 +192,7 @@ struct AIGenerationJobMetadata: Codable, Equatable {
     var flags: [String: Bool]?
     var extras: [String: String]?
     var repairResults: [TranscriptRepairResult]?
+    var reasoning: AIGenerationReasoningSnapshot?
 
     func flagEnabled(_ key: String) -> Bool {
         flags?[key] ?? false
@@ -206,6 +209,12 @@ struct AIGenerationJobMetadata: Codable, Equatable {
     func updatingRepairResults(_ results: [TranscriptRepairResult]) -> AIGenerationJobMetadata {
         var copy = self
         copy.repairResults = results
+        return copy
+    }
+
+    func updatingReasoning(_ snapshot: AIGenerationReasoningSnapshot?) -> AIGenerationJobMetadata {
+        var copy = self
+        copy.reasoning = snapshot
         return copy
     }
 }

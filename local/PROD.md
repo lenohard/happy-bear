@@ -1,17 +1,17 @@
 # Current Features & Bugs
 ### Feat:
 
-### Feat: Floating Playback Bubble
-Doc: `local/feat-floating-playback-bubble.md`
-Notes: Persistent floating bubble for quick play/pause + jump to Now Playing without navigating.
+### Support Reasonning Models
+Doc: `local/support-reasoning-models.md`
+Notes: Audit the current AI usage, add a toggle for reasoning-enabled tester jobs, capture `message.reasoning` + `reasoning_details`, and surface it alongside career usage metrics.
 
-### Feat: Track transcript summaries & sections
-Doc: `local/feat-track-summary.md`
-Notes: Auto-generate an overall track summary plus timestamped sections derived from transcripts; requires LLM pipeline + new UI entry point.
+### Scroll 卡顿
 
-### Feat: AI Background Generation Jobs
-Doc: `local/task-ai-background-jobs.md`
-Notes: Persist AI chat/repair/summarization jobs with a shared manager + UI so work continues while navigating or when the app is suspended.
+### The lastupdated for ai credit, current updlate every second
+
+### Add a indicator in collectionDetail page for the track with summary.
+
+### summary 的重新生成和生成用同一个按钮
 
 ### Feat: Genreate Audiobook Using STT and add Background Music
 
@@ -19,6 +19,9 @@ Notes: Persist AI chat/repair/summarization jobs with a shared manager + UI so w
 
 ### Feat: Random Play For musical collection
 
+# History: Completed Features & Bugs
+
+## ✅ Completed Features
 ### Bug: AI tester job stuck running after crash
 Doc: `local/bug-ai-job-stuck-running.md`
 Notes: Mark lingering `running/streaming` AI tester jobs as failed on relaunch so the Run button unlocks, and kick queued jobs so they resume.
@@ -31,9 +34,17 @@ Notes: On-device transcript sheet never advances past Downloading and eventually
 Doc: `local/bug-playing-card-transcript-status.md`
 Notes: Starting transcription from the playing card never updates its status chip when the job finishes, and the summary card shows 0 segments/characters despite an existing transcript.
 
-# History: Completed Features & Bugs
+### Feat: Floating Playback Bubble
+Doc: `local/feat-floating-playback-bubble.md`
+Notes: Persistent floating bubble for quick play/pause + jump to Now Playing without navigating.
 
-## ✅ Completed Features
+### Feat: Track transcript summaries & sections
+Doc: `local/feat-track-summary.md`
+Notes: Auto-generate an overall track summary plus timestamped sections derived from transcripts; requires LLM pipeline + new UI entry point.
+
+### Feat: AI Background Generation Jobs
+Doc: `local/task-ai-background-jobs.md`
+Notes: Persist AI chat/repair/summarization jobs with a shared manager + UI so work continues while navigating or when the app is suspended.
 ### Task: Transcript repair controls refresh
 Doc: `local/task-transcript-repair-controls.md`
 Notes: Compact repair mode toggles/slider, add stats card, shrink select label.

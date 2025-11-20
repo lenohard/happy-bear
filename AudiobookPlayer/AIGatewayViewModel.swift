@@ -206,7 +206,7 @@ final class AIGatewayViewModel: ObservableObject {
         }
     }
 
-    func enqueueChatTest(using manager: AIGenerationManager, temperature: Double = 0.7) async {
+    func enqueueChatTest(using manager: AIGenerationManager, temperature: Double = 0.2, reasoning: AIGatewayReasoningConfig? = nil) async {
         let trimmedPrompt = chatPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty else {
             chatTesterError = nil
@@ -223,6 +223,7 @@ final class AIGatewayViewModel: ObservableObject {
                 systemPrompt: systemPrompt,
                 temperature: temperature,
                 modelId: selectedModelID,
+                reasoning: reasoning,
                 displayName: "AI Tester"
             )
             lastChatJobId = job.id

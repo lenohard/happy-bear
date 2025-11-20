@@ -38,6 +38,7 @@ final class AIGatewayClient {
         systemPrompt: String,
         userPrompt: String,
         temperature: Double = 0.7,
+        reasoning: AIGatewayReasoningConfig? = nil,
         onStreamDelta: ((String) -> Void)? = nil,
         onStreamFallback: (() -> Void)? = nil
     ) async throws -> ChatCompletionsResponse {
@@ -50,6 +51,10 @@ final class AIGatewayClient {
             "temperature": temperature,
             "stream": true
         ]
+
+        if let reasoning {
+            payload["reasoning"] = try encodeReasoningPayload(reasoning)
+        }
 
         do {
             return try await streamChatCompletion(apiKey: apiKey, payload: payload, onDelta: onStreamDelta)
@@ -77,6 +82,8 @@ final class AIGatewayClient {
             struct Delta: Decodable {
                 let role: String?
                 let content: String?
+                let reasoning: String?
+                let reasoningDetails: [AIGatewayReasoningDetail]?
             }
 
             let index: Int
@@ -122,6 +129,8 @@ final class AIGatewayClient {
         var responseID: String?
         var responseModel: String?
         var usage: ChatCompletionsResponse.Usage?
+        var accumulatedReasoning = ""
+        var accumulatedReasoningDetails: [AIGatewayReasoningDetail] = []
         var lastChoiceIndex = 0
         let decoder = JSONDecoder()
 
@@ -147,6 +156,12 @@ final class AIGatewayClient {
                     accumulatedText.append(content)
                     onDelta?(content)
                 }
+                if let reasoning = choice.delta?.reasoning {
+                    accumulatedReasoning.append(reasoning)
+                }
+                if let details = choice.delta?.reasoningDetails {
+                    accumulatedReasoningDetails.append(contentsOf: details)
+                }
                 lastChoiceIndex = max(lastChoiceIndex, choice.index)
             }
         }
@@ -155,7 +170,12 @@ final class AIGatewayClient {
             throw AIGatewayRequestError(message: "Streaming response missing metadata.")
         }
 
-        let message = AIGatewayChatChoice.ChoiceMessage(role: detectedRole, content: accumulatedText)
+        let message = AIGatewayChatChoice.ChoiceMessage(
+            role: detectedRole,
+            content: accumulatedText,
+            reasoning: accumulatedReasoning.isEmpty ? nil : accumulatedReasoning,
+            reasoningDetails: accumulatedReasoningDetails.isEmpty ? nil : accumulatedReasoningDetails
+        )
         let choice = AIGatewayChatChoice(index: lastChoiceIndex, message: message)
 
         return ChatCompletionsResponse(id: responseID, model: responseModel, choices: [choice], usage: usage)
@@ -200,5 +220,14 @@ final class AIGatewayClient {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(T.self, from: data)
+    }
+
+    private func encodeReasoningPayload(_ config: AIGatewayReasoningConfig) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(config)
+        let object = try JSONSerialization.jsonObject(with: data, options: [])
+        guard let dictionary = object as? [String: Any] else {
+            throw AIGatewayRequestError(message: "Reasoning config could not be serialized.")
+        }
+        return dictionary
     }
 }

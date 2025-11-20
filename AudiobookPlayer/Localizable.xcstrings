@@ -214,6 +214,23 @@
         }
       }
     },
+    "ai_job_detail_reasoning_summary" : {
+      "comment" : "Label shown when reasoning data is available in metadata summary",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Reasoning captured"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "包含推理"
+          }
+        }
+      }
+    },
     "ai_job_detail_missing" : {
       "comment" : "Missing job message",
       "localizations" : {
@@ -278,6 +295,23 @@
           "stringUnit" : {
             "state" : "needsReview",
             "value" : "完整输出"
+          }
+        }
+      }
+    },
+    "ai_job_detail_reasoning_header" : {
+      "comment" : "Header for reasoning section",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Reasoning"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "推理"
           }
         }
       }
@@ -363,6 +397,23 @@
           "stringUnit" : {
             "state" : "needsReview",
             "value" : "生成 token：%d"
+          }
+        }
+      }
+    },
+    "ai_job_detail_usage_reasoning" : {
+      "comment" : "Label for reasoning token usage",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Reasoning tokens: %d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "推理 token：%d"
           }
         }
       }
@@ -1283,6 +1334,23 @@
         }
       }
     },
+    "ai_tab_reasoning_toggle" : {
+      "comment" : "Toggle label for requesting reasoning output",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Include reasoning"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "包含推理"
+          }
+        }
+      }
+    },
     "ai_tab_tester_section" : {
       "localizations" : {
         "en" : {
@@ -1344,6 +1412,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用了 %lld 提示词 + %lld 完成 tokens"
+          }
+        }
+      }
+    },
+    "ai_tab_usage_reasoning" : {
+      "comment" : "Additional line for reasoning token usage",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Reasoning tokens: %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "推理 token：%lld"
           }
         }
       }
@@ -1839,6 +1924,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "关闭"
+          }
+        }
+      }
+    },
+    "collapsed_accessibility_label" : {
+      "comment" : "Accessibility value describing a collapsed control",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Collapsed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "已折叠"
           }
         }
       }
@@ -2356,6 +2458,23 @@
         }
       }
     },
+    "expanded_accessibility_label" : {
+      "comment" : "Accessibility value describing an expanded control",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Expanded"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "已展开"
+          }
+        }
+      }
+    },
     "expires_label" : {
       "comment" : "Expires label",
       "localizations" : {
@@ -2410,36 +2529,19 @@
         }
       }
     },
-    "floating_bubble_settings_title" : {
+    "floating_bubble_menu_title" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Enable Floating Bubble"
+            "value" : "Floating Bubble"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "启用悬浮球"
-          }
-        }
-      }
-    },
-    "floating_bubble_opacity_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bubble Transparency"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "悬浮球透明度"
+            "value" : "悬浮球"
           }
         }
       }
@@ -2461,6 +2563,40 @@
         }
       }
     },
+    "floating_bubble_opacity_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bubble Transparency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "悬浮球透明度"
+          }
+        }
+      }
+    },
+    "floating_bubble_settings_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Floating Bubble"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用悬浮球"
+          }
+        }
+      }
+    },
     "floating_player_section" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2468,23 +2604,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Floating Player"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "悬浮球"
-          }
-        }
-      }
-    },
-    "floating_bubble_menu_title" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Floating Bubble"
           }
         },
         "zh-Hans" : {
@@ -4098,6 +4217,23 @@
         }
       }
     },
+    "track_summary_toggle_accessibility" : {
+      "comment" : "Toggle track summary visibility",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "Toggle track summary"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needsReview",
+            "value" : "展开或折叠音轨概要"
+          }
+        }
+      }
+    },
     "track_summary_transcript_not_ready" : {
       "comment" : "Transcript not completed",
       "localizations" : {
@@ -4128,57 +4264,6 @@
           "stringUnit" : {
             "state" : "needsReview",
             "value" : "转录就绪：%1$@ 段 • %2$@ 字符"
-          }
-        }
-      }
-    },
-    "track_summary_toggle_accessibility" : {
-      "comment" : "Accessibility label for toggling the track summary card",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "Toggle track summary"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "展开或折叠音轨概要"
-          }
-        }
-      }
-    },
-    "expanded_accessibility_label" : {
-      "comment" : "Accessibility value describing an expanded control",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "Expanded"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "已展开"
-          }
-        }
-      }
-    },
-    "collapsed_accessibility_label" : {
-      "comment" : "Accessibility value describing a collapsed control",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "Collapsed"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "已折叠"
           }
         }
       }

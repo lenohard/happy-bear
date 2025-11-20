@@ -81,6 +81,7 @@ actor AIGenerationJobExecutor {
         let systemPrompt = job.systemPrompt ?? ""
         let payload = job.decodedPayload(ChatTesterJobPayload.self)
         let temperature = payload?.temperature ?? 0.7
+        let reasoningConfig = payload?.reasoning
         var streamBuffer = job.streamedOutput ?? ""
         var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
 
@@ -92,6 +93,7 @@ actor AIGenerationJobExecutor {
             systemPrompt: systemPrompt,
             userPrompt: prompt,
             temperature: temperature,
+            reasoning: reasoningConfig,
             onStreamDelta: { [weak self] delta in
                 guard let self else { return }
                 Task {
@@ -116,15 +118,22 @@ actor AIGenerationJobExecutor {
         )
 
         let content = response.choices.first?.message.content ?? streamBuffer
+        if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
+            metadata = metadata.updatingReasoning(snapshot)
+        }
         let usageSnapshot = AIGenerationUsageSnapshot(
             promptTokens: response.usage?.promptTokens,
             completionTokens: response.usage?.completionTokens,
             totalTokens: response.usage?.totalTokens,
-            cost: response.usage?.cost
+            cost: response.usage?.cost,
+            reasoningTokens: response.usage?.completionTokensDetails?.reasoningTokens
         )
 
         try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: content)
         let usageJSON = encodeUsage(usageSnapshot)
+        if let json = encodeMetadata(metadata) {
+            try await dbManager.updateAIGenerationJobMetadata(jobId: job.id, metadataJSON: json)
+        }
         try await dbManager.markAIGenerationJobCompleted(jobId: job.id, finalOutput: content, usageJSON: usageJSON)
     }
 
@@ -271,6 +280,10 @@ actor AIGenerationJobExecutor {
             let rawText = response.choices.first?.message.content ?? streamBuffer
             try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
 
+            if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
+                metadata = metadata.updatingReasoning(snapshot)
+            }
+
             let parsed = try trackSummaryGenerator.parseResponse(rawText)
             let sections = parsed.sections.enumerated().map { index, payload in
                 TrackSummarySection(
@@ -304,7 +317,8 @@ actor AIGenerationJobExecutor {
                 promptTokens: response.usage?.promptTokens,
                 completionTokens: response.usage?.completionTokens,
                 totalTokens: response.usage?.totalTokens,
-                cost: response.usage?.cost
+                cost: response.usage?.cost,
+                reasoningTokens: response.usage?.completionTokensDetails?.reasoningTokens
             )
             let usageJSON = encodeUsage(usageSnapshot)
 
@@ -330,6 +344,14 @@ actor AIGenerationJobExecutor {
     }
 
     // MARK: - Helpers
+
+    private func reasoningSnapshot(from message: AIGatewayChatChoice.ChoiceMessage?) -> AIGenerationReasoningSnapshot? {
+        guard let message else { return nil }
+        let hasText = message.reasoning?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+        let hasDetails = !(message.reasoningDetails?.isEmpty ?? true)
+        guard hasText || hasDetails else { return nil }
+        return AIGenerationReasoningSnapshot(text: message.reasoning, details: message.reasoningDetails)
+    }
 
     nonisolated private func encodeMetadata(_ metadata: AIGenerationJobMetadata) -> String? {
         guard let data = try? JSONEncoder().encode(metadata) else { return nil }

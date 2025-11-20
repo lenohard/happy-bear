@@ -77,6 +77,15 @@ struct AIGatewayChatChoice: Codable {
     struct ChoiceMessage: Codable {
         let role: String
         let content: String
+        let reasoning: String?
+        let reasoningDetails: [AIGatewayReasoningDetail]?
+
+        enum CodingKeys: String, CodingKey {
+            case role
+            case content
+            case reasoning
+            case reasoningDetails = "reasoning_details"
+        }
     }
 
     let index: Int
@@ -90,12 +99,21 @@ struct ChatCompletionsResponse: Codable {
     let usage: Usage?
 
     struct Usage: Codable {
+        struct CompletionTokensDetails: Codable {
+            let reasoningTokens: Int?
+
+            enum CodingKeys: String, CodingKey {
+                case reasoningTokens = "reasoning_tokens"
+            }
+        }
+
         let promptTokens: Int?
         let completionTokens: Int?
         let totalTokens: Int?
         let cost: Double?
         let marketCost: Double?
         let isByok: Bool?
+        let completionTokensDetails: CompletionTokensDetails?
 
         enum CodingKeys: String, CodingKey {
             case promptTokens = "prompt_tokens"
@@ -104,6 +122,7 @@ struct ChatCompletionsResponse: Codable {
             case cost
             case marketCost = "market_cost"
             case isByok = "is_byok"
+            case completionTokensDetails = "completion_tokens_details"
         }
     }
 }

@@ -30,6 +30,7 @@ final class AIGenerationManager: ObservableObject {
         systemPrompt: String,
         temperature: Double,
         modelId: String,
+        reasoning: AIGatewayReasoningConfig? = nil,
         displayName: String? = nil
     ) async throws -> AIGenerationJob {
         let trimmedPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -39,7 +40,7 @@ final class AIGenerationManager: ObservableObject {
 
         try await dbManager.initializeDatabase()
 
-        let payload = ChatTesterJobPayload(temperature: temperature)
+        let payload = ChatTesterJobPayload(temperature: temperature, reasoning: reasoning)
         let payloadJSON = try encodeJSON(payload)
 
         let job = try await dbManager.createAIGenerationJob(

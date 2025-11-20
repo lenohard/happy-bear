@@ -13,6 +13,7 @@ struct AITabView: View {
     @AppStorage("ai_tab_models_section_expanded_v3") private var isModelListExpanded = false
     @AppStorage("ai_tab_collapsed_provider_data_v2") private var collapsedProviderData: Data = Data()
     @AppStorage("ai_tab_jobs_section_expanded_v1") private var isJobSectionExpanded = false
+    @AppStorage("ai_tab_tester_reasoning_enabled_v1") private var isTesterReasoningEnabled = false
     @State private var modelSearchText: String = ""
     @State private var isCredentialSectionExpanded = false
     @State private var hasAppliedDefaultCollapse = false
@@ -562,8 +563,16 @@ private func lastRefreshDescription(for date: Date?) -> String? {
             TextField(NSLocalizedString("ai_tab_prompt_placeholder", comment: ""), text: $gateway.chatPrompt, axis: .vertical)
                 .lineLimit(3, reservesSpace: true)
 
+            Toggle(isOn: $isTesterReasoningEnabled) {
+                Text(NSLocalizedString("ai_tab_reasoning_toggle", comment: ""))
+            }
+            .toggleStyle(.switch)
+
             Button {
-                Task { await gateway.enqueueChatTest(using: aiGenerationManager) }
+                let reasoningConfig = isTesterReasoningEnabled
+                    ? AIGatewayReasoningConfig(enabled: true, maxTokens: nil, effort: nil, exclude: nil)
+                    : nil
+                Task { await gateway.enqueueChatTest(using: aiGenerationManager, reasoning: reasoningConfig) }
             } label: {
                 if chatJobInProgress != nil {
                     HStack(spacing: 8) {
@@ -743,6 +752,16 @@ private extension AITabView {
                 Text(text)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                if let reasoning = usage.reasoningTokens {
+                    Text(
+                        String(
+                            format: NSLocalizedString("ai_tab_usage_reasoning", comment: ""),
+                            reasoning
+                        )
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
             }
 
             if job.decodedMetadata()?.flagEnabled("stream_fallback") == true {

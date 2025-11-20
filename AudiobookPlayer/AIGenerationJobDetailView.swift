@@ -18,6 +18,7 @@ struct AIGenerationJobDetailView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             jobHeader(job)
                             outputSection(for: job)
+                            reasoningSection(for: job)
 
                             if job.systemPrompt != nil || job.userPrompt != nil {
                                 promptsSection(for: job)
@@ -119,6 +120,67 @@ struct AIGenerationJobDetailView: View {
     }
 
     @ViewBuilder
+    private func reasoningSection(for job: AIGenerationJob) -> some View {
+        if
+            let reasoning = job.decodedMetadata()?.reasoning,
+            let text = reasoning.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !text.isEmpty
+        {
+            reasoningDetailsSection(reasoning: reasoning, hasText: true)
+        } else if let reasoning = job.decodedMetadata()?.reasoning,
+                  let details = reasoning.details,
+                  !details.isEmpty
+        {
+            reasoningDetailsSection(reasoning: reasoning, hasText: false)
+        } else {
+            EmptyView()
+        }
+    }
+
+    private func reasoningDetailsSection(reasoning: AIGenerationReasoningSnapshot, hasText: Bool) -> some View {
+        GroupBox(label: Label(NSLocalizedString("ai_job_detail_reasoning_header", comment: ""), systemImage: "brain.head.profile")) {
+            VStack(alignment: .leading, spacing: 8) {
+                if hasText, let text = reasoning.text {
+                    Text(text)
+                        .font(.system(.body, design: .monospaced))
+                        .textSelection(.enabled)
+                }
+                if let details = reasoning.details, !details.isEmpty {
+                    ForEach(Array(details.enumerated()), id: \.offset) { index, detail in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(detail.type)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                            if let summary = detail.summary, !summary.isEmpty {
+                                Text(summary)
+                                    .textSelection(.enabled)
+                            } else if let text = detail.text, !text.isEmpty {
+                                Text(text)
+                                    .textSelection(.enabled)
+                            } else if let data = detail.data, !data.isEmpty {
+                                Text(data)
+                                    .textSelection(.enabled)
+                            }
+                            if let format = detail.format, !format.isEmpty {
+                                Text(format)
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            if let signature = detail.signature, !signature.isEmpty {
+                                Text(signature)
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .padding(.top, index == 0 ? 0 : 6)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
     private func promptsSection(for job: AIGenerationJob) -> some View {
         GroupBox(label: Label(NSLocalizedString("ai_job_detail_prompts_header", comment: ""), systemImage: "quote.bubble")) {
             VStack(alignment: .leading, spacing: 12) {
@@ -168,6 +230,14 @@ struct AIGenerationJobDetailView: View {
                 }
                 if let cost = usage.cost {
                     Text(String(format: NSLocalizedString("ai_job_detail_usage_cost", comment: ""), cost))
+                }
+                if let reasoning = usage.reasoningTokens {
+                    Text(
+                        String(
+                            format: NSLocalizedString("ai_job_detail_usage_reasoning", comment: ""),
+                            reasoning
+                        )
+                    )
                 }
             }
             .font(.footnote)
@@ -254,6 +324,11 @@ private extension AIGenerationJobMetadata {
         }
         if let repairs = repairResults, !repairs.isEmpty {
             parts.append("Repairs: \(repairs.count)")
+        }
+        if let reasoning = reasoning,
+           (reasoning.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false) ||
+           !(reasoning.details?.isEmpty ?? true) {
+            parts.append(NSLocalizedString("ai_job_detail_reasoning_summary", comment: ""))
         }
         return parts.joined(separator: "\n")
     }

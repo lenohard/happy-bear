@@ -24,6 +24,28 @@ Only one credential type is required per request. If both are supplied, the API 
 - Behavior tracks the public OpenAI API spec; SDKs that target OpenAI should work without code changes.
 - Endpoint coverage expands along with the upstream specification; monitor release notes for additional routes.
 
+## Reasoning & Chain-of-Thought Controls
+AI Gateway exposes the new `reasoning` parameter so clients can request the model’s internal thinking (either streamed or as part of a completed response) without needing provider-specific wiring. This keeps our tool-calling and verification layers consistent across OpenAI, Anthropic, Google, Groq, xAI, and any future endpoints.
+
+### Request knobs
+- `reasoning.enabled` (boolean): set to `true` to surface the reasoning field.
+- `reasoning.max_tokens` (integer): cap the reasoning-token budget when you care about cost/latency. Cannot be combined with `effort`.
+- `reasoning.effort` (`low`/`medium`/`high`): ask for light, balanced, or deep reasoning instead of a hard token cap. Mutually exclusive with `max_tokens`.
+- `reasoning.exclude` (boolean): when set, the response omits the reasoning text but still generates it internally (useful for hidden verification or tooling).
+
+### Response shape
+When enabled, completions include a `message.reasoning` string plus `message.reasoning_details`, which normalizes provider payloads into a list of objects with `type` (`reasoning.text`, `reasoning.summary`, `reasoning.encrypted`), `format` (`openai-responses-v1`, `anthropic-claude-v1`, etc.), and optional signature/encrypted blobs. Usage metadata also reports `completion_tokens_details.reasoning_tokens`.
+
+Reasoning-enabled streaming responses surface the same data incrementally: each `chunk.choices[0].delta` can carry `reasoning`, `reasoning_details`, and eventually the encrypted summary for OpenAI-style models. Our AI tab and background tooling should check those deltas separately from `delta.content`.
+
+### Provider mapping
+AI Gateway normalizes the providers’ native reasoning controls under this single surface:
+1. OpenAI → maps `effort` to `reasoningEffort`, streams summaries plus an encrypted bundle (`reasoning.summary` + `reasoning.encrypted`).
+2. Anthropic → maps `max_tokens` to the thinking token budget and exposes signatures on its reasoning chunks.
+3. Google, Groq, xAI, and others → are projected into `reasoningConfig`-style knobs (budget/visibility, hidden thinking, effort) so client code stays unchanged.
+
+This design means we can resume tool-assisted conversations by replaying the same reasoning blocks (via `reasoning_details`) after the model consumes tool outputs, regardless of the upstream provider.
+
 ## Key Management Inside The App
 - Treat the API key as a per-user secret provided at runtime (never ship one in the binary).
 - Collect the key in the AI tab’s settings form, validate it with a lightweight `GET /models` probe, then store it in the **iOS Keychain** with `kSecAttrAccessibleAfterFirstUnlock` so background tasks can reuse it after reboot.
@@ -281,3 +303,4 @@ print(resp.json())
 - **Data layer**: `AIGatewayViewModel`, `AIGatewayClient`, and `KeychainAIGatewayAPIKeyStore` coordinate persistence and API calls.
 - **Defaults**: Preferred model stored under `ai_gateway_default_model` in `UserDefaults` and surfaced via “Use as Default” buttons.
 - **Auto refresh**: When a valid key exists, the tab preloads models (if empty) and credit totals, with manual refresh + inline error states for retries.
+- **Reasoning capture**: The chat tester can request reasoning via the new toggle, metadata now records `message.reasoning`/`reasoning_details`, and usage snapshots include reasoning token counts so the detail view surface the chain-of-thought context.
