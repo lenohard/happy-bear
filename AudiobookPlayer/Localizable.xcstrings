@@ -2410,6 +2410,40 @@
         }
       }
     },
+    "floating_bubble_settings_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Enable Floating Bubble"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用悬浮球"
+          }
+        }
+      }
+    },
+    "floating_player_section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Floating Player"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "悬浮球"
+          }
+        }
+      }
+    },
     "Folder" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2420,11 +2454,34 @@
         }
       }
     },
-    "Import Audiobook" : {
+    "hide_for_session" : {
+      "extractionState" : "manual",
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hide for this Session"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
+            "value" : "本次隐藏"
+          }
+        }
+      }
+    },
+    "Import Audiobook" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
             "value" : "导入音频"
           }
         }
@@ -2820,6 +2877,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打开合集"
+          }
+        }
+      }
+    },
+    "open_playing_tab" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open Playing Tab"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开播放页面"
           }
         }
       }
@@ -3408,7 +3482,7 @@
 
     },
     "settings_tab" : {
-      "comment" : "Settings tab",
+      "comment" : "Settings\nSettings tab",
       "localizations" : {
         "en" : {
           "stringUnit" : {

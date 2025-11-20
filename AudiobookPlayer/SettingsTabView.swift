@@ -43,6 +43,19 @@ struct SettingsTabView: View {
                         }
                     }
                 }
+                
+                Section {
+                    HStack {
+                        Image(systemName: "pip.enter")
+                            .foregroundStyle(.tint)
+                        Toggle(NSLocalizedString("floating_bubble_settings_title", comment: "Floating bubble settings title"), isOn: Binding(
+                            get: { UserDefaults.standard.bool(forKey: "floatingBubbleEnabled") },
+                            set: { UserDefaults.standard.set($0, forKey: "floatingBubbleEnabled") }
+                        ))
+                    }
+                } header: {
+                    Text(NSLocalizedString("floating_player_section", comment: "Floating player section"))
+                }
 
                 backupRestoreSection
 

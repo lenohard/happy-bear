@@ -58,10 +58,13 @@
 		86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */; };
 		86C5F7012F0AFA4300647B2C /* AITranscriptRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */; };
 		86E5CFEF2ECDC51D00CE62A1 /* TrackSummaryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFEE2ECDC51D00CE62A1 /* TrackSummaryStore.swift */; };
+		86E5CFF02ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFED2ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift */; };
+		86E5CFF22ECEB62900CE62A1 /* FloatingPlaybackBubbleViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFF12ECEB62900CE62A1 /* FloatingPlaybackBubbleViewModel.swift */; };
+		86E5CFF42ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFF32ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift */; };
+		86E5CFF62ECEB8CA00CE62A1 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFF52ECEB8CA00CE62A1 /* Color+Hex.swift */; };
+		86E5D1022ECDC8C400CE62A1 /* TrackSummaryGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */; };
 		86E5D1132ECDCB1100CE62A1 /* TrackSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */; };
 		86E5D1152ECDCB1100CE62A1 /* TrackSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1142ECDCB1100CE62A1 /* TrackSummaryCard.swift */; };
-		86E5D1022ECDC8C400CE62A1 /* TrackSummaryGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */; };
-		86E5CFF02ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFED2ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift */; };
 		86FC75842EC7244600E7AEB8 /* UserDataBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */; };
 		86FE17562EBFC7F200027E93 /* test-1min.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 86FE17552EBFC7F200027E93 /* test-1min.mp3 */; };
 		86FE175C2EC20F6500027E93 /* SettingsTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FE175B2EC20F6400027E93 /* SettingsTabView.swift */; };
@@ -141,9 +144,12 @@
 		86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITranscriptRepair.swift; sourceTree = "<group>"; };
 		86E5CFED2ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryDatabaseSchema.swift; sourceTree = "<group>"; };
 		86E5CFEE2ECDC51D00CE62A1 /* TrackSummaryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryStore.swift; sourceTree = "<group>"; };
+		86E5CFF12ECEB62900CE62A1 /* FloatingPlaybackBubbleViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPlaybackBubbleViewModel.swift; sourceTree = "<group>"; };
+		86E5CFF32ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPlaybackBubbleView.swift; sourceTree = "<group>"; };
+		86E5CFF52ECEB8CA00CE62A1 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
+		86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryGenerator.swift; sourceTree = "<group>"; };
 		86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryViewModel.swift; sourceTree = "<group>"; };
 		86E5D1142ECDCB1100CE62A1 /* TrackSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryCard.swift; sourceTree = "<group>"; };
-		86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryGenerator.swift; sourceTree = "<group>"; };
 		86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDataBackupManager.swift; sourceTree = "<group>"; };
 		86FDF2062EC8F1F300DB7430 /* AudiobookPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AudiobookPlayer.entitlements; sourceTree = "<group>"; };
 		86FE17552EBFC7F200027E93 /* test-1min.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "test-1min.mp3"; sourceTree = "<group>"; };
@@ -213,6 +219,7 @@
 				8617DDE02EBE0A26006E7CA7 /* DatabaseSchema.swift */,
 				8617DDE12EBE0A26006E7CA7 /* GRDBDatabaseManager.swift */,
 				8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */,
+				86E5CFF32ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift */,
 				8685F3642EBF3607003D8173 /* TranscriptionJobManager.swift */,
 				8685F3652EBF3607003D8173 /* TranscriptionProgressOverlay.swift */,
 				8685F3662EBF3607003D8173 /* TranscriptionRetryManager.swift */,
@@ -236,6 +243,7 @@
 				86E5D1142ECDCB1100CE62A1 /* TrackSummaryCard.swift */,
 				86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */,
 				C5E631E42F1B000100AA0001 /* AIGenerationManager.swift */,
+				86E5CFF12ECEB62900CE62A1 /* FloatingPlaybackBubbleViewModel.swift */,
 				C5E632032F1B000100AA0001 /* AIGenerationJobDetailView.swift */,
 				6F6E7F6E2C4A9B0500AA00AB /* BaiduOAuth.swift */,
 				6F99A0022C4C200000AA00AA /* BaiduNetdiskClient.swift */,
@@ -250,6 +258,7 @@
 				6FC010022C5B0C0000AA00AA /* LibraryStore.swift */,
 				6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */,
 				6FC010042C5B0C0000AA00AA /* LibraryView.swift */,
+				86E5CFF52ECEB8CA00CE62A1 /* Color+Hex.swift */,
 				6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */,
 				6FC0100A2C5B0C0000AA00AA /* TrackPickerView.swift */,
 				A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */,
@@ -388,6 +397,7 @@
 				86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */,
 				6FC0100B2C5B0C0000AA00AA /* TrackPickerView.swift in Sources */,
 				86FE175C2EC20F6500027E93 /* SettingsTabView.swift in Sources */,
+				86E5CFF22ECEB62900CE62A1 /* FloatingPlaybackBubbleViewModel.swift in Sources */,
 				86FE175D2EC20F6500027E93 /* DownloadButton.swift in Sources */,
 				86FE175E2EC20F6500027E93 /* CacheManagementView.swift in Sources */,
 				6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */,
@@ -405,6 +415,7 @@
 				6FC010072C5B0C0000AA00AA /* SourcesView.swift in Sources */,
 				8617DDE92EBE0A26006E7CA7 /* DatabaseConfig.swift in Sources */,
 				86FE17602EC2531500027E93 /* ProviderIconView.swift in Sources */,
+				86E5CFF62ECEB8CA00CE62A1 /* Color+Hex.swift in Sources */,
 				8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */,
 				8617DDEB2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift in Sources */,
 				8617DDEC2EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift in Sources */,
@@ -424,6 +435,7 @@
 				8617DDEE2EBE0A26006E7CA7 /* SonioxAPI.swift in Sources */,
 				8617DDF02EBE0A26006E7CA7 /* TranscriptionSheet.swift in Sources */,
 				8617DDF12EBE0A26006E7CA7 /* TranscriptModels.swift in Sources */,
+				86E5CFF42ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift in Sources */,
 				8617DDF22EBE0A26006E7CA7 /* GRDBDatabaseManager.swift in Sources */,
 				8617DDF32EBE0A26006E7CA7 /* AIGatewayModels.swift in Sources */,
 				8617DDF42EBE0A26006E7CA7 /* DatabaseSchema.swift in Sources */,

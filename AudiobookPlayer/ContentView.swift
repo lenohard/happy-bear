@@ -49,43 +49,52 @@ final class TabSelectionManager: ObservableObject {
 
 struct ContentView: View {
     @StateObject private var tabSelection = TabSelectionManager()
+    @StateObject private var bubbleViewModel = FloatingPlaybackBubbleViewModel()
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
 
     var body: some View {
-        TabView(selection: $tabSelection.selectedTab) {
-            LibraryView()
-                .tabItem {
-                    Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
-                }
-                .tag(TabSelectionManager.Tab.library)
+        ZStack {
+            TabView(selection: $tabSelection.selectedTab) {
+                LibraryView()
+                    .tabItem {
+                        Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
+                    }
+                    .tag(TabSelectionManager.Tab.library)
 
-            PlayingView()
-                .tabItem {
-                    Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
-                }
-                .tag(TabSelectionManager.Tab.playing)
+                PlayingView()
+                    .tabItem {
+                        Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
+                    }
+                    .tag(TabSelectionManager.Tab.playing)
 
-            AITabView()
-                .tabItem {
-                    Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "sparkles")
-                }
-                .tag(TabSelectionManager.Tab.ai)
+                AITabView()
+                    .tabItem {
+                        Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "sparkles")
+                    }
+                    .tag(TabSelectionManager.Tab.ai)
 
-            TTSTabView()
-                .tabItem {
-                    Label(NSLocalizedString("tts_tab", comment: "TTS tab"), systemImage: "waveform")
-                }
-                .badge(transcriptionManager.activeJobs.count)
-                .tag(TabSelectionManager.Tab.tts)
+                TTSTabView()
+                    .tabItem {
+                        Label(NSLocalizedString("tts_tab", comment: "TTS tab"), systemImage: "waveform")
+                    }
+                    .badge(transcriptionManager.activeJobs.count)
+                    .tag(TabSelectionManager.Tab.tts)
 
-            SettingsTabView()
-                .tabItem {
-                    Label(NSLocalizedString("settings_tab", comment: "Settings tab"), systemImage: "gear")
-                }
-                .tag(TabSelectionManager.Tab.settings)
+                SettingsTabView()
+                    .tabItem {
+                        Label(NSLocalizedString("settings_tab", comment: "Settings tab"), systemImage: "gear")
+                    }
+                    .tag(TabSelectionManager.Tab.settings)
+            }
+            
+            // Floating Playback Bubble
+            // Only show if not on Playing tab
+            if tabSelection.selectedTab != .playing {
+                FloatingPlaybackBubbleView(viewModel: bubbleViewModel)
+            }
         }
         .environmentObject(tabSelection)
         .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
