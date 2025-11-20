@@ -2427,6 +2427,40 @@
         }
       }
     },
+    "floating_bubble_opacity_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bubble Transparency"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "悬浮球透明度"
+          }
+        }
+      }
+    },
+    "floating_bubble_opacity_description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adjust how prominently the bubble sits on top of content."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调节悬浮球覆盖内容时的透明程度。"
+          }
+        }
+      }
+    },
     "floating_player_section" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2434,6 +2468,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Floating Player"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "悬浮球"
+          }
+        }
+      }
+    },
+    "floating_bubble_menu_title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Floating Bubble"
           }
         },
         "zh-Hans" : {

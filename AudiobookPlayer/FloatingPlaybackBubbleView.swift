@@ -1,12 +1,19 @@
 import SwiftUI
+import UIKit
 
 struct FloatingPlaybackBubbleView: View {
     @StateObject var viewModel: FloatingPlaybackBubbleViewModel
     @EnvironmentObject var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject var tabSelection: TabSelectionManager
+    @AppStorage("floatingBubbleOpacity") private var storedOpacity: Double = 0.5
     
     // For drag gesture state
     @GestureState private var dragOffset: CGSize = .zero
+    @State private var showingBubbleMenu = false
+    
+    private var bubbleOpacity: Double {
+        min(max(storedOpacity, 0.2), 1.0)
+    }
     
     var body: some View {
         GeometryReader { geometry in
@@ -48,27 +55,12 @@ struct FloatingPlaybackBubbleView: View {
                             // Single tap: Toggle Play/Pause
                             audioPlayer.togglePlayback()
                         }
-                        .contextMenu {
-                            Button {
-                                tabSelection.switchToPlayingTab()
-                            } label: {
-                                Label(NSLocalizedString("open_playing_tab", comment: "Open playing tab"), systemImage: "arrow.up.left.and.arrow.down.right")
+                        .overlay(
+                            PassthroughLongPressRecognizer(minimumPressDuration: 0.45) {
+                                showingBubbleMenu = true
                             }
-                            
-                            Button {
-                                viewModel.hideForSession()
-                            } label: {
-                                Label(NSLocalizedString("hide_for_session", comment: "Hide bubble for session"), systemImage: "eye.slash")
-                            }
-                            
-                            Divider()
-                            
-                            Button {
-                                tabSelection.selectedTab = .settings
-                            } label: {
-                                Label(NSLocalizedString("settings_tab", comment: "Settings"), systemImage: "gear")
-                            }
-                        }
+                        )
+                        .opacity(bubbleOpacity)
                 }
                 .onAppear {
                     // Ensure initial snap if needed, or validate position
@@ -76,26 +68,22 @@ struct FloatingPlaybackBubbleView: View {
                 }
             }
         }
-        // Allow touches to pass through the empty parts of GeometryReader
-        .allowsHitTesting(false) 
-        // Re-enable hit testing for the bubble itself
-        .overlay(
-            GeometryReader { geometry in
-                if let track = audioPlayer.currentTrack, viewModel.shouldShowBubble {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .allowsHitTesting(false) // The background shouldn't block touches
-                        .overlay(
-                            // Duplicate the bubble logic here? No, that's messy.
-                            // Better approach: The ZStack above is the overlay.
-                            // We need to make sure the GeometryReader doesn't block touches.
-                            // Standard SwiftUI trick: GeometryReader takes all space.
-                            // We'll use a different approach for integration in ContentView.
-                            EmptyView()
-                        )
-                }
+        .confirmationDialog(
+            NSLocalizedString("floating_bubble_menu_title", comment: "Title for the floating bubble menu"),
+            isPresented: $showingBubbleMenu,
+            titleVisibility: .visible
+        ) {
+            Button(NSLocalizedString("open_playing_tab", comment: "Open playing tab")) {
+                tabSelection.switchToPlayingTab()
             }
-        )
+            Button(NSLocalizedString("hide_for_session", comment: "Hide bubble for session")) {
+                viewModel.hideForSession()
+            }
+            Button(NSLocalizedString("settings_tab", comment: "Settings")) {
+                tabSelection.selectedTab = .settings
+            }
+            Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) { }
+        }
     }
     
     @ViewBuilder
@@ -120,13 +108,11 @@ struct FloatingPlaybackBubbleView: View {
             }
             
             // Play/Pause Overlay
-            if !audioPlayer.isPlaying {
-                Color.black.opacity(0.3)
-                    .clipShape(Circle())
-                Image(systemName: "play.fill")
-                    .font(.title2)
-                    .foregroundStyle(.white)
-            }
+            Color.black.opacity(audioPlayer.isPlaying ? 0.2 : 0.35)
+                .clipShape(Circle())
+            Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
+                .font(.title2)
+                .foregroundStyle(.white)
             
             // Progress Ring (Optional polish)
             Circle()
@@ -153,5 +139,40 @@ extension Color {
             green: Double((rgb & 0x00FF00) >> 8) / 255.0,
             blue: Double(rgb & 0x0000FF) / 255.0
         )
+    }
+}
+
+private struct PassthroughLongPressRecognizer: UIViewRepresentable {
+    var minimumPressDuration: TimeInterval
+    var action: () -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(action: action)
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.backgroundColor = .clear
+        let recognizer = UILongPressGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleLongPress(_:)))
+        recognizer.minimumPressDuration = minimumPressDuration
+        recognizer.cancelsTouchesInView = false
+        view.addGestureRecognizer(recognizer)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {}
+
+    final class Coordinator: NSObject {
+        let action: () -> Void
+
+        init(action: @escaping () -> Void) {
+            self.action = action
+        }
+
+        @objc func handleLongPress(_ recognizer: UILongPressGestureRecognizer) {
+            if recognizer.state == .began {
+                action()
+            }
+        }
     }
 }

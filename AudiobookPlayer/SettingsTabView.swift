@@ -13,6 +13,7 @@ struct SettingsTabView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
+    @AppStorage("floatingBubbleOpacity") private var floatingBubbleOpacity: Double = 0.5
     @State private var selectedNetdiskEntry: BaiduNetdiskEntry?
     @State private var showingBaiduImport = false
     @State private var importFromPath: String?
@@ -52,6 +53,19 @@ struct SettingsTabView: View {
                             get: { UserDefaults.standard.bool(forKey: "floatingBubbleEnabled") },
                             set: { UserDefaults.standard.set($0, forKey: "floatingBubbleEnabled") }
                         ))
+                    }
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Text(NSLocalizedString("floating_bubble_opacity_title", comment: "Floating bubble opacity title"))
+                            Spacer()
+                            Text(String(format: "%d%%", Int(floatingBubbleOpacity * 100)))
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                        }
+                        Slider(value: $floatingBubbleOpacity, in: 0.2...1.0, step: 0.05)
+                        Text(NSLocalizedString("floating_bubble_opacity_description", comment: "Floating bubble opacity description"))
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
                     }
                 } header: {
                     Text(NSLocalizedString("floating_player_section", comment: "Floating player section"))
