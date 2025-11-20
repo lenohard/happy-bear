@@ -114,6 +114,11 @@ final class TrackSummaryViewModel: ObservableObject {
         }
     }
 
+    func handleTranscriptFinalized(trackId: String) {
+        guard let currentTrackId, currentTrackId == trackId else { return }
+        Task { await loadSummary() }
+    }
+
     func startGeneration(
         using manager: AIGenerationManager,
         modelId: String,

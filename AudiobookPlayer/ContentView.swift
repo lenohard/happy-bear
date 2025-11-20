@@ -281,6 +281,15 @@ struct PlayingView: View {
             let trackId = audioPlayer.currentTrack.map { $0.id.uuidString }
             trackSummaryViewModel.setTrackId(trackId)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .transcriptDidFinalize)) { notification in
+            guard let completedTrackId = notification.userInfo?["trackId"] as? String else { return }
+
+            if audioPlayer.currentTrack?.id.uuidString == completedTrackId {
+                refreshTranscriptStatus()
+            }
+
+            trackSummaryViewModel.handleTranscriptFinalized(trackId: completedTrackId)
+        }
         .onAppear {
             refreshTranscriptStatus()
             // If library is already loaded, mark it as loaded
