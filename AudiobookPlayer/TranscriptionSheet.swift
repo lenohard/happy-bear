@@ -218,9 +218,10 @@ struct TranscriptionSheet: View {
                         await MainActor.run {
                             downloadedBytes = received
                             totalBytes = total
-                            if total > 0, stage == .downloading, progress < 0.25 {
+                            if total > 0, stage == .downloading {
                                 let fraction = max(Double(received) / Double(total), 0.02)
-                                progress = min(0.25, fraction * 0.25)
+                                let scaledProgress = min(0.25, fraction * 0.25)
+                                progress = max(progress, scaledProgress)
                             }
                         }
                         if let jobId = downloadJobId {

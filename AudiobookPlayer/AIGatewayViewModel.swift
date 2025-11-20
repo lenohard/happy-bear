@@ -18,13 +18,10 @@ final class AIGatewayViewModel: ObservableObject {
     @Published private(set) var isFetchingModels = false
     @Published private(set) var credits: CreditsResponse?
     @Published private(set) var isFetchingCredits = false
-    @Published private(set) var chatResponseText: String = ""
-    @Published private(set) var chatUsageSummary: String = ""
-    @Published private(set) var chatStreamBuffer: String = ""
-    @Published private(set) var isChatTestRunning: Bool = false
-    @Published private(set) var chatStreamFallbackNotice: Bool = false
     @Published var chatPrompt: String = ""
     @Published var systemPrompt: String = NSLocalizedString("ai_tab_default_system_prompt", comment: "Default system prompt")
+    @Published private(set) var chatTesterError: String?
+    @Published private(set) var lastChatJobId: String?
     @Published var generationLookupID: String = ""
     @Published private(set) var generationDetails: GenerationDetails?
     @Published private(set) var generationError: String?
@@ -209,66 +206,30 @@ final class AIGatewayViewModel: ObservableObject {
         }
     }
 
-    func runChatTest() async {
-        guard !isChatTestRunning else { return }
-        guard hasStoredKey, !chatPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            chatResponseText = ""
-            chatStreamBuffer = ""
-            chatUsageSummary = ""
+    func enqueueChatTest(using manager: AIGenerationManager, temperature: Double = 0.7) async {
+        let trimmedPrompt = chatPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedPrompt.isEmpty else {
+            chatTesterError = nil
+            return
+        }
+        guard hasStoredKey else {
+            chatTesterError = NSLocalizedString("ai_tab_missing_key", comment: "")
             return
         }
 
-        isChatTestRunning = true
-        chatResponseText = ""
-        chatUsageSummary = ""
-        chatStreamBuffer = ""
-        chatStreamFallbackNotice = false
-
-        defer { isChatTestRunning = false }
-
         do {
-            guard let storedKey = try keyStore.loadKey() else { return }
-            logger.debug("Running chat test with model \(self.selectedModelID)")
-
-            let result = try await client.sendChat(
-                apiKey: storedKey,
-                model: selectedModelID,
+            let job = try await manager.enqueueChatTesterJob(
+                prompt: trimmedPrompt,
                 systemPrompt: systemPrompt,
-                userPrompt: chatPrompt,
-                temperature: 0.7,
-                onStreamDelta: { [weak self] delta in
-                    guard !delta.isEmpty else { return }
-                    Task { @MainActor in
-                        self?.chatStreamBuffer.append(delta)
-                    }
-                },
-                onStreamFallback: { [weak self] in
-                    Task { @MainActor in
-                        self?.chatStreamFallbackNotice = true
-                    }
-                }
+                temperature: temperature,
+                modelId: selectedModelID,
+                displayName: "AI Tester"
             )
-
-            if let content = result.choices.first?.message.content {
-                chatResponseText = content
-            } else {
-                chatResponseText = NSLocalizedString("ai_tab_no_content", comment: "")
-            }
-
-            if let usage = result.usage {
-                chatUsageSummary = String(
-                    format: NSLocalizedString("ai_tab_usage_summary", comment: ""),
-                    usage.promptTokens ?? 0,
-                    usage.completionTokens ?? 0,
-                    usage.totalTokens ?? 0,
-                    usage.cost ?? 0
-                )
-            } else {
-                chatUsageSummary = ""
-            }
+            lastChatJobId = job.id
+            chatTesterError = nil
+            chatPrompt = ""
         } catch {
-            chatResponseText = error.localizedDescription
-            chatUsageSummary = ""
+            chatTesterError = error.localizedDescription
         }
     }
 

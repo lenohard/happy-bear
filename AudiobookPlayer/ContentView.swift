@@ -126,13 +126,17 @@ struct PlayingView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var tabSelection: TabSelectionManager
+    @EnvironmentObject private var aiGenerationManager: AIGenerationManager
+    @EnvironmentObject private var transcriptionManager: TranscriptionManager
 
     @State private var missingAuthAlert = false
     @State private var showingEphemeralSave = false
     @State private var transcriptViewerTrack: AudiobookTrack?
+    @State private var transcriptionSheetContext: TranscriptionSheetContext?
     @State private var transcriptStatus: TranscriptStatus = .unknown
     @State private var transcriptStatusTask: Task<Void, Never>?
     @State private var libraryLoaded = false
+    @StateObject private var trackSummaryViewModel = TrackSummaryViewModel()
 
     private var currentPlayback: PlaybackSnapshot? {
         guard let currentTrack = audioPlayer.currentTrack else {
@@ -227,12 +231,22 @@ struct PlayingView: View {
                 EmptyView()
             }
         }
+        .sheet(item: $transcriptionSheetContext) { context in
+            TranscriptionSheet(
+                track: context.track,
+                collectionID: context.collectionID,
+                collectionTitle: context.collectionTitle,
+                collectionDescription: context.collectionDescription
+            )
+        }
         .sheet(item: $transcriptViewerTrack) { track in
             TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
         }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             syncPlaybackState()
             refreshTranscriptStatus()
+            let trackId = audioPlayer.currentTrack.map { $0.id.uuidString }
+            trackSummaryViewModel.setTrackId(trackId)
         }
         .onChange(of: audioPlayer.currentTime) { _ in
             syncPlaybackState()
@@ -241,6 +255,22 @@ struct PlayingView: View {
             if !isLoading {
                 libraryLoaded = true
             }
+        }
+        .onChange(of: aiGenerationManager.activeJobs) { jobs in
+            trackSummaryViewModel.handleJobUpdates(
+                activeJobs: jobs,
+                recentJobs: aiGenerationManager.recentJobs
+            )
+        }
+        .onChange(of: aiGenerationManager.recentJobs) { jobs in
+            trackSummaryViewModel.handleJobUpdates(
+                activeJobs: aiGenerationManager.activeJobs,
+                recentJobs: jobs
+            )
+        }
+        .task {
+            let trackId = audioPlayer.currentTrack.map { $0.id.uuidString }
+            trackSummaryViewModel.setTrackId(trackId)
         }
         .onAppear {
             refreshTranscriptStatus()
@@ -281,12 +311,19 @@ struct PlayingView: View {
 
                 Spacer()
 
-                transcriptButton(for: snapshot.track)
+                transcriptButton(for: snapshot.track, in: snapshot.collection)
             }
 
             liveTimeline()
 
             controlButtons(collection: snapshot.collection, track: snapshot.track)
+
+            TrackSummaryCard(
+                track: snapshot.track,
+                isTranscriptAvailable: transcriptStatusForTrack(snapshot.track) == .available,
+                viewModel: trackSummaryViewModel,
+                seekAndPlayAction: { time in seekAndPlay(to: time) }
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -317,7 +354,7 @@ struct PlayingView: View {
                 
                 Spacer()
 
-                transcriptButton(for: snapshot.track)
+                transcriptButton(for: snapshot.track, in: snapshot.collection)
                 
                 FavoriteToggleButton(isFavorite: snapshot.track.isFavorite) {
                     library.toggleFavorite(for: snapshot.track.id, in: snapshot.collection.id)
@@ -543,8 +580,9 @@ struct PlayingView: View {
     }
 
     @ViewBuilder
-    private func transcriptButton(for track: AudiobookTrack) -> some View {
-        if transcriptStatusForTrack(track) == .available {
+    private func transcriptButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
+        switch transcriptStatusForTrack(track) {
+        case .available:
             Button {
                 transcriptViewerTrack = track
             } label: {
@@ -559,6 +597,38 @@ struct PlayingView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(NSLocalizedString("view_transcript", comment: "View transcript menu item"))
+        case .unavailable:
+            if canStartTranscription(in: collection) {
+                Button {
+                    presentTranscriptionSheet(for: track, in: collection)
+                } label: {
+                    Image(systemName: isTranscriptionInProgress(for: track) ? "waveform" : "waveform.badge.plus")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .padding(10)
+                        .background(
+                            Circle()
+                                .fill(Color.accentColor.opacity(isTranscriptionInProgress(for: track) ? 0.6 : 1))
+                        )
+                        .overlay {
+                            if isTranscriptionInProgress(for: track) {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .tint(.white)
+                            }
+                        }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(NSLocalizedString("transcribe_track_title", comment: "Transcribe track title"))
+                .disabled(isTranscriptionInProgress(for: track))
+            }
+        case .loading:
+            ProgressView()
+                .progressViewStyle(.circular)
+                .tint(.accentColor)
+                .frame(width: 32, height: 32)
+        case .unknown:
+            EmptyView()
         }
     }
 
@@ -603,6 +673,23 @@ struct PlayingView: View {
         }
         .buttonStyle(.borderedProminent)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func seekAndPlay(to time: TimeInterval) {
+        audioPlayer.seek(to: time)
+        if !audioPlayer.isPlaying {
+            audioPlayer.startPlaybackImmediately()
+            audioPlayer.isPlaying = true
+        }
+    }
+
+    private func presentTranscriptionSheet(for track: AudiobookTrack, in collection: AudiobookCollection) {
+        transcriptionSheetContext = TranscriptionSheetContext(
+            track: track,
+            collectionID: collection.id,
+            collectionTitle: collection.title,
+            collectionDescription: collection.description
+        )
     }
 
     private func percentString(position: TimeInterval, duration: TimeInterval) -> String {
@@ -789,6 +876,17 @@ struct PlayingView: View {
         }
         return transcriptStatus
     }
+
+    private func isTranscriptionInProgress(for track: AudiobookTrack) -> Bool {
+        transcriptionManager.activeJobs.contains { job in
+            job.trackId == track.id.uuidString && job.isRunning
+        }
+    }
+
+    private func canStartTranscription(in collection: AudiobookCollection) -> Bool {
+        guard !collection.isEphemeral else { return false }
+        return library.canModifyCollection(collection.id)
+    }
 }
 
 private enum TranscriptStatus {
@@ -841,6 +939,15 @@ private struct EmptyPlayingView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .secondarySystemBackground))
     }
+}
+
+private struct TranscriptionSheetContext: Identifiable {
+    let track: AudiobookTrack
+    let collectionID: UUID
+    let collectionTitle: String
+    let collectionDescription: String?
+
+    var id: UUID { track.id }
 }
 
 #Preview {

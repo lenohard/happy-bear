@@ -368,3 +368,118 @@ struct TranscriptionJobRow: Codable {
         self.lastAttemptAt = job.lastAttemptAt
     }
 }
+
+// MARK: - Track Summary Models
+
+/// A generated summary for a track's transcript
+struct TrackSummary: Identifiable, Codable {
+    enum Status: String, Codable {
+        case idle
+        case generating
+        case failed
+        case complete
+    }
+
+    let id: String
+    let trackId: String
+    let transcriptId: String
+    let language: String
+    var summaryTitle: String?
+    var summaryBody: String?
+    var keywords: [String]
+    var sectionCount: Int
+    var modelIdentifier: String?
+    var generatedAt: Date?
+    var status: Status
+    var errorMessage: String?
+    var lastJobId: String?
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(
+        id: String = UUID().uuidString,
+        trackId: String,
+        transcriptId: String,
+        language: String = "en",
+        summaryTitle: String? = nil,
+        summaryBody: String? = nil,
+        keywords: [String] = [],
+        sectionCount: Int = 0,
+        modelIdentifier: String? = nil,
+        generatedAt: Date? = nil,
+        status: Status = .idle,
+        errorMessage: String? = nil,
+        lastJobId: String? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.trackId = trackId
+        self.transcriptId = transcriptId
+        self.language = language
+        self.summaryTitle = summaryTitle
+        self.summaryBody = summaryBody
+        self.keywords = keywords
+        self.sectionCount = sectionCount
+        self.modelIdentifier = modelIdentifier
+        self.generatedAt = generatedAt
+        self.status = status
+        self.errorMessage = errorMessage
+        self.lastJobId = lastJobId
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    var isReady: Bool {
+        status == .complete && summaryBody?.isEmpty == false
+    }
+}
+
+/// Individual summary sections with timestamps
+struct TrackSummarySection: Identifiable, Codable {
+    let id: String
+    let trackSummaryId: String
+    var orderIndex: Int
+    var startTimeMs: Int
+    var endTimeMs: Int?
+    var title: String?
+    var summary: String
+    var keywords: [String]
+    var createdAt: Date
+    var updatedAt: Date
+
+    init(
+        id: String = UUID().uuidString,
+        trackSummaryId: String,
+        orderIndex: Int,
+        startTimeMs: Int,
+        endTimeMs: Int? = nil,
+        title: String? = nil,
+        summary: String,
+        keywords: [String] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.trackSummaryId = trackSummaryId
+        self.orderIndex = orderIndex
+        self.startTimeMs = startTimeMs
+        self.endTimeMs = endTimeMs
+        self.title = title
+        self.summary = summary
+        self.keywords = keywords
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    var startTimeLabel: String {
+        let seconds = startTimeMs / 1000
+        let hrs = seconds / 3600
+        let mins = (seconds % 3600) / 60
+        let secs = seconds % 60
+        if hrs > 0 {
+            return String(format: "%02d:%02d:%02d", hrs, mins, secs)
+        }
+        return String(format: "%02d:%02d", mins, secs)
+    }
+}

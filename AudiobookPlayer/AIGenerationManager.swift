@@ -10,7 +10,6 @@ final class AIGenerationManager: ObservableObject {
     private let executor: AIGenerationJobExecutor
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGenerationManager")
     private var refreshTask: Task<Void, Never>?
-    private var transcriptObserver: NSObjectProtocol?
 
     init(
         dbManager: GRDBDatabaseManager = .shared,
@@ -20,14 +19,10 @@ final class AIGenerationManager: ObservableObject {
         self.executor = executor
         bootstrapJobs()
         startRefreshLoop()
-        observeTranscriptFinalization()
     }
 
     deinit {
         refreshTask?.cancel()
-        if let transcriptObserver {
-            NotificationCenter.default.removeObserver(transcriptObserver)
-        }
     }
 
     func enqueueChatTesterJob(
@@ -189,6 +184,13 @@ final class AIGenerationManager: ObservableObject {
         return job
     }
 
+    func job(withId id: String) -> AIGenerationJob? {
+        if let active = activeJobs.first(where: { $0.id == id }) {
+            return active
+        }
+        return recentJobs.first(where: { $0.id == id })
+    }
+
     func refreshJobs() async {
         do {
             try await dbManager.initializeDatabase()
@@ -209,21 +211,6 @@ final class AIGenerationManager: ObservableObject {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
                 await self.refreshJobs()
-            }
-        }
-    }
-
-    private func observeTranscriptFinalization() {
-        transcriptObserver = NotificationCenter.default.addObserver(
-            forName: .transcriptDidFinalize,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self else { return }
-            guard let trackId = notification.userInfo?["trackId"] as? String else { return }
-            Task { [weak self] in
-                guard let self else { return }
-                await self.autoEnqueueSummaryIfNeeded(trackId: trackId)
             }
         }
     }
@@ -260,50 +247,4 @@ final class AIGenerationManager: ObservableObject {
         return string
     }
 
-    private func autoEnqueueSummaryIfNeeded(trackId: String) async {
-        guard hasStoredAIGatewayKey() else { return }
-        if activeJobs.contains(where: { $0.type == .trackSummary && $0.trackId == trackId && $0.isActive }) {
-            return
-        }
-
-        do {
-            try await dbManager.initializeDatabase()
-            guard let transcript = try await dbManager.loadTranscript(forTrackId: trackId) else {
-                return
-            }
-            if let existing = try await dbManager.fetchTrackSummary(forTrackId: trackId) {
-                if existing.status == .generating {
-                    return
-                }
-
-                if existing.status == .complete {
-                    if existing.transcriptId == transcript.id {
-                        return
-                    }
-                }
-            }
-
-            let modelId = defaultModelIdentifier()
-            try await enqueueTrackSummaryJob(
-                trackId: trackId,
-                targetSectionCount: nil,
-                includeKeywords: true,
-                modelId: modelId
-            )
-        } catch {
-            logger.info("Auto track summary enqueue failed for track \(trackId, privacy: .public): \(error.localizedDescription, privacy: .public)")
-        }
-    }
-
-    private func hasStoredAIGatewayKey() -> Bool {
-        let store = KeychainAIGatewayAPIKeyStore()
-        if let key = try? store.loadKey(), let key, !key.isEmpty {
-            return true
-        }
-        return false
-    }
-
-    private func defaultModelIdentifier() -> String {
-        UserDefaults.standard.string(forKey: "ai_gateway_default_model") ?? "openai/gpt-4o-mini"
-    }
 }

@@ -440,6 +440,14 @@ class TranscriptionManager: NSObject, ObservableObject {
         do {
             try await dbManager.saveTranscriptSegments(segments, for: transcriptId)
             try await dbManager.finalizeTranscript(trackId: trackId, fullText: fullText)
+            NotificationCenter.default.post(
+                name: .transcriptDidFinalize,
+                object: nil,
+                userInfo: [
+                    "trackId": trackId,
+                    "transcriptId": transcriptId
+                ]
+            )
         } catch {
             throw TranscriptionError.databaseError(error.localizedDescription)
         }

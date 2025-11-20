@@ -12,6 +12,7 @@ struct TranscriptViewerSheet: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var baiduAuth: BaiduAuthViewModel
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
+    @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @StateObject private var viewModel: TranscriptViewModel
     @State private var selectedSegment: TranscriptSegment?
     @State private var playbackAlertMessage: String?
@@ -24,6 +25,7 @@ struct TranscriptViewerSheet: View {
     @State private var showSelectedOnly = false
     @State private var hideRepairedSegments = false
     @State private var repairControlsExpanded = true
+    @State private var lastObservedRepairJobId: String?
 
     init(trackId: String, trackName: String) {
         self.trackId = trackId
@@ -48,6 +50,7 @@ struct TranscriptViewerSheet: View {
         }
         .task {
             await viewModel.loadTranscript()
+            handleRepairJobUpdates()
         }
         .onChange(of: segmentIDs) { _ in
             lastAutoScrolledSegmentID = nil
@@ -92,6 +95,12 @@ struct TranscriptViewerSheet: View {
         }
         .onChange(of: viewModel.segments.count) { _ in
             pruneSelectionForHiddenSegments()
+        }
+        .onChange(of: aiGenerationManager.recentJobs) { _ in
+            handleRepairJobUpdates()
+        }
+        .onChange(of: aiGenerationManager.activeJobs) { _ in
+            handleRepairJobUpdates()
         }
     }
 
@@ -485,26 +494,44 @@ struct TranscriptViewerSheet: View {
     }
 
     private func runRepair() async {
-        guard let apiKey = resolvedAIKey else {
+        guard resolvedAIKey != nil else {
             viewModel.repairErrorMessage = NSLocalizedString("ai_repair_missing_key", comment: "")
             return
         }
+        guard let transcript = viewModel.transcript else {
+            viewModel.repairErrorMessage = "Transcript not loaded."
+            return
+        }
 
-        let context = resolveTrackContext()
-        let collection = context?.collection
+        let indexes = Array(repairSelection).sorted()
+        guard !indexes.isEmpty else {
+            viewModel.repairErrorMessage = "No valid segments selected for repair."
+            return
+        }
 
-        let indexes = IndexSet(repairSelection)
-        await viewModel.repairSegments(
-            at: indexes,
-            trackTitle: trackName,
-            collectionTitle: collection?.title,
-            collectionDescription: collection?.description,
-            model: aiGateway.selectedModelID,
-            apiKey: apiKey
-        )
+        guard let context = resolveTrackContext() else {
+            viewModel.repairErrorMessage = "Track context unavailable."
+            return
+        }
 
-        if viewModel.repairErrorMessage == nil {
+        do {
+            let job = try await aiGenerationManager.enqueueTranscriptRepairJob(
+                transcriptId: transcript.id,
+                trackId: context.track.id.uuidString,
+                trackTitle: trackName,
+                collectionTitle: context.collection.title,
+                collectionDescription: context.collection.description,
+                selectionIndexes: indexes,
+                instructions: nil,
+                modelId: aiGateway.selectedModelID
+            )
+            viewModel.lastRepairResults = []
+            viewModel.repairErrorMessage = nil
+            viewModel.isRepairing = true
+            lastObservedRepairJobId = job.id
             exitRepairMode()
+        } catch {
+            viewModel.repairErrorMessage = error.localizedDescription
         }
     }
 
@@ -924,6 +951,39 @@ struct SearchResultRow: View {
                 locale: .current,
                 result.matchCount
             )
+        }
+    }
+}
+
+private extension TranscriptViewerSheet {
+    var activeRepairJobForTranscript: AIGenerationJob? {
+        guard let transcriptId = viewModel.transcript?.id else { return nil }
+        return aiGenerationManager.activeJobs.first { $0.type == .transcriptRepair && $0.transcriptId == transcriptId }
+    }
+
+    func handleRepairJobUpdates() {
+        guard viewModel.transcript != nil else { return }
+        viewModel.isRepairing = activeRepairJobForTranscript != nil
+        guard let transcriptId = viewModel.transcript?.id else { return }
+        guard let job = aiGenerationManager.recentJobs.first(where: { $0.type == .transcriptRepair && $0.transcriptId == transcriptId }) else {
+            return
+        }
+
+        switch job.status {
+        case .completed:
+            guard lastObservedRepairJobId != job.id else { return }
+            lastObservedRepairJobId = job.id
+            if let metadata = job.decodedMetadata(), let results = metadata.repairResults {
+                viewModel.lastRepairResults = results
+            }
+            Task { await viewModel.loadTranscript() }
+            viewModel.repairErrorMessage = nil
+        case .failed:
+            guard lastObservedRepairJobId != job.id else { return }
+            lastObservedRepairJobId = job.id
+            viewModel.repairErrorMessage = job.errorMessage
+        default:
+            break
         }
     }
 }

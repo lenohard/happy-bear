@@ -19,6 +19,7 @@ struct AITabView: View {
     @State private var showAPIKey = false
     @State private var isEditingGatewayKey = false
     @State private var isInitialScrollPerformed = false
+    @State private var selectedJobForDetail: AIGenerationJob?
 
     var body: some View {
         NavigationStack {
@@ -78,6 +79,9 @@ struct AITabView: View {
                     scrollToModel(withID: newValue, using: proxy)
                 }
             }
+        }
+        .sheet(item: $selectedJobForDetail) { job in
+            AIGenerationJobDetailView(jobId: job.id)
         }
     }
 
@@ -757,15 +761,15 @@ private extension AITabView {
     func chatJobStatusText(_ job: AIGenerationJob) -> String {
         switch job.status {
         case .queued:
-            return "Queued"
+            return NSLocalizedString("ai_job_status_queued", comment: "")
         case .running, .streaming:
-            return "Running"
+            return NSLocalizedString("ai_job_status_running", comment: "")
         case .completed:
-            return "Completed"
+            return NSLocalizedString("ai_job_status_completed", comment: "")
         case .failed:
-            return "Failed"
+            return NSLocalizedString("ai_job_status_failed", comment: "")
         case .canceled:
-            return "Canceled"
+            return NSLocalizedString("ai_job_status_canceled", comment: "")
         }
     }
 
@@ -822,16 +826,20 @@ private extension AITabView {
             }
         }
         .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            selectedJobForDetail = job
+        }
     }
 
     func jobTitle(for job: AIGenerationJob) -> String {
         switch job.type {
         case .chatTester:
-            return "Chat Tester"
+            return NSLocalizedString("ai_job_type_chat_tester", comment: "")
         case .transcriptRepair:
-            return job.displayName ?? "Transcript Repair"
+            return job.displayName ?? NSLocalizedString("ai_job_type_transcript_repair", comment: "")
         case .trackSummary:
-            return "Track Summary"
+            return job.displayName ?? NSLocalizedString("ai_job_type_track_summary", comment: "")
         }
     }
 

@@ -28,7 +28,6 @@
 		6FC0100B2C5B0C0000AA00AA /* TrackPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0100A2C5B0C0000AA00AA /* TrackPickerView.swift */; };
 		6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */; };
 		6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6FC0200A2C5B0C0000AA00AA /* Localizable.strings */; };
-		B1C5E0A22F12300000AAA001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1C5E09F2F12300000AAA001 /* InfoPlist.strings */; };
 		6FD0A0022C5B0C0000AA00AB /* AudioCacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0012C5B0C0000AA00AB /* AudioCacheManager.swift */; };
 		6FD0A0042C5B0C0000AA00AB /* CachedAudioAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */; };
 		8617DDE82EBE0A26006E7CA7 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */; };
@@ -36,7 +35,6 @@
 		8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */; };
 		8617DDEB2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDE2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift */; };
 		8617DDEC2EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDE42EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift */; };
-		86C5F7012F0AFA4300647B2C /* AITranscriptRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */; };
 		8617DDED2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDA2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift */; };
 		8617DDEE2EBE0A26006E7CA7 /* SonioxAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDE32EBE0A26006E7CA7 /* SonioxAPI.swift */; };
 		8617DDF02EBE0A26006E7CA7 /* TranscriptionSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDE62EBE0A26006E7CA7 /* TranscriptionSheet.swift */; };
@@ -58,6 +56,12 @@
 		8685F36F2EBF3813003D8173 /* AITabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F36E2EBF3813003D8173 /* AITabView.swift */; };
 		86AD83AC2EB9AD5200FAB6DF /* CacheProgressTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */; };
 		86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */; };
+		86C5F7012F0AFA4300647B2C /* AITranscriptRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */; };
+		86E5CFEF2ECDC51D00CE62A1 /* TrackSummaryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFEE2ECDC51D00CE62A1 /* TrackSummaryStore.swift */; };
+		86E5D1132ECDCB1100CE62A1 /* TrackSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */; };
+		86E5D1152ECDCB1100CE62A1 /* TrackSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1142ECDCB1100CE62A1 /* TrackSummaryCard.swift */; };
+		86E5D1022ECDC8C400CE62A1 /* TrackSummaryGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */; };
+		86E5CFF02ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFED2ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift */; };
 		86FC75842EC7244600E7AEB8 /* UserDataBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */; };
 		86FE17562EBFC7F200027E93 /* test-1min.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 86FE17552EBFC7F200027E93 /* test-1min.mp3 */; };
 		86FE175C2EC20F6500027E93 /* SettingsTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FE175B2EC20F6400027E93 /* SettingsTabView.swift */; };
@@ -68,8 +72,15 @@
 		9AA2D81AAF724F08916ACE38 /* AudiobookPlayer/GRDBDatabaseManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17A3EA38DA804EB5B27139AA /* AudiobookPlayer/GRDBDatabaseManager.swift */; };
 		A1B2C3D52FEB123400000001 /* FavoriteToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */; };
 		A1B2C3D72FEB123400000002 /* FavoriteTracksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */; };
+		B1C5E0A22F12300000AAA001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1C5E09F2F12300000AAA001 /* InfoPlist.strings */; };
 		B6E1C0032F10B4B900C2ABF1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = B6E1C0022F10B4B900C2ABF1 /* ZIPFoundation */; };
 		C0E7E438067149FBAA94ECEA /* AudiobookPlayer/DatabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375BFCDDA1EF440F8C3033E5 /* AudiobookPlayer/DatabaseConfig.swift */; };
+		C5E631AC2F1B000100AA0001 /* AIGenerationDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E631A42F1B000100AA0001 /* AIGenerationDatabaseSchema.swift */; };
+		C5E631BC2F1B000100AA0001 /* AIGenerationJob.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E631B42F1B000100AA0001 /* AIGenerationJob.swift */; };
+		C5E631CC2F1B000100AA0001 /* AIGenerationJobManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E631C42F1B000100AA0001 /* AIGenerationJobManager.swift */; };
+		C5E631DC2F1B000100AA0001 /* AIGenerationJobExecutor.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E631D42F1B000100AA0001 /* AIGenerationJobExecutor.swift */; };
+		C5E631EC2F1B000100AA0001 /* AIGenerationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E631E42F1B000100AA0001 /* AIGenerationManager.swift */; };
+		C5E632042F1B000100AA0001 /* AIGenerationJobDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E632032F1B000100AA0001 /* AIGenerationJobDetailView.swift */; };
 		E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */; };
 /* End PBXBuildFile section */
 
@@ -86,8 +97,6 @@
 		6F6E7F742C4A9B0500AA00AA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6F6E7F762C4A9B0500AA00AA /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		6F6E7F772C4A9B0500AA00AA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		B1C5E0A02F12300000AAA001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		B1C5E0A12F12300000AAA001 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		6F6E7F782C4A9B0500AA00AA /* AVFoundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AVFoundation.framework; path = System/Library/Frameworks/AVFoundation.framework; sourceTree = SDKROOT; };
 		6F6E7F802C4A9B0500AA00AA /* HappyBear.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HappyBear.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F99A0002C4C200000AA00AA /* BaiduTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduTokenStore.swift; sourceTree = "<group>"; };
@@ -127,9 +136,14 @@
 		8685F3672EBF3607003D8173 /* TranscriptViewerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptViewerSheet.swift; sourceTree = "<group>"; };
 		8685F3682EBF3607003D8173 /* TranscriptViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptViewModel.swift; sourceTree = "<group>"; };
 		8685F36E2EBF3813003D8173 /* AITabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITabView.swift; sourceTree = "<group>"; };
-		86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITranscriptRepair.swift; sourceTree = "<group>"; };
 		86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheDownloadManager.swift; sourceTree = "<group>"; };
 		86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheProgressTracker.swift; sourceTree = "<group>"; };
+		86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITranscriptRepair.swift; sourceTree = "<group>"; };
+		86E5CFED2ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryDatabaseSchema.swift; sourceTree = "<group>"; };
+		86E5CFEE2ECDC51D00CE62A1 /* TrackSummaryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryStore.swift; sourceTree = "<group>"; };
+		86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryViewModel.swift; sourceTree = "<group>"; };
+		86E5D1142ECDCB1100CE62A1 /* TrackSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryCard.swift; sourceTree = "<group>"; };
+		86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryGenerator.swift; sourceTree = "<group>"; };
 		86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDataBackupManager.swift; sourceTree = "<group>"; };
 		86FDF2062EC8F1F300DB7430 /* AudiobookPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AudiobookPlayer.entitlements; sourceTree = "<group>"; };
 		86FE17552EBFC7F200027E93 /* test-1min.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "test-1min.mp3"; sourceTree = "<group>"; };
@@ -139,6 +153,14 @@
 		86FE175F2EC2531500027E93 /* ProviderIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProviderIconView.swift; sourceTree = "<group>"; };
 		A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteToggleButton.swift; sourceTree = "<group>"; };
 		A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteTracksView.swift; sourceTree = "<group>"; };
+		B1C5E0A02F12300000AAA001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		B1C5E0A12F12300000AAA001 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		C5E631A42F1B000100AA0001 /* AIGenerationDatabaseSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationDatabaseSchema.swift; sourceTree = "<group>"; };
+		C5E631B42F1B000100AA0001 /* AIGenerationJob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationJob.swift; sourceTree = "<group>"; };
+		C5E631C42F1B000100AA0001 /* AIGenerationJobManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationJobManager.swift; sourceTree = "<group>"; };
+		C5E631D42F1B000100AA0001 /* AIGenerationJobExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationJobExecutor.swift; sourceTree = "<group>"; };
+		C5E631E42F1B000100AA0001 /* AIGenerationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationManager.swift; sourceTree = "<group>"; };
+		C5E632032F1B000100AA0001 /* AIGenerationJobDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationJobDetailView.swift; sourceTree = "<group>"; };
 		F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionBuilderViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -204,6 +226,17 @@
 				8617DDE52EBE0A26006E7CA7 /* TranscriptionManager.swift */,
 				8617DDE62EBE0A26006E7CA7 /* TranscriptionSheet.swift */,
 				8617DDE72EBE0A26006E7CA7 /* TranscriptModels.swift */,
+				C5E631A42F1B000100AA0001 /* AIGenerationDatabaseSchema.swift */,
+				C5E631B42F1B000100AA0001 /* AIGenerationJob.swift */,
+				C5E631C42F1B000100AA0001 /* AIGenerationJobManager.swift */,
+				C5E631D42F1B000100AA0001 /* AIGenerationJobExecutor.swift */,
+				86E5CFED2ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift */,
+				86E5CFEE2ECDC51D00CE62A1 /* TrackSummaryStore.swift */,
+				86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */,
+				86E5D1142ECDCB1100CE62A1 /* TrackSummaryCard.swift */,
+				86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */,
+				C5E631E42F1B000100AA0001 /* AIGenerationManager.swift */,
+				C5E632032F1B000100AA0001 /* AIGenerationJobDetailView.swift */,
 				6F6E7F6E2C4A9B0500AA00AB /* BaiduOAuth.swift */,
 				6F99A0022C4C200000AA00AA /* BaiduNetdiskClient.swift */,
 				6F99A0042C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift */,
@@ -375,7 +408,18 @@
 				8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */,
 				8617DDEB2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift in Sources */,
 				8617DDEC2EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift in Sources */,
+				C5E631AC2F1B000100AA0001 /* AIGenerationDatabaseSchema.swift in Sources */,
+				C5E631BC2F1B000100AA0001 /* AIGenerationJob.swift in Sources */,
+				C5E631CC2F1B000100AA0001 /* AIGenerationJobManager.swift in Sources */,
+				C5E631DC2F1B000100AA0001 /* AIGenerationJobExecutor.swift in Sources */,
+				C5E631EC2F1B000100AA0001 /* AIGenerationManager.swift in Sources */,
+				C5E632042F1B000100AA0001 /* AIGenerationJobDetailView.swift in Sources */,
 				86C5F7012F0AFA4300647B2C /* AITranscriptRepair.swift in Sources */,
+				86E5CFEF2ECDC51D00CE62A1 /* TrackSummaryStore.swift in Sources */,
+				86E5D1132ECDCB1100CE62A1 /* TrackSummaryViewModel.swift in Sources */,
+				86E5D1152ECDCB1100CE62A1 /* TrackSummaryCard.swift in Sources */,
+				86E5D1022ECDC8C400CE62A1 /* TrackSummaryGenerator.swift in Sources */,
+				86E5CFF02ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift in Sources */,
 				8617DDED2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift in Sources */,
 				8617DDEE2EBE0A26006E7CA7 /* SonioxAPI.swift in Sources */,
 				8617DDF02EBE0A26006E7CA7 /* TranscriptionSheet.swift in Sources */,

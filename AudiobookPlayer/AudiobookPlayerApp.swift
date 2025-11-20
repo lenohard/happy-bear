@@ -9,6 +9,7 @@ struct AudiobookPlayerApp: App {
     @StateObject private var tabSelection = TabSelectionManager()
     @StateObject private var aiGateway = AIGatewayViewModel()
     @StateObject private var transcriptionManager = TranscriptionManager()
+    @StateObject private var aiGenerationManager = AIGenerationManager()
     @State private var showSplash = true
 
     var body: some Scene {
@@ -21,6 +22,7 @@ struct AudiobookPlayerApp: App {
                     .environmentObject(tabSelection)
                     .environmentObject(aiGateway)
                     .environmentObject(transcriptionManager)
+                    .environmentObject(aiGenerationManager)
 
                 if showSplash {
                     SplashScreenView {
@@ -50,6 +52,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
 extension Notification.Name {
     static let resumePlaybackShortcut = Notification.Name("resumePlaybackShortcut")
+    static let transcriptDidFinalize = Notification.Name("transcriptDidFinalize")
 }
 
 // MARK: - Splash Screen

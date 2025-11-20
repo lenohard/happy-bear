@@ -66,7 +66,7 @@ struct TranscriptRepairSelection {
     let segment: TranscriptSegment
 }
 
-struct TranscriptRepairResult {
+struct TranscriptRepairResult: Codable, Equatable {
     let segmentId: String
     let originalText: String
     let repairedText: String

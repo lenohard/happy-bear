@@ -53,6 +53,14 @@ actor GRDBDatabaseManager {
             try addTranscriptRepairColumnsIfNeeded(in: db)
             print("[GRDB] Transcript repair columns ensured")
 
+            print("[GRDB] Executing track summary schema...")
+            try db.execute(sql: TrackSummaryDatabaseSchema.createTableSQL)
+            print("[GRDB] Track summary tables created")
+
+            print("[GRDB] Executing AI generation schema...")
+            try db.execute(sql: AIGenerationDatabaseSchema.createTableSQL)
+            print("[GRDB] AI generation tables created")
+
             // Insert schema version if not exists
             print("[GRDB] Inserting schema version...")
             try db.execute(sql: """
@@ -1079,6 +1087,21 @@ actor GRDBDatabaseManager {
 
         print("[GRDB] Successfully loaded \(segments.count) segments")
         return segments
+    }
+
+    /// Count transcript segments for a transcript without loading them all
+    func countTranscriptSegments(forTranscriptId transcriptId: String) throws -> Int {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        let count = try db.read { db in
+            try Int.fetchOne(
+                db,
+                sql: "SELECT COUNT(*) FROM transcript_segments WHERE transcript_id = ?",
+                arguments: [transcriptId]
+            ) ?? 0
+        }
+
+        return count
     }
 
     /// Delete transcript and associated segments for a track
