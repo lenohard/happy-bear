@@ -35,6 +35,7 @@ The app supports all iOS native audio formats through AVFoundation, including:
 - ✅ Playback progress tracking
 - ✅ CloudKit sync support
 - ✅ Responsive UI with SwiftUI
+- ✅ Track summaries surface inside the transcript viewer when opened from collection detail rows
 
 ### Data Storage
 - **Library Data**: Local JSON file (`~/Library/Application Support/AudiobookPlayer/library.json`)
