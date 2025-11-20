@@ -53,11 +53,16 @@ A system-wide floating bubble (similar to iOS AssistiveTouch) that provides pers
 - **2025-11-20** – Restored bubble hit-testing/dragging, corrected pause vs play icon logic, and applied a translucent (0.8 opacity) treatment so the bubble feels lighter on top of content.
 - **2025-11-20** – Added user-configurable transparency (Settings ▸ Floating Player slider) and replaced the SwiftUI context menu with a centered confirmation dialog so the long-press actions always appear near the middle of the screen. Implemented a custom passthrough long-press recognizer so taps/drags were expected to remain immediate, but simulator testing still shows no drag/tap events being delivered.
 
+- **2025-11-20 Evening** – Fixed the hit-testing/drag issue:
+  - **Root cause**: Used `.offset` for positioning, which moved visual content but left layout bounds at (0,0), causing touches outside top-left to be ignored.
+  - **Solution**: Switched to `.position` with proper modifier ordering - gestures and hit testing applied to bubble content *before* positioning in global space.
+  - **Jitter fix**: Used `DragGesture(coordinateSpace: .global)` to prevent coordinate system shifting during drag.
+  - Removed duplicate file `AudiobookPlayer/Views/Components/FloatingPlaybackBubbleView.swift`.
+  - All interactions now working: drag, tap, double-tap, long-press, and opacity slider.
+
 ### Known Bugs 🐛
-1. **Bubble ignores tap/drag** (2025-11-20): After introducing the transparency slider and UIKit-based long-press overlay, the view once again stops receiving hit tests. Need to inspect gesture stacking (possibly move back to SwiftUI `contextMenu` or inject the recognizer lower in the hierarchy).
+None currently.
 
 ### Next Steps
-- [ ] Re-enable tap/drag gestures while keeping centered long-press actions
-- [ ] Test all interactions thoroughly
 - [ ] Add fade in/out animations for Playing tab
 - [ ] Verify position persistence across app launches

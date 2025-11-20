@@ -101,7 +101,7 @@ struct ContentView: View {
                 // Floating Playback Bubble
                 // Only show if not on Playing tab
                 if tabSelection.selectedTab != .playing {
-                    FloatingPlaybackBubbleView(viewModel: bubbleViewModel, geometry: geometry)
+                    FloatingPlaybackBubbleView(viewModel: bubbleViewModel)
                 }
             }
             .environmentObject(tabSelection)
