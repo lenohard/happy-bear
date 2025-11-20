@@ -10,14 +10,24 @@ struct TrackSummaryCard: View {
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @State private var actionError: String?
+    @State private var isExpanded = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             header
-            Divider()
-            content
+            if isExpanded {
+                Divider()
+                    .padding(.vertical, 4)
+                content
+            } else if let preview = collapsedPreviewText() {
+                Text(preview)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(uiColor: .secondarySystemBackground))
@@ -25,12 +35,36 @@ struct TrackSummaryCard: View {
         .onChange(of: viewModel.activeJob?.status) { _ in
             actionError = nil
         }
+        .onChange(of: viewModel.summary?.id) { _ in
+            if !viewModel.hasSummaryContent() {
+                isExpanded = true
+            }
+        }
     }
 
     private var header: some View {
-        HStack(alignment: .center) {
-            Label(NSLocalizedString("track_summary_card_title", comment: "Track summary card title"), systemImage: "text.book.closed")
-                .font(.headline)
+        HStack(alignment: .center, spacing: 8) {
+            if canCollapseSummary {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.accentColor)
+                        Label(NSLocalizedString("track_summary_card_title", comment: "Track summary card title"), systemImage: "text.book.closed")
+                            .font(.headline)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(NSLocalizedString("track_summary_toggle_accessibility", comment: "Toggle track summary visibility"))
+                .accessibilityValue(isExpanded ? NSLocalizedString("expanded_accessibility_label", comment: "") : NSLocalizedString("collapsed_accessibility_label", comment: ""))
+            } else {
+                Label(NSLocalizedString("track_summary_card_title", comment: "Track summary card title"), systemImage: "text.book.closed")
+                    .font(.headline)
+            }
 
             Spacer()
 
@@ -128,7 +162,7 @@ struct TrackSummaryCard: View {
     }
 
     private func summaryView(_ summary: TrackSummary) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(summary.summaryTitle ?? track.displayName)
                     .font(.headline)
@@ -209,7 +243,7 @@ struct TrackSummaryCard: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(10)
+            .padding(8)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .fill(Color(uiColor: .tertiarySystemFill))
@@ -265,6 +299,22 @@ struct TrackSummaryCard: View {
             segmentCount,
             characterCount
         )
+    }
+
+    private func collapsedPreviewText() -> String? {
+        if let summary = viewModel.summary {
+            if let body = summary.summaryBody, !body.isEmpty {
+                return body
+            }
+            if let title = summary.summaryTitle, !title.isEmpty {
+                return title
+            }
+        }
+        return transcriptStatsText()
+    }
+
+    private var canCollapseSummary: Bool {
+        viewModel.hasSummaryContent()
     }
 
     private func formattedNumber(_ value: Int) -> String {
