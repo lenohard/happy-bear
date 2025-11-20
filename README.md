@@ -91,6 +91,7 @@ The AI tab pulls catalog logos from [models.dev](https://models.dev). To refresh
 - Improving library loading performance and user experience
 - Adding loading states and skeleton screens
 - Enhancing error handling and offline support
+- Improving transcription job visibility so the UI tracks placeholder jobs across downloading → uploading transitions (the detail sheet now mirrors the job status even after downloads complete).
 
 ## License
 TBD

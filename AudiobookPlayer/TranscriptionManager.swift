@@ -191,6 +191,13 @@ class TranscriptionManager: NSObject, ObservableObject {
 
             DispatchQueue.main.async { self.transcriptionProgress = 0.1 }
 
+            if let jobId = currentJobId {
+                try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.1)
+                updateActiveJob(jobId: jobId) { existing in
+                    existing.updating(status: "uploading", progress: 0.1, lastAttemptAt: Date())
+                }
+            }
+
             // Step 1: Upload file to Soniox
             let fileId = try await sonioxAPI.uploadFile(fileURL: audioFileURL)
             logger.info("[TranscriptionManager] Upload complete for track \(trackIdStr, privacy: .public); fileId=\(fileId, privacy: .public) size=\(fileSizeBytes, privacy: .public)")
