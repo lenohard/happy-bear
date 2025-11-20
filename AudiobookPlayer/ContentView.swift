@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 final class TabSelectionManager: ObservableObject {
     @Published var selectedTab: Tab = .playing
+    @Published var libraryNavigationTarget: UUID?
 
     enum Tab: Int, CaseIterable {
         case library = 0
@@ -45,6 +46,11 @@ final class TabSelectionManager: ObservableObject {
     func switchToPlayingTab() {
         selectedTab = .playing
     }
+    
+    func navigateToCollection(_ collectionID: UUID) {
+        libraryNavigationTarget = collectionID
+        selectedTab = .library
+    }
 }
 
 struct ContentView: View {
@@ -56,49 +62,52 @@ struct ContentView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
 
     var body: some View {
-        ZStack {
-            TabView(selection: $tabSelection.selectedTab) {
-                LibraryView()
-                    .tabItem {
-                        Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
-                    }
-                    .tag(TabSelectionManager.Tab.library)
+        GeometryReader { geometry in
+            ZStack {
+                TabView(selection: $tabSelection.selectedTab) {
+                    LibraryView()
+                        .tabItem {
+                            Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
+                        }
+                        .tag(TabSelectionManager.Tab.library)
 
-                PlayingView()
-                    .tabItem {
-                        Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
-                    }
-                    .tag(TabSelectionManager.Tab.playing)
+                    PlayingView()
+                        .tabItem {
+                            Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
+                        }
+                        .tag(TabSelectionManager.Tab.playing)
 
-                AITabView()
-                    .tabItem {
-                        Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "sparkles")
-                    }
-                    .tag(TabSelectionManager.Tab.ai)
+                    AITabView()
+                        .tabItem {
+                            Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "sparkles")
+                        }
+                        .tag(TabSelectionManager.Tab.ai)
 
-                TTSTabView()
-                    .tabItem {
-                        Label(NSLocalizedString("tts_tab", comment: "TTS tab"), systemImage: "waveform")
-                    }
-                    .badge(transcriptionManager.activeJobs.count)
-                    .tag(TabSelectionManager.Tab.tts)
+                    TTSTabView()
+                        .tabItem {
+                            Label(NSLocalizedString("tts_tab", comment: "TTS tab"), systemImage: "waveform")
+                        }
+                        .badge(transcriptionManager.activeJobs.count)
+                        .tag(TabSelectionManager.Tab.tts)
 
-                SettingsTabView()
-                    .tabItem {
-                        Label(NSLocalizedString("settings_tab", comment: "Settings tab"), systemImage: "gear")
-                    }
-                    .tag(TabSelectionManager.Tab.settings)
+                    SettingsTabView()
+                        .tabItem {
+                            Label(NSLocalizedString("settings_tab", comment: "Settings tab"), systemImage: "gear")
+                        }
+                        .tag(TabSelectionManager.Tab.settings)
+                }
             }
-            
-            // Floating Playback Bubble
-            // Only show if not on Playing tab
-            if tabSelection.selectedTab != .playing {
-                FloatingPlaybackBubbleView(viewModel: bubbleViewModel)
+            .overlay(alignment: .topLeading) {
+                // Floating Playback Bubble
+                // Only show if not on Playing tab
+                if tabSelection.selectedTab != .playing {
+                    FloatingPlaybackBubbleView(viewModel: bubbleViewModel, geometry: geometry)
+                }
             }
-        }
-        .environmentObject(tabSelection)
-        .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
-            handleResumeShortcut()
+            .environmentObject(tabSelection)
+            .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
+                handleResumeShortcut()
+            }
         }
     }
 
@@ -570,7 +579,9 @@ struct PlayingView: View {
                 .buttonStyle(.plain)
                 .font(.subheadline)
             } else {
-                NavigationLink(destination: CollectionDetailView(collectionID: collection.id)) {
+                Button {
+                    tabSelection.navigateToCollection(collection.id)
+                } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "books.vertical")
                         Text(NSLocalizedString("open_collection", comment: "Open collection button"))

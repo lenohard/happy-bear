@@ -12,7 +12,13 @@ struct LibraryView: View {
     @State private var activeSource: ImportSource?
     @State private var pendingImport: PendingImport?
     @State private var duplicateImport: DuplicateImportAlert?
-    @State private var selectedCollectionID: UUID?
+    
+    private var selectedCollectionID: Binding<UUID?> {
+        Binding(
+            get: { tabSelection.libraryNavigationTarget },
+            set: { tabSelection.libraryNavigationTarget = $0 }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -29,12 +35,12 @@ struct LibraryView: View {
                                     // Hidden NavigationLink for isActive binding
                                     NavigationLink(
                                         isActive: Binding(
-                                            get: { selectedCollectionID == collection.id },
+                                            get: { selectedCollectionID.wrappedValue == collection.id },
                                             set: { isActive in
                                                 if isActive {
-                                                    selectedCollectionID = collection.id
+                                                    selectedCollectionID.wrappedValue = collection.id
                                                 } else {
-                                                    selectedCollectionID = nil
+                                                    selectedCollectionID.wrappedValue = nil
                                                 }
                                             }
                                         )
@@ -49,7 +55,7 @@ struct LibraryView: View {
                                         LibraryCollectionRow(collection: collection)
                                             .contentShape(Rectangle())
                                             .onTapGesture {
-                                                selectedCollectionID = collection.id
+                                                selectedCollectionID.wrappedValue = collection.id
                                             }
 
                                         Button {
