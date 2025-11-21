@@ -42,6 +42,12 @@ Notes: Move the single (Re)Generate CTA into the Track Summary title row so user
 # History: Completed Features & Bugs
 
 ## ✅ Completed Features
+### Feat: AI Tab Navigation & UI Refactoring
+**Doc**: `local/feat-ai-tab-refactoring.md`
+**Notes**: Complete redesign of AI tab with separated navigation sections, modern card-based job list with swipe-to-delete, collapsible provider sections for models (default closed, auto-expand on search), provider logos from assets, and simplified API key editing (tap-to-edit, no "Edit" button). Fixed long-press navigation issue by separating NavigationLinks from text field section.
+**Commit**: `4ce7aee` - refactor: redesign AI tab navigation and UI
+
+
 ### Bug: Floating bubble hidden on Playing tab
 **Doc**: `local/feat-floating-playback-bubble.md`
 **Notes**: Bubble was hidden when on the Playing tab and wouldn't appear at app start. Removed the tab-based conditional check in ContentView.swift so the bubble stays visible on all tabs.

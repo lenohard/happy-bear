@@ -63,7 +63,8 @@
 		86E5CFF42ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFF32ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift */; };
 		86E5CFF62ECEB8CA00CE62A1 /* Color+Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFF52ECEB8CA00CE62A1 /* Color+Hex.swift */; };
 		86E5CFF82ECEFBFD00CE62A1 /* AIGatewayReasoning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFF72ECEFBFD00CE62A1 /* AIGatewayReasoning.swift */; };
-		86E5CFFA2ECF404200CE62A1 /* AIDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFF92ECF404200CE62A1 /* AIDetailView.swift */; };
+		86E5CFFD2ED0458600CE62A1 /* AIJobsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFFB2ED0458600CE62A1 /* AIJobsListView.swift */; };
+		86E5CFFE2ED0458600CE62A1 /* AIModelsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFFC2ED0458600CE62A1 /* AIModelsListView.swift */; };
 		86E5D1022ECDC8C400CE62A1 /* TrackSummaryGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */; };
 		86E5D1132ECDCB1100CE62A1 /* TrackSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */; };
 		86E5D1152ECDCB1100CE62A1 /* TrackSummaryCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1142ECDCB1100CE62A1 /* TrackSummaryCard.swift */; };
@@ -150,7 +151,8 @@
 		86E5CFF32ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingPlaybackBubbleView.swift; sourceTree = "<group>"; };
 		86E5CFF52ECEB8CA00CE62A1 /* Color+Hex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+Hex.swift"; sourceTree = "<group>"; };
 		86E5CFF72ECEFBFD00CE62A1 /* AIGatewayReasoning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayReasoning.swift; sourceTree = "<group>"; };
-		86E5CFF92ECF404200CE62A1 /* AIDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIDetailView.swift; sourceTree = "<group>"; };
+		86E5CFFB2ED0458600CE62A1 /* AIJobsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIJobsListView.swift; sourceTree = "<group>"; };
+		86E5CFFC2ED0458600CE62A1 /* AIModelsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelsListView.swift; sourceTree = "<group>"; };
 		86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryGenerator.swift; sourceTree = "<group>"; };
 		86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryViewModel.swift; sourceTree = "<group>"; };
 		86E5D1142ECDCB1100CE62A1 /* TrackSummaryCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryCard.swift; sourceTree = "<group>"; };
@@ -217,13 +219,14 @@
 				8617DDDB2EBE0A26006E7CA7 /* AIGatewayModels.swift */,
 				8617DDDC2EBE0A26006E7CA7 /* AIGatewayViewModel.swift */,
 				8617DDDD2EBE0A26006E7CA7 /* AITabView.swift */,
-				86E5CFF92ECF404200CE62A1 /* AIDetailView.swift */,
 				86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */,
 				8617DDDE2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift */,
 				8617DDDF2EBE0A26006E7CA7 /* DatabaseConfig.swift */,
 				8617DDE02EBE0A26006E7CA7 /* DatabaseSchema.swift */,
 				8617DDE12EBE0A26006E7CA7 /* GRDBDatabaseManager.swift */,
 				8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */,
+				86E5CFFB2ED0458600CE62A1 /* AIJobsListView.swift */,
+				86E5CFFC2ED0458600CE62A1 /* AIModelsListView.swift */,
 				86E5CFF32ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift */,
 				8685F3642EBF3607003D8173 /* TranscriptionJobManager.swift */,
 				8685F3652EBF3607003D8173 /* TranscriptionProgressOverlay.swift */,
@@ -416,7 +419,6 @@
 				5699532872F14F318BCED8CE /* CollectionBuilderViewModel.swift in Sources */,
 				86FC75842EC7244600E7AEB8 /* UserDataBackupManager.swift in Sources */,
 				8685F36F2EBF3813003D8173 /* AITabView.swift in Sources */,
-				86E5CFFA2ECF404200CE62A1 /* AIDetailView.swift in Sources */,
 				6F99A0052C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift in Sources */,
 				6F6E7F6F2C4A9B0500AA00AA /* AudiobookPlayerApp.swift in Sources */,
 				6FC010072C5B0C0000AA00AA /* SourcesView.swift in Sources */,
@@ -442,6 +444,8 @@
 				8617DDEE2EBE0A26006E7CA7 /* SonioxAPI.swift in Sources */,
 				8617DDF02EBE0A26006E7CA7 /* TranscriptionSheet.swift in Sources */,
 				8617DDF12EBE0A26006E7CA7 /* TranscriptModels.swift in Sources */,
+				86E5CFFD2ED0458600CE62A1 /* AIJobsListView.swift in Sources */,
+				86E5CFFE2ED0458600CE62A1 /* AIModelsListView.swift in Sources */,
 				86E5CFF42ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift in Sources */,
 				8617DDF22EBE0A26006E7CA7 /* GRDBDatabaseManager.swift in Sources */,
 				8617DDF32EBE0A26006E7CA7 /* AIGatewayModels.swift in Sources */,

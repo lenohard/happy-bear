@@ -22,8 +22,8 @@ struct AITabView: View {
                     credentialsSection
 
                     if gateway.hasValidKey {
+                        quickActionsSection
                         testerSection
-                        creditsSection
                     }
                 }
                 .simultaneousGesture(
@@ -60,12 +60,15 @@ struct AITabView: View {
         }
     }
 
+    // MARK: - Credentials & Status Section
     private var credentialsSection: some View {
         Section {
+            // API Key Row - always editable, no edit button
             gatewayKeyRow
                 .modifier(CredentialRowModifier(alignment: .leading))
 
-            HStack(spacing: 12) {
+            // Save button (only show when key is being edited)
+            if isEditingGatewayKey || !gateway.hasValidKey {
                 Button(NSLocalizedString("ai_tab_save_key", comment: "")) {
                     let pendingKey = gateway.apiKey
                     focusedField = nil
@@ -74,34 +77,53 @@ struct AITabView: View {
                         await gateway.saveAndValidateKey(using: pendingKey)
                     }
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.borderedProminent)
                 .disabled(gateway.apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-
-                Spacer()
-
-                Button(NSLocalizedString("credential_edit_button", comment: "")) {
-                    toggleGatewayEditing()
-                }
-                .buttonStyle(.borderless)
-                .disabled(!gateway.hasValidKey && gateway.apiKey.isEmpty)
+                .frame(maxWidth: .infinity)
             }
-            .modifier(CredentialRowModifier(alignment: .leading))
             
-            if gateway.hasValidKey {
-                NavigationLink {
-                    AIDetailView(section: .jobs)
-                } label: {
-                    Label(NSLocalizedString("ai_tab_jobs_section", comment: "AI Jobs section"), systemImage: "list.bullet.clipboard")
-                }
-                
-                NavigationLink {
-                    AIDetailView(section: .models)
-                } label: {
-                    Label(NSLocalizedString("ai_tab_models_section", comment: "AI Models section"), systemImage: "cpu")
+            // Balance (only show when valid key exists)
+            if gateway.hasValidKey, let credits = gateway.credits {
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(String(format: NSLocalizedString("ai_tab_balance_label", comment: ""), credits.balance))
+                            .font(.subheadline)
+                        Text(String(format: NSLocalizedString("ai_tab_total_used_label", comment: ""), credits.totalUsed))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button {
+                        Task { await gateway.refreshCredits() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
             }
         } header: {
             Label(NSLocalizedString("ai_tab_credentials_section", comment: ""), systemImage: "key.horizontal")
+                .font(.headline)
+        }
+    }
+    
+    // MARK: - Quick Actions Section
+    private var quickActionsSection: some View {
+        Section {
+            NavigationLink {
+                AIJobsListView()
+            } label: {
+                Label(NSLocalizedString("ai_tab_jobs_section", comment: "AI Jobs section"), systemImage: "list.bullet.clipboard")
+            }
+            
+            NavigationLink {
+                AIModelsListView()
+            } label: {
+                Label(NSLocalizedString("ai_tab_models_section", comment: "AI Models section"), systemImage: "cpu")
+            }
+        } header: {
+            Text("Quick Access")
                 .font(.headline)
         }
     }
@@ -116,11 +138,24 @@ struct AITabView: View {
                 if shouldShowGatewayKeyInput {
                     gatewayKeyInputField
                 } else if !gateway.storedKeyValue.isEmpty {
-                    Text(maskedAPIKey(gateway.storedKeyValue))
-                        .font(.system(.body, design: .monospaced))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .textSelection(.enabled)
+                    Button(action: {
+                        gateway.apiKey = gateway.storedKeyValue
+                        isEditingGatewayKey = true
+                        focusedField = .gateway
+                    }) {
+                        HStack {
+                            Text(maskedAPIKey(gateway.storedKeyValue))
+                                .font(.system(.body, design: .monospaced))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Image(systemName: "pencil")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
                 } else {
                     Text(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""))
                         .foregroundStyle(.secondary)
@@ -138,19 +173,35 @@ struct AITabView: View {
 
     @ViewBuilder
     private var gatewayKeyInputField: some View {
-        Group {
-            if showAPIKey {
-                TextField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
-            } else {
-                SecureField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
+        HStack(spacing: 8) {
+            Group {
+                if showAPIKey {
+                    TextField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
+                } else {
+                    SecureField(NSLocalizedString("ai_tab_api_key_placeholder", comment: ""), text: $gateway.apiKey)
+                }
             }
-        }
-        .textInputAutocapitalization(.never)
-        .disableAutocorrection(true)
-        .focused($focusedField, equals: .gateway)
-        .onChange(of: gateway.apiKey) { newValue in
-            if !newValue.isEmpty {
-                gateway.markKeyAsEditing()
+            .textInputAutocapitalization(.never)
+            .disableAutocorrection(true)
+            .focused($focusedField, equals: .gateway)
+            .onChange(of: gateway.apiKey) { newValue in
+                if !newValue.isEmpty {
+                    gateway.markKeyAsEditing()
+                }
+            }
+            
+            if isEditingGatewayKey && gateway.hasValidKey {
+                Button(action: {
+                    isEditingGatewayKey = false
+                    gateway.apiKey = ""
+                    focusedField = nil
+                    showAPIKey = false
+                    resignFirstResponder()
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
             }
         }
     }

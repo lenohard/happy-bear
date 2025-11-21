@@ -42,6 +42,9 @@
     "%lld items selected" : {
 
     },
+    "%lld models" : {
+
+    },
     "%lld non-audio files" : {
 
     },
@@ -83,6 +86,9 @@
           }
         }
       }
+    },
+    "Active Jobs" : {
+
     },
     "active_transcriptions" : {
       "localizations" : {
@@ -774,6 +780,7 @@
     },
     "ai_tab_cancel_job" : {
       "comment" : "Button label to cancel a queued AI job",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -822,6 +829,7 @@
       }
     },
     "ai_tab_default_model" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -921,6 +929,7 @@
     },
     "ai_tab_jobs_collapsed_hint" : {
       "comment" : "Helper text when job list is collapsed",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -938,6 +947,7 @@
     },
     "ai_tab_jobs_empty" : {
       "comment" : "Shown when no jobs exist after expanding",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -954,7 +964,7 @@
       }
     },
     "ai_tab_jobs_section" : {
-      "comment" : "AI Jobs section",
+      "comment" : "AI Jobs\nAI Jobs section",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -972,6 +982,7 @@
     },
     "ai_tab_jobs_show_button" : {
       "comment" : "Button label to expand job list",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -998,6 +1009,7 @@
       }
     },
     "ai_tab_load_models" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1063,6 +1075,7 @@
       }
     },
     "ai_tab_models_search_no_results" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1079,6 +1092,7 @@
       }
     },
     "ai_tab_models_search_placeholder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1095,7 +1109,7 @@
       }
     },
     "ai_tab_models_section" : {
-      "comment" : "AI Models section",
+      "comment" : "AI Models\nAI Models section",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1128,6 +1142,7 @@
       }
     },
     "ai_tab_pricing_template" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1192,57 +1207,6 @@
         }
       }
     },
-    "ai_tab_response_final" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Final Response"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最终响应"
-          }
-        }
-      }
-    },
-    "ai_tab_response_label" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Response"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "响应"
-          }
-        }
-      }
-    },
-    "ai_tab_response_live" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Live Response"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "实时响应"
-          }
-        }
-      }
-    },
     "ai_tab_run_test" : {
       "localizations" : {
         "en" : {
@@ -1292,6 +1256,7 @@
       }
     },
     "ai_tab_selected_model_summary" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1308,6 +1273,7 @@
       }
     },
     "ai_tab_set_default" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1436,9 +1402,6 @@
           }
         }
       }
-    },
-    "ai_tasks_and_models_title" : {
-      "comment" : "AI Tasks and Models title"
     },
     "Authorizing…" : {
 
@@ -2130,6 +2093,9 @@
     "Currently selected: %lld" : {
 
     },
+    "Delete" : {
+
+    },
     "delete_cache_confirm" : {
       "comment" : "Delete cached track button",
       "localizations" : {
@@ -2448,6 +2414,9 @@
     "Error" : {
 
     },
+    "Error Loading Models" : {
+
+    },
     "error_title" : {
       "comment" : "Error title\nGeneric error title",
       "localizations" : {
@@ -2648,6 +2617,9 @@
         }
       }
     },
+    "History" : {
+
+    },
     "Import Audiobook" : {
       "localizations" : {
         "en" : {
@@ -2775,6 +2747,9 @@
         }
       }
     },
+    "Loading Models..." : {
+
+    },
     "loading_library" : {
       "comment" : "Loading library message",
       "localizations" : {
@@ -2896,6 +2871,18 @@
           }
         }
       }
+    },
+    "No AI Jobs" : {
+
+    },
+    "No Models Available" : {
+
+    },
+    "No models match '%@'" : {
+
+    },
+    "No Results" : {
+
     },
     "No results for \"%@\"" : {
 
@@ -3206,6 +3193,9 @@
     "Preparing..." : {
 
     },
+    "Quick Access" : {
+
+    },
     "Re-authenticate" : {
 
     },
@@ -3221,6 +3211,9 @@
           }
         }
       }
+    },
+    "Refresh Models" : {
+
     },
     "reload_button" : {
       "comment" : "Reload button",
@@ -3337,96 +3330,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "展开/折叠修复设置"
-          }
-        }
-      }
-    },
-    "repair_stats_characters" : {
-      "comment" : "Selected characters",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Characters"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选中字数"
-          }
-        }
-      }
-    },
-    "repair_stats_matches" : {
-      "comment" : "Matching low confidence segments",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Matches"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "低置信匹配数"
-          }
-        }
-      }
-    },
-    "repair_stats_repaired" : {
-      "comment" : "Repaired segments",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Repaired"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已修复"
-          }
-        }
-      }
-    },
-    "repair_stats_segments" : {
-      "comment" : "Total segments",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Segments"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "分段总数"
-          }
-        }
-      }
-    },
-    "repair_stats_selected" : {
-      "comment" : "Selected segments",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已选"
           }
         }
       }
@@ -3596,6 +3499,9 @@
           }
         }
       }
+    },
+    "Search models" : {
+
     },
     "search_in_transcript" : {
       "extractionState" : "manual",
@@ -3804,6 +3710,9 @@
           }
         }
       }
+    },
+    "Tap refresh to load available models." : {
+
     },
     "Test Failed" : {
       "localizations" : {
@@ -4203,24 +4112,6 @@
           "stringUnit" : {
             "state" : "needsReview",
             "value" : "Transcript required before generating a summary."
-          }
-        }
-      }
-    },
-    "track_summary_retry_button" : {
-      "comment" : "Retry summary generation button",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "Retry"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "重试"
           }
         }
       }
@@ -4921,24 +4812,6 @@
         }
       }
     },
-    "tts_files_unknown_name" : {
-      "comment" : "Placeholder text for a Soniox file that lacks a name",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Unnamed file"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无名文件"
-          }
-        }
-      }
-    },
     "tts_files_view_title" : {
       "comment" : "Navigation title for the Soniox files list",
       "localizations" : {
@@ -5291,6 +5164,9 @@
           }
         }
       }
+    },
+    "Your AI generation tasks will appear here." : {
+
     }
   },
   "version" : "1.0"
