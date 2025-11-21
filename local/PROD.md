@@ -9,7 +9,7 @@
 **Doc**: `local/task-tts-files-management.md`
 **Notes**: Provide a Files page under the TTS tab so folks can inspect every Soniox upload and swipe to delete any leftovers.
 
-### Bug: frequent and random crash during summary.
+### Bug: frequent and random crash during generating summary.
 
 ### Feat: update the token count so far during the generating of the summary.
 
@@ -17,11 +17,9 @@
 Doc: `local/support-reasoning-models.md`
 Notes: Audit the current AI usage, add a toggle for reasoning-enabled tester jobs, capture `message.reasoning` + `reasoning_details`, and surface it alongside career usage metrics.
 
-### Scroll 卡顿
-
 ### Bug: AI credit last updated label loops every second
 Doc: `local/bug-ai-credit-last-update.md`
-Notes: Balance's "最近更新" text should only change after a manual/initial refresh, not every second while idle.
+Notes: Balance's text should only change after a manual/initial refresh, not every second while idle.
 
 ### Add a indicator in collectionDetail page for the track with summary.
 Doc: `local/collection-detail-summary-indicator.md`

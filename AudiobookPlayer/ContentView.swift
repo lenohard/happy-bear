@@ -378,7 +378,7 @@ struct PlayingView: View {
                 
                 Spacer()
 
-                transcriptButton(for: snapshot.track, in: snapshot.collection)
+
                 
                 FavoriteToggleButton(isFavorite: snapshot.track.isFavorite) {
                     library.toggleFavorite(for: snapshot.track.id, in: snapshot.collection.id)

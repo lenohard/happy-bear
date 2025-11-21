@@ -281,7 +281,7 @@ private struct LibraryCollectionRow: View {
         switch collection.coverAsset.kind {
         case .solid(let colorHex):
             RoundedRectangle(cornerRadius: 8)
-                .fill(Color(hexString: colorHex))
+                .fill(color(from: colorHex))
                 .frame(width: 56, height: 56)
                 .overlay(
                     Text(collection.initials)
@@ -305,6 +305,16 @@ private struct LibraryCollectionRow: View {
                         .foregroundStyle(.secondary)
                 )
         }
+    }
+
+    private func color(from hexString: String) -> Color {
+        let parsedColor: Color? = Color(hexString: hexString)
+        if let parsedColor = parsedColor {
+            return parsedColor
+        }
+
+        let fallbackColor: Color? = Color(hexString: "#5B8DEF")
+        return fallbackColor ?? Color.blue
     }
 }
 

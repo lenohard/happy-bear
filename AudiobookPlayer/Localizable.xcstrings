@@ -954,7 +954,7 @@
       }
     },
     "ai_tab_jobs_section" : {
-      "comment" : "AI jobs section header title",
+      "comment" : "AI Jobs section",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1095,6 +1095,7 @@
       }
     },
     "ai_tab_models_section" : {
+      "comment" : "AI Models section",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1435,6 +1436,9 @@
           }
         }
       }
+    },
+    "ai_tasks_and_models_title" : {
+      "comment" : "AI Tasks and Models title"
     },
     "Authorizing…" : {
 

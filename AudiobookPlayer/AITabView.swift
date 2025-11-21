@@ -10,6 +10,7 @@ struct AITabView: View {
     @EnvironmentObject private var gateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @FocusState private var focusedField: KeyField?
+    @AppStorage("ai_tab_tester_reasoning_enabled_v1") private var isTesterReasoningEnabled = false
     @State private var isCredentialSectionExpanded = false
     @State private var showAPIKey = false
     @State private var isEditingGatewayKey = false
@@ -23,14 +24,6 @@ struct AITabView: View {
                     if gateway.hasValidKey {
                         testerSection
                         creditsSection
-                        
-                        Section {
-                            NavigationLink {
-                                AIDetailView()
-                            } label: {
-                                Label(NSLocalizedString("ai_tasks_and_models_link", comment: "Link to AI Tasks and Models"), systemImage: "list.bullet.rectangle.portrait")
-                            }
-                        }
                     }
                 }
                 .simultaneousGesture(
@@ -66,7 +59,6 @@ struct AITabView: View {
             }
         }
     }
-    }
 
     private var credentialsSection: some View {
         Section {
@@ -94,6 +86,20 @@ struct AITabView: View {
                 .disabled(!gateway.hasValidKey && gateway.apiKey.isEmpty)
             }
             .modifier(CredentialRowModifier(alignment: .leading))
+            
+            if gateway.hasValidKey {
+                NavigationLink {
+                    AIDetailView(section: .jobs)
+                } label: {
+                    Label(NSLocalizedString("ai_tab_jobs_section", comment: "AI Jobs section"), systemImage: "list.bullet.clipboard")
+                }
+                
+                NavigationLink {
+                    AIDetailView(section: .models)
+                } label: {
+                    Label(NSLocalizedString("ai_tab_models_section", comment: "AI Models section"), systemImage: "cpu")
+                }
+            }
         } header: {
             Label(NSLocalizedString("ai_tab_credentials_section", comment: ""), systemImage: "key.horizontal")
                 .font(.headline)
@@ -411,8 +417,7 @@ private extension AITabView {
             return .orange
         }
     }
-
-
+}
 
 func resignFirstResponder() {
 #if canImport(UIKit)

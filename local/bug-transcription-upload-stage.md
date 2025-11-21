@@ -26,7 +26,7 @@
 ## TODO / Tracking
 - [x] Add logger + main-actor guarded stage transitions in `TranscriptionSheet`.
 - [x] Add logger + detailed lifecycle logs in `TranscriptionManager` (download placeholder, upload, Soniox polling, errors).
-- [ ] Verify logs appear in Xcode console and note any additional warnings.
+- [x] Verify logs appear in Xcode console and note any additional warnings.
 
 ## Work Log
 ### 2025-11-20

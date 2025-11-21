@@ -77,6 +77,8 @@ struct TrackSummaryCard: View {
                         Task { await triggerGeneration() }
                     }
                     .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .font(.system(size: 12))
                     .disabled(isActionDisabled)
                 }
             }
@@ -312,13 +314,13 @@ struct TrackSummaryCard: View {
         isActionInFlight
     }
 
-    private var actionButtonTitle: String {
-        if viewModel.hasSummaryContent() {
-            return NSLocalizedString("track_summary_regenerate_button", comment: "Regenerate summary button")
-        } else {
-            return NSLocalizedString("track_summary_generate_button", comment: "Generate summary button")
+        private var actionButtonTitle: String {
+            if viewModel.hasSummaryContent() {
+                return NSLocalizedString("track_summary_regenerate_button", comment: "Regenerate summary button")
+            } else {
+                return NSLocalizedString("track_summary_generate_button", comment: "Generate summary button")
+            }
         }
-    }
 
     private func formattedNumber(_ value: Int) -> String {
         let formatter = NumberFormatter()
