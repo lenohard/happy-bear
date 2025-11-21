@@ -349,3 +349,75 @@ struct TrackSummaryCard: View {
         }
     }
 }
+
+#Preview {
+    struct PreviewWrapper: View {
+        @StateObject private var viewModel = TrackSummaryViewModel()
+        let trackId = UUID(uuidString: "00000000-0000-0000-0000-000000000003")!
+        
+        var body: some View {
+            TrackSummaryCard(
+                track: AudiobookTrack(
+                    id: trackId,
+                    displayName: "Preview Track",
+                    filename: "preview.mp3",
+                    location: .external(url: URL(string: "https://example.com")!),
+                    fileSize: 1024,
+                    duration: 300,
+                    trackNumber: 1,
+                    checksum: nil,
+                    metadata: [:]
+                ),
+                isTranscriptAvailable: true,
+                viewModel: viewModel,
+                seekAndPlayAction: { _ in }
+            )
+            .environmentObject(AIGatewayViewModel())
+            .environmentObject(AIGenerationManager())
+            .padding()
+            .task {
+                // Inject Dummy Summary
+                let dbManager = GRDBDatabaseManager.shared
+                try? await dbManager.initializeDatabase()
+                
+                let sections = [
+                    TrackSummarySection(
+                        trackSummaryId: trackId.uuidString,
+                        orderIndex: 0,
+                        startTimeMs: 0,
+                        endTimeMs: 30000,
+                        title: "Section 1",
+                        summary: "This is the first section summary.",
+                        keywords: ["one", "first"]
+                    ),
+                    TrackSummarySection(
+                        trackSummaryId: trackId.uuidString,
+                        orderIndex: 1,
+                        startTimeMs: 30000,
+                        endTimeMs: 60000,
+                        title: "Section 2",
+                        summary: "This is the second section summary.",
+                        keywords: ["two", "second"]
+                    )
+                ]
+                
+                try? await dbManager.persistTrackSummaryResult(
+                    trackId: trackId.uuidString,
+                    transcriptId: "preview-transcript-id",
+                    language: "en",
+                    summaryTitle: "Preview Summary",
+                    summaryBody: "This is a preview summary body.",
+                    keywords: ["preview", "test"],
+                    sections: sections,
+                    modelIdentifier: "preview-model",
+                    jobId: "preview-job"
+                )
+                
+                // Trigger load
+                viewModel.setTrackId(trackId.uuidString)
+            }
+        }
+    }
+    
+    return PreviewWrapper()
+}

@@ -36,9 +36,6 @@
     "%lld" : {
 
     },
-    "%lld active" : {
-
-    },
     "%lld items selected" : {
 
     },
@@ -1240,6 +1237,7 @@
       }
     },
     "ai_tab_save_key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2075,6 +2073,7 @@
 
     },
     "credential_edit_button" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2890,7 +2889,7 @@
     "No segments match the current selection filter." : {
 
     },
-    "No transcription jobs yet" : {
+    "No Transcription Jobs" : {
 
     },
     "no_active_transcriptions" : {
@@ -4763,6 +4762,7 @@
     },
     "tts_files_section_description" : {
       "comment" : "Helper text describing the Soniox files list page",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4780,6 +4780,7 @@
     },
     "tts_files_section_header" : {
       "comment" : "Section header for Soniox files management within the TTS tab",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4916,6 +4917,7 @@
     },
     "tts_jobs_history_button" : {
       "comment" : "Button to show transcription history sheet",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4933,6 +4935,7 @@
     },
     "tts_jobs_history_completed" : {
       "comment" : "Section title for completed jobs",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4950,6 +4953,7 @@
     },
     "tts_jobs_history_empty" : {
       "comment" : "Empty state text when history is empty",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4967,6 +4971,7 @@
     },
     "tts_jobs_history_failed" : {
       "comment" : "Section title for failed jobs",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4983,7 +4988,7 @@
       }
     },
     "tts_jobs_history_title" : {
-      "comment" : "Title for transcription history sheet",
+      "comment" : "Transcription Jobs",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5001,6 +5006,7 @@
     },
     "tts_jobs_no_active" : {
       "comment" : "TTS tab empty state when only completed/failed jobs exist",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5166,6 +5172,9 @@
       }
     },
     "Your AI generation tasks will appear here." : {
+
+    },
+    "Your transcription tasks will appear here." : {
 
     }
   },
