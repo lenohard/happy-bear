@@ -210,6 +210,10 @@ struct PlayingView: View {
                         VStack(alignment: .leading, spacing: 20) {
                             primaryCard(for: snapshot)
 
+                            if snapshot.isLive {
+                                standaloneSummaryCard(for: snapshot)
+                            }
+
                             if !historyEntries(excluding: snapshot).isEmpty {
                                 listeningHistorySection(entries: historyEntries(excluding: snapshot))
                             }
@@ -341,13 +345,6 @@ struct PlayingView: View {
             liveTimeline()
 
             controlButtons(collection: snapshot.collection, track: snapshot.track)
-
-            TrackSummaryCard(
-                track: snapshot.track,
-                isTranscriptAvailable: transcriptStatusForTrack(snapshot.track) == .available,
-                viewModel: trackSummaryViewModel,
-                seekAndPlayAction: { time in seekAndPlay(to: time) }
-            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -394,6 +391,21 @@ struct PlayingView: View {
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(Color.accentColor.opacity(0.2))
+        )
+    }
+
+    @ViewBuilder
+    private func standaloneSummaryCard(for snapshot: PlaybackSnapshot) -> some View {
+        TrackSummaryCard(
+            track: snapshot.track,
+            isTranscriptAvailable: transcriptStatusForTrack(snapshot.track) == .available,
+            viewModel: trackSummaryViewModel,
+            seekAndPlayAction: { time in seekAndPlay(to: time) }
+        )
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(uiColor: .secondarySystemBackground))
         )
     }
 
