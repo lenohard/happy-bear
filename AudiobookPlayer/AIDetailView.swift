@@ -600,3 +600,11 @@ struct AIDetailView: View {
         )
     }
 }
+
+#Preview {
+    NavigationStack {
+        AIDetailView(section: .both)
+            .environmentObject(AIGatewayViewModel.preview)
+            .environmentObject(AIGenerationManager.preview)
+    }
+}

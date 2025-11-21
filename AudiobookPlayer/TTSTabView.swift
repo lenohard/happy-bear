@@ -477,3 +477,13 @@ struct SonioxFilesListView: View {
         return formatter
     }()
 }
+
+
+
+#Preview {
+    TTSTabView()
+        .environmentObject(TranscriptionManager.preview)
+        .environmentObject(LibraryStore.preview)
+}
+
+

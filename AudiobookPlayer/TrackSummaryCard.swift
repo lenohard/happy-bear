@@ -26,7 +26,7 @@ struct TrackSummaryCard: View {
                     .lineLimit(2)
             }
         }
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 10)
         .padding(.vertical, 12)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)

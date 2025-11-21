@@ -345,7 +345,8 @@ struct AITabView: View {
 
 #Preview {
     AITabView()
-        .environmentObject(AIGatewayViewModel())
+        .environmentObject(AIGatewayViewModel.preview)
+        .environmentObject(AIGenerationManager.preview)
 }
 
 private enum KeyField: Hashable {

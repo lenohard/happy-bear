@@ -235,3 +235,10 @@ struct AIJobStatusBadge: View {
         }
     }
 }
+
+#Preview {
+    NavigationStack {
+        AIJobsListView()
+            .environmentObject(AIGenerationManager.preview)
+    }
+}

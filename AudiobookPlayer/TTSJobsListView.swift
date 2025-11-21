@@ -318,3 +318,11 @@ struct TTSJobStatusBadge: View {
         }
     }
 }
+
+#Preview {
+    NavigationStack {
+        TTSJobsListView()
+            .environmentObject(TranscriptionManager.preview)
+            .environmentObject(LibraryStore.preview)
+    }
+}
