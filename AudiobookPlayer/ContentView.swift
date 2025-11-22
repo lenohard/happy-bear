@@ -459,61 +459,50 @@ struct PlayingView: View {
 
     private func playbackSpeedControls() -> some View {
         let label = formattedSpeed(audioPlayer.playbackRate)
+        let minRate = AudioPlayerViewModel.minPlaybackRate
+        let maxRate = AudioPlayerViewModel.maxPlaybackRate
+        let range = maxRate - minRate
 
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(NSLocalizedString("playback_speed_label", comment: "Playback speed label"))
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-
-                Spacer()
-
-                Text(label)
-                    .font(.subheadline.monospacedDigit())
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 4)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color(uiColor: .tertiarySystemFill))
-                    )
-                    .accessibilityLabel(String(format: NSLocalizedString("playback_speed_value", comment: "Playback speed accessibility label"), label))
-            }
-
-            Slider(
-                value: Binding(
-                    get: { audioPlayer.playbackRate },
-                    set: { audioPlayer.updatePlaybackRate($0) }
-                ),
-                in: AudioPlayerViewModel.minPlaybackRate...AudioPlayerViewModel.maxPlaybackRate,
-                step: 0.05
-            )
-            .tint(.accentColor)
-            .accessibilityLabel(NSLocalizedString("playback_speed_label", comment: "Playback speed label"))
-            .accessibilityValue(label)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
+        return HStack(spacing: 12) {
+            ZStack {
+                // Ticks for preset rates
+                GeometryReader { geometry in
+                    let width = geometry.size.width
+                    
                     ForEach(AudioPlayerViewModel.presetPlaybackRates, id: \.self) { rate in
-                        let isSelected = abs(rate - audioPlayer.playbackRate) < 0.01
-                        Button {
-                            audioPlayer.updatePlaybackRate(rate)
-                        } label: {
-                            Text(formattedSpeed(rate))
-                                .font(.caption)
-                                .fontWeight(isSelected ? .semibold : .regular)
-                                .padding(.vertical, 6)
-                                .padding(.horizontal, 12)
-                                .background(
-                                    Capsule(style: .continuous)
-                                        .fill(isSelected ? Color.accentColor : Color(uiColor: .secondarySystemBackground))
-                                )
-                                .foregroundStyle(isSelected ? Color.white : Color.accentColor)
+                        let normalized = (rate - minRate) / range
+                        if normalized >= 0 && normalized <= 1 {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.3))
+                                .frame(width: 2, height: 6)
+                                .position(x: width * normalized, y: geometry.size.height / 2)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
-                .padding(.top, 2)
+                .frame(height: 20)
+                
+                Slider(
+                    value: Binding(
+                        get: { audioPlayer.playbackRate },
+                        set: { audioPlayer.updatePlaybackRate($0) }
+                    ),
+                    in: minRate...maxRate,
+                    step: 0.05
+                )
+                .tint(.accentColor)
+                .accessibilityLabel(NSLocalizedString("playback_speed_label", comment: "Playback speed label"))
+                .accessibilityValue(label)
             }
+
+            Text(label)
+                .font(.subheadline.monospacedDigit())
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(Color(uiColor: .tertiarySystemFill))
+                )
+                .accessibilityLabel(String(format: NSLocalizedString("playback_speed_value", comment: "Playback speed accessibility label"), label))
         }
     }
 
