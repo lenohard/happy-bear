@@ -87,6 +87,7 @@ struct CollectionDetailView: View {
                 let collection = currentCollection,
                 let track = audioPlayer.currentTrack
             {
+                // Always record when track changes
                 recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
             }
 
@@ -99,7 +100,11 @@ struct CollectionDetailView: View {
                 let track = audioPlayer.currentTrack
             else { return }
 
-            recordPlayback(for: collection, track: track, position: newValue)
+            // Throttle updates: only record every 5 seconds or if playback is paused (handled elsewhere usually, but good to be safe)
+            // We check if the integer value is a multiple of 5 to approximate 5-second intervals
+            if Int(newValue) % 5 == 0 {
+                recordPlayback(for: collection, track: track, position: newValue)
+            }
         }
         .alert(
             NSLocalizedString("remove_track_action", comment: "Remove track dialog title"),
@@ -460,6 +465,11 @@ struct CollectionDetailView: View {
         }
 
         let task = Task.detached { [trackIds] in
+            // Debounce: wait 500ms before querying
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            
+            if Task.isCancelled { return }
+
             var readyTrackIds = Set<UUID>()
             do {
                 let completedIds = try await GRDBDatabaseManager.shared.fetchTrackIdsWithCompletedSummaries(trackIds: trackIds)
@@ -467,6 +477,8 @@ struct CollectionDetailView: View {
             } catch {
                 print("[CollectionDetailView] Failed to refresh summary indicators: \(error.localizedDescription)")
             }
+            
+            if Task.isCancelled { return }
 
             await MainActor.run {
                 tracksWithSummaries = readyTrackIds

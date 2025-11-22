@@ -237,12 +237,16 @@ private struct LoadingLibraryView: View {
 private struct LibraryCollectionRow: View {
     let collection: AudiobookCollection
 
-    private var subtitle: String {
-        let trackCount = collection.tracks.count
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
-        let updated = formatter.string(from: collection.updatedAt)
+        return formatter
+    }()
+
+    private var subtitle: String {
+        let trackCount = collection.tracks.count
+        let updated = Self.dateFormatter.string(from: collection.updatedAt)
 
         if trackCount == 1 {
             return "1 track • Updated \(updated)"
@@ -307,14 +311,10 @@ private struct LibraryCollectionRow: View {
         }
     }
 
-    private func color(from hexString: String) -> Color {
-        let parsedColor: Color? = Color(hexString: hexString)
-        if let parsedColor = parsedColor {
-            return parsedColor
-        }
+    private static let fallbackColor = Color(hexString: "#5B8DEF")
 
-        let fallbackColor: Color? = Color(hexString: "#5B8DEF")
-        return fallbackColor ?? Color.blue
+    private func color(from hexString: String) -> Color {
+        return Color(hexString: hexString)
     }
 }
 
