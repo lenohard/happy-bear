@@ -54,189 +54,208 @@ struct CollectionDetailView: View {
     }
 
     var body: some View {
-        content
-        .navigationTitle(collection?.title ?? NSLocalizedString("collection_title_fallback", comment: "Collection detail fallback title"))
-        .navigationBarTitleDisplayMode(.inline)
-        .searchable(
-            text: $searchText,
-            prompt: Text(NSLocalizedString("search_tracks_prompt", comment: "Search tracks prompt"))
-        )
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                if library.canModifyCollection(collectionID) {
-                    Button(action: addTracksAction) {
-                        Label(
-                            NSLocalizedString("add_tracks_button", comment: "Add tracks button"),
-                            systemImage: "plus.circle"
+        let baseView = content
+            .navigationTitle(collection?.title ?? NSLocalizedString("collection_title_fallback", comment: "Collection detail fallback title"))
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(
+                text: $searchText,
+                prompt: Text(NSLocalizedString("search_tracks_prompt", comment: "Search tracks prompt"))
+            )
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    if library.canModifyCollection(collectionID) {
+                        Button(action: addTracksAction) {
+                            Label(
+                                NSLocalizedString("add_tracks_button", comment: "Add tracks button"),
+                                systemImage: "plus.circle"
+                            )
+                        }
+                        .labelStyle(.iconOnly)
+                    }
+                }
+            }
+
+        let viewWithAlerts = baseView
+            .alert(NSLocalizedString("connect_baidu_first", comment: "Connect Baidu First alert"), isPresented: $missingAuthAlert) {
+                Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
+            } message: {
+                Text(NSLocalizedString("sign_in_on_sources_tab", comment: "Sign in on sources tab message"))
+            }
+            .alert(
+                NSLocalizedString("remove_track_action", comment: "Remove track dialog title"),
+                isPresented: $showDeleteConfirmation,
+                presenting: trackToDelete
+            ) { _ in
+                Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) {
+                    trackToDelete = nil
+                }
+                Button(NSLocalizedString("remove_track_action", comment: "Remove track action label"), role: .destructive) {
+                    deleteSelectedTrack()
+                }
+            } message: { track in
+                Text(removePrompt(for: track))
+            }
+            .alert(
+                NSLocalizedString("delete_transcript_confirm_title", comment: "Delete transcript dialog title"),
+                isPresented: $showTranscriptDeletionDialog,
+                presenting: trackPendingTranscriptDeletion
+            ) { track in
+                Button(NSLocalizedString("delete_transcript_cancel", comment: "Cancel delete transcript"), role: .cancel) {
+                    trackPendingTranscriptDeletion = nil
+                }
+                Button(NSLocalizedString("delete_transcript_confirm", comment: "Confirm delete transcript"), role: .destructive) {
+                    deleteTranscript(for: track)
+                }
+            } message: { track in
+                Text(String(format: NSLocalizedString("delete_transcript_confirm_message", comment: "Delete transcript confirm message"), track.displayName))
+            }
+            .alert(
+                NSLocalizedString("error_title", comment: "Generic error title"),
+                isPresented: $showTranscriptDeletionError,
+                presenting: transcriptDeletionError
+            ) { _ in
+                Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) {
+                    showTranscriptDeletionError = false
+                }
+            } message: { error in
+                Text(error)
+            }
+
+        let viewWithSheets = viewWithAlerts
+            .sheet(isPresented: $showTrackPicker) {
+                TrackPickerView(
+                    collectionID: collectionID,
+                    onTracksSelected: { newTracks in
+                        library.addTracksToCollection(
+                            collectionID: collectionID,
+                            newTracks: newTracks
                         )
                     }
-                    .labelStyle(.iconOnly)
+                )
+                .environmentObject(library)
+                .environmentObject(authViewModel)
+            }
+            .sheet(item: $trackToRename) { track in
+                RenameEntryView(
+                    title: NSLocalizedString("rename_track_title", comment: "Rename track title"),
+                    fieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
+                    text: $trackTitleDraft,
+                    onSubmit: {
+                        applyTrackRename(for: track)
+                    },
+                    onCancel: cancelTrackRename
+                )
+            }
+            .sheet(isPresented: $showCollectionInfoSheet) {
+                CollectionInfoEditorView(
+                    title: NSLocalizedString("edit_collection_details_title", comment: "Edit collection details title"),
+                    nameFieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
+                    descriptionFieldLabel: NSLocalizedString("collection_description_field_label", comment: "Collection description field label"),
+                    name: $collectionTitleDraft,
+                    description: $collectionDescriptionDraft,
+                    onSubmit: applyCollectionDetailsUpdate,
+                    onCancel: cancelCollectionDetailsEdit
+                )
+            }
+            .sheet(item: $trackForTranscription) { track in
+                TranscriptionSheet(
+                    track: track,
+                    collectionID: collectionID,
+                    collectionTitle: collection?.title ?? "",
+                    collectionDescription: collection?.description
+                )
+            }
+            .sheet(item: $trackForViewing) { track in
+                TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName, showTrackSummary: true)
+            }
+
+        let viewWithPlaybackEvents = viewWithSheets
+            .onChange(of: audioPlayer.currentTrack?.id) { _ in
+                let currentCollection = self.collection
+                
+                if
+                    audioPlayer.activeCollection?.id == collectionID,
+                    let collection = currentCollection,
+                    let track = audioPlayer.currentTrack
+                {
+                    // Always record when track changes
+                    recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
+                }
+
+                prepareAutoFocusTargetIfNeeded(for: currentCollection)
+            }
+            .onChange(of: audioPlayer.currentTime) { newValue in
+                guard
+                    audioPlayer.activeCollection?.id == collectionID,
+                    let collection,
+                    let track = audioPlayer.currentTrack
+                else { return }
+
+                // Throttle updates: only record every 5 seconds or if playback is paused (handled elsewhere usually, but good to be safe)
+                // We check if the integer value is a multiple of 5 to approximate 5-second intervals
+                if Int(newValue) % 5 == 0 {
+                    recordPlayback(for: collection, track: track, position: newValue)
                 }
             }
-        }
-        .alert(NSLocalizedString("connect_baidu_first", comment: "Connect Baidu First alert"), isPresented: $missingAuthAlert) {
-            Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
-        } message: {
-            Text(NSLocalizedString("sign_in_on_sources_tab", comment: "Sign in on sources tab message"))
-        }
-        .onChange(of: audioPlayer.currentTrack?.id) { _ in
-            let currentCollection = self.collection
 
-            if
-                audioPlayer.activeCollection?.id == collectionID,
-                let collection = currentCollection,
-                let track = audioPlayer.currentTrack
-            {
-                // Always record when track changes
-                recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
-            }
-
-            prepareAutoFocusTargetIfNeeded(for: currentCollection)
-        }
-        .onChange(of: audioPlayer.currentTime) { newValue in
-            guard
-                audioPlayer.activeCollection?.id == collectionID,
-                let collection,
-                let track = audioPlayer.currentTrack
-            else { return }
-
-            // Throttle updates: only record every 5 seconds or if playback is paused (handled elsewhere usually, but good to be safe)
-            // We check if the integer value is a multiple of 5 to approximate 5-second intervals
-            if Int(newValue) % 5 == 0 {
-                recordPlayback(for: collection, track: track, position: newValue)
-            }
-        }
-        .alert(
-            NSLocalizedString("remove_track_action", comment: "Remove track dialog title"),
-            isPresented: $showDeleteConfirmation,
-            presenting: trackToDelete
-        ) { _ in
-            Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) {
-                trackToDelete = nil
-            }
-            Button(NSLocalizedString("remove_track_action", comment: "Remove track action label"), role: .destructive) {
-                deleteSelectedTrack()
-            }
-        } message: { track in
-            Text(removePrompt(for: track))
-        }
-        .sheet(isPresented: $showTrackPicker) {
-            TrackPickerView(
-                collectionID: collectionID,
-                onTracksSelected: { newTracks in
-                    library.addTracksToCollection(
-                        collectionID: collectionID,
-                        newTracks: newTracks
-                    )
+        let viewWithStateEvents = viewWithPlaybackEvents
+            .onChange(of: trackToRename) { newValue in
+                if newValue == nil {
+                    trackTitleDraft = ""
                 }
-            )
-            .environmentObject(library)
-            .environmentObject(authViewModel)
-        }
-        .sheet(item: $trackToRename) { track in
-            RenameEntryView(
-                title: NSLocalizedString("rename_track_title", comment: "Rename track title"),
-                fieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
-                text: $trackTitleDraft,
-                onSubmit: {
-                    applyTrackRename(for: track)
-                },
-                onCancel: cancelTrackRename
-            )
-        }
-        .sheet(isPresented: $showCollectionInfoSheet) {
-            CollectionInfoEditorView(
-                title: NSLocalizedString("edit_collection_details_title", comment: "Edit collection details title"),
-                nameFieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
-                descriptionFieldLabel: NSLocalizedString("collection_description_field_label", comment: "Collection description field label"),
-                name: $collectionTitleDraft,
-                description: $collectionDescriptionDraft,
-                onSubmit: applyCollectionDetailsUpdate,
-                onCancel: cancelCollectionDetailsEdit
-            )
-        }
-        .onChange(of: trackToRename) { newValue in
-            if newValue == nil {
-                trackTitleDraft = ""
             }
-        }
-        .onChange(of: showCollectionInfoSheet) { newValue in
-            if !newValue {
-                collectionTitleDraft = ""
-                collectionDescriptionDraft = ""
+            .onChange(of: showCollectionInfoSheet) { newValue in
+                if !newValue {
+                    collectionTitleDraft = ""
+                    collectionDescriptionDraft = ""
+                }
             }
-        }
-        .onChange(of: collectionID) { _ in
-            resetAutoFocusState()
-            loadTranscriptStatus()
-            prepareAutoFocusTargetIfNeeded(for: self.collection)
-            refreshTrackSummaryIndicators(for: self.collection)
-        }
-        .onChange(of: collection?.tracks.map(\.id) ?? []) { _ in
-            prepareAutoFocusTargetIfNeeded(for: self.collection)
-            refreshTrackSummaryIndicators(for: self.collection)
-        }
-        .onChange(of: audioPlayer.activeCollection?.id) { _ in
-            prepareAutoFocusTargetIfNeeded(for: self.collection)
-        }
-        .onAppear {
-            loadTranscriptStatus()
-            prepareAutoFocusTargetIfNeeded(for: self.collection)
-            refreshTrackSummaryIndicators(for: self.collection)
-        }
-        .onChange(of: aiGenerationManager.activeJobs) { jobs in
-            guard jobs.contains(where: { $0.type == .trackSummary }) else { return }
-            refreshTrackSummaryIndicators(for: self.collection)
-        }
-        .onChange(of: aiGenerationManager.recentJobs) { jobs in
-            guard jobs.contains(where: { $0.type == .trackSummary }) else { return }
-            refreshTrackSummaryIndicators(for: self.collection)
-        }
-        .onDisappear {
-            summaryIndicatorTask?.cancel()
-            summaryIndicatorTask = nil
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TranscriptionCompleted"))) { notification in
-            print("[CollectionDetailView] Received TranscriptionCompleted notification")
-            // Reload transcript status when a transcription completes
-            loadTranscriptStatus()
-        }
-        .sheet(item: $trackForTranscription) { track in
-            TranscriptionSheet(
-                track: track,
-                collectionID: collectionID,
-                collectionTitle: collection?.title ?? "",
-                collectionDescription: collection?.description
-            )
-        }
-        .sheet(item: $trackForViewing) { track in
-            TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName, showTrackSummary: true)
-        }
-        .alert(
-            NSLocalizedString("delete_transcript_confirm_title", comment: "Delete transcript dialog title"),
-            isPresented: $showTranscriptDeletionDialog,
-            presenting: trackPendingTranscriptDeletion
-        ) { track in
-            Button(NSLocalizedString("delete_transcript_cancel", comment: "Cancel delete transcript"), role: .cancel) {
-                trackPendingTranscriptDeletion = nil
+            .onChange(of: collectionID) { _ in
+                resetAutoFocusState()
+                loadTranscriptStatus()
+                prepareAutoFocusTargetIfNeeded(for: self.collection)
+                refreshTrackSummaryIndicators(for: self.collection)
             }
-            Button(NSLocalizedString("delete_transcript_confirm", comment: "Confirm delete transcript"), role: .destructive) {
-                deleteTranscript(for: track)
+            .onChange(of: collection?.tracks.map(\.id) ?? []) { _ in
+                prepareAutoFocusTargetIfNeeded(for: self.collection)
+                refreshTrackSummaryIndicators(for: self.collection)
             }
-        } message: { track in
-            Text(String(format: NSLocalizedString("delete_transcript_confirm_message", comment: "Delete transcript confirm message"), track.displayName))
-        }
-        .alert(
-            NSLocalizedString("error_title", comment: "Generic error title"),
-            isPresented: $showTranscriptDeletionError,
-            presenting: transcriptDeletionError
-        ) { _ in
-            Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) {
-                showTranscriptDeletionError = false
+            .onChange(of: audioPlayer.activeCollection?.id) { _ in
+                prepareAutoFocusTargetIfNeeded(for: self.collection)
             }
-        } message: { error in
-            Text(error)
-        }
+
+        return viewWithStateEvents
+            .onAppear {
+                // Initialize transcribing IDs
+                transcribingTrackIds = Set(transcriptionManager.activeJobs.compactMap { UUID(uuidString: $0.trackId) })
+                
+                loadTranscriptStatus()
+                prepareAutoFocusTargetIfNeeded(for: self.collection)
+                refreshTrackSummaryIndicators(for: self.collection)
+            }
+            .onChange(of: aiGenerationManager.activeJobs) { jobs in
+                // Optimize: Update the set of transcribing IDs once, instead of filtering in every row
+                let newIds = Set(jobs.compactMap { job in job.trackId.flatMap(UUID.init) })
+                if newIds != transcribingTrackIds {
+                    transcribingTrackIds = newIds
+                }
+                
+                guard jobs.contains(where: { $0.type == .trackSummary }) else { return }
+                refreshTrackSummaryIndicators(for: self.collection)
+            }
+            .onChange(of: aiGenerationManager.recentJobs) { jobs in
+                guard jobs.contains(where: { $0.type == .trackSummary }) else { return }
+                refreshTrackSummaryIndicators(for: self.collection)
+            }
+            .onDisappear {
+                summaryIndicatorTask?.cancel()
+                summaryIndicatorTask = nil
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TranscriptionCompleted"))) { notification in
+                print("[CollectionDetailView] Received TranscriptionCompleted notification")
+                // Reload transcript status when a transcription completes
+                loadTranscriptStatus()
+            }
     }
 
     @ViewBuilder
@@ -355,8 +374,8 @@ struct CollectionDetailView: View {
                 ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
                     let trackIsActive = isCurrentTrack(track: track)
                     let hasTranscript = transcriptStatusCache[track.id] ?? false
-                    let activeJob = transcriptionManager.activeJobs.first(where: { $0.trackId == track.id.uuidString })
-                    let isTranscribingTrack = activeJob != nil
+                    // Optimized O(1) lookup
+                    let isTranscribingTrack = transcribingTrackIds.contains(track.id)
 
                     TrackDetailRow(
                         index: index,
@@ -735,23 +754,41 @@ struct CollectionDetailView: View {
         return sortedTracks[nextIndex]
     }
 
+    @State private var transcriptStatusTask: Task<Void, Never>?
+    @State private var transcribingTrackIds: Set<UUID> = []
+
+    // ... (removed duplicates)
+
     private func loadTranscriptStatus() {
         guard let collection else { return }
+        
+        // Debounce: Cancel previous task
+        transcriptStatusTask?.cancel()
 
-        Task {
+        transcriptStatusTask = Task {
+            // Wait 300ms to debounce rapid changes
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            if Task.isCancelled { return }
+
             var newCache: [UUID: Bool] = [:]
             let dbManager = GRDBDatabaseManager.shared
 
             do {
                 try await dbManager.initializeDatabase()
             } catch {
-                await MainActor.run {
-                    self.transcriptStatusCache = [:]
+                if !Task.isCancelled {
+                    await MainActor.run {
+                        self.transcriptStatusCache = [:]
+                    }
                 }
                 return
             }
+            
+            if Task.isCancelled { return }
 
+            // Fetch all at once if possible, or iterate (iteration is fine for now if off main thread)
             for track in collection.tracks {
+                if Task.isCancelled { return }
                 do {
                     let hasTranscript = try await dbManager.hasCompletedTranscript(forTrackId: track.id.uuidString)
                     newCache[track.id] = hasTranscript
@@ -760,8 +797,10 @@ struct CollectionDetailView: View {
                 }
             }
 
-            await MainActor.run {
-                self.transcriptStatusCache = newCache
+            if !Task.isCancelled {
+                await MainActor.run {
+                    self.transcriptStatusCache = newCache
+                }
             }
         }
     }
@@ -927,7 +966,7 @@ private struct RenameEntryView: View {
     }
 }
 
-private struct TrackDetailRow: View {
+private struct TrackDetailRow: View, Equatable {
     let index: Int
     let track: AudiobookTrack
     let isActive: Bool
@@ -939,6 +978,20 @@ private struct TrackDetailRow: View {
     let isTranscribing: Bool
     let onSelect: () -> Void
     let onToggleFavorite: () -> Void
+
+    static func == (lhs: TrackDetailRow, rhs: TrackDetailRow) -> Bool {
+        lhs.index == rhs.index &&
+        lhs.track.id == rhs.track.id &&
+        lhs.track.displayName == rhs.track.displayName &&
+        lhs.track.fileSize == rhs.track.fileSize &&
+        lhs.isActive == rhs.isActive &&
+        lhs.isPlaying == rhs.isPlaying &&
+        lhs.playbackState == rhs.playbackState &&
+        lhs.isFavorite == rhs.isFavorite &&
+        lhs.hasTranscript == rhs.hasTranscript &&
+        lhs.hasSummary == rhs.hasSummary &&
+        lhs.isTranscribing == rhs.isTranscribing
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
