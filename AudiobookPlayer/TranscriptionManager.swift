@@ -659,29 +659,23 @@ class TranscriptionManager: NSObject, ObservableObject {
     }
 
     private func combineTokens(_ tokens: [String], languageCode: String?) -> String {
-        guard shouldInsertSpaces(for: languageCode) else {
-            return tokens.joined()
+        // Soniox API returns tokens where spacing is already encoded via leading spaces.
+        // For example: ["Peng", "u", "in", " Rand", "om", " House"]
+        // When joined directly: "Penguin Random House" ✅
+        // When joined with spaces: "Peng u in  Rand om  House" ❌
+        //
+        // Strategy: Just join tokens directly without any separator.
+        // The API handles spacing for all languages (English, CJK, etc.)
+        
+        let combined = tokens.joined()
+        
+        // Clean up any potential double spaces (defensive)
+        var result = combined
+        while result.contains("  ") {
+            result = result.replacingOccurrences(of: "  ", with: " ")
         }
-
-        var combined = tokens.joined(separator: " ")
-
-        let punctuation = [".", ",", "!", "?", ";", ":", ")", "]", "}", "，", "。", "！", "？", "；", "："]
-        for symbol in punctuation {
-            combined = combined.replacingOccurrences(of: " \(symbol)", with: symbol)
-        }
-
-        while combined.contains("  ") {
-            combined = combined.replacingOccurrences(of: "  ", with: " ")
-        }
-
-        return combined.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func shouldInsertSpaces(for languageCode: String?) -> Bool {
-        guard let languageCode else { return true }
-        let trimmed = languageCode.lowercased()
-        let languagesWithoutSpaces = ["zh", "ja", "ko"]
-        return !languagesWithoutSpaces.contains { trimmed.hasPrefix($0) }
+        
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private func ensurePendingTranscript(
