@@ -583,7 +583,46 @@ class TranscriptionManager: NSObject, ObservableObject {
 
         func endsWithSentencePunctuation(_ text: String) -> Bool {
             let sentenceEnders: Set<Character> = [".", "。", "!", "！", "?", "？"]
-            return sentenceEnders.contains(text.last ?? " ")
+            guard let lastChar = text.last, sentenceEnders.contains(lastChar) else {
+                return false
+            }
+            
+            // If it ends with non-period punctuation, it's a sentence ender
+            if lastChar != "." && lastChar != "。" {
+                return true
+            }
+            
+            // For periods, check if it's an abbreviation
+            // Common abbreviations that should NOT split segments
+            let abbreviations = [
+                "mr.", "mrs.", "ms.", "miss.", "dr.", "prof.", "sr.", "jr.",
+                "st.", "ave.", "blvd.", "rd.", "ln.", "ct.", "pl.",
+                "inc.", "ltd.", "corp.", "co.", "llc.",
+                "no.", "vol.", "vs.", "etc.", "al.", "i.e.", "e.g.",
+                "ph.d.", "m.d.", "b.a.", "m.a.", "b.s.", "m.s.",
+                "a.m.", "p.m.", "u.s.", "u.k.", "u.n."
+            ]
+            
+            let lowercased = text.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Check if the entire text is just an abbreviation
+            if abbreviations.contains(lowercased) {
+                return false
+            }
+            
+            // Check if text ends with an abbreviation (e.g., "said Mrs.")
+            for abbr in abbreviations {
+                if lowercased.hasSuffix(abbr) {
+                    // Make sure it's a word boundary before the abbreviation
+                    let prefix = lowercased.dropLast(abbr.count)
+                    if prefix.isEmpty || prefix.last?.isWhitespace == true || prefix.last?.isPunctuation == true {
+                        return false
+                    }
+                }
+            }
+            
+            // Not an abbreviation, so it's a sentence ender
+            return true
         }
 
         func lastPreferredBreakIndex() -> Int? {
