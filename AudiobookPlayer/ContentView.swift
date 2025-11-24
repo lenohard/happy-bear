@@ -471,43 +471,80 @@ struct PlayingView: View {
     private func controlButtons(collection: AudiobookCollection, track: AudiobookTrack) -> some View {
         VStack(spacing: 16) {
             ZStack {
+                // Sleep Timer aligned to the left
+                HStack {
+                    Menu {
+                        Button {
+                            audioPlayer.setSleepTimer(.endOfTrack)
+                        } label: {
+                            if audioPlayer.sleepTimerMode == .endOfTrack {
+                                Label(NSLocalizedString("timer_end_of_episode", comment: "Timer end of episode"), systemImage: "checkmark")
+                            } else {
+                                Text(NSLocalizedString("timer_end_of_episode", comment: "Timer end of episode"))
+                            }
+                        }
+                        
+                        ForEach([60, 45, 30, 15, 10, 5], id: \.self) { minutes in
+                            Button {
+                                audioPlayer.setSleepTimer(.time(TimeInterval(minutes * 60)))
+                            } label: {
+                                let title = String(format: NSLocalizedString("timer_minutes", comment: "Timer duration"), minutes)
+                                if case .time(let duration) = audioPlayer.sleepTimerMode, abs(duration - TimeInterval(minutes * 60)) < 1 {
+                                    Label(title, systemImage: "checkmark")
+                                } else {
+                                    Text(title)
+                                }
+                            }
+                        }
+                        
+                        Button {
+                            audioPlayer.setSleepTimer(.off)
+                        } label: {
+                            if audioPlayer.sleepTimerMode == .off {
+                                Label(NSLocalizedString("timer_off", comment: "Timer off"), systemImage: "checkmark")
+                            } else {
+                                Text(NSLocalizedString("timer_off", comment: "Timer off"))
+                            }
+                        }
+                    } label: {
+                        VStack(spacing: 2) {
+                            Image(systemName: "moon.fill")
+                                .font(.system(size: 20))
+                            if let remaining = audioPlayer.sleepTimerRemaining {
+                                Text(formatTimer(remaining))
+                                    .font(.caption2)
+                                    .monospacedDigit()
+                            }
+                        }
+                        .foregroundStyle(audioPlayer.sleepTimerMode != .off ? Color.accentColor : .secondary)
+                        .frame(width: 45)
+                    }
+                    
+                    Spacer()
+                }
+
                 // Centered Playback Buttons
-                HStack(spacing: 10) {
+                // Centered Playback Buttons
+                HStack(spacing: 45) {
                     Button {
                         audioPlayer.skipBackward(by: 15)
                     } label: {
                         Image(systemName: "gobackward.15")
-                            .font(.title3)
+                            .font(.system(size: 28))
                     }
-
-                    Button {
-                        audioPlayer.playPreviousTrack()
-                    } label: {
-                        Image(systemName: "backward.end.alt")
-                            .font(.title3)
-                    }
-                    .disabled(!hasPreviousTrack)
 
                     Button {
                         audioPlayer.togglePlayback()
                     } label: {
-                        Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                            .font(.system(size: 48))
+                        Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 44))
                     }
-
-                    Button {
-                        audioPlayer.playNextTrack()
-                    } label: {
-                        Image(systemName: "forward.end.alt")
-                            .font(.title3)
-                    }
-                    .disabled(!hasNextTrack)
 
                     Button {
                         audioPlayer.skipForward(by: 30)
                     } label: {
                         Image(systemName: "goforward.30")
-                            .font(.title3)
+                            .font(.system(size: 28))
                     }
                 }
                 .buttonStyle(.plain)
@@ -701,6 +738,12 @@ struct PlayingView: View {
     private func percentageString(_ value: Double) -> String {
         let percent = Int((value * 100).rounded())
         return "\(percent)%"
+    }
+
+    private func formatTimer(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%02d:%02d", minutes, seconds)
     }
 
     private func resumePlayback(collection: AudiobookCollection, track: AudiobookTrack) {

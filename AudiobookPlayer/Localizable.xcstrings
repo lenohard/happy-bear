@@ -1672,7 +1672,14 @@
       }
     },
     "Cancel" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
     },
     "cancel_button" : {
       "comment" : "Cancel\nCancel button",
@@ -2196,7 +2203,14 @@
       }
     },
     "Enter text to see preview" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入字符串预览"
+          }
+        }
+      }
     },
     "ephemeral_streaming_badge" : {
       "comment" : "Ephemeral streaming badge",
@@ -3544,7 +3558,14 @@
       }
     },
     "Text to find..." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目标字符串"
+          }
+        }
+      }
     },
     "This folder is empty." : {
       "localizations" : {
@@ -3552,6 +3573,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "文件夹是空的"
+          }
+        }
+      }
+    },
+    "timer_end_of_episode" : {
+      "comment" : "Timer end of episode",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When Current Episode Ends"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单集结束时"
+          }
+        }
+      }
+    },
+    "timer_minutes" : {
+      "comment" : "Timer duration",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d Minutes"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 分钟"
+          }
+        }
+      }
+    },
+    "timer_off" : {
+      "comment" : "Timer off",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Off"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
           }
         }
       }

@@ -16,6 +16,24 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published private(set) var activeCacheStatus: CacheStatusSnapshot?
     @Published private(set) var ephemeralContext: TemporaryPlaybackContext?
     @Published var playbackRate: Double
+    @Published var sleepTimerMode: SleepTimerMode = .off
+    @Published var sleepTimerRemaining: TimeInterval?
+
+    enum SleepTimerMode: Equatable {
+        case off
+        case time(TimeInterval)
+        case endOfTrack
+        
+        var title: String {
+            switch self {
+            case .off: return NSLocalizedString("timer_off", comment: "Timer off")
+            case .time(let duration):
+                let minutes = Int(duration / 60)
+                return String(format: NSLocalizedString("timer_minutes", comment: "Timer duration"), minutes)
+            case .endOfTrack: return NSLocalizedString("timer_end_of_episode", comment: "Timer end of episode")
+            }
+        }
+    }
 
     private var playlist: [AudiobookTrack] = []
     private var player: AVPlayer?
@@ -29,6 +47,7 @@ final class AudioPlayerViewModel: ObservableObject {
     private let progressTracker: CacheProgressTracker
     private var cancellables: Set<AnyCancellable> = []
     private let defaults: UserDefaults
+    private var sleepTimer: Timer?
 
     private static let playbackRateDefaultsKey = "audio_player_playback_rate"
     static let minPlaybackRate: Double = 0.5
@@ -311,6 +330,35 @@ final class AudioPlayerViewModel: ObservableObject {
         playbackRate = clamped
         defaults.set(clamped, forKey: Self.playbackRateDefaultsKey)
         applyPlaybackRateToPlayer()
+    }
+
+    func setSleepTimer(_ mode: SleepTimerMode) {
+        sleepTimer?.invalidate()
+        sleepTimer = nil
+        sleepTimerMode = mode
+        sleepTimerRemaining = nil
+
+        switch mode {
+        case .off:
+            break
+        case .time(let duration):
+            sleepTimerRemaining = duration
+            sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
+                self?.handleSleepTimerTick()
+            }
+        case .endOfTrack:
+            break
+        }
+    }
+
+    private func handleSleepTimerTick() {
+        guard let remaining = sleepTimerRemaining else { return }
+        if remaining > 0 {
+            sleepTimerRemaining = remaining - 1
+        } else {
+            stopPlayback(clearQueue: false)
+            setSleepTimer(.off)
+        }
     }
 
     func seek(to time: Double) {
@@ -610,6 +658,12 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func handlePlaybackFinished() {
+        if sleepTimerMode == .endOfTrack {
+            stopPlayback(clearQueue: false)
+            setSleepTimer(.off)
+            return
+        }
+
         currentTime = 0
         isPlaying = false
         pendingInitialSeek = nil
@@ -691,6 +745,12 @@ final class AudioPlayerViewModel: ObservableObject {
     func stopPlayback(clearQueue: Bool) {
         if let currentTrack {
             progressTracker.stopTracking(for: currentTrack.id.uuidString)
+        }
+
+        sleepTimer?.invalidate()
+        sleepTimer = nil
+        if case .time = sleepTimerMode {
+            setSleepTimer(.off)
         }
 
         player?.pause()
