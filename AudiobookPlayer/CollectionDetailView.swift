@@ -484,7 +484,7 @@ struct CollectionDetailView: View {
                         }
                     } preview: {
                         Text(track.displayName)
-                            .font(.headline)
+                            .font(.subheadline)
                             .padding()
                             .multilineTextAlignment(.leading)
                             .lineLimit(nil)
