@@ -18,6 +18,7 @@ struct CollectionDetailView: View {
     @State private var trackToRename: AudiobookTrack?
     @State private var trackTitleDraft = ""
     @State private var showCollectionInfoSheet = false
+    @State private var showBatchRename = false
     @State private var collectionTitleDraft = ""
     @State private var collectionDescriptionDraft = ""
     @State private var trackForTranscription: AudiobookTrack?
@@ -64,13 +65,20 @@ struct CollectionDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     if library.canModifyCollection(collectionID) {
-                        Button(action: addTracksAction) {
-                            Label(
-                                NSLocalizedString("add_tracks_button", comment: "Add tracks button"),
-                                systemImage: "plus.circle"
-                            )
+                        Menu {
+                            Button(action: addTracksAction) {
+                                Label(
+                                    NSLocalizedString("add_tracks_button", comment: "Add tracks button"),
+                                    systemImage: "plus.circle"
+                                )
+                            }
+                            
+                            Button(action: { showBatchRename = true }) {
+                                Label("Batch Rename", systemImage: "pencil.and.list.clipboard")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
                         }
-                        .labelStyle(.iconOnly)
                     }
                 }
             }
@@ -167,6 +175,20 @@ struct CollectionDetailView: View {
             }
             .sheet(item: $trackForViewing) { track in
                 TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName, showTrackSummary: true)
+            }
+            .sheet(isPresented: $showBatchRename) {
+                if let collection = collection {
+                    BatchRenameView(
+                        tracks: collection.tracks,
+                        onApply: { changes in
+                            library.batchRenameTracks(in: collectionID, changes: changes)
+                            showBatchRename = false
+                        },
+                        onCancel: {
+                            showBatchRename = false
+                        }
+                    )
+                }
             }
 
         let viewWithPlaybackEvents = viewWithSheets

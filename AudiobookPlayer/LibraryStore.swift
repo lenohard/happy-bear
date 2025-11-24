@@ -419,6 +419,64 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func batchRenameTracks(
+        in collectionID: UUID,
+        changes: [UUID: String]
+    ) {
+        guard let collectionIndex = collections.firstIndex(where: { $0.id == collectionID }) else {
+            return
+        }
+
+        var collection = collections[collectionIndex]
+        var updatedTracks: [AudiobookTrack] = []
+        var didChange = false
+
+        for (index, track) in collection.tracks.enumerated() {
+            if let newTitle = changes[track.id] {
+                let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty && trimmed != track.displayName {
+                    var updatedTrack = track
+                    updatedTrack.displayName = String(trimmed.prefix(256))
+                    collection.tracks[index] = updatedTrack
+                    updatedTracks.append(updatedTrack)
+                    didChange = true
+                }
+            }
+        }
+
+        guard didChange else { return }
+
+        collection.updatedAt = Date()
+        collections[collectionIndex] = collection
+        collections.sort { $0.updatedAt > $1.updatedAt }
+
+        // Persist to database
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                do {
+                    // Update each track in the database
+                    for track in updatedTracks {
+                        try await dbManager.updateTrack(track, in: collectionID)
+                    }
+                    // Update collection timestamp
+                    try await dbManager.saveCollection(collection)
+                } catch {
+                    await MainActor.run {
+                        self.lastError = error
+                    }
+                }
+            }
+        } else {
+            persistCurrentSnapshot()
+        }
+
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(collection)
+            }
+        }
+    }
+
     func canModifyCollection(_ collectionID: UUID) -> Bool {
         guard let collection = collections.first(where: { $0.id == collectionID }) else {
             return false
