@@ -486,7 +486,9 @@ struct CollectionDetailView: View {
                         Text(track.displayName)
                             .font(.headline)
                             .padding()
+                            .multilineTextAlignment(.leading)
                             .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: 300)
                     }
                     .id(track.id)
