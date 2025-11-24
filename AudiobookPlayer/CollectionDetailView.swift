@@ -488,6 +488,7 @@ struct CollectionDetailView: View {
                             .padding()
                             .multilineTextAlignment(.leading)
                             .lineLimit(nil)
+                            .frame(maxWidth: 340)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .id(track.id)
