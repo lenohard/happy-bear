@@ -7,8 +7,8 @@ final class TabSelectionManager: ObservableObject {
 
     enum Tab: Int, CaseIterable {
         case library = 0
-        case playing = 1
-        case ai = 2
+        case ai = 1
+        case playing = 2
         case tts = 3
         case settings = 4
 
@@ -458,98 +458,66 @@ struct PlayingView: View {
     }
 
     private func playbackSpeedControls() -> some View {
-        let label = formattedSpeed(audioPlayer.playbackRate)
-        let minRate = AudioPlayerViewModel.minPlaybackRate
-        let maxRate = AudioPlayerViewModel.maxPlaybackRate
-        let range = maxRate - minRate
-
-        return HStack(spacing: 12) {
-            ZStack {
-                // Ticks for preset rates
-                GeometryReader { geometry in
-                    let width = geometry.size.width
-                    
-                    ForEach(AudioPlayerViewModel.presetPlaybackRates, id: \.self) { rate in
-                        let normalized = (rate - minRate) / range
-                        if normalized >= 0 && normalized <= 1 {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.3))
-                                .frame(width: 2, height: 6)
-                                .position(x: width * normalized, y: geometry.size.height / 2)
-                        }
-                    }
-                }
-                .frame(height: 20)
-                
-                Slider(
-                    value: Binding(
-                        get: { audioPlayer.playbackRate },
-                        set: { audioPlayer.updatePlaybackRate($0) }
-                    ),
-                    in: minRate...maxRate,
-                    step: 0.05
-                )
-                .tint(.accentColor)
-                .accessibilityLabel(NSLocalizedString("playback_speed_label", comment: "Playback speed label"))
-                .accessibilityValue(label)
-            }
-
-            Text(label)
-                .font(.subheadline.monospacedDigit())
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color(uiColor: .tertiarySystemFill))
-                )
-                .accessibilityLabel(String(format: NSLocalizedString("playback_speed_value", comment: "Playback speed accessibility label"), label))
-        }
+        PlaybackSpeedControl(
+            playbackRate: Binding(
+                get: { audioPlayer.playbackRate },
+                set: { audioPlayer.updatePlaybackRate($0) }
+            ),
+            presets: AudioPlayerViewModel.presetPlaybackRates
+        )
     }
 
     @ViewBuilder
     private func controlButtons(collection: AudiobookCollection, track: AudiobookTrack) -> some View {
         VStack(spacing: 16) {
-            playbackSpeedControls()
+            ZStack {
+                // Centered Playback Buttons
+                HStack(spacing: 10) {
+                    Button {
+                        audioPlayer.skipBackward(by: 15)
+                    } label: {
+                        Image(systemName: "gobackward.15")
+                            .font(.title3)
+                    }
 
-            HStack(spacing: 24) {
-                Button {
-                    audioPlayer.skipBackward(by: 15)
-                } label: {
-                    Image(systemName: "gobackward.15")
-                        .font(.title3)
+                    Button {
+                        audioPlayer.playPreviousTrack()
+                    } label: {
+                        Image(systemName: "backward.end.alt")
+                            .font(.title3)
+                    }
+                    .disabled(!hasPreviousTrack)
+
+                    Button {
+                        audioPlayer.togglePlayback()
+                    } label: {
+                        Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                            .font(.system(size: 48))
+                    }
+
+                    Button {
+                        audioPlayer.playNextTrack()
+                    } label: {
+                        Image(systemName: "forward.end.alt")
+                            .font(.title3)
+                    }
+                    .disabled(!hasNextTrack)
+
+                    Button {
+                        audioPlayer.skipForward(by: 30)
+                    } label: {
+                        Image(systemName: "goforward.30")
+                            .font(.title3)
+                    }
                 }
-
-                Button {
-                    audioPlayer.playPreviousTrack()
-                } label: {
-                    Image(systemName: "backward.end.alt")
-                        .font(.title3)
-                }
-                .disabled(!hasPreviousTrack)
-
-                Button {
-                    audioPlayer.togglePlayback()
-                } label: {
-                    Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.system(size: 48))
-                }
-
-                Button {
-                    audioPlayer.playNextTrack()
-                } label: {
-                    Image(systemName: "forward.end.alt")
-                        .font(.title3)
-                }
-                .disabled(!hasNextTrack)
-
-                Button {
-                    audioPlayer.skipForward(by: 30)
-                } label: {
-                    Image(systemName: "goforward.30")
-                        .font(.title3)
+                .buttonStyle(.plain)
+                
+                // Speed Control aligned to the right
+                HStack {
+                    Spacer()
+                    playbackSpeedControls()
                 }
             }
-            .buttonStyle(.plain)
 
             compactActionRow(collection: collection, track: track)
         }
