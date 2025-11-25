@@ -55,6 +55,7 @@ actor GRDBDatabaseManager {
 
             print("[GRDB] Executing track summary schema...")
             try db.execute(sql: TrackSummaryDatabaseSchema.createTableSQL)
+            try addMentionedItemsColumnIfNeeded(in: db)
             print("[GRDB] Track summary tables created")
 
             print("[GRDB] Executing AI generation schema...")

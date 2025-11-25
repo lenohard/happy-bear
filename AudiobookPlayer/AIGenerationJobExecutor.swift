@@ -296,6 +296,8 @@ actor AIGenerationJobExecutor {
                 summaryTitle: parsed.summaryTitle,
                 summaryBody: parsed.summaryBody,
                 keywords: parsed.keywords,
+                mentionedItems: parsed.mentionedItems,
+                suggestedCorrections: parsed.suggestedCorrections,
                 sections: sections,
                 modelIdentifier: modelId,
                 jobId: job.id

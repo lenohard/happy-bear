@@ -167,6 +167,10 @@ struct TrackSummaryCard: View {
                 keywordRow(summary.keywords)
             }
 
+            if !summary.mentionedItems.isEmpty {
+                mentionedItemsRow(summary.mentionedItems)
+            }
+
             if !viewModel.sections.isEmpty {
                 Text(NSLocalizedString("track_summary_sections_header", comment: "Track summary sections header"))
                     .font(.subheadline)
@@ -252,6 +256,29 @@ struct TrackSummaryCard: View {
                         Capsule(style: .continuous)
                             .fill(Color(uiColor: .secondarySystemFill))
                     )
+            }
+        }
+    }
+
+    private func mentionedItemsRow(_ items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(NSLocalizedString("track_summary_mentioned_items_label", value: "Mentioned", comment: "Mentioned items label"), systemImage: "bookmark")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(items, id: \.self) { item in
+                        Text(item)
+                            .font(.caption)
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(Color(uiColor: .tertiarySystemFill))
+                            )
+                    }
+                }
             }
         }
     }

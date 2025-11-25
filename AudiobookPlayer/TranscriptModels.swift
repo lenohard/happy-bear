@@ -387,6 +387,8 @@ struct TrackSummary: Identifiable, Codable {
     var summaryTitle: String?
     var summaryBody: String?
     var keywords: [String]
+    var mentionedItems: [String]
+    var suggestedCorrections: [String: String]
     var sectionCount: Int
     var modelIdentifier: String?
     var generatedAt: Date?
@@ -404,6 +406,8 @@ struct TrackSummary: Identifiable, Codable {
         summaryTitle: String? = nil,
         summaryBody: String? = nil,
         keywords: [String] = [],
+        mentionedItems: [String] = [],
+        suggestedCorrections: [String: String] = [:],
         sectionCount: Int = 0,
         modelIdentifier: String? = nil,
         generatedAt: Date? = nil,
@@ -420,6 +424,8 @@ struct TrackSummary: Identifiable, Codable {
         self.summaryTitle = summaryTitle
         self.summaryBody = summaryBody
         self.keywords = keywords
+        self.mentionedItems = mentionedItems
+        self.suggestedCorrections = suggestedCorrections
         self.sectionCount = sectionCount
         self.modelIdentifier = modelIdentifier
         self.generatedAt = generatedAt

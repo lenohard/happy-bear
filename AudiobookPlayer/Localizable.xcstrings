@@ -3912,6 +3912,18 @@
         }
       }
     },
+    "track_summary_mentioned_items_label" : {
+      "comment" : "Mentioned items label",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mentioned"
+          }
+        }
+      }
+    },
     "track_summary_missing_key_hint" : {
       "comment" : "Track summary missing key message",
       "localizations" : {
@@ -4047,9 +4059,6 @@
           }
         }
       }
-    },
-    "track_title_scroll_hint" : {
-      "comment" : "Accessibility hint for track title scroll"
     },
     "Tracks" : {
       "localizations" : {

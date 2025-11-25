@@ -32,6 +32,8 @@ struct TrackSummaryGenerationResult: Equatable {
     let summaryTitle: String?
     let summaryBody: String
     let keywords: [String]
+    let mentionedItems: [String]
+    let suggestedCorrections: [String: String]
     let sections: [TrackSummarySectionPayload]
 }
 
@@ -62,6 +64,7 @@ final class TrackSummaryGenerator {
     func makePrompts(from context: TrackSummaryPromptContext) -> TrackSummaryPrompts {
         let systemPrompt = """
         You are an audiobook editor. Produce accurate summaries and outlines of narrated recordings.
+        The transcript may have some typos, try to fix them use the correct ones in your summary.
         Output strictly valid JSON using the schema provided. Keep sections chronological, non-overlapping,
         and representative of the actual transcript. Reuse the provided millisecond timestamps so the app can seek directly.
         """
@@ -99,7 +102,12 @@ final class TrackSummaryGenerator {
           "summary": {
             "title": "optional short title",
             "overview": "2-3 sentences summarizing the overall track",
-            "keywords": ["keyword1", "keyword2"]
+            "keywords": ["keyword1", "keyword2"],
+            "mentioned_items": ["Book Title (Author, Year)", "Movie Name (Director, Year)"],
+            "suggested_corrections": {
+              "incorect name": "correct name",
+              "N anc y": "Nancy"
+            }
           },
           "sections": [
             {
@@ -126,6 +134,8 @@ final class TrackSummaryGenerator {
         - Sections must have `start_ms` integers derived from the provided `start_ms` values (do not invent new times).
         - Keep `end_ms` optional; omit if uncertain.
         - \(keywordInstruction)
+        - Extract any books or movies mentioned in the transcript into `mentioned_items`. Format: "Title (Author/Director, Year)" if author/director and year are mentioned in the transcript; otherwise just "Title".
+        - Identify frequent obvious typos in important terms (movie titles, book titles, people names) that appear repeatedly. Return them in `suggested_corrections` as a dictionary where key is the incorrect spelling and value is the correct spelling. Only include important repeated errors, not minor one-off typos.
         - Output ONLY JSON, no prose, matching this schema exactly:
         \(schema)
 
@@ -156,6 +166,8 @@ final class TrackSummaryGenerator {
             }
 
             let keywords = payload.summary.keywords ?? []
+            let mentionedItems = payload.summary.mentionedItems ?? []
+            let suggestedCorrections = payload.summary.suggestedCorrections ?? [:]
             let sections = payload.sections
                 .compactMap { section -> TrackSummarySectionPayload? in
                     guard let startMs = section.normalizedStartMs else { return nil }
@@ -194,6 +206,8 @@ final class TrackSummaryGenerator {
                 summaryTitle: payload.summary.title?.trimmedNonEmpty,
                 summaryBody: overview,
                 keywords: keywords,
+                mentionedItems: mentionedItems,
+                suggestedCorrections: suggestedCorrections,
                 sections: sections
             )
         } catch {
@@ -278,6 +292,16 @@ private struct TrackSummaryLLMResponse: Decodable {
         let title: String?
         let overview: String?
         let keywords: [String]?
+        let mentionedItems: [String]?
+        let suggestedCorrections: [String: String]?
+
+        enum CodingKeys: String, CodingKey {
+            case title
+            case overview
+            case keywords
+            case mentionedItems = "mentioned_items"
+            case suggestedCorrections = "suggested_corrections"
+        }
     }
 
     struct Section: Decodable {

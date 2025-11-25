@@ -158,6 +158,8 @@ extension GRDBDatabaseManager {
         summaryTitle: String?,
         summaryBody: String?,
         keywords: [String],
+        mentionedItems: [String],
+        suggestedCorrections: [String: String],
         sections: [TrackSummarySection],
         modelIdentifier: String?,
         jobId: String?
@@ -170,6 +172,8 @@ extension GRDBDatabaseManager {
         let createdAt = existing?.createdAt ?? Date()
         let now = Date()
         let keywordsJSON = encodeKeywords(keywords)
+        let mentionedItemsJSON = encodeKeywords(mentionedItems)
+        let suggestedCorrectionsJSON = encodeDictionary(suggestedCorrections)
 
         // Ensure sections reference correct summary ID and remain ordered
         let normalizedSections = sections
@@ -194,16 +198,18 @@ extension GRDBDatabaseManager {
                 sql: """
                 INSERT INTO track_summaries (
                     id, track_id, transcript_id, language,
-                    summary_title, summary_body, keywords_json, section_count,
+                    summary_title, summary_body, keywords_json, mentioned_items_json, suggested_corrections_json, section_count,
                     model_identifier, generated_at, status, error_message, last_job_id,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
                 ON CONFLICT(track_id) DO UPDATE SET
                     transcript_id = excluded.transcript_id,
                     language = excluded.language,
                     summary_title = excluded.summary_title,
                     summary_body = excluded.summary_body,
                     keywords_json = excluded.keywords_json,
+                    mentioned_items_json = excluded.mentioned_items_json,
+                    suggested_corrections_json = excluded.suggested_corrections_json,
                     section_count = excluded.section_count,
                     model_identifier = excluded.model_identifier,
                     generated_at = excluded.generated_at,
@@ -220,6 +226,8 @@ extension GRDBDatabaseManager {
                     summaryTitle,
                     summaryBody,
                     keywordsJSON,
+                    mentionedItemsJSON,
+                    suggestedCorrectionsJSON,
                     normalizedSections.count,
                     modelIdentifier,
                     Self.sqliteDateFormatter.string(from: now),
@@ -267,6 +275,8 @@ extension GRDBDatabaseManager {
             summaryTitle: summaryTitle,
             summaryBody: summaryBody,
             keywords: keywords,
+            mentionedItems: mentionedItems,
+            suggestedCorrections: suggestedCorrections,
             sectionCount: normalizedSections.count,
             modelIdentifier: modelIdentifier,
             generatedAt: now,
@@ -333,6 +343,8 @@ extension GRDBDatabaseManager {
         let summaryTitle = row["summary_title"] as? String
         let summaryBody = row["summary_body"] as? String
         let keywordsJSON = row["keywords_json"] as? String
+        let mentionedItemsJSON = row["mentioned_items_json"] as? String
+        let suggestedCorrectionsJSON = row["suggested_corrections_json"] as? String
         let sectionCount = (row["section_count"] as? Int) ?? 0
         let model = row["model_identifier"] as? String
         let statusRaw = row["status"] as? String ?? TrackSummary.Status.idle.rawValue
@@ -351,6 +363,8 @@ extension GRDBDatabaseManager {
             summaryTitle: summaryTitle,
             summaryBody: summaryBody,
             keywords: decodeKeywords(keywordsJSON),
+            mentionedItems: decodeKeywords(mentionedItemsJSON),
+            suggestedCorrections: decodeDictionary(suggestedCorrectionsJSON),
             sectionCount: sectionCount,
             modelIdentifier: model,
             generatedAt: generatedAt,
@@ -413,6 +427,33 @@ extension GRDBDatabaseManager {
         guard let json, let data = json.data(using: .utf8),
               let decoded = try? JSONDecoder().decode([String].self, from: data) else {
             return []
+        }
+        return decoded
+    }
+
+    func addMentionedItemsColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(track_summaries)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("mentioned_items_json") {
+            try database.execute(sql: "ALTER TABLE track_summaries ADD COLUMN mentioned_items_json TEXT")
+        }
+
+        if !existingColumns.contains("suggested_corrections_json") {
+            try database.execute(sql: "ALTER TABLE track_summaries ADD COLUMN suggested_corrections_json TEXT")
+        }
+    }
+
+    private func encodeDictionary(_ dict: [String: String]) -> String? {
+        guard !dict.isEmpty else { return nil }
+        guard let data = try? JSONEncoder().encode(dict) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private func decodeDictionary(_ json: String?) -> [String: String] {
+        guard let json, let data = json.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode([String: String].self, from: data) else {
+            return [:]
         }
         return decoded
     }

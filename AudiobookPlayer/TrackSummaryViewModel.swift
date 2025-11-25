@@ -184,6 +184,8 @@ final class TrackSummaryViewModel: ObservableObject {
                 summaryTitle: parsed.summaryTitle ?? summary.summaryTitle,
                 summaryBody: parsed.summaryBody,
                 keywords: parsed.keywords,
+                mentionedItems: parsed.mentionedItems,
+                suggestedCorrections: parsed.suggestedCorrections,
                 sections: recoveredSections,
                 modelIdentifier: summary.modelIdentifier,
                 jobId: jobId

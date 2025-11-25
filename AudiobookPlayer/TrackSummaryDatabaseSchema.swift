@@ -12,6 +12,8 @@ enum TrackSummaryDatabaseSchema {
         summary_title TEXT,
         summary_body TEXT,
         keywords_json TEXT,
+        mentioned_items_json TEXT,
+        suggested_corrections_json TEXT,
         section_count INTEGER NOT NULL DEFAULT 0,
         model_identifier TEXT,
         generated_at DATETIME,
