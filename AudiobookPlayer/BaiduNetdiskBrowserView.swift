@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct BaiduNetdiskBrowserView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: BaiduNetdiskBrowserViewModel
     @State private var searchText = ""
     @State private var isSearching = false
@@ -252,11 +253,7 @@ struct BaiduNetdiskBrowserView: View {
                 Spacer()
 
                 Button {
-                    // Dismiss sheet - parent view (TrackPickerView) will handle the selections
-                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                       let rootViewController = windowScene.windows.first?.rootViewController {
-                        rootViewController.dismiss(animated: true)
-                    }
+                    dismiss()
                 } label: {
                     Text("Done")
                         .fontWeight(.semibold)
