@@ -36,6 +36,7 @@ struct CollectionDetailView: View {
     @State private var summaryIndicatorTask: Task<Void, Never>?
     @State private var coverPhotoItem: PhotosPickerItem?
     @State private var showCoverFileImporter = false
+    @State private var showCoverPhotosPicker = false
     @State private var isUpdatingCover = false
     @State private var coverUpdateError: String?
     @State private var showCoverUpdateError = false
@@ -297,6 +298,7 @@ struct CollectionDetailView: View {
                     )
                 }
             }
+            .photosPicker(isPresented: $showCoverPhotosPicker, selection: $coverPhotoItem, matching: .images)
             .fileImporter(isPresented: $showCoverFileImporter, allowedContentTypes: [.image]) { result in
                 handleCoverFileImport(result)
             }
@@ -513,22 +515,36 @@ struct CollectionDetailView: View {
             
             Menu {
                 Section {
-                    Picker("Filter", selection: $selectedFilter) {
-                        ForEach(FilterOption.allCases) { option in
-                            Label(option.localizedName, systemImage: option.icon)
-                                .tag(option)
+                    ForEach(FilterOption.allCases) { option in
+                        Button {
+                            selectedFilter = option
+                        } label: {
+                            if selectedFilter == option {
+                                Label(option.localizedName, systemImage: "checkmark")
+                            } else {
+                                Label(option.localizedName, systemImage: option.icon)
+                            }
                         }
                     }
-                } header: { Text("Filter") }
+                } header: {
+                    Text("Filter")
+                }
                 
                 Section {
-                    Picker("Sort", selection: $selectedSort) {
-                        ForEach(SortOption.allCases) { option in
-                            Label(option.localizedName, systemImage: option.icon)
-                                .tag(option)
+                    ForEach(SortOption.allCases) { option in
+                        Button {
+                            selectedSort = option
+                        } label: {
+                            if selectedSort == option {
+                                Label(option.localizedName, systemImage: "checkmark")
+                            } else {
+                                Label(option.localizedName, systemImage: option.icon)
+                            }
                         }
                     }
-                } header: { Text("Sort") }
+                } header: {
+                    Text("Sort")
+                }
             } label: {
                 Image(systemName: selectedFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
                     .font(.subheadline)
@@ -545,6 +561,7 @@ struct CollectionDetailView: View {
                 size: 110,
                 cornerRadius: 20
             )
+            .id(collection.updatedAt)
             .shadow(color: Color.black.opacity(0.1), radius: 6, y: 3)
 
             if isUpdatingCover {
@@ -565,7 +582,9 @@ struct CollectionDetailView: View {
 
     private func coverMenu(for collection: AudiobookCollection) -> some View {
         Menu {
-            PhotosPicker(selection: $coverPhotoItem, matching: .images) {
+            Button {
+                showCoverPhotosPicker = true
+            } label: {
                 Label(
                     NSLocalizedString("collection_cover_choose_photo", comment: "Choose cover from photos"),
                     systemImage: "photo.on.rectangle.angled"
