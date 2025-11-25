@@ -97,6 +97,7 @@ final class UserDataBackupManager {
         static let manifestFile = "manifest.json"
         static let databaseDirectory = "database"
         static let metadataDirectory = "metadata"
+        static let coverAssetsDirectory = "collection_covers"
         static let credentialsDirectory = "credentials"
         static let libraryFileName = "library.sqlite"
         static let playbackFileName = "playback_state.json"
@@ -159,6 +160,7 @@ final class UserDataBackupManager {
 
         let settingsSnapshot = captureSettingsSnapshot()
         try writeJSON(settingsSnapshot, to: metadataDir.appendingPathComponent(Constants.settingsFileName))
+        try exportCoverAssets(to: metadataDir)
 
         let credentialSummary = try writeCredentialPayloads(
             to: credentialsDir,
@@ -224,13 +226,13 @@ final class UserDataBackupManager {
         try await dbManager.replaceDatabase(with: dbSource)
         try await dbManager.initializeDatabase()
 
-        let settingsURL = workingDirectory
-            .appendingPathComponent(Constants.metadataDirectory)
-            .appendingPathComponent(Constants.settingsFileName)
+        let metadataDir = workingDirectory.appendingPathComponent(Constants.metadataDirectory)
+        let settingsURL = metadataDir.appendingPathComponent(Constants.settingsFileName)
         let appliedSettings = try? readJSON(SettingsSnapshot.self, from: settingsURL)
         if let snapshot = appliedSettings {
             applySettingsSnapshot(snapshot)
         }
+        try restoreCoverAssets(from: metadataDir)
 
         let credentialsDir = workingDirectory.appendingPathComponent(Constants.credentialsDirectory)
         let restoreSummary = try restoreCredentials(from: credentialsDir)
@@ -389,6 +391,30 @@ final class UserDataBackupManager {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode(type, from: data)
+    }
+
+    private func exportCoverAssets(to metadataDirectory: URL) throws {
+        let source = CollectionCoverImageStore.directoryURL
+        guard fileManager.fileExists(atPath: source.path) else { return }
+
+        let destination = metadataDirectory.appendingPathComponent(Constants.coverAssetsDirectory, isDirectory: true)
+        if fileManager.fileExists(atPath: destination.path) {
+            try fileManager.removeItem(at: destination)
+        }
+        try fileManager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fileManager.copyItem(at: source, to: destination)
+    }
+
+    private func restoreCoverAssets(from metadataDirectory: URL) throws {
+        let source = metadataDirectory.appendingPathComponent(Constants.coverAssetsDirectory, isDirectory: true)
+        guard fileManager.fileExists(atPath: source.path) else { return }
+
+        let destination = CollectionCoverImageStore.directoryURL
+        if fileManager.fileExists(atPath: destination.path) {
+            try fileManager.removeItem(at: destination)
+        }
+        try fileManager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fileManager.copyItem(at: source, to: destination)
     }
 
     // MARK: - ZIP Compression Helpers

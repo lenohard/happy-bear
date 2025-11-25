@@ -313,14 +313,53 @@ struct CollectionCover: Codable, Equatable {
     var dominantColorHex: String?
 }
 
+extension CollectionCover {
+    static func generatedCover(for title: String) -> CollectionCover {
+        let hex = colorHex(for: title)
+        return CollectionCover(kind: .solid(colorHex: hex), dominantColorHex: hex)
+    }
+
+    private static func colorHex(for title: String) -> String {
+        let normalized = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let seed = normalized.isEmpty ? "happybear" : normalized.lowercased()
+        let hashValue = abs(seed.hashValue)
+        let hue = Double(hashValue % 360) / 360.0
+        let saturation = 0.62
+        let brightness = 0.85
+        let rgb = hsbToRGB(h: hue, s: saturation, v: brightness)
+        return String(format: "#%02X%02X%02X", Int(rgb.r * 255), Int(rgb.g * 255), Int(rgb.b * 255))
+    }
+
+    private static func hsbToRGB(h: Double, s: Double, v: Double) -> (r: Double, g: Double, b: Double) {
+        guard s > 0 else { return (v, v, v) }
+
+        let scaledHue = (h * 6).truncatingRemainder(dividingBy: 6)
+        let i = Int(floor(scaledHue))
+        let f = scaledHue - Double(i)
+        let p = v * (1 - s)
+        let q = v * (1 - s * f)
+        let t = v * (1 - s * (1 - f))
+
+        switch i {
+        case 0: return (v, t, p)
+        case 1: return (q, v, p)
+        case 2: return (p, v, t)
+        case 3: return (p, q, v)
+        case 4: return (t, p, v)
+        default: return (v, p, q)
+        }
+    }
+}
+
 extension AudiobookCollection {
     static func makeEmptyDraft(for source: Source, title: String) -> AudiobookCollection {
-        AudiobookCollection(
+        let defaultCover = CollectionCover.generatedCover(for: title)
+        return AudiobookCollection(
             id: UUID(),
             title: title,
             author: nil,
             description: nil,
-            coverAsset: CollectionCover(kind: .solid(colorHex: "#5B8DEF"), dominantColorHex: nil),
+            coverAsset: defaultCover,
             createdAt: Date(),
             updatedAt: Date(),
             source: source,

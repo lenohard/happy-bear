@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 protocol LibrarySyncing: AnyObject {
     func fetchRemoteCollections() async throws -> [AudiobookCollection]
@@ -15,6 +16,7 @@ final class LibraryStore: ObservableObject {
     private let dbManager: GRDBDatabaseManager
     private let jsonPersistence: LibraryPersistence  // Keep for fallback
     private let syncEngine: LibrarySyncing?
+    private let coverImageStore: CollectionCoverImageStore
     private let schemaVersion = 3
 
     private var useFallbackJSON = false
@@ -23,11 +25,13 @@ final class LibraryStore: ObservableObject {
         dbManager: GRDBDatabaseManager = .shared,
         jsonPersistence: LibraryPersistence = .default,
         autoLoadOnInit: Bool = true,
-        syncEngine: LibrarySyncing? = LibraryStore.makeDefaultSyncEngine()
+        syncEngine: LibrarySyncing? = LibraryStore.makeDefaultSyncEngine(),
+        coverImageStore: CollectionCoverImageStore = .shared
     ) {
         self.dbManager = dbManager
         self.jsonPersistence = jsonPersistence
         self.syncEngine = syncEngine
+        self.coverImageStore = coverImageStore
         if autoLoadOnInit {
             Task(priority: .userInitiated) {
                 await load()
@@ -117,6 +121,12 @@ final class LibraryStore: ObservableObject {
 
     func delete(_ collection: AudiobookCollection) {
         collections.removeAll { $0.id == collection.id }
+
+        if case let .image(relativePath) = collection.coverAsset.kind {
+            Task(priority: .utility) {
+                try? await coverImageStore.deleteImage(at: relativePath)
+            }
+        }
 
         // Delete from database
         if !useFallbackJSON {
@@ -351,6 +361,83 @@ final class LibraryStore: ObservableObject {
         guard didChange else { return }
 
         collection.updatedAt = Date()
+        collections[index] = collection
+        collections.sort { $0.updatedAt > $1.updatedAt }
+
+        if !useFallbackJSON {
+            persistToDatabase(collection)
+        } else {
+            persistCurrentSnapshot()
+        }
+
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(collection)
+            }
+        }
+    }
+
+    func updateCollectionCover(
+        collectionID: UUID,
+        imageData: Data
+    ) async throws {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
+            throw LibraryStoreError.collectionNotFound
+        }
+
+        let existingPath: String?
+        switch collections[index].coverAsset.kind {
+        case let .image(relativePath):
+            existingPath = relativePath
+        default:
+            existingPath = nil
+        }
+
+        let relativePath = try await coverImageStore.saveImageData(
+            imageData,
+            for: collectionID,
+            replacing: existingPath
+        )
+
+        var collection = collections[index]
+        collection.coverAsset = CollectionCover(
+            kind: .image(relativePath: relativePath),
+            dominantColorHex: nil
+        )
+        collection.updatedAt = Date()
+
+        collections[index] = collection
+        collections.sort { $0.updatedAt > $1.updatedAt }
+
+        if !useFallbackJSON {
+            persistToDatabase(collection)
+        } else {
+            persistCurrentSnapshot()
+        }
+
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(collection)
+            }
+        }
+    }
+
+    func resetCollectionCover(collectionID: UUID) async {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
+            return
+        }
+
+        var collection = collections[index]
+        if case let .image(relativePath) = collection.coverAsset.kind {
+            try? await coverImageStore.deleteImage(at: relativePath)
+        }
+
+        let newCover = CollectionCover.generatedCover(for: collection.title)
+        guard collection.coverAsset != newCover else { return }
+
+        collection.coverAsset = newCover
+        collection.updatedAt = Date()
+
         collections[index] = collection
         collections.sort { $0.updatedAt > $1.updatedAt }
 
@@ -629,11 +716,14 @@ extension LibraryStore {
 
 enum LibraryStoreError: LocalizedError {
     case unsupportedSchema(Int)
+    case collectionNotFound
 
     var errorDescription: String? {
         switch self {
         case .unsupportedSchema(let version):
             return "Library schema version \(version) is not supported."
+        case .collectionNotFound:
+            return "The selected collection no longer exists."
         }
     }
 }
@@ -641,6 +731,123 @@ enum LibraryStoreError: LocalizedError {
 struct LibraryFile: Codable {
     var schemaVersion: Int
     var collections: [AudiobookCollection]
+}
+
+actor CollectionCoverImageStore {
+    enum CoverError: LocalizedError {
+        case invalidData
+        case encodingFailed
+
+        var errorDescription: String? {
+            switch self {
+            case .invalidData:
+                return NSLocalizedString("cover_image_invalid_data", comment: "Invalid cover image data")
+            case .encodingFailed:
+                return NSLocalizedString("cover_image_encoding_failed", comment: "Encoding cover image failed")
+            }
+        }
+    }
+
+    static let shared = CollectionCoverImageStore()
+    static let directoryName = "CollectionCovers"
+
+    nonisolated static var directoryURL: URL {
+        let documents = documentsDirectory()
+        return documents.appendingPathComponent(directoryName, isDirectory: true)
+    }
+
+    nonisolated static func documentsDirectory() -> URL {
+        guard let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            fatalError("Unable to locate documents directory")
+        }
+        return url
+    }
+
+    nonisolated static func fileURL(for relativePath: String) -> URL {
+        let trimmed = relativePath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return documentsDirectory().appendingPathComponent(trimmed)
+    }
+
+    private let fileManager: FileManager
+
+    init(fileManager: FileManager = .default) {
+        self.fileManager = fileManager
+    }
+
+    func saveImageData(
+        _ data: Data,
+        for collectionID: UUID,
+        replacing existingRelativePath: String?
+    ) throws -> String {
+        let normalizedData = try prepareImagePayload(from: data)
+        try ensureDirectoryExists()
+
+        if let existingRelativePath {
+            try? deleteImage(at: existingRelativePath)
+        }
+
+        let filename = makeFilename(for: collectionID)
+        let destination = Self.directoryURL.appendingPathComponent(filename)
+        try normalizedData.write(to: destination, options: .atomic)
+        return "\(Self.directoryName)/\(filename)"
+    }
+
+    func deleteImage(at relativePath: String) throws {
+        let url = Self.fileURL(for: relativePath)
+        if fileManager.fileExists(atPath: url.path) {
+            try fileManager.removeItem(at: url)
+        }
+    }
+
+    private func ensureDirectoryExists() throws {
+        if !fileManager.fileExists(atPath: Self.directoryURL.path) {
+            try fileManager.createDirectory(at: Self.directoryURL, withIntermediateDirectories: true)
+        }
+    }
+
+    private func makeFilename(for collectionID: UUID) -> String {
+        let timestamp = Int(Date().timeIntervalSince1970)
+        return "\(collectionID.uuidString)-\(timestamp).jpg"
+    }
+
+    private func prepareImagePayload(from data: Data) throws -> Data {
+        guard let image = UIImage(data: data) else {
+            throw CoverError.invalidData
+        }
+
+        let resized = image.resizedForCover(maxDimension: 900)
+        guard let jpegData = resized.jpegData(compressionQuality: 0.9) else {
+            throw CoverError.encodingFailed
+        }
+        return jpegData
+    }
+}
+
+private extension UIImage {
+    func resizedForCover(maxDimension: CGFloat) -> UIImage {
+        let longestSide = max(size.width, size.height)
+        guard longestSide > maxDimension else { return normalizedImage() }
+        let scale = maxDimension / longestSide
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        return redraw(to: newSize)
+    }
+
+    func normalizedImage() -> UIImage {
+        if imageOrientation == .up {
+            return self
+        }
+        return redraw(to: size)
+    }
+
+    func redraw(to targetSize: CGSize) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }
 }
 
 private extension LibraryStore {

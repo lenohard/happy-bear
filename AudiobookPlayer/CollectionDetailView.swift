@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UniformTypeIdentifiers
 import GRDB
 
 struct CollectionDetailView: View {
@@ -32,6 +34,66 @@ struct CollectionDetailView: View {
     @State private var showTranscriptDeletionError = false
     @State private var tracksWithSummaries: Set<UUID> = []
     @State private var summaryIndicatorTask: Task<Void, Never>?
+    @State private var coverPhotoItem: PhotosPickerItem?
+    @State private var showCoverFileImporter = false
+    @State private var isUpdatingCover = false
+    @State private var coverUpdateError: String?
+    @State private var showCoverUpdateError = false
+
+    // MARK: - Filter & Sort Enums
+    enum FilterOption: String, CaseIterable, Identifiable {
+        case all = "All"
+        case transcribed = "Transcribed"
+        case unplayed = "Unplayed"
+        case summarized = "Summarized"
+        case played = "Played"
+        
+        var id: String { rawValue }
+        
+        var localizedName: String {
+            switch self {
+            case .all: return NSLocalizedString("filter_all", value: "All", comment: "Filter option: All")
+            case .transcribed: return NSLocalizedString("filter_transcribed", value: "已转录", comment: "Filter option: Transcribed")
+            case .unplayed: return NSLocalizedString("filter_unplayed", value: "未播放", comment: "Filter option: Unplayed")
+            case .summarized: return NSLocalizedString("filter_summarized", value: "已总结", comment: "Filter option: Summarized")
+            case .played: return NSLocalizedString("filter_played", value: "播放过", comment: "Filter option: Played")
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .all: return "line.3.horizontal.decrease.circle"
+            case .transcribed: return "text.bubble"
+            case .unplayed: return "circle"
+            case .summarized: return "doc.text"
+            case .played: return "play.circle"
+            }
+        }
+    }
+
+    enum SortOption: String, CaseIterable, Identifiable {
+        case titleAscending = "Title Ascending"
+        case titleDescending = "Title Descending"
+        
+        var id: String { rawValue }
+        
+        var localizedName: String {
+            switch self {
+            case .titleAscending: return NSLocalizedString("sort_title_asc", value: "标题升序", comment: "Sort option: Title Ascending")
+            case .titleDescending: return NSLocalizedString("sort_title_desc", value: "标题降序", comment: "Sort option: Title Descending")
+            }
+        }
+        
+        var icon: String {
+            switch self {
+            case .titleAscending: return "arrow.up"
+            case .titleDescending: return "arrow.down"
+            }
+        }
+    }
+
+    @State private var selectedFilter: FilterOption = .all
+    @State private var selectedSort: SortOption = .titleAscending
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -39,16 +101,50 @@ struct CollectionDetailView: View {
 
     private var sortedTracks: [AudiobookTrack] {
         guard let collection else { return [] }
-        return collection.tracks.sorted {
-            $0.filename.localizedCaseInsensitiveCompare($1.filename) == .orderedAscending
+        
+        let tracks = collection.tracks
+        
+        switch selectedSort {
+        case .titleAscending:
+            return tracks.sorted {
+                $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+            }
+        case .titleDescending:
+            return tracks.sorted {
+                $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedDescending
+            }
         }
     }
 
     private var filteredTracks: [AudiobookTrack] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return sortedTracks }
+        var tracks = sortedTracks
+        
+        // Apply Filter
+        if selectedFilter != .all {
+            tracks = tracks.filter { track in
+                switch selectedFilter {
+                case .all:
+                    return true
+                case .transcribed:
+                    return transcriptStatusCache[track.id] == true
+                case .unplayed:
+                    let state = collection?.playbackState(for: track.id)
+                    return state == nil || state!.position < 1 // Consider < 1 second as unplayed
+                case .summarized:
+                    return tracksWithSummaries.contains(track.id)
+                case .played:
+                    if let state = collection?.playbackState(for: track.id) {
+                        return state.position >= 1
+                    }
+                    return false
+                }
+            }
+        }
 
-        return sortedTracks.filter { track in
+        guard !query.isEmpty else { return tracks }
+
+        return tracks.filter { track in
             track.displayName.localizedCaseInsensitiveContains(query) ||
             track.filename.localizedCaseInsensitiveContains(query)
         }
@@ -63,8 +159,8 @@ struct CollectionDetailView: View {
                 prompt: Text(NSLocalizedString("search_tracks_prompt", comment: "Search tracks prompt"))
             )
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    if library.canModifyCollection(collectionID) {
+                if library.canModifyCollection(collectionID) {
+                    ToolbarItem(placement: .primaryAction) {
                         Menu {
                             Button(action: addTracksAction) {
                                 Label(
@@ -124,6 +220,17 @@ struct CollectionDetailView: View {
             ) { _ in
                 Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) {
                     showTranscriptDeletionError = false
+                }
+            } message: { error in
+                Text(error)
+            }
+            .alert(
+                NSLocalizedString("cover_update_failed_title", comment: "Cover update failed title"),
+                isPresented: $showCoverUpdateError,
+                presenting: coverUpdateError
+            ) { _ in
+                Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) {
+                    showCoverUpdateError = false
                 }
             } message: { error in
                 Text(error)
@@ -190,6 +297,9 @@ struct CollectionDetailView: View {
                     )
                 }
             }
+            .fileImporter(isPresented: $showCoverFileImporter, allowedContentTypes: [.image]) { result in
+                handleCoverFileImport(result)
+            }
 
         let viewWithPlaybackEvents = viewWithSheets
             .onChange(of: audioPlayer.currentTrack?.id) { _ in
@@ -244,6 +354,10 @@ struct CollectionDetailView: View {
             }
             .onChange(of: audioPlayer.activeCollection?.id) { _ in
                 prepareAutoFocusTargetIfNeeded(for: self.collection)
+            }
+            .onChange(of: coverPhotoItem) { newItem in
+                guard let newItem else { return }
+                handlePhotosPickerSelection(newItem)
             }
 
         return viewWithStateEvents
@@ -326,57 +440,61 @@ struct CollectionDetailView: View {
     @ViewBuilder
     private func summarySection(_ collection: AudiobookCollection) -> some View {
         Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(collection.title)
-                    .font(.title3)
-                    .bold()
+            HStack(alignment: .top, spacing: 16) {
+                coverEditor(for: collection)
 
-                if let description = collection.description, !description.isEmpty {
-                    Text(description)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else if library.canModifyCollection(collectionID) {
-                    Button {
-                        beginEditingCollectionDetails(collection)
-                    } label: {
-                        Label(
-                            NSLocalizedString("add_description_button", comment: "Add description button"),
-                            systemImage: "plus.circle"
-                        )
-                        .labelStyle(.titleAndIcon)
-                        .font(.subheadline)
-                    }
-                    .buttonStyle(.borderless)
-                    .foregroundStyle(.secondary)
-                } else {
-                    Text(NSLocalizedString("collection_description_empty", comment: "Collection description empty placeholder"))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(collection.title)
+                        .font(.title3)
+                        .bold()
 
-                let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
-                Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.tracks.count, formatBytes(totalSize)))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .topTrailing) {
-                if library.canModifyCollection(collectionID) {
-                    Menu {
+                    if let description = collection.description, !description.isEmpty {
+                        Text(description)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    } else if library.canModifyCollection(collectionID) {
                         Button {
                             beginEditingCollectionDetails(collection)
                         } label: {
                             Label(
-                                NSLocalizedString("edit_collection_details_action", comment: "Edit collection details action"),
-                                systemImage: "pencil"
+                                NSLocalizedString("add_description_button", comment: "Add description button"),
+                                systemImage: "plus.circle"
                             )
+                            .labelStyle(.titleAndIcon)
+                            .font(.subheadline)
                         }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .imageScale(.large)
-                            .padding(.leading, 8)
-                            .padding(.top, 2)
-                            .accessibilityLabel(NSLocalizedString("more_options_accessibility", comment: "More options accessibility label"))
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                    } else {
+                        Text(NSLocalizedString("collection_description_empty", comment: "Collection description empty placeholder"))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
+                    Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.tracks.count, formatBytes(totalSize)))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .overlay(alignment: .topTrailing) {
+                    if library.canModifyCollection(collectionID) {
+                        Menu {
+                            Button {
+                                beginEditingCollectionDetails(collection)
+                            } label: {
+                                Label(
+                                    NSLocalizedString("edit_collection_details_action", comment: "Edit collection details action"),
+                                    systemImage: "pencil"
+                                )
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .imageScale(.large)
+                                .padding(.leading, 8)
+                                .padding(.top, 2)
+                                .accessibilityLabel(NSLocalizedString("more_options_accessibility", comment: "More options accessibility label"))
+                        }
                     }
                 }
             }
@@ -384,9 +502,107 @@ struct CollectionDetailView: View {
         }
     }
 
+    private var tracksHeader: some View {
+        HStack {
+            Text(NSLocalizedString("tracks_header", value: "Tracks", comment: "Tracks section header"))
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .textCase(nil)
+            
+            Spacer()
+            
+            Menu {
+                Section {
+                    Picker("Filter", selection: $selectedFilter) {
+                        ForEach(FilterOption.allCases) { option in
+                            Label(option.localizedName, systemImage: option.icon)
+                                .tag(option)
+                        }
+                    }
+                } header: { Text("Filter") }
+                
+                Section {
+                    Picker("Sort", selection: $selectedSort) {
+                        ForEach(SortOption.allCases) { option in
+                            Label(option.localizedName, systemImage: option.icon)
+                                .tag(option)
+                        }
+                    }
+                } header: { Text("Sort") }
+            } label: {
+                Image(systemName: selectedFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(selectedFilter == .all ? .secondary : Color.accentColor)
+            }
+        }
+    }
+
+    private func coverEditor(for collection: AudiobookCollection) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+            CollectionCoverArtView(
+                cover: collection.coverAsset,
+                title: collection.title,
+                size: 110,
+                cornerRadius: 20
+            )
+            .shadow(color: Color.black.opacity(0.1), radius: 6, y: 3)
+
+            if isUpdatingCover {
+                ProgressView()
+                    .progressViewStyle(.circular)
+                    .controlSize(.small)
+                    .tint(.white)
+                    .padding(8)
+                    .background(Color.black.opacity(0.35), in: Circle())
+                    .padding(6)
+            }
+
+            if library.canModifyCollection(collectionID) {
+                coverMenu(for: collection)
+            }
+        }
+    }
+
+    private func coverMenu(for collection: AudiobookCollection) -> some View {
+        Menu {
+            PhotosPicker(selection: $coverPhotoItem, matching: .images) {
+                Label(
+                    NSLocalizedString("collection_cover_choose_photo", comment: "Choose cover from photos"),
+                    systemImage: "photo.on.rectangle.angled"
+                )
+            }
+            Button {
+                showCoverFileImporter = true
+            } label: {
+                Label(
+                    NSLocalizedString("collection_cover_import_files", comment: "Import cover from files"),
+                    systemImage: "folder.badge.plus"
+                )
+            }
+            if case .image = collection.coverAsset.kind {
+                Button(role: .destructive) {
+                    resetCollectionCoverArtwork()
+                } label: {
+                    Label(
+                        NSLocalizedString("collection_cover_reset_action", comment: "Reset cover to default"),
+                        systemImage: "arrow.uturn.backward"
+                    )
+                }
+            }
+        } label: {
+            Image(systemName: "camera.fill")
+                .imageScale(.medium)
+                .padding(8)
+                .background(.thinMaterial, in: Circle())
+                .padding(6)
+        }
+        .disabled(isUpdatingCover)
+        .accessibilityLabel(Text(NSLocalizedString("collection_cover_edit_accessibility", comment: "Edit cover accessibility label")))
+    }
+
     @ViewBuilder
     private func tracksSection(_ collection: AudiobookCollection) -> some View {
-        Section {
+        Section(header: tracksHeader) {
             if filteredTracks.isEmpty {
                 Text(searchText.isEmpty ? NSLocalizedString("no_audio_tracks", comment: "No audio tracks") : String(format: NSLocalizedString("no_search_results", comment: "No search results"), searchText))
                     .font(.caption)
@@ -754,7 +970,7 @@ struct CollectionDetailView: View {
                 systemImage: track.isFavorite ? "heart.slash" : "heart"
             )
         }
-        .tint(track.isFavorite ? .pink : .accentColor)
+        .tint(track.isFavorite ? .pink : Color.accentColor)
     }
 
     private func removePrompt(for track: AudiobookTrack) -> String {
@@ -856,6 +1072,83 @@ struct CollectionDetailView: View {
                     transcriptDeletionError = error.localizedDescription
                     showTranscriptDeletionError = true
                 }
+            }
+        }
+    }
+
+    private func handlePhotosPickerSelection(_ item: PhotosPickerItem) {
+        Task {
+            do {
+                guard let data = try await item.loadTransferable(type: Data.self) else {
+                    throw CollectionCoverImageStore.CoverError.invalidData
+                }
+                await applyCoverImageData(data)
+            } catch {
+                await MainActor.run {
+                    coverUpdateError = error.localizedDescription
+                    showCoverUpdateError = true
+                }
+            }
+            await MainActor.run {
+                coverPhotoItem = nil
+            }
+        }
+    }
+
+    private func handleCoverFileImport(_ result: Result<URL, Error>) {
+        switch result {
+        case .failure(let error):
+            coverUpdateError = error.localizedDescription
+            showCoverUpdateError = true
+        case .success(let url):
+            Task {
+                let needsAccess = url.startAccessingSecurityScopedResource()
+                defer {
+                    if needsAccess {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+
+                do {
+                    let data = try Data(contentsOf: url)
+                    await applyCoverImageData(data)
+                } catch {
+                    await MainActor.run {
+                        coverUpdateError = error.localizedDescription
+                        showCoverUpdateError = true
+                    }
+                }
+            }
+        }
+    }
+
+    private func applyCoverImageData(_ data: Data) async {
+        await MainActor.run {
+            isUpdatingCover = true
+        }
+
+        do {
+            try await library.updateCollectionCover(collectionID: collectionID, imageData: data)
+        } catch {
+            await MainActor.run {
+                coverUpdateError = error.localizedDescription
+                showCoverUpdateError = true
+            }
+        }
+
+        await MainActor.run {
+            isUpdatingCover = false
+        }
+    }
+
+    private func resetCollectionCoverArtwork() {
+        Task {
+            await MainActor.run {
+                isUpdatingCover = true
+            }
+            await library.resetCollectionCover(collectionID: collectionID)
+            await MainActor.run {
+                isUpdatingCover = false
             }
         }
     }
@@ -1190,7 +1483,7 @@ private struct PlaybackTimeline: View {
                 ),
                 in: 0...(max(audioPlayer.duration, 1))
             )
-            .tint(.accentColor)
+            .tint(Color.accentColor)
 
             HStack {
                 Text(audioPlayer.currentTime.formattedTimestamp)

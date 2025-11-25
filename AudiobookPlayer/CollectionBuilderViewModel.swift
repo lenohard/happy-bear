@@ -1,8 +1,5 @@
 import Foundation
-import SwiftUI
-#if canImport(UIKit)
-import UIKit
-#endif
+import Combine
 
 enum CollectionBuildError: LocalizedError {
     case noAudioFound
@@ -209,18 +206,7 @@ final class CollectionBuilderViewModel: ObservableObject {
     }
 
     private func generateCoverGradient(for title: String) -> CollectionCover {
-        // Generate color from title hash
-        let hash = abs(title.hashValue)
-        let hue = Double(hash % 360) / 360.0
-        let color = Color(hue: hue, saturation: 0.6, brightness: 0.8)
-
-        // Convert to hex
-        let uiColor = UIColor(color)
-        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        uiColor.getRed(&r, green: &g, blue: &b, alpha: &a)
-        let hex = String(format: "#%02X%02X%02X", Int(r * 255), Int(g * 255), Int(b * 255))
-
-        return CollectionCover(kind: .solid(colorHex: hex), dominantColorHex: hex)
+        CollectionCover.generatedCover(for: title)
     }
 }
 

@@ -280,41 +280,13 @@ private struct LibraryCollectionRow: View {
         .contentShape(Rectangle())
     }
 
-    @ViewBuilder
     private var coverView: some View {
-        switch collection.coverAsset.kind {
-        case .solid(let colorHex):
-            RoundedRectangle(cornerRadius: 8)
-                .fill(color(from: colorHex))
-                .frame(width: 56, height: 56)
-                .overlay(
-                    Text(collection.initials)
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                )
-        case .image:
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.gray.opacity(0.3))
-                .frame(width: 56, height: 56)
-                .overlay(
-                    Image(systemName: "photo")
-                        .foregroundStyle(.secondary)
-                )
-        case .remote:
-            RoundedRectangle(cornerRadius: 8)
-                .fill(Color.blue.opacity(0.3))
-                .frame(width: 56, height: 56)
-                .overlay(
-                    Image(systemName: "icloud.and.arrow.down")
-                        .foregroundStyle(.secondary)
-                )
-        }
-    }
-
-    private static let fallbackColor = Color(hexString: "#5B8DEF")
-
-    private func color(from hexString: String) -> Color {
-        return Color(hexString: hexString)
+        CollectionCoverArtView(
+            cover: collection.coverAsset,
+            title: collection.title,
+            size: 56,
+            cornerRadius: 8
+        )
     }
 }
 
@@ -323,6 +295,97 @@ private struct LibraryCollectionRow: View {
 private extension AudiobookCollection {
     var initials: String {
         let words = title.split(separator: " ")
+        let firstLetters = words.prefix(2).compactMap { $0.first }
+        if firstLetters.isEmpty {
+            return "AB"
+        }
+        return firstLetters.map(String.init).joined().uppercased()
+    }
+}
+
+struct CollectionCoverArtView: View {
+    let cover: CollectionCover
+    let title: String
+    var size: CGFloat = 56
+    var cornerRadius: CGFloat = 8
+
+    @State private var localImage: UIImage?
+    @State private var cachedRelativePath: String?
+
+    var body: some View {
+        ZStack {
+            switch cover.kind {
+            case .solid(let colorHex):
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color(hexString: colorHex))
+                    .overlay(initialsOverlay)
+            case .image:
+                imageOverlay
+            case .remote:
+                placeholder(symbol: "icloud.and.arrow.down", tint: Color.blue.opacity(0.3))
+            }
+        }
+        .frame(width: size, height: size)
+        .clipped()
+        .onAppear { refreshImageIfNeeded(force: true) }
+        .onChange(of: cover) { _ in refreshImageIfNeeded(force: true) }
+    }
+
+    private var initialsOverlay: some View {
+        Text(makeInitials(from: title))
+            .font(.headline)
+            .foregroundStyle(.white)
+    }
+
+    private var imageOverlay: some View {
+        Group {
+            if let localImage {
+                Image(uiImage: localImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                placeholder(symbol: "photo", tint: Color.gray.opacity(0.25))
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(Color.black.opacity(0.1))
+        )
+    }
+
+    private func placeholder(symbol: String, tint: Color) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(tint)
+            .overlay(
+                Image(systemName: symbol)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            )
+    }
+
+    private func refreshImageIfNeeded(force: Bool = false) {
+        guard case let .image(relativePath) = cover.kind else {
+            localImage = nil
+            cachedRelativePath = nil
+            return
+        }
+
+        guard force || cachedRelativePath != relativePath else { return }
+        cachedRelativePath = relativePath
+
+        Task.detached(priority: .utility) {
+            let url = CollectionCoverImageStore.fileURL(for: relativePath)
+            let image = UIImage(contentsOfFile: url.path)
+            await MainActor.run {
+                self.localImage = image
+            }
+        }
+    }
+
+    private func makeInitials(from text: String) -> String {
+        let words = text.split(separator: " ")
         let firstLetters = words.prefix(2).compactMap { $0.first }
         if firstLetters.isEmpty {
             return "AB"

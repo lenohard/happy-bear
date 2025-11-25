@@ -1946,7 +1946,14 @@
 
     },
     "Correct text" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正确文本"
+          }
+        }
+      }
     },
     "Currently selected: %lld" : {
 
@@ -2380,6 +2387,69 @@
         }
       }
     },
+    "Filter" : {
+
+    },
+    "filter_all" : {
+      "comment" : "Filter option: All",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "All"
+          }
+        }
+      }
+    },
+    "filter_played" : {
+      "comment" : "Filter option: Played",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "播放过"
+          }
+        }
+      }
+    },
+    "filter_summarized" : {
+      "comment" : "Filter option: Summarized",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已总结"
+          }
+        }
+      }
+    },
+    "filter_transcribed" : {
+      "comment" : "Filter option: Transcribed",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "已转录"
+          }
+        }
+      }
+    },
+    "filter_unplayed" : {
+      "comment" : "Filter option: Unplayed",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "未播放"
+          }
+        }
+      }
+    },
     "floating_bubble_menu_title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2546,10 +2616,14 @@
       }
     },
     "Incorrect text" : {
-
-    },
-    "Key 2" : {
-      "extractionState" : "manual"
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "错误文本"
+          }
+        }
+      }
     },
     "Last position: %@" : {
 
@@ -2757,7 +2831,14 @@
 
     },
     "No corrections available" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有修复"
+          }
+        }
+      }
     },
     "No matches found" : {
 
@@ -3430,6 +3511,9 @@
     "Selected Tracks" : {
 
     },
+    "settings_auto_summary_section_title" : {
+      "extractionState" : "manual"
+    },
     "settings_tab" : {
       "comment" : "Settings\nSettings tab",
       "localizations" : {
@@ -3524,6 +3608,33 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Soniox"
+          }
+        }
+      }
+    },
+    "Sort" : {
+
+    },
+    "sort_title_asc" : {
+      "comment" : "Sort option: Title Ascending",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "标题升序"
+          }
+        }
+      }
+    },
+    "sort_title_desc" : {
+      "comment" : "Sort option: Title Descending",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "标题降序"
           }
         }
       }
@@ -4161,7 +4272,14 @@
       }
     },
     "Transcript Corrections" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录修复"
+          }
+        }
+      }
     },
     "transcript_available" : {
       "comment" : "Transcript available accessibility label",
