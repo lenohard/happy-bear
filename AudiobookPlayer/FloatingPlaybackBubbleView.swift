@@ -11,6 +11,8 @@ struct FloatingPlaybackBubbleView: View {
     @GestureState private var isDragging: Bool = false
     @State private var showingBubbleMenu = false
     @State private var isInteracting: Bool = false // Track tap/drag interactions for scale feedback
+    @State private var pendingSingleTapWorkItem: DispatchWorkItem?
+    private let singleTapDelay: TimeInterval = 0.35
     
     private var bubbleOpacity: Double {
         min(max(storedOpacity, 0.2), 1.0)
@@ -60,25 +62,13 @@ struct FloatingPlaybackBubbleView: View {
                     .simultaneousGesture(
                         TapGesture(count: 2)
                             .onEnded {
-                                isInteracting = true
-                                withAnimation {
-                                    tabSelection.switchToPlayingTab()
-                                }
-                                // Reset interaction state after animation
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    isInteracting = false
-                                }
+                                handleDoubleTap()
                             }
                     )
                     .simultaneousGesture(
                         TapGesture(count: 1)
                             .onEnded {
-                                isInteracting = true
-                                audioPlayer.togglePlayback()
-                                // Reset interaction state after brief delay
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                                    isInteracting = false
-                                }
+                                handleSingleTap()
                             }
                     )
                     .opacity(bubbleOpacity)
@@ -144,6 +134,40 @@ struct FloatingPlaybackBubbleView: View {
             Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
                 .font(.title2)
                 .foregroundStyle(.white)
+        }
+    }
+
+    private func handleSingleTap() {
+        isInteracting = true
+        cancelPendingSingleTap()
+
+        let workItem = DispatchWorkItem { [weak audioPlayer] in
+            audioPlayer?.togglePlayback()
+            pendingSingleTapWorkItem = nil
+            endInteraction()
+        }
+
+        pendingSingleTapWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + singleTapDelay, execute: workItem)
+    }
+
+    private func handleDoubleTap() {
+        isInteracting = true
+        cancelPendingSingleTap()
+        withAnimation {
+            tabSelection.switchToPlayingTab()
+        }
+        endInteraction()
+    }
+
+    private func cancelPendingSingleTap() {
+        pendingSingleTapWorkItem?.cancel()
+        pendingSingleTapWorkItem = nil
+    }
+
+    private func endInteraction(after delay: TimeInterval = 0.1) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            isInteracting = false
         }
     }
 }
