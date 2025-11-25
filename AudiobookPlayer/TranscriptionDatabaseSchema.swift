@@ -53,6 +53,19 @@ enum TranscriptionDatabaseSchema {
         FOREIGN KEY (track_id) REFERENCES tracks(id)
     );
 
+    -- Transcript corrections table (for tracking correction status)
+    CREATE TABLE IF NOT EXISTS transcript_corrections (
+        id TEXT PRIMARY KEY NOT NULL,
+        track_id TEXT NOT NULL,
+        incorrect_text TEXT NOT NULL,
+        correct_text TEXT NOT NULL,
+        is_applied INTEGER NOT NULL DEFAULT 0,
+        applied_at DATETIME,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        FOREIGN KEY (track_id) REFERENCES tracks(id) ON DELETE CASCADE
+    );
+
     -- Create indexes for common queries
     CREATE INDEX IF NOT EXISTS idx_transcripts_track_id ON transcripts(track_id);
     CREATE INDEX IF NOT EXISTS idx_transcripts_collection_id ON transcripts(collection_id);
@@ -61,6 +74,8 @@ enum TranscriptionDatabaseSchema {
     CREATE INDEX IF NOT EXISTS idx_transcription_jobs_track_id ON transcription_jobs(track_id);
     CREATE INDEX IF NOT EXISTS idx_transcription_jobs_status ON transcription_jobs(status);
     CREATE INDEX IF NOT EXISTS idx_transcription_jobs_soniox_job_id ON transcription_jobs(soniox_job_id);
+    CREATE INDEX IF NOT EXISTS idx_corrections_track_id ON transcript_corrections(track_id);
+    CREATE INDEX IF NOT EXISTS idx_corrections_applied ON transcript_corrections(is_applied);
     """
 
     /// Initialize transcription tables

@@ -54,6 +54,10 @@
 		8685F36C2EBF3607003D8173 /* TranscriptionJobManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3642EBF3607003D8173 /* TranscriptionJobManager.swift */; };
 		8685F36D2EBF3607003D8173 /* TranscriptViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3682EBF3607003D8173 /* TranscriptViewModel.swift */; };
 		8685F36F2EBF3813003D8173 /* AITabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F36E2EBF3813003D8173 /* AITabView.swift */; };
+		869F06B52ED5B2E100B79131 /* TranscriptSegmentManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869F06B42ED5B2E100B79131 /* TranscriptSegmentManager.swift */; };
+		869F06B72ED5B2E100B79131 /* TranscriptCorrectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869F06B12ED5B2E100B79131 /* TranscriptCorrectionStore.swift */; };
+		869F06B82ED5B2E100B79131 /* TranscriptCorrectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869F06B32ED5B2E100B79131 /* TranscriptCorrectionViewModel.swift */; };
+		869F06BA2ED5CF5200B79131 /* TranscriptCorrectionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869F06B92ED5CF5200B79131 /* TranscriptCorrectionsCard.swift */; };
 		86AD83AC2EB9AD5200FAB6DF /* CacheProgressTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */; };
 		86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */; };
 		86C5F7012F0AFA4300647B2C /* AITranscriptRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */; };
@@ -147,6 +151,10 @@
 		8685F3672EBF3607003D8173 /* TranscriptViewerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptViewerSheet.swift; sourceTree = "<group>"; };
 		8685F3682EBF3607003D8173 /* TranscriptViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptViewModel.swift; sourceTree = "<group>"; };
 		8685F36E2EBF3813003D8173 /* AITabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITabView.swift; sourceTree = "<group>"; };
+		869F06B12ED5B2E100B79131 /* TranscriptCorrectionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCorrectionStore.swift; sourceTree = "<group>"; };
+		869F06B32ED5B2E100B79131 /* TranscriptCorrectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCorrectionViewModel.swift; sourceTree = "<group>"; };
+		869F06B42ED5B2E100B79131 /* TranscriptSegmentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptSegmentManager.swift; sourceTree = "<group>"; };
+		869F06B92ED5CF5200B79131 /* TranscriptCorrectionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCorrectionsCard.swift; sourceTree = "<group>"; };
 		86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheDownloadManager.swift; sourceTree = "<group>"; };
 		86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheProgressTracker.swift; sourceTree = "<group>"; };
 		86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITranscriptRepair.swift; sourceTree = "<group>"; };
@@ -262,6 +270,10 @@
 				86E5CFEE2ECDC51D00CE62A1 /* TrackSummaryStore.swift */,
 				86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */,
 				86E5D1142ECDCB1100CE62A1 /* TrackSummaryCard.swift */,
+				869F06B12ED5B2E100B79131 /* TranscriptCorrectionStore.swift */,
+				869F06B92ED5CF5200B79131 /* TranscriptCorrectionsCard.swift */,
+				869F06B32ED5B2E100B79131 /* TranscriptCorrectionViewModel.swift */,
+				869F06B42ED5B2E100B79131 /* TranscriptSegmentManager.swift */,
 				86E5CFF72ECEFBFD00CE62A1 /* AIGatewayReasoning.swift */,
 				86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */,
 				C5E631E42F1B000100AA0001 /* AIGenerationManager.swift */,
@@ -438,6 +450,9 @@
 				6F6E7F6F2C4A9B0500AA00AA /* AudiobookPlayerApp.swift in Sources */,
 				6FC010072C5B0C0000AA00AA /* SourcesView.swift in Sources */,
 				8617DDE92EBE0A26006E7CA7 /* DatabaseConfig.swift in Sources */,
+				869F06B52ED5B2E100B79131 /* TranscriptSegmentManager.swift in Sources */,
+				869F06B72ED5B2E100B79131 /* TranscriptCorrectionStore.swift in Sources */,
+				869F06B82ED5B2E100B79131 /* TranscriptCorrectionViewModel.swift in Sources */,
 				86FE17602EC2531500027E93 /* ProviderIconView.swift in Sources */,
 				86E5CFF62ECEB8CA00CE62A1 /* Color+Hex.swift in Sources */,
 				8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */,
@@ -467,6 +482,7 @@
 				8617DDF22EBE0A26006E7CA7 /* GRDBDatabaseManager.swift in Sources */,
 				8617DDF32EBE0A26006E7CA7 /* AIGatewayModels.swift in Sources */,
 				8617DDF42EBE0A26006E7CA7 /* DatabaseSchema.swift in Sources */,
+				869F06BA2ED5CF5200B79131 /* TranscriptCorrectionsCard.swift in Sources */,
 				8617DDF52EBE0A26006E7CA7 /* TranscriptionManager.swift in Sources */,
 				86E5D0042ED05DC800CE62A1 /* PreviewData.swift in Sources */,
 				8617DDF62EBE0A26006E7CA7 /* AIGatewayViewModel.swift in Sources */,

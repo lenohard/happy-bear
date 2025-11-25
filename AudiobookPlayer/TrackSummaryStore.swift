@@ -265,6 +265,28 @@ extension GRDBDatabaseManager {
                     ]
                 )
             }
+            
+            // Save suggested corrections as transcript corrections (if any)
+            if !suggestedCorrections.isEmpty {
+                for (incorrectText, correctText) in suggestedCorrections {
+                    let correctionId = UUID().uuidString
+                    try database.execute(
+                        sql: """
+                        INSERT OR IGNORE INTO transcript_corrections
+                        (id, track_id, incorrect_text, correct_text, is_applied, applied_at, created_at, updated_at)
+                        VALUES (?, ?, ?, ?, 0, NULL, ?, ?)
+                        """,
+                        arguments: [
+                            correctionId,
+                            trackId,
+                            incorrectText,
+                            correctText,
+                            Self.sqliteDateFormatter.string(from: now),
+                            Self.sqliteDateFormatter.string(from: now)
+                        ]
+                    )
+                }
+            }
         }
 
         return TrackSummary(

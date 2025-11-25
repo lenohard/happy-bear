@@ -212,6 +212,11 @@ struct PlayingView: View {
 
                             if snapshot.isLive {
                                 standaloneSummaryCard(for: snapshot)
+                                
+                                // Corrections card - separate section
+                                if transcriptStatusForTrack(snapshot.track) == .available {
+                                    TranscriptCorrectionsCard(track: snapshot.track)
+                                }
                             }
 
                             if !historyEntries(excluding: snapshot).isEmpty {

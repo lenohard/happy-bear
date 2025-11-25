@@ -22,6 +22,7 @@ struct AITabView: View {
                     credentialsSection
 
                     if gateway.hasValidKey {
+                        defaultModelSection
                         quickActionsSection
                         testerSection
                     }
@@ -100,6 +101,52 @@ struct AITabView: View {
         }
     }
     
+    // MARK: - Default Model Section
+    private var defaultModelSection: some View {
+        Section {
+            if let model = gateway.models.first(where: { $0.id == gateway.selectedModelID }) {
+                let providerName = model.id.split(separator: "/").first.map(String.init) ?? model.id
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        ProviderIconView(providerId: providerName)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(model.name ?? model.id)
+                                .font(.headline)
+                            Text(model.id)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    
+                    if let description = model.description, !description.isEmpty {
+                        Text(description)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    if let pricing = model.pricing {
+                        HStack(spacing: 16) {
+                            if let input = pricing.input, let formatted = formatPricing(input) {
+                                Text(String(format: NSLocalizedString("ai_tab_model_input_price", comment: ""), formatted))
+                            }
+                            if let output = pricing.output, let formatted = formatPricing(output) {
+                                Text(String(format: NSLocalizedString("ai_tab_model_output_price", comment: ""), formatted))
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+        } header: {
+            if gateway.models.contains(where: { $0.id == gateway.selectedModelID }) {
+                Text(NSLocalizedString("ai_tab_default_model_section", comment: ""))
+            }
+        }
+    }
+
     // MARK: - Quick Actions Section
     private var quickActionsSection: some View {
         Section {
@@ -363,7 +410,7 @@ private extension AITabView {
         if let lastId = gateway.lastChatJobId, let match = chatJobs.first(where: { $0.id == lastId }) {
             return match
         }
-        return chatJobs.first
+        return nil
     }
 
 
@@ -460,6 +507,34 @@ private extension AITabView {
         default:
             return .orange
         }
+    }
+    
+    func formatPricing(_ priceString: String) -> String? {
+        // Remove $ and whitespace, extract numeric value
+        var sanitized = priceString.trimmingCharacters(in: .whitespacesAndNewlines)
+        sanitized = sanitized.replacingOccurrences(of: "$", with: "")
+        sanitized = sanitized.replacingOccurrences(of: ",", with: "")
+        
+        // Extract first component if there's a separator like " /"
+        if let firstComponent = sanitized.split(whereSeparator: { " /".contains($0) }).first {
+            sanitized = String(firstComponent)
+        }
+        
+        guard let basePrice = Double(sanitized) else { return nil }
+        
+        // Multiply by 1M
+        let perMillion = basePrice * 1_000_000
+        
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencySymbol = "$"
+        formatter.maximumFractionDigits = 2
+        
+        if let formatted = formatter.string(from: NSNumber(value: perMillion)) {
+            return "\(formatted)/M"
+        }
+        
+        return nil
     }
 }
 

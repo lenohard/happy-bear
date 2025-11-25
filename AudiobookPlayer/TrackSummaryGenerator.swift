@@ -67,6 +67,8 @@ final class TrackSummaryGenerator {
         The transcript may have some typos, try to fix them use the correct ones in your summary.
         Output strictly valid JSON using the schema provided. Keep sections chronological, non-overlapping,
         and representative of the actual transcript. Reuse the provided millisecond timestamps so the app can seek directly.
+        Reply in the same language as the transcript.
+        Use corrections in summary and sections.
         """
 
         var metadata: [String] = []
@@ -81,7 +83,6 @@ final class TrackSummaryGenerator {
         if let duration = context.trackDuration {
             metadata.append("Duration: \(Self.formatDuration(duration))")
         }
-        metadata.append("Transcript language: \(context.transcriptLanguage)")
         if let description = context.collectionDescription, !description.isEmpty {
             metadata.append("Collection description: \(description)")
         }
@@ -103,10 +104,9 @@ final class TrackSummaryGenerator {
             "title": "optional short title",
             "overview": "2-3 sentences summarizing the overall track",
             "keywords": ["keyword1", "keyword2"],
-            "mentioned_items": ["Book Title (Author, Year)", "Movie Name (Director, Year)"],
+            "mentioned_items": ["《Book Title》(Author)", "《Movie Name》(Director, year)"],
             "suggested_corrections": {
-              "incorect name": "correct name",
-              "N anc y": "Nancy"
+              "incorrect spelling": "correct spelling"
             }
           },
           "sections": [
@@ -135,7 +135,11 @@ final class TrackSummaryGenerator {
         - Keep `end_ms` optional; omit if uncertain.
         - \(keywordInstruction)
         - Extract any books or movies mentioned in the transcript into `mentioned_items`. Format: "Title (Author/Director, Year)" if author/director and year are mentioned in the transcript; otherwise just "Title".
-        - Identify frequent obvious typos in important terms (movie titles, book titles, people names) that appear repeatedly. Return them in `suggested_corrections` as a dictionary where key is the incorrect spelling and value is the correct spelling. Only include important repeated errors, not minor one-off typos.
+        - Identify frequent obvious typos in important terms (movie titles, book titles, people names) that appear repeatedly in the transcript.
+        - IMPORTANT: Only suggest corrections where the incorrect and correct spellings are DIFFERENT. Do NOT include entries where both sides are identical (e.g., "王家卫": "王家卫" is invalid).
+        - Return corrections in `suggested_corrections` as a dictionary where key is the incorrect spelling found in transcript and value is the correct spelling.
+        - Only include important repeated errors that need fixing, not minor one-off typos.
+        - Use the corrected spellings in your summary and section texts.
         - Output ONLY JSON, no prose, matching this schema exactly:
         \(schema)
 

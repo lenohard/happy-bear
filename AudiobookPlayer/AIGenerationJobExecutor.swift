@@ -10,48 +10,73 @@ actor AIGenerationJobExecutor {
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGenerationExecutor")
     private var isProcessing = false
     private var streamBuffers: [String: String] = [:]
+    private var runningJobs: Set<String> = []
+    private let maxConcurrentJobs: Int
 
     init(
         dbManager: GRDBDatabaseManager = .shared,
         gatewayClient: AIGatewayClient = AIGatewayClient(),
         keyStore: AIGatewayAPIKeyStore = KeychainAIGatewayAPIKeyStore(),
         transcriptRepairManager: AITranscriptRepairManager = AITranscriptRepairManager(),
-        trackSummaryGenerator: TrackSummaryGenerator = TrackSummaryGenerator()
+        trackSummaryGenerator: TrackSummaryGenerator = TrackSummaryGenerator(),
+        maxConcurrentJobs: Int = 3
     ) {
         self.dbManager = dbManager
         self.gatewayClient = gatewayClient
         self.keyStore = keyStore
         self.transcriptRepairManager = transcriptRepairManager
         self.trackSummaryGenerator = trackSummaryGenerator
+        self.maxConcurrentJobs = maxConcurrentJobs
     }
 
     func scheduleProcessing() {
         guard !isProcessing else { return }
         isProcessing = true
         Task { [weak self] in
-            await self?.processLoop()
+            await self?.processNextBatch()
         }
     }
 
-    private func processLoop() async {
+    private func processNextBatch() async {
         defer { isProcessing = false }
 
-        while true {
+        // Process jobs up to the concurrency limit
+        while runningJobs.count < maxConcurrentJobs {
             do {
                 guard let job = try await dbManager.dequeueNextQueuedAIGenerationJob() else {
                     break
                 }
-                logger.debug("Processing AI job \(job.id, privacy: .public) [type=\(job.type.rawValue, privacy: .public)]")
-                do {
-                    try await handle(job: job)
-                } catch {
-                    logger.error("AI job \(job.id, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
-                    try? await dbManager.markAIGenerationJobFailed(jobId: job.id, errorMessage: error.localizedDescription)
+                
+                runningJobs.insert(job.id)
+                logger.debug("Starting AI job \(job.id, privacy: .public) [type=\(job.type.rawValue, privacy: .public)] (concurrent: \(self.runningJobs.count)/\(self.maxConcurrentJobs))")
+                
+                // Launch each job in its own task
+                Task { [weak self] in
+                    guard let self else { return }
+                    do {
+                        try await self.handle(job: job)
+                    } catch {
+                        await self.logger.error("AI job \(job.id, privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+                        try? await self.dbManager.markAIGenerationJobFailed(jobId: job.id, errorMessage: error.localizedDescription)
+                    }
+                    
+                    // Mark job as completed and check for more work
+                    await self.jobCompleted(job.id)
                 }
             } catch {
                 logger.error("Failed to dequeue AI job: \(error.localizedDescription, privacy: .public)")
                 break
             }
+        }
+    }
+    
+    private func jobCompleted(_ jobId: String) {
+        runningJobs.remove(jobId)
+        logger.debug("Completed AI job \(jobId, privacy: .public) (remaining: \(self.runningJobs.count))")
+        
+        // Try to process more jobs if slots are available
+        if runningJobs.count < maxConcurrentJobs {
+            scheduleProcessing()
         }
     }
 

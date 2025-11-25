@@ -484,8 +484,88 @@ struct TrackSummarySection: Identifiable, Codable {
         let mins = (seconds % 3600) / 60
         let secs = seconds % 60
         if hrs > 0 {
-            return String(format: "%02d:%02d:%02d", hrs, mins, secs)
+        return String(format: "%02d:%02d:%02d", hrs, mins, secs)
         }
         return String(format: "%02d:%02d", mins, secs)
+    }
+}
+
+// MARK: - Transcript Correction Models
+
+/// A correction suggestion for transcript typos
+/// Tracks whether the correction has been applied to the transcript
+struct TranscriptCorrection: Identifiable, Codable {
+    let id: String
+    let trackId: String
+    let incorrectText: String
+    let correctText: String
+    var isApplied: Bool
+    var appliedAt: Date?
+    var createdAt: Date
+    var updatedAt: Date
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case trackId = "track_id"
+        case incorrectText = "incorrect_text"
+        case correctText = "correct_text"
+        case isApplied = "is_applied"
+        case appliedAt = "applied_at"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+    
+    init(
+        id: String = UUID().uuidString,
+        trackId: String,
+        incorrectText: String,
+        correctText: String,
+        isApplied: Bool = false,
+        appliedAt: Date? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.trackId = trackId
+        self.incorrectText = incorrectText
+        self.correctText = correctText
+        self.isApplied = isApplied
+        self.appliedAt = appliedAt
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+/// Data Transfer Object for transcript corrections
+struct TranscriptCorrectionRow: Codable {
+    let id: String
+    let trackId: String
+    let incorrectText: String
+    let correctText: String
+    let isApplied: Bool
+    let appliedAt: Date?
+    let createdAt: Date
+    let updatedAt: Date
+    
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case trackId = "track_id"
+        case incorrectText = "incorrect_text"
+        case correctText = "correct_text"
+        case isApplied = "is_applied"
+        case appliedAt = "applied_at"
+        case createdAt = "created_at"
+        case updatedAt = "updated_at"
+    }
+    
+    init(from correction: TranscriptCorrection) {
+        self.id = correction.id
+        self.trackId = correction.trackId
+        self.incorrectText = correction.incorrectText
+        self.correctText = correction.correctText
+        self.isApplied = correction.isApplied
+        self.appliedAt = correction.appliedAt
+        self.createdAt = correction.createdAt
+        self.updatedAt = correction.updatedAt
     }
 }

@@ -97,6 +97,9 @@
         }
       }
     },
+    "Add" : {
+
+    },
     "Add to Library" : {
       "localizations" : {
         "zh-Hans" : {
@@ -807,6 +810,22 @@
         }
       }
     },
+    "ai_tab_default_model_section" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Model"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认模型"
+          }
+        }
+      }
+    },
     "ai_tab_default_system_prompt" : {
       "comment" : "Default system prompt",
       "localizations" : {
@@ -961,6 +980,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "其他"
+          }
+        }
+      }
+    },
+    "ai_tab_model_input_price" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Input: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入：%@"
+          }
+        }
+      }
+    },
+    "ai_tab_model_output_price" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Output: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输出：%@"
           }
         }
       }
@@ -1192,6 +1243,9 @@
           }
         }
       }
+    },
+    "Applied %@" : {
+
     },
     "Apply" : {
       "localizations" : {
@@ -1891,6 +1945,9 @@
     "Content" : {
 
     },
+    "Correct text" : {
+
+    },
     "Currently selected: %lld" : {
 
     },
@@ -2488,6 +2545,9 @@
         }
       }
     },
+    "Incorrect text" : {
+
+    },
     "Key 2" : {
       "extractionState" : "manual"
     },
@@ -2694,6 +2754,9 @@
       }
     },
     "No AI Jobs" : {
+
+    },
+    "No corrections available" : {
 
     },
     "No matches found" : {
@@ -4097,6 +4160,9 @@
         }
       }
     },
+    "Transcript Corrections" : {
+
+    },
     "transcript_available" : {
       "comment" : "Transcript available accessibility label",
       "localizations" : {
@@ -4829,6 +4895,9 @@
           }
         }
       }
+    },
+    "Undo" : {
+
     },
     "Unselect" : {
       "localizations" : {
