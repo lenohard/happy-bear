@@ -14,6 +14,7 @@ struct SettingsTabView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @AppStorage("floatingBubbleOpacity") private var floatingBubbleOpacity: Double = 0.8
+    @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
     @State private var selectedNetdiskEntry: BaiduNetdiskEntry?
     @State private var showingBaiduImport = false
     @State private var importFromPath: String?
@@ -72,6 +73,18 @@ struct SettingsTabView: View {
                 }
 
                 backupRestoreSection
+
+                Section {
+                    Toggle(isOn: $autoGenerateTrackSummaries) {
+                        Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
+                    }
+                    Text(NSLocalizedString("settings_auto_summary_description", comment: "Auto summary description"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } header: {
+                    Text(NSLocalizedString("settings_auto_summary_section_title", comment: "Auto summary section title"))
+                }
 
                 Section {
                     baiduSourcesContent

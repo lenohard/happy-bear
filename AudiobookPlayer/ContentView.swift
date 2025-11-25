@@ -142,7 +142,9 @@ struct PlayingView: View {
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var tabSelection: TabSelectionManager
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
+    @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
+    @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
 
     @State private var missingAuthAlert = false
     @State private var showingEphemeralSave = false
@@ -152,6 +154,7 @@ struct PlayingView: View {
     @State private var transcriptStatusTask: Task<Void, Never>?
     @State private var libraryLoaded = false
     @StateObject private var trackSummaryViewModel = TrackSummaryViewModel()
+    @State private var autoSummaryGuards: Set<String> = []
 
     private var currentPlayback: PlaybackSnapshot? {
         guard let currentTrack = audioPlayer.currentTrack else {
@@ -298,12 +301,17 @@ struct PlayingView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .transcriptDidFinalize)) { notification in
             guard let completedTrackId = notification.userInfo?["trackId"] as? String else { return }
+            let transcriptId = notification.userInfo?["transcriptId"] as? String
 
             if audioPlayer.currentTrack?.id.uuidString == completedTrackId {
                 refreshTranscriptStatus()
             }
 
             trackSummaryViewModel.handleTranscriptFinalized(trackId: completedTrackId)
+
+            Task { @MainActor in
+                await autoGenerateSummaryIfNeeded(for: completedTrackId, transcriptId: transcriptId)
+            }
         }
         .onAppear {
             refreshTranscriptStatus()
@@ -929,6 +937,55 @@ struct PlayingView: View {
     private func canStartTranscription(in collection: AudiobookCollection) -> Bool {
         guard !collection.isEphemeral else { return false }
         return library.canModifyCollection(collection.id)
+    }
+
+    @MainActor
+    private func autoGenerateSummaryIfNeeded(for trackId: String, transcriptId: String?) async {
+        guard autoGenerateTrackSummaries else { return }
+        guard aiGateway.hasValidKey else { return }
+
+        let modelId = aiGateway.selectedModelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !modelId.isEmpty else { return }
+
+        if autoSummaryGuards.contains(trackId) {
+            return
+        }
+        autoSummaryGuards.insert(trackId)
+        defer { autoSummaryGuards.remove(trackId) }
+
+        let dbManager = GRDBDatabaseManager.shared
+
+        do {
+            try await dbManager.initializeDatabase()
+
+            if let summary = try await dbManager.fetchTrackSummary(forTrackId: trackId) {
+                switch summary.status {
+                case .complete:
+                    if let transcriptId, summary.transcriptId == transcriptId {
+                        return
+                    }
+                case .generating:
+                    return
+                case .failed, .idle:
+                    break
+                }
+            }
+
+            let hasPendingJob = (aiGenerationManager.activeJobs + aiGenerationManager.recentJobs).contains { job in
+                job.type == .trackSummary && job.trackId == trackId && !job.isTerminal
+            }
+
+            guard !hasPendingJob else { return }
+
+            _ = try await aiGenerationManager.enqueueTrackSummaryJob(
+                trackId: trackId,
+                targetSectionCount: nil,
+                includeKeywords: true,
+                modelId: modelId
+            )
+        } catch {
+            print("[AutoSummary] Failed to queue summary for track \(trackId): \(error.localizedDescription)")
+        }
     }
 }
 
