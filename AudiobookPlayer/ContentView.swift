@@ -1075,6 +1075,11 @@ private struct TranscriptionSheetContext: Identifiable {
             summaryTitle: "Chapter 1 Summary",
             summaryBody: "This is a generated summary for the chapter. It covers the introduction and the main conflict.",
             keywords: ["chapter", "summary", "adventure"],
+            mentionedItems: ["The Great Adventure", "Time Travel Guide"],
+            suggestedCorrections: [
+                "Hero Name": "Ensure the narrator pronounces 'Lin' instead of 'Ling'",
+                "Timeline": "Clarify the flashback happens 5 years earlier"
+            ],
             sections: sections,
             modelIdentifier: "gpt-4",
             jobId: "dummy-job-id"

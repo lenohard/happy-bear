@@ -408,6 +408,11 @@ struct TrackSummaryCard: View {
                     summaryTitle: "Preview Summary",
                     summaryBody: "This is a preview summary body.",
                     keywords: ["preview", "test"],
+                    mentionedItems: ["Sample Book", "Example Movie"],
+                    suggestedCorrections: [
+                        "Protagonist": "Spell the lead character name as 'Qian'",
+                        "Setting": "Clarify that the scene occurs in 1980s Shanghai"
+                    ],
                     sections: sections,
                     modelIdentifier: "preview-model",
                     jobId: "preview-job"
