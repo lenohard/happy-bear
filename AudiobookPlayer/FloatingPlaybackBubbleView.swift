@@ -94,7 +94,7 @@ struct FloatingPlaybackBubbleView: View {
                             viewModel.hideForSession()
                         }
                         Button(NSLocalizedString("settings_tab", comment: "Settings")) {
-                            tabSelection.selectedTab = .settings
+                            tabSelection.selectedTab = .personal
                         }
                         Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) { }
                     }

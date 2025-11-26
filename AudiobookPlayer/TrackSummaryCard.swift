@@ -6,6 +6,7 @@ struct TrackSummaryCard: View {
     let isTranscriptAvailable: Bool
     @ObservedObject var viewModel: TrackSummaryViewModel
     var seekAndPlayAction: (TimeInterval) -> Void
+    var onRequestTranscription: (() -> Void)? = nil
 
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
@@ -88,9 +89,22 @@ struct TrackSummaryCard: View {
     @ViewBuilder
     private var content: some View {
         if !isTranscriptAvailable {
-            Text(NSLocalizedString("track_summary_requires_transcript", comment: "Track summary requires transcript message"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(NSLocalizedString("track_summary_requires_transcript", comment: "Track summary requires transcript message"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                
+                if let onRequestTranscription {
+                    Button {
+                        onRequestTranscription()
+                    } label: {
+                        Label(NSLocalizedString("transcribe_track_title", comment: "Transcribe track title"), systemImage: "waveform.badge.plus")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .font(.system(size: 12))
+                }
+            }
         } else if !aiGateway.hasValidKey {
             Text(NSLocalizedString("track_summary_missing_key_hint", comment: "Track summary missing key message"))
                 .font(.subheadline)

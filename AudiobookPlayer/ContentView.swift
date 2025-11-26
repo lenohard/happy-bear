@@ -7,10 +7,9 @@ final class TabSelectionManager: ObservableObject {
 
     enum Tab: Int, CaseIterable {
         case library = 0
-        case ai = 1
-        case playing = 2
-        case tts = 3
-        case settings = 4
+        case playing = 1
+        case smart = 2
+        case personal = 3
 
         var title: String {
             switch self {
@@ -18,12 +17,10 @@ final class TabSelectionManager: ObservableObject {
                 return NSLocalizedString("library_tab", comment: "Tab for library")
             case .playing:
                 return NSLocalizedString("playing_tab", comment: "Tab for now playing")
-            case .ai:
-                return NSLocalizedString("ai_tab", comment: "AI tab")
-            case .tts:
-                return NSLocalizedString("tts_tab", comment: "TTS tab")
-            case .settings:
-                return NSLocalizedString("settings_tab", comment: "Settings tab")
+            case .smart:
+                return "智能"
+            case .personal:
+                return "Personal"
             }
         }
 
@@ -33,12 +30,10 @@ final class TabSelectionManager: ObservableObject {
                 return "books.vertical"
             case .playing:
                 return "play.circle"
-            case .ai:
+            case .smart:
                 return "sparkles"
-            case .tts:
-                return "waveform"
-            case .settings:
-                return "gear"
+            case .personal:
+                return "person"
             }
         }
     }
@@ -60,6 +55,7 @@ struct ContentView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
+    @EnvironmentObject private var aiGenerationManager: AIGenerationManager
 
     var body: some View {
         GeometryReader { geometry in
@@ -77,24 +73,18 @@ struct ContentView: View {
                         }
                         .tag(TabSelectionManager.Tab.playing)
 
-                    AITabView()
+                    SmartView()
                         .tabItem {
-                            Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "sparkles")
+                            Label("智能", systemImage: "sparkles")
                         }
-                        .tag(TabSelectionManager.Tab.ai)
+                        .badge(transcriptionManager.activeJobs.count + aiGenerationManager.activeJobs.count)
+                        .tag(TabSelectionManager.Tab.smart)
 
-                    TTSTabView()
+                    PersonalView()
                         .tabItem {
-                            Label(NSLocalizedString("tts_tab", comment: "TTS tab"), systemImage: "waveform")
+                            Label("Personal", systemImage: "person")
                         }
-                        .badge(transcriptionManager.activeJobs.count)
-                        .tag(TabSelectionManager.Tab.tts)
-
-                    SettingsTabView()
-                        .tabItem {
-                            Label(NSLocalizedString("settings_tab", comment: "Settings tab"), systemImage: "gear")
-                        }
-                        .tag(TabSelectionManager.Tab.settings)
+                        .tag(TabSelectionManager.Tab.personal)
                 }
             }
             .overlay(alignment: .topLeading) {
@@ -222,7 +212,7 @@ struct PlayingView: View {
                                 }
                             }
 
-                            if !historyEntries(excluding: snapshot).isEmpty {
+                            if !snapshot.isLive && !historyEntries(excluding: snapshot).isEmpty {
                                 listeningHistorySection(entries: historyEntries(excluding: snapshot))
                             }
                         }
@@ -424,7 +414,10 @@ struct PlayingView: View {
             track: snapshot.track,
             isTranscriptAvailable: transcriptStatusForTrack(snapshot.track) == .available,
             viewModel: trackSummaryViewModel,
-            seekAndPlayAction: { time in seekAndPlay(to: time) }
+            seekAndPlayAction: { time in seekAndPlay(to: time) },
+            onRequestTranscription: {
+                presentTranscriptionSheet(for: snapshot.track, in: snapshot.collection)
+            }
         )
         .padding()
         .background(
@@ -1012,22 +1005,6 @@ private struct PlaybackSnapshot {
     let track: AudiobookTrack
     let state: TrackPlaybackState?
     let isLive: Bool
-}
-
-private struct ListeningHistoryEntry: Identifiable {
-    let id: UUID
-    let collection: AudiobookCollection
-    let track: AudiobookTrack
-    let state: TrackPlaybackState
-    let isActive: Bool
-
-    init(id: UUID, collection: AudiobookCollection, track: AudiobookTrack, state: TrackPlaybackState, isActive: Bool) {
-        self.id = id
-        self.collection = collection
-        self.track = track
-        self.state = state
-        self.isActive = isActive
-    }
 }
 
 private struct EmptyPlayingView: View {

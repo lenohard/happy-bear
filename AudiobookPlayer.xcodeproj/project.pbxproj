@@ -80,6 +80,9 @@
 		86E70EA32ED230C0002BCEA0 /* PlaybackSpeedControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E70EA22ED230C0002BCEA0 /* PlaybackSpeedControl.swift */; };
 		86E70EA52ED408C7002BCEA0 /* BatchRenameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E70EA42ED408C7002BCEA0 /* BatchRenameView.swift */; };
 		86FC75842EC7244600E7AEB8 /* UserDataBackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */; };
+		86FD8E012ED6E0AB002A2036 /* PersonalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FD8DFF2ED6E0AB002A2036 /* PersonalView.swift */; };
+		86FD8E022ED6E0AB002A2036 /* SmartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FD8E002ED6E0AB002A2036 /* SmartView.swift */; };
+		86FD8E042ED6E9A7002A2036 /* ListeningHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FD8E032ED6E9A7002A2036 /* ListeningHistory.swift */; };
 		86FE17562EBFC7F200027E93 /* test-1min.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 86FE17552EBFC7F200027E93 /* test-1min.mp3 */; };
 		86FE175C2EC20F6500027E93 /* SettingsTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FE175B2EC20F6400027E93 /* SettingsTabView.swift */; };
 		86FE175D2EC20F6500027E93 /* DownloadButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FE175A2EC20F6400027E93 /* DownloadButton.swift */; };
@@ -179,6 +182,9 @@
 		86E70EA22ED230C0002BCEA0 /* PlaybackSpeedControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackSpeedControl.swift; sourceTree = "<group>"; };
 		86E70EA42ED408C7002BCEA0 /* BatchRenameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatchRenameView.swift; sourceTree = "<group>"; };
 		86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDataBackupManager.swift; sourceTree = "<group>"; };
+		86FD8DFF2ED6E0AB002A2036 /* PersonalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonalView.swift; sourceTree = "<group>"; };
+		86FD8E002ED6E0AB002A2036 /* SmartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartView.swift; sourceTree = "<group>"; };
+		86FD8E032ED6E9A7002A2036 /* ListeningHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ListeningHistory.swift; sourceTree = "<group>"; };
 		86FDF2062EC8F1F300DB7430 /* AudiobookPlayer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = AudiobookPlayer.entitlements; sourceTree = "<group>"; };
 		86FE17552EBFC7F200027E93 /* test-1min.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "test-1min.mp3"; sourceTree = "<group>"; };
 		86FE17592EC20F6400027E93 /* CacheManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheManagementView.swift; sourceTree = "<group>"; };
@@ -250,6 +256,9 @@
 				8617DDE02EBE0A26006E7CA7 /* DatabaseSchema.swift */,
 				8617DDE12EBE0A26006E7CA7 /* GRDBDatabaseManager.swift */,
 				8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */,
+				86FD8E032ED6E9A7002A2036 /* ListeningHistory.swift */,
+				86FD8DFF2ED6E0AB002A2036 /* PersonalView.swift */,
+				86FD8E002ED6E0AB002A2036 /* SmartView.swift */,
 				869F06BB2ED61FFD00B79131 /* TranscriptViewerSheet.swift */,
 				869F06BD2ED6200A00B79131 /* TranscriptCorrectionsView.swift */,
 				86E5CFFB2ED0458600CE62A1 /* AIJobsListView.swift */,
@@ -470,6 +479,7 @@
 				C5E631BC2F1B000100AA0001 /* AIGenerationJob.swift in Sources */,
 				C5E631CC2F1B000100AA0001 /* AIGenerationJobManager.swift in Sources */,
 				C5E631DC2F1B000100AA0001 /* AIGenerationJobExecutor.swift in Sources */,
+				86FD8E042ED6E9A7002A2036 /* ListeningHistory.swift in Sources */,
 				C5E631EC2F1B000100AA0001 /* AIGenerationManager.swift in Sources */,
 				C5E632042F1B000100AA0001 /* AIGenerationJobDetailView.swift in Sources */,
 				86C5F7012F0AFA4300647B2C /* AITranscriptRepair.swift in Sources */,
@@ -498,6 +508,8 @@
 				6F99A0032C4C200000AA00AA /* BaiduNetdiskClient.swift in Sources */,
 				6F6E7F712C4A9B0500AA00AA /* ContentView.swift in Sources */,
 				8685F3692EBF3607003D8173 /* TranscriptionProgressOverlay.swift in Sources */,
+				86FD8E012ED6E0AB002A2036 /* PersonalView.swift in Sources */,
+				86FD8E022ED6E0AB002A2036 /* SmartView.swift in Sources */,
 				8685F36A2EBF3607003D8173 /* TranscriptViewerSheet.swift in Sources */,
 				8685F36B2EBF3607003D8173 /* TranscriptionRetryManager.swift in Sources */,
 				8685F36C2EBF3607003D8173 /* TranscriptionJobManager.swift in Sources */,

@@ -81,7 +81,7 @@ struct LibraryView: View {
                     Menu {
                         Button(NSLocalizedString("baidu_netdisk", comment: "Baidu netdisk source")) {
                             guard authViewModel.token != nil else {
-                                tabSelection.selectedTab = .settings
+                                tabSelection.selectedTab = .personal
                                 authViewModel.signIn()
                                 return
                             }
@@ -185,7 +185,7 @@ struct LibraryView: View {
     private func playTrack(_ track: AudiobookTrack, in collection: AudiobookCollection) {
         if case .baiduNetdisk(_, _) = collection.source {
             guard let token = authViewModel.token else {
-                tabSelection.selectedTab = .settings
+                tabSelection.selectedTab = .personal
                 authViewModel.signIn()
                 return
             }

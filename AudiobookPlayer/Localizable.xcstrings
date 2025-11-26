@@ -645,8 +645,8 @@
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "音轨摘要"
+            "state" : "translated",
+            "value" : "音频摘要"
           }
         }
       }
@@ -1971,6 +1971,9 @@
         }
       }
     },
+    "Coming soon..." : {
+
+    },
     "completed_status" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2835,6 +2838,9 @@
         }
       }
     },
+    "Listening Statistics" : {
+
+    },
     "listening_history" : {
       "comment" : "Listening history section title",
       "localizations" : {
@@ -3196,6 +3202,9 @@
     "pause_track_button_accessibility" : {
       "comment" : "Accessibility label for pause track button"
     },
+    "Personal" : {
+
+    },
     "play_collection_accessibility" : {
       "comment" : "Play collection accessibility label",
       "localizations" : {
@@ -3294,7 +3303,14 @@
 
     },
     "Quick Access" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "快捷菜单"
+          }
+        }
+      }
     },
     "Re-authenticate" : {
 
@@ -3611,7 +3627,14 @@
       }
     },
     "Search models" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索"
+          }
+        }
+      }
     },
     "search_in_transcript" : {
       "extractionState" : "manual",
@@ -3825,7 +3848,14 @@
       }
     },
     "Sort" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "排序"
+          }
+        }
+      }
     },
     "sort_title_asc" : {
       "comment" : "Sort option: Title Ascending",
@@ -4307,6 +4337,12 @@
             "state" : "new",
             "value" : "Mentioned"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提及"
+          }
         }
       }
     },
@@ -4338,8 +4374,8 @@
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "Track not found."
+            "state" : "translated",
+            "value" : "未找到"
           }
         }
       }
@@ -4372,8 +4408,8 @@
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "needsReview",
-            "value" : "Transcript required before generating a summary."
+            "state" : "translated",
+            "value" : "需要先转录音频才能生成简介"
           }
         }
       }
@@ -4464,6 +4500,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Tracks"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频"
           }
         }
       }
@@ -5239,7 +5281,14 @@
       }
     },
     "Undo" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消"
+          }
+        }
+      }
     },
     "Unselect" : {
       "localizations" : {
@@ -5300,7 +5349,14 @@
       }
     },
     "Use This Folder (%lld files here)" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用此目录 (%lld 文件)"
+          }
+        }
+      }
     },
     "view_collection_button" : {
       "comment" : "View collection button",
@@ -5334,6 +5390,9 @@
 
     },
     "Your transcription tasks will appear here." : {
+
+    },
+    "智能" : {
 
     }
   },
