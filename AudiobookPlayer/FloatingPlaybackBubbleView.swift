@@ -80,7 +80,7 @@ struct FloatingPlaybackBubbleView: View {
                         y: viewModel.position.y + dragOffset.height
                     )
                     .onAppear {
-                        viewModel.snapToEdge(in: geometry)
+                        viewModel.ensurePositionWithinBounds(in: geometry)
                     }
                     .confirmationDialog(
                         NSLocalizedString("floating_bubble_menu_title", comment: "Title for the floating bubble menu"),
