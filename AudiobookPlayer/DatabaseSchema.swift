@@ -65,12 +65,27 @@ enum DatabaseSchema {
         version INTEGER PRIMARY KEY CHECK (version = 1)
     );
 
+    -- Listening statistics table
+    CREATE TABLE IF NOT EXISTS listening_statistics (
+        id TEXT PRIMARY KEY,
+        track_id TEXT NOT NULL,
+        collection_id TEXT NOT NULL,
+        start_time DATETIME NOT NULL,
+        end_time DATETIME NOT NULL,
+        created_at DATETIME NOT NULL,
+        FOREIGN KEY (track_id) REFERENCES tracks(id),
+        FOREIGN KEY (collection_id) REFERENCES collections(id)
+    );
+
     -- Create indexes for common queries
     CREATE INDEX IF NOT EXISTS idx_tracks_collection_id ON tracks(collection_id);
     CREATE INDEX IF NOT EXISTS idx_tracks_collection_track_number ON tracks(collection_id, track_number);
     CREATE INDEX IF NOT EXISTS idx_playback_states_collection_id ON playback_states(collection_id);
     CREATE INDEX IF NOT EXISTS idx_tracks_is_favorite ON tracks(is_favorite);
     CREATE INDEX IF NOT EXISTS idx_playback_states_updated_at ON playback_states(updated_at);
+    CREATE INDEX IF NOT EXISTS idx_listening_statistics_collection_id ON listening_statistics(collection_id);
+    CREATE INDEX IF NOT EXISTS idx_listening_statistics_track_id ON listening_statistics(track_id);
+    CREATE INDEX IF NOT EXISTS idx_listening_statistics_created_at ON listening_statistics(created_at);
     """
 
     /// Create and initialize the database

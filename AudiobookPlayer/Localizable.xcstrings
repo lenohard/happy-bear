@@ -1270,7 +1270,14 @@
       }
     },
     "Applied" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用"
+          }
+        }
+      }
     },
     "Apply" : {
       "localizations" : {
@@ -1483,7 +1490,14 @@
       }
     },
     "Baidu Netdisk" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "百度网盘"
+          }
+        }
+      }
     },
     "baidu_auth_section" : {
       "comment" : "Baidu auth section title",
@@ -1545,6 +1559,9 @@
           }
         }
       }
+    },
+    "By Collection" : {
+
     },
     "cache_clear_all" : {
       "comment" : "Clear all cached audio",
@@ -1890,7 +1907,15 @@
       }
     },
     "collection_description_empty" : {
-      "comment" : "Collection description empty placeholder"
+      "comment" : "Collection description empty placeholder",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述为空"
+          }
+        }
+      }
     },
     "collection_description_field_label" : {
       "comment" : "Collection description field label",
@@ -1971,9 +1996,6 @@
         }
       }
     },
-    "Coming soon..." : {
-
-    },
     "completed_status" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1985,7 +2007,14 @@
       }
     },
     "Confidence threshold" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置信阀值"
+          }
+        }
+      }
     },
     "connect_baidu_before_stream" : {
       "comment" : "Alert message to sign in before streaming",
@@ -2039,7 +2068,14 @@
       }
     },
     "Content" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "内容"
+          }
+        }
+      }
     },
     "Correct text" : {
       "localizations" : {
@@ -2052,7 +2088,14 @@
       }
     },
     "Corrections" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "纠正"
+          }
+        }
+      }
     },
     "cover_image_encoding_failed" : {
       "comment" : "Encoding cover image failed",
@@ -2839,7 +2882,14 @@
       }
     },
     "Listening Statistics" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收听统计"
+          }
+        }
+      }
     },
     "listening_history" : {
       "comment" : "Listening history section title",
@@ -2858,7 +2908,21 @@
         }
       }
     },
+    "listening_statistics" : {
+      "comment" : "Listening statistics section title",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收听数据"
+          }
+        }
+      }
+    },
     "Loading Models..." : {
+
+    },
+    "Loading statistics..." : {
 
     },
     "loading_library" : {
@@ -3203,7 +3267,14 @@
       "comment" : "Accessibility label for pause track button"
     },
     "Personal" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "个人"
+          }
+        }
+      }
     },
     "play_collection_accessibility" : {
       "comment" : "Play collection accessibility label",
@@ -3931,7 +4002,14 @@
       }
     },
     "Tap refresh to load available models." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新模型列表"
+          }
+        }
+      }
     },
     "Test Failed" : {
       "localizations" : {
@@ -4060,6 +4138,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标题"
+          }
+        }
+      }
+    },
+    "Total Listening Time" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总收听事件"
           }
         }
       }

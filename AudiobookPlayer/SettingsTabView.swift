@@ -15,11 +15,11 @@ struct SettingsTabView: View {
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @AppStorage("floatingBubbleOpacity") private var floatingBubbleOpacity: Double = 0.8
     @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
+    @AppStorage("backupIncludeCredentials") private var includeCredentials = false
     @State private var selectedNetdiskEntry: BaiduNetdiskEntry?
     @State private var showingBaiduImport = false
     @State private var importFromPath: String?
     @State private var directPlayError: IdentifiableString?
-    @State private var includeCredentials = false
     @State private var isExportingBackup = false
     @State private var isImportingBackup = false
     @State private var exportSummaryText: String?

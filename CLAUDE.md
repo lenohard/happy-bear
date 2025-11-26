@@ -97,15 +97,12 @@ Generates all required iOS app icon sizes from a single source image.
 
 ## Current App Surface (2025-11)
 
-### Tabs & Primary Screens (5 tabs)
+### Tabs & Primary Screens
 
 1. `Playing` (PlayingView in ContentView.swift) now opens by default when the app launches, renders the active/last-played `PlaybackSnapshot`, playback history feed, progress bars, and exposes cache settings via the toolbar sheet; it gracefully falls back to persisted states when nothing is actively playing.
 2. `Library` (LibraryView.swift) shows the GRDB-backed collections list with quick-play buttons, duplicate-import detection, Baidu-only import menu, favorites shortcut, and inline error banner fed by `LibraryStore.lastError`.
-3. `AI` (AITabView.swift) manages the AI Gateway keychain secret, fetches credits/model catalogs from `AIGatewayClient`, lets users search/collapse provider groups, and runs quick chat/generation lookups for validation.
-4. `TTS` (TTSTabView embedded in AITabView.swift) is the Soniox/STT control room: users store their key, run a sample transcription, monitor active/recent jobs, jump into `TranscriptionSheet`/`TranscriptViewerSheet`, and the tab badge reflects `transcriptionManager.activeJobs`.
-5. `Settings` (SettingsTabView.swift) consolidates app configuration:
-   - **Cache Management**: Inspect cache path/size, tweak TTL (1–30 days, default 10), clear everything, or nuke the currently playing track.
-   - **Baidu Sources**: Auth state, Netdisk browser (`BaiduNetdiskBrowserView` + sheet detail), direct-play for supported audio, and "save parent folder into library" flow; local files stubbed for future expansion.
+3. `Smart` (`SmartView`) combines the former AI, TTS, and related automation controls into a single tab. It hosts the `AITabView`, `TTSTabView`, and any shared job indicators while keeping the icon-driven interface intact. The individual `*TabView` files still exist for UI composition, but this explanation clarifies they are no longer standalone tabs.
+4. `Personal` (`PersonalView`) houses listening history, statistics placeholders, and exposes the original `SettingsTabView` sections (cache management, Baidu sources, etc.) so users can keep configuration controls together. The `SettingsTabView` file now renders inside this tab rather than representing a top-level tab itself.
 
 ### Supporting Workflows & Sheets
 
@@ -218,24 +215,7 @@ Generates all required iOS app icon sizes from a single source image.
 
 ## Progress Tracking
 
-### Session: 2025-11-10 (Tab Consolidation)
-
-**Tab Layout Refactoring** 🎨
-
-- [x] Consolidated tab navigation from 6 tabs → 5 tabs
-  - Removed independent `Sources` tab
-  - Moved Baidu netdisk browser and auth controls into `Settings` tab as "Baidu Sources" section
-  - New tab order: Library → Playing → AI → TTS → Settings
-- [x] Updated tab enum in `TabSelectionManager` (ContentView.swift)
-- [x] Integrated Baidu browser UI into `SettingsTabView.swift`
-- [x] Updated project memory documentation
-- ✅ Build verified with 0 errors
-- **Rationale**: Space optimization - iOS tab bar max 5 tabs before overflow; consolidates related settings (cache + sources) into single tab
-- **Files Changed**: ContentView.swift, SettingsTabView.swift
-- **Commit**: `ec437c2`
-
 ### Session: 2025-11-05 (App Intents Investigation & WIP)
-
 **Siri/App Intents Exploration** 🔍
 
 - [x] Analyzed App Intents architecture and implementation plan
@@ -361,7 +341,6 @@ Generates all required iOS app icon sizes from a single source image.
    - **Doc**: `local/stt-integration.md` Session 2025-11-10
 
 10. **Simple Fixes Don't Require Testing**:
-
 - For obvious, low-risk changes, skip the build/test step to save time and tokens
 - ✅ **Examples of simple fixes**: Removing debug logs, fixing typos in comments, code formatting, string updates
 - ❌ **Still needs testing**: Logic changes, API modifications, new features, refactoring

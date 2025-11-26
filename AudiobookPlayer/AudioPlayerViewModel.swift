@@ -48,6 +48,8 @@ final class AudioPlayerViewModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private let defaults: UserDefaults
     private var sleepTimer: Timer?
+    private var currentSessionStartTime: Date?
+    private let sessionDurationThreshold: TimeInterval = 2.0
 
     private static let playbackRateDefaultsKey = "audio_player_playback_rate"
     static let minPlaybackRate: Double = 0.5
@@ -309,9 +311,11 @@ final class AudioPlayerViewModel: ObservableObject {
         if isPlaying {
             player.pause()
             isPlaying = false
+            flushListeningSession()
         } else {
             startPlaybackImmediately()
             isPlaying = true
+            startListeningSession()
         }
         applyPlaybackRateToPlayer()
     }
@@ -629,6 +633,7 @@ final class AudioPlayerViewModel: ObservableObject {
                     self.startPlaybackImmediately()
                     self.isPlaying = true
                     self.applyPlaybackRateToPlayer()
+                    self.startListeningSession()
                 }
             }
             if !autoPlay {
@@ -639,6 +644,7 @@ final class AudioPlayerViewModel: ObservableObject {
             startPlaybackImmediately()
             isPlaying = true
             applyPlaybackRateToPlayer()
+            startListeningSession()
         } else {
             isPlaying = false
             applyPlaybackRateToPlayer()
@@ -746,6 +752,8 @@ final class AudioPlayerViewModel: ObservableObject {
         if let currentTrack {
             progressTracker.stopTracking(for: currentTrack.id.uuidString)
         }
+        
+        flushListeningSession()
 
         sleepTimer?.invalidate()
         sleepTimer = nil
@@ -1167,6 +1175,51 @@ private extension AudioPlayerViewModel {
     func resetNowPlayingInfo() {
         nowPlayingInfo.removeAll()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+    }
+    
+    // MARK: - Listening Statistics Tracking
+    
+    private func startListeningSession() {
+        currentSessionStartTime = Date()
+    }
+    
+    private func flushListeningSession() {
+        guard let startTime = currentSessionStartTime,
+              let track = currentTrack,
+              let collection = activeCollection else {
+            currentSessionStartTime = nil
+            return
+        }
+        
+        let endTime = Date()
+        let duration = endTime.timeIntervalSince(startTime)
+        
+        // Only save sessions longer than threshold
+        guard duration >= sessionDurationThreshold else {
+            currentSessionStartTime = nil
+            return
+        }
+        
+        let statistic = ListeningStatistic(
+            id: UUID(),
+            trackId: track.id,
+            collectionId: collection.id,
+            startTime: startTime,
+            endTime: endTime,
+            createdAt: Date()
+        )
+        
+        // Save asynchronously to avoid blocking playback
+        Task {
+            do {
+                try await GRDBDatabaseManager.shared.saveListeningStatistic(statistic)
+                print("[STATS] Saved listening session: \\(duration)s for track \\(track.displayName)")
+            } catch {
+                print("[STATS] Failed to save listening session: \\(error)")
+            }
+        }
+        
+        currentSessionStartTime = nil
     }
 }
 #endif

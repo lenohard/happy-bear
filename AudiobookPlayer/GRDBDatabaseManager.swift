@@ -1404,6 +1404,139 @@ actor GRDBDatabaseManager {
             try database.execute(sql: "ALTER TABLE transcript_segments ADD COLUMN last_repair_at DATETIME")
         }
     }
+    
+    // MARK: - Listening Statistics Operations
+    
+    /// Save a listening statistic
+    func saveListeningStatistic(_ statistic: ListeningStatistic) async throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+        
+        try await db.write { db in
+            try db.execute(sql:
+                """
+                INSERT INTO listening_statistics (
+                    id, track_id, collection_id,
+                    start_time, end_time, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                arguments: [
+                    statistic.id.uuidString,
+                    statistic.trackId.uuidString,
+                    statistic.collectionId.uuidString,
+                    statistic.startTime,
+                    statistic.endTime,
+                    statistic.createdAt
+                ]
+            )
+        }
+    }
+    
+    /// Load total listening duration across all collections
+    func loadTotalListeningDuration() throws -> TimeInterval {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+        
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                SELECT start_time, end_time FROM listening_statistics
+                """
+            )
+            
+            var totalDuration: TimeInterval = 0
+            for row in rows {
+                if let startTimeValue = row["start_time"],
+                   let endTimeValue = row["end_time"] {
+                    let startTime: Date
+                    let endTime: Date
+                    
+                    if let date = startTimeValue as? Date {
+                        startTime = date
+                    } else if let dateString = startTimeValue as? String,
+                              let parsedDate = GRDBDatabaseManager.sqliteDateFormatter.date(from: dateString) {
+                        startTime = parsedDate
+                    } else {
+                        continue
+                    }
+                    
+                    if let date = endTimeValue as? Date {
+                        endTime = date
+                    } else if let dateString = endTimeValue as? String,
+                              let parsedDate = GRDBDatabaseManager.sqliteDateFormatter.date(from: dateString) {
+                        endTime = parsedDate
+                    } else {
+                        continue
+                    }
+                    
+                    totalDuration += endTime.timeIntervalSince(startTime)
+                }
+            }
+            
+            return totalDuration
+        }
+    }
+    
+    /// Load listening duration per collection
+    func loadListeningDurationsByCollection() throws -> [UUID: TimeInterval] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+        
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                SELECT collection_id, start_time, end_time FROM listening_statistics
+                """
+            )
+            
+            var durations: [UUID: TimeInterval] = [:]
+            
+            for row in rows {
+                guard let collectionIdStr = row["collection_id"] as? String,
+                      let collectionId = UUID(uuidString: collectionIdStr),
+                      let startTimeValue = row["start_time"],
+                      let endTimeValue = row["end_time"] else {
+                    continue
+                }
+                
+                let startTime: Date
+                let endTime: Date
+                
+                if let date = startTimeValue as? Date {
+                    startTime = date
+                } else if let dateString = startTimeValue as? String,
+                          let parsedDate = GRDBDatabaseManager.sqliteDateFormatter.date(from: dateString) {
+                    startTime = parsedDate
+                } else {
+                    continue
+                }
+                
+                if let date = endTimeValue as? Date {
+                    endTime = date
+                } else if let dateString = endTimeValue as? String,
+                          let parsedDate = GRDBDatabaseManager.sqliteDateFormatter.date(from: dateString) {
+                    endTime = parsedDate
+                } else {
+                    continue
+                }
+                
+                let duration = endTime.timeIntervalSince(startTime)
+                durations[collectionId, default: 0] += duration
+            }
+            
+            return durations
+        }
+    }
+    
+    /// Load listening statistics summary
+    func loadListeningStatisticsSummary() throws -> ListeningStatisticsSummary {
+        let totalDuration = try loadTotalListeningDuration()
+        let collectionDurations = try loadListeningDurationsByCollection()
+        
+        return ListeningStatisticsSummary(
+            totalDuration: totalDuration,
+            collectionDurations: collectionDurations
+        )
+    }
 }
 
 // MARK: - Type String Extensions
@@ -1504,6 +1637,7 @@ extension CollectionCover.Kind {
         return jsonString
     }
 }
+
 
 // MARK: - Error Types
 

@@ -20,10 +20,15 @@ struct PersonalView: View {
                 }
 
                 Section {
-                    Text(NSLocalizedString("listening_statistics_placeholder", comment: "Placeholder text for listening statistics"))
-                        .foregroundStyle(.secondary)
-                } header: {
-                    Text(NSLocalizedString("listening_statistics", comment: "Listening statistics section title"))
+                    NavigationLink {
+                        ListeningStatisticsView()
+                    } label: {
+                        Label {
+                            Text(NSLocalizedString("listening_statistics", comment: "Listening statistics section title"))
+                        } icon: {
+                            Image(systemName: "chart.bar.fill")
+                        }
+                    }
                 }
 
                 Section {
