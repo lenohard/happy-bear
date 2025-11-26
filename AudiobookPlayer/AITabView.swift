@@ -16,47 +16,45 @@ struct AITabView: View {
     @State private var isEditingGatewayKey = false
 
     var body: some View {
-        NavigationStack {
-            ScrollViewReader { proxy in
-                List {
-                    credentialsSection
+        ScrollViewReader { proxy in
+            List {
+                credentialsSection
 
-                    if gateway.hasValidKey {
-                        defaultModelSection
-                        quickActionsSection
-                        testerSection
-                    }
+                if gateway.hasValidKey {
+                    defaultModelSection
+                    quickActionsSection
+                    testerSection
                 }
+            }
 
-                .navigationTitle(Text(NSLocalizedString("ai_tab_title", comment: "AI tab title")))
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        if gateway.hasValidKey {
-                            Button(action: { Task { await gateway.refreshCredits() } }) {
-                                Image(systemName: "arrow.clockwise")
-                            }
-                            .accessibilityLabel(Text(NSLocalizedString("ai_tab_refresh", comment: "")))
-                        }
-                    }
-                }
-                .task {
+            .navigationTitle(Text(NSLocalizedString("ai_tab_title", comment: "AI tab title")))
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
                     if gateway.hasValidKey {
-                        if gateway.models.isEmpty {
-                            try? await gateway.refreshModels()
+                        Button(action: { Task { await gateway.refreshCredits() } }) {
+                            Image(systemName: "arrow.clockwise")
                         }
-                        if gateway.credits == nil {
-                            await gateway.refreshCredits()
-                        }
+                        .accessibilityLabel(Text(NSLocalizedString("ai_tab_refresh", comment: "")))
                     }
                 }
-                .onChange(of: gateway.keyState) { state in
-                    handleGatewayKeyStateChange(state)
+            }
+            .task {
+                if gateway.hasValidKey {
+                    if gateway.models.isEmpty {
+                        try? await gateway.refreshModels()
+                    }
+                    if gateway.credits == nil {
+                        await gateway.refreshCredits()
+                    }
                 }
-                .onChange(of: focusedField) { newValue in
-                    if newValue == nil && isEditingGatewayKey {
-                        Task {
-                            await gateway.saveAndValidateKey(using: gateway.apiKey)
-                        }
+            }
+            .onChange(of: gateway.keyState) { state in
+                handleGatewayKeyStateChange(state)
+            }
+            .onChange(of: focusedField) { newValue in
+                if newValue == nil && isEditingGatewayKey {
+                    Task {
+                        await gateway.saveAndValidateKey(using: gateway.apiKey)
                     }
                 }
             }

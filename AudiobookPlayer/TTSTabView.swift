@@ -13,115 +13,113 @@ struct TTSTabView: View {
     @State private var jobActionError: String?
 
     var body: some View {
-        NavigationStack {
-            List {
+        List {
+            Section {
+                sonioxKeyRow
+                    .modifier(CredentialRowModifier(alignment: .leading))
+            } header: {
+                Label(NSLocalizedString("soniox_section_title", comment: ""), systemImage: "waveform")
+                    .font(.headline)
+            }
+
+            if sonioxViewModel.keyExists {
                 Section {
-                    sonioxKeyRow
-                        .modifier(CredentialRowModifier(alignment: .leading))
+                    Button(action: { Task { await testTranscription() } }) {
+                        if isTestInProgress {
+                            HStack {
+                                ProgressView()
+                                    .scaleEffect(0.8, anchor: .center)
+                                Text("Testing transcription...")
+                            }
+                        } else {
+                            Label("Test with sample audio", systemImage: "play.circle")
+                        }
+                    }
+                    .disabled(isTestInProgress)
+
+                    if let error = testError {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label("Test Failed", systemImage: "exclamationmark.triangle")
+                                .font(.footnote)
+                                .foregroundColor(.red)
+                            Text(error)
+                                .font(.caption)
+                                .foregroundColor(.red)
+                        }
+                    }
+
+                    if let result = testResult {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Label("Transcription Result", systemImage: "checkmark.circle")
+                                .font(.footnote)
+                                .foregroundColor(.green)
+                            Text(result)
+                                .font(.caption)
+                                .lineLimit(5)
+                                .truncationMode(.tail)
+                        }
+                    }
                 } header: {
-                    Label(NSLocalizedString("soniox_section_title", comment: ""), systemImage: "waveform")
+                    Text("Test Soniox API")
+                }
+
+                // Quick Access Section
+                Section {
+                    NavigationLink {
+                        TTSJobsListView()
+                    } label: {
+                        Label("Transcription Jobs", systemImage: "list.bullet.clipboard")
+                    }
+                    
+                    NavigationLink {
+                        SonioxFilesListView()
+                    } label: {
+                        Label(NSLocalizedString("tts_files_section_label", comment: ""), systemImage: "folder")
+                    }
+                } header: {
+                    Text("Quick Access")
                         .font(.headline)
                 }
-
-                if sonioxViewModel.keyExists {
-                    Section {
-                        Button(action: { Task { await testTranscription() } }) {
-                            if isTestInProgress {
-                                HStack {
-                                    ProgressView()
-                                        .scaleEffect(0.8, anchor: .center)
-                                    Text("Testing transcription...")
-                                }
-                            } else {
-                                Label("Test with sample audio", systemImage: "play.circle")
-                            }
-                        }
-                        .disabled(isTestInProgress)
-
-                        if let error = testError {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Label("Test Failed", systemImage: "exclamationmark.triangle")
-                                    .font(.footnote)
-                                    .foregroundColor(.red)
-                                Text(error)
-                                    .font(.caption)
-                                    .foregroundColor(.red)
-                            }
-                        }
-
-                        if let result = testResult {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Label("Transcription Result", systemImage: "checkmark.circle")
-                                    .font(.footnote)
-                                    .foregroundColor(.green)
-                                Text(result)
-                                    .font(.caption)
-                                    .lineLimit(5)
-                                    .truncationMode(.tail)
-                            }
-                        }
-                    } header: {
-                        Text("Test Soniox API")
-                    }
-
-                    // Quick Access Section
-                    Section {
-                        NavigationLink {
-                            TTSJobsListView()
-                        } label: {
-                            Label("Transcription Jobs", systemImage: "list.bullet.clipboard")
-                        }
-                        
-                        NavigationLink {
-                            SonioxFilesListView()
-                        } label: {
-                            Label(NSLocalizedString("tts_files_section_label", comment: ""), systemImage: "folder")
-                        }
-                    } header: {
-                        Text("Quick Access")
-                            .font(.headline)
-                    }
-                }
             }
-            .navigationTitle(Text(NSLocalizedString("tts_tab_title", comment: "")))
-            .task {
-                // Reload key status when view appears
-                await sonioxViewModel.refreshKeyStatus()
-                // Load all recent jobs
-                await transcriptionManager.refreshAllRecentJobs()
+        }
+        .navigationTitle(Text(NSLocalizedString("tts_tab_title", comment: "")))
+        .task {
+            // Reload key status when view appears
+            await sonioxViewModel.refreshKeyStatus()
+            // Load all recent jobs
+            await transcriptionManager.refreshAllRecentJobs()
+        }
+        .refreshable {
+            await transcriptionManager.refreshAllRecentJobs()
+        }
+        .alert(isPresented: Binding(
+            get: { jobActionError != nil },
+            set: { if !$0 { jobActionError = nil } }
+        )) {
+            Alert(
+                title: Text(NSLocalizedString("tts_jobs_action_error_title", comment: "")),
+                message: Text(jobActionError ?? ""),
+                dismissButton: .default(Text(NSLocalizedString("ok_button", comment: "OK button")))
+            )
+        }
+        .onAppear {
+            isEditingSonioxKey = !sonioxViewModel.keyExists
+        }
+        .onChange(of: sonioxViewModel.keyExists) { exists in
+            isEditingSonioxKey = !exists
+        }
+        .onChange(of: sonioxViewModel.statusMessage) { _ in
+            if sonioxViewModel.isSuccess {
+                isEditingSonioxKey = false
+                showSonioxKey = false
             }
-            .refreshable {
-                await transcriptionManager.refreshAllRecentJobs()
-            }
-            .alert(isPresented: Binding(
-                get: { jobActionError != nil },
-                set: { if !$0 { jobActionError = nil } }
-            )) {
-                Alert(
-                    title: Text(NSLocalizedString("tts_jobs_action_error_title", comment: "")),
-                    message: Text(jobActionError ?? ""),
-                    dismissButton: .default(Text(NSLocalizedString("ok_button", comment: "OK button")))
-                )
-            }
-            .onAppear {
-                isEditingSonioxKey = !sonioxViewModel.keyExists
-            }
-            .onChange(of: sonioxViewModel.keyExists) { exists in
-                isEditingSonioxKey = !exists
-            }
-            .onChange(of: sonioxViewModel.statusMessage) { _ in
-                if sonioxViewModel.isSuccess {
-                    isEditingSonioxKey = false
-                    showSonioxKey = false
-                }
-            }
-            .onChange(of: isKeyFieldFocused) { isFocused in
-                if !isFocused && isEditingSonioxKey {
-                    // Auto-save when losing focus
-                    let pendingKey = sonioxViewModel.apiKey
-                    if !pendingKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Task { await sonioxViewModel.saveKey(using: pendingKey) }
-                    }
+        }
+        .onChange(of: isKeyFieldFocused) { isFocused in
+            if !isFocused && isEditingSonioxKey {
+                // Auto-save when losing focus
+                let pendingKey = sonioxViewModel.apiKey
+                if !pendingKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Task { await sonioxViewModel.saveKey(using: pendingKey) }
                 }
             }
         }

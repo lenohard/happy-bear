@@ -34,64 +34,62 @@ struct SettingsTabView: View {
     private let playableExtensions: Set<String> = ["mp3", "m4a", "m4b", "aac", "flac", "wav", "ogg", "opus"]
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    NavigationLink(destination: CacheManagementView()) {
-                        HStack {
-                            Image(systemName: "internaldrive")
-                                .foregroundStyle(.tint)
-                            Text(NSLocalizedString("cache_management_row_title", comment: "Cache Management row in Settings"))
-                        }
-                    }
-                }
-                
-                Section {
+        List {
+            Section {
+                NavigationLink(destination: CacheManagementView()) {
                     HStack {
-                        Image(systemName: "pip.enter")
+                        Image(systemName: "internaldrive")
                             .foregroundStyle(.tint)
-                        Toggle(NSLocalizedString("floating_bubble_settings_title", comment: "Floating bubble settings title"), isOn: Binding(
-                            get: { UserDefaults.standard.bool(forKey: "floatingBubbleEnabled") },
-                            set: { UserDefaults.standard.set($0, forKey: "floatingBubbleEnabled") }
-                        ))
+                        Text(NSLocalizedString("cache_management_row_title", comment: "Cache Management row in Settings"))
                     }
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack {
-                            Text(NSLocalizedString("floating_bubble_opacity_title", comment: "Floating bubble opacity title"))
-                            Spacer()
-                            Text(String(format: "%d%%", Int(floatingBubbleOpacity * 100)))
-                                .foregroundStyle(.secondary)
-                                .monospacedDigit()
-                        }
-                        Slider(value: $floatingBubbleOpacity, in: 0.2...1.0, step: 0.05)
-                        Text(NSLocalizedString("floating_bubble_opacity_description", comment: "Floating bubble opacity description"))
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-                } header: {
-                    Text(NSLocalizedString("floating_player_section", comment: "Floating player section"))
-                }
-
-                backupRestoreSection
-
-                Section {
-                    Toggle(isOn: $autoGenerateTrackSummaries) {
-                        Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
-                    }
-                    Text(NSLocalizedString("settings_auto_summary_description", comment: "Auto summary description"))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } header: {
-                    Text(NSLocalizedString("settings_auto_summary_section_title", comment: "Auto summary section title"))
-                }
-
-                Section {
-                    baiduSourcesContent
                 }
             }
-            .navigationTitle(NSLocalizedString("settings_tab", comment: "Settings tab"))
+            
+            Section {
+                HStack {
+                    Image(systemName: "pip.enter")
+                        .foregroundStyle(.tint)
+                    Toggle(NSLocalizedString("floating_bubble_settings_title", comment: "Floating bubble settings title"), isOn: Binding(
+                        get: { UserDefaults.standard.bool(forKey: "floatingBubbleEnabled") },
+                        set: { UserDefaults.standard.set($0, forKey: "floatingBubbleEnabled") }
+                    ))
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text(NSLocalizedString("floating_bubble_opacity_title", comment: "Floating bubble opacity title"))
+                        Spacer()
+                        Text(String(format: "%d%%", Int(floatingBubbleOpacity * 100)))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                    Slider(value: $floatingBubbleOpacity, in: 0.2...1.0, step: 0.05)
+                    Text(NSLocalizedString("floating_bubble_opacity_description", comment: "Floating bubble opacity description"))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text(NSLocalizedString("floating_player_section", comment: "Floating player section"))
+            }
+
+            backupRestoreSection
+
+            Section {
+                Toggle(isOn: $autoGenerateTrackSummaries) {
+                    Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
+                }
+                Text(NSLocalizedString("settings_auto_summary_description", comment: "Auto summary description"))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                Text(NSLocalizedString("settings_auto_summary_section_title", comment: "Auto summary section title"))
+            }
+
+            Section {
+                baiduSourcesContent
+            }
         }
+        .navigationTitle(NSLocalizedString("settings_tab", comment: "Settings tab"))
         .sheet(item: $selectedNetdiskEntry) { entry in
             let canStream = isPlayable(entry)
             NavigationStack {
