@@ -398,6 +398,17 @@ struct PlayingView: View {
             savedProgressView(state: snapshot.state)
 
             resumeButton(collection: snapshot.collection, track: snapshot.track)
+
+            Button {
+                tabSelection.navigateToCollection(snapshot.collection.id)
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "books.vertical")
+                    Text(NSLocalizedString("open_collection", comment: "Open collection button"))
+                }
+                .font(.subheadline)
+            }
+            .buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
@@ -882,7 +893,7 @@ struct PlayingView: View {
         // Sort by most recent and take top 5
         return historyByCollection
             .sorted { $0.state.updatedAt > $1.state.updatedAt }
-            .prefix(5)
+            .prefix(8)
             .map { $0 }
     }
 

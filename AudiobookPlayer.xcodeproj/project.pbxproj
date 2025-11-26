@@ -58,6 +58,8 @@
 		869F06B72ED5B2E100B79131 /* TranscriptCorrectionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869F06B12ED5B2E100B79131 /* TranscriptCorrectionStore.swift */; };
 		869F06B82ED5B2E100B79131 /* TranscriptCorrectionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869F06B32ED5B2E100B79131 /* TranscriptCorrectionViewModel.swift */; };
 		869F06BA2ED5CF5200B79131 /* TranscriptCorrectionsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869F06B92ED5CF5200B79131 /* TranscriptCorrectionsCard.swift */; };
+		869F06BC2ED61FFD00B79131 /* TranscriptViewerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869F06BB2ED61FFD00B79131 /* TranscriptViewerSheet.swift */; };
+		869F06BE2ED6200A00B79131 /* TranscriptCorrectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 869F06BD2ED6200A00B79131 /* TranscriptCorrectionsView.swift */; };
 		86AD83AC2EB9AD5200FAB6DF /* CacheProgressTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */; };
 		86AD83AD2EB9AD5200FAB6DF /* AudioCacheDownloadManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */; };
 		86C5F7012F0AFA4300647B2C /* AITranscriptRepair.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */; };
@@ -155,6 +157,8 @@
 		869F06B32ED5B2E100B79131 /* TranscriptCorrectionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCorrectionViewModel.swift; sourceTree = "<group>"; };
 		869F06B42ED5B2E100B79131 /* TranscriptSegmentManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptSegmentManager.swift; sourceTree = "<group>"; };
 		869F06B92ED5CF5200B79131 /* TranscriptCorrectionsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCorrectionsCard.swift; sourceTree = "<group>"; };
+		869F06BB2ED61FFD00B79131 /* TranscriptViewerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptViewerSheet.swift; sourceTree = "<group>"; };
+		869F06BD2ED6200A00B79131 /* TranscriptCorrectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptCorrectionsView.swift; sourceTree = "<group>"; };
 		86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheDownloadManager.swift; sourceTree = "<group>"; };
 		86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CacheProgressTracker.swift; sourceTree = "<group>"; };
 		86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AITranscriptRepair.swift; sourceTree = "<group>"; };
@@ -246,6 +250,8 @@
 				8617DDE02EBE0A26006E7CA7 /* DatabaseSchema.swift */,
 				8617DDE12EBE0A26006E7CA7 /* GRDBDatabaseManager.swift */,
 				8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */,
+				869F06BB2ED61FFD00B79131 /* TranscriptViewerSheet.swift */,
+				869F06BD2ED6200A00B79131 /* TranscriptCorrectionsView.swift */,
 				86E5CFFB2ED0458600CE62A1 /* AIJobsListView.swift */,
 				86E5CFFC2ED0458600CE62A1 /* AIModelsListView.swift */,
 				86E5CFF32ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift */,
@@ -437,6 +443,7 @@
 				86FE175D2EC20F6500027E93 /* DownloadButton.swift in Sources */,
 				86FE175E2EC20F6500027E93 /* CacheManagementView.swift in Sources */,
 				6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */,
+				869F06BC2ED61FFD00B79131 /* TranscriptViewerSheet.swift in Sources */,
 				A1B2C3D52FEB123400000001 /* FavoriteToggleButton.swift in Sources */,
 				A1B2C3D72FEB123400000002 /* FavoriteTracksView.swift in Sources */,
 				6FC010052C5B0C0000AA00AA /* LibraryView.swift in Sources */,
@@ -444,6 +451,7 @@
 				8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */,
 				8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */,
 				5699532872F14F318BCED8CE /* CollectionBuilderViewModel.swift in Sources */,
+				869F06BE2ED6200A00B79131 /* TranscriptCorrectionsView.swift in Sources */,
 				86FC75842EC7244600E7AEB8 /* UserDataBackupManager.swift in Sources */,
 				8685F36F2EBF3813003D8173 /* AITabView.swift in Sources */,
 				6F99A0052C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift in Sources */,

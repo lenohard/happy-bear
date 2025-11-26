@@ -36,6 +36,19 @@
     "%lld" : {
 
     },
+    "%lld corrections" : {
+
+    },
+    "%lld corrections • %lld applied" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld corrections • %2$lld applied"
+          }
+        }
+      }
+    },
     "%lld items selected" : {
 
     },
@@ -98,6 +111,18 @@
       }
     },
     "Add" : {
+
+    },
+    "Add Correction" : {
+
+    },
+    "Add corrections to fix recurring transcript errors" : {
+
+    },
+    "Add corrections to fix transcript errors" : {
+
+    },
+    "Add New Correction" : {
 
     },
     "Add to Library" : {
@@ -1244,7 +1269,7 @@
         }
       }
     },
-    "Applied %@" : {
+    "Applied" : {
 
     },
     "Apply" : {
@@ -1796,6 +1821,74 @@
         }
       }
     },
+    "collection_cover_choose_photo" : {
+      "comment" : "Choose cover from photos",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose Photo"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择照片"
+          }
+        }
+      }
+    },
+    "collection_cover_edit_accessibility" : {
+      "comment" : "Edit cover accessibility label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit collection cover"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑合集封面"
+          }
+        }
+      }
+    },
+    "collection_cover_import_files" : {
+      "comment" : "Import cover from files",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import from Files"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从文件导入"
+          }
+        }
+      }
+    },
+    "collection_cover_reset_action" : {
+      "comment" : "Reset cover to default",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset Cover"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置封面"
+          }
+        }
+      }
+    },
     "collection_description_empty" : {
       "comment" : "Collection description empty placeholder"
     },
@@ -1955,6 +2048,60 @@
         }
       }
     },
+    "Corrections" : {
+
+    },
+    "cover_image_encoding_failed" : {
+      "comment" : "Encoding cover image failed",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unable to prepare the image. Try a different file."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法处理该图像，请尝试其他文件。"
+          }
+        }
+      }
+    },
+    "cover_image_invalid_data" : {
+      "comment" : "Invalid cover image data",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Selected file is not a supported image."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选文件不是支持的图像格式。"
+          }
+        }
+      }
+    },
+    "cover_update_failed_title" : {
+      "comment" : "Cover update failed title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cover Update Failed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "封面更新失败"
+          }
+        }
+      }
+    },
     "Currently selected: %lld" : {
 
     },
@@ -1967,6 +2114,12 @@
           }
         }
       }
+    },
+    "Delete %lld" : {
+
+    },
+    "Delete %lld corrections?" : {
+
     },
     "delete_cache_confirm" : {
       "comment" : "Delete cached track button",
@@ -2719,6 +2872,9 @@
         }
       }
     },
+    "Loading..." : {
+
+    },
     "Loading…" : {
 
     },
@@ -2830,7 +2986,11 @@
     "No AI Jobs" : {
 
     },
+    "No Corrections" : {
+
+    },
     "No corrections available" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2941,6 +3101,9 @@
           }
         }
       }
+    },
+    "Not applied" : {
+
     },
     "nothing_playing_message" : {
       "comment" : "Empty playing view message",
@@ -3511,8 +3674,57 @@
     "Selected Tracks" : {
 
     },
+    "settings_auto_summary_description" : {
+      "comment" : "Auto summary description",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Automatically queue an AI summary as soon as a transcript finishes."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录完成后会立即排队生成 AI 摘要。"
+          }
+        }
+      }
+    },
     "settings_auto_summary_section_title" : {
-      "extractionState" : "manual"
+      "comment" : "Auto summary section title",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI & Transcripts"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AI 与转录"
+          }
+        }
+      }
+    },
+    "settings_auto_summary_toggle" : {
+      "comment" : "Auto summary toggle label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-generate summary after transcription"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在转录完成后自动生成摘要"
+          }
+        }
+      }
     },
     "settings_tab" : {
       "comment" : "Settings\nSettings tab",
@@ -4240,6 +4452,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "音频"
+          }
+        }
+      }
+    },
+    "tracks_header" : {
+      "comment" : "Tracks section header",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tracks"
           }
         }
       }

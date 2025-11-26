@@ -352,8 +352,19 @@ struct TranscriptViewerSheet: View {
     @ToolbarContentBuilder
     private func toolbarItems() -> some ToolbarContent {
         ToolbarItem(placement: .topBarTrailing) {
-            Button("close_button") {
-                dismiss()
+            HStack(spacing: 12) {
+                // Corrections page link
+                if viewModel.transcript != nil {
+                    NavigationLink {
+                        TranscriptCorrectionsView(trackId: trackId, trackName: trackName)
+                    } label: {
+                        Image(systemName: "text.badge.checkmark")
+                    }
+                }
+
+                Button("close_button") {
+                    dismiss()
+                }
             }
         }
 

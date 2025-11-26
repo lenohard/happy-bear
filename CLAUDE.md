@@ -27,7 +27,6 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 
 ## Recent Lessons
 
-- **2025-11-26 – Transcript Corrections card UI refactoring (WIP)**: Attempted to make `TranscriptCorrectionsCard` collapsible with multiple-select and batch delete. Added collapse/expand (default collapsed), Edit/Done mode toggle, multi-selection with checkboxes, and batch delete toolbar. Build succeeds but multi-selection interaction is not working as expected - nested buttons may have event hierarchy issues in VStack. Needs investigation: may require refactoring to use `List` with `.swipeActions()` or simplifying the nesting structure. Task paused for session restart. See `TranscriptCorrectionsCard.swift` for current implementation.
 
 - **2025-11-20 – Mac Catalyst log spam**: Seeing `[API] cannot add handler to <N> from <M> – dropping` in the Xcode console is an Apple framework issue (Backboard/HID bridge) that appears after enabling Mac Catalyst; our code does not emit it. Treat it as harmless noise, hide it via scheme console filters or `OS_ACTIVITY_MODE=disable`, and keep Xcode/macOS updated until Apple removes the logging.
 - **2025-11-20 – Track summary CTA + streaming stability**: Playing tab `TrackSummaryCard` now exposes a single header CTA that swaps between Generate/Regenerate, while `AIGenerationJobExecutor` buffers stream deltas on-actor so track summary jobs stop crashing with `EXC_BAD_ACCESS` when deltas arrive rapidly. Reuse `persistStreamDelta` whenever adding new streaming job types.
