@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "... and %lld more" : {
 
     },
@@ -32,6 +35,9 @@
           }
         }
       }
+    },
+    "%@h" : {
+
     },
     "%lld" : {
 
@@ -1560,9 +1566,6 @@
         }
       }
     },
-    "By Collection" : {
-
-    },
     "cache_clear_all" : {
       "comment" : "Clear all cached audio",
       "localizations" : {
@@ -2151,6 +2154,9 @@
     "Currently selected: %lld" : {
 
     },
+    "Day" : {
+
+    },
     "Delete" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2408,6 +2414,9 @@
           }
         }
       }
+    },
+    "Duration" : {
+
     },
     "edit_collection_details_action" : {
       "comment" : "Edit collection details action",
@@ -2883,9 +2892,15 @@
     },
     "Listening Statistics" : {
       "localizations" : {
-        "zh-Hans" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
+            "value" : "收听统计"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
             "value" : "收听统计"
           }
         }
@@ -2911,18 +2926,83 @@
     "listening_statistics" : {
       "comment" : "Listening statistics section title",
       "localizations" : {
-        "zh-Hans" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
+            "value" : "收听统计"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
             "value" : "收听数据"
           }
         }
       }
     },
-    "Loading Models..." : {
-
+    "listening_statistics_top_collections_header" : {
+      "comment" : "Listening statistics total time section header",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最常听的合集"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最常听的合集"
+          }
+        }
+      }
     },
-    "Loading statistics..." : {
+    "listening_statistics_total_tab" : {
+      "comment" : "Listening statistics total timeline tab label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总用时"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "总用时"
+          }
+        }
+      }
+    },
+    "listening_statistics_week_tab" : {
+      "comment" : "Listening statistics current week tab label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "周用时"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "周用时"
+          }
+        }
+      }
+    },
+    "listening_statistics_week_top_collections" : {
+      "comment" : "Listening statistics current week top collections header",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最常听的合集"
+          }
+        }
+      }
+    },
+    "Loading Models..." : {
 
     },
     "loading_library" : {
@@ -4143,6 +4223,7 @@
       }
     },
     "Total Listening Time" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5473,6 +5554,9 @@
           }
         }
       }
+    },
+    "Week" : {
+
     },
     "Your AI generation tasks will appear here." : {
 

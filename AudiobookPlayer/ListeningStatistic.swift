@@ -18,4 +18,13 @@ struct ListeningStatisticsSummary {
     let collectionDurations: [UUID: TimeInterval]
     let dailyDurations: [Date: TimeInterval]
     let recentWeekCollectionDurations: [UUID: TimeInterval]
+    let weeklyDurations: [WeeklyListeningDuration]
+}
+
+struct WeeklyListeningDuration: Identifiable, Equatable {
+    let startDate: Date
+    let endDate: Date
+    let totalDuration: TimeInterval
+
+    var id: Date { startDate }
 }
