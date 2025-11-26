@@ -16,4 +16,6 @@ struct ListeningStatistic: Identifiable, Codable, Equatable {
 struct ListeningStatisticsSummary {
     let totalDuration: TimeInterval
     let collectionDurations: [UUID: TimeInterval]
+    let dailyDurations: [Date: TimeInterval]
+    let recentWeekCollectionDurations: [UUID: TimeInterval]
 }

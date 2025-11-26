@@ -1527,17 +1527,182 @@ actor GRDBDatabaseManager {
         }
     }
     
+    /// Load daily listening durations for a date range
+    func loadDailyListeningDurations(from startDate: Date, to endDate: Date) throws -> [Date: TimeInterval] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+        
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                SELECT start_time, end_time 
+                FROM listening_statistics 
+                WHERE start_time >= ? AND start_time <= ?
+                """,
+                arguments: [startDate, endDate]
+            )
+            
+            var dailyDurations: [Date: TimeInterval] = [:]
+            let calendar = Calendar.current
+            
+            for row in rows {
+                guard let startTimeValue = row["start_time"],
+                      let endTimeValue = row["end_time"] else { continue }
+                
+                let startTime: Date
+                let endTime: Date
+                
+                if let date = startTimeValue as? Date {
+                    startTime = date
+                } else if let dateString = startTimeValue as? String,
+                          let parsedDate = GRDBDatabaseManager.sqliteDateFormatter.date(from: dateString) {
+                    startTime = parsedDate
+                } else { continue }
+                
+                if let date = endTimeValue as? Date {
+                    endTime = date
+                } else if let dateString = endTimeValue as? String,
+                          let parsedDate = GRDBDatabaseManager.sqliteDateFormatter.date(from: dateString) {
+                    endTime = parsedDate
+                } else { continue }
+                
+                let duration = endTime.timeIntervalSince(startTime)
+                let startOfDay = calendar.startOfDay(for: startTime)
+                dailyDurations[startOfDay, default: 0] += duration
+            }
+            
+            return dailyDurations
+        }
+    }
+
+    /// Load collection listening durations between two dates
+    func loadListeningDurationsByCollection(from startDate: Date, to endDate: Date) throws -> [UUID: TimeInterval] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                SELECT collection_id, start_time, end_time
+                FROM listening_statistics
+                WHERE start_time >= ? AND start_time <= ?
+                """,
+                arguments: [startDate, endDate]
+            )
+
+            var durations: [UUID: TimeInterval] = [:]
+
+            for row in rows {
+                guard let collectionIdStr = row["collection_id"] as? String,
+                      let collectionId = UUID(uuidString: collectionIdStr),
+                      let startTimeValue = row["start_time"],
+                      let endTimeValue = row["end_time"] else {
+                    continue
+                }
+
+                let startTime: Date
+                let endTime: Date
+
+                if let date = startTimeValue as? Date {
+                    startTime = date
+                } else if let dateString = startTimeValue as? String,
+                          let parsedDate = GRDBDatabaseManager.sqliteDateFormatter.date(from: dateString) {
+                    startTime = parsedDate
+                } else {
+                    continue
+                }
+
+                if let date = endTimeValue as? Date {
+                    endTime = date
+                } else if let dateString = endTimeValue as? String,
+                          let parsedDate = GRDBDatabaseManager.sqliteDateFormatter.date(from: dateString) {
+                    endTime = parsedDate
+                } else {
+                    continue
+                }
+
+                let duration = endTime.timeIntervalSince(startTime)
+                durations[collectionId, default: 0] += duration
+            }
+
+            return durations
+        }
+    }
+
     /// Load listening statistics summary
     func loadListeningStatisticsSummary() throws -> ListeningStatisticsSummary {
         let totalDuration = try loadTotalListeningDuration()
         let collectionDurations = try loadListeningDurationsByCollection()
         
+        // Load daily stats for the last 30 days
+        let calendar = Calendar.current
+        let now = Date()
+        let daysBack = 70
+        let lookbackStart = calendar.date(byAdding: .day, value: -daysBack, to: now) ?? now
+        let dailyDurations = try loadDailyListeningDurations(from: lookbackStart, to: now)
+
+        let sevenDaysAgo = calendar.date(byAdding: .day, value: -7, to: now) ?? now
+        let recentWeekCollectionDurations = try loadListeningDurationsByCollection(from: sevenDaysAgo, to: now)
+        let weeklyDurations = aggregateWeeklyDurations(
+            dailyDurations: dailyDurations,
+            calendar: calendar,
+            referenceDate: now,
+            weeks: 6
+        )
+
         return ListeningStatisticsSummary(
             totalDuration: totalDuration,
-            collectionDurations: collectionDurations
+            collectionDurations: collectionDurations,
+            dailyDurations: dailyDurations,
+            recentWeekCollectionDurations: recentWeekCollectionDurations,
+            weeklyDurations: weeklyDurations
         )
     }
+
+    private func aggregateWeeklyDurations(
+        dailyDurations: [Date: TimeInterval],
+        calendar: Calendar,
+        referenceDate: Date,
+        weeks: Int
+    ) -> [WeeklyListeningDuration] {
+        guard weeks > 0 else { return [] }
+
+        let currentWeekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: referenceDate))
+            ?? calendar.startOfDay(for: referenceDate)
+        let firstWeekStart = calendar.date(byAdding: .weekOfYear, value: -(weeks - 1), to: currentWeekStart)
+            ?? currentWeekStart
+
+        var groupedDurations: [Date: TimeInterval] = [:]
+
+        for (day, duration) in dailyDurations {
+            let normalizedDay = calendar.startOfDay(for: day)
+            guard let weekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: normalizedDay)) else {
+                continue
+            }
+            groupedDurations[weekStart, default: 0] += duration
+        }
+
+        var weeklyDurations: [WeeklyListeningDuration] = []
+
+        for offset in 0..<weeks {
+            guard let weekStart = calendar.date(byAdding: .weekOfYear, value: offset, to: firstWeekStart),
+                  let weekEnd = calendar.date(byAdding: .day, value: 6, to: weekStart) else {
+                continue
+            }
+            let total = groupedDurations[weekStart] ?? 0
+            weeklyDurations.append(
+                WeeklyListeningDuration(
+                    startDate: weekStart,
+                    endDate: weekEnd,
+                    totalDuration: total
+                )
+            )
+        }
+
+        return weeklyDurations
+    }
 }
+
 
 // MARK: - Type String Extensions
 
