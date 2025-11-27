@@ -11,7 +11,9 @@ struct TrackSummaryCard: View {
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @State private var actionError: String?
-    @State private var isExpanded = true
+    @State private var isExpanded = false
+    @State private var hasAnimatedExpansion = false
+    @State private var didInitializeExpansion = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -37,9 +39,10 @@ struct TrackSummaryCard: View {
             actionError = nil
         }
         .onChange(of: viewModel.summary?.id) { _ in
-            if !viewModel.hasSummaryContent() {
-                isExpanded = true
-            }
+            handleSummaryContentChange()
+        }
+        .task {
+            initializeExpansionState()
         }
     }
 
@@ -50,6 +53,7 @@ struct TrackSummaryCard: View {
                     withAnimation(.easeInOut(duration: 0.18)) {
                         isExpanded.toggle()
                     }
+                    hasAnimatedExpansion = true
                 } label: {
                     HStack(spacing: 6) {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
@@ -387,6 +391,29 @@ struct TrackSummaryCard: View {
             )
         } catch {
             actionError = error.localizedDescription
+        }
+    }
+}
+
+private extension TrackSummaryCard {
+    func initializeExpansionState() {
+        guard !didInitializeExpansion else { return }
+        didInitializeExpansion = true
+        isExpanded = !viewModel.hasSummaryContent()
+    }
+
+    func handleSummaryContentChange() {
+        let hasSummary = viewModel.hasSummaryContent()
+        if hasSummary {
+            guard !hasAnimatedExpansion else { return }
+            withAnimation(.easeInOut(duration: 0.18)) {
+                isExpanded = false
+            }
+        } else {
+            hasAnimatedExpansion = false
+            withAnimation(.easeInOut(duration: 0.18)) {
+                isExpanded = true
+            }
         }
     }
 }

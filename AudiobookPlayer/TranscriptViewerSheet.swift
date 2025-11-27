@@ -43,24 +43,10 @@ struct TranscriptViewerSheet: View {
     @ViewBuilder
     private var mainView: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                if showTrackSummary, let context = resolveTrackContext() {
-                    TrackSummaryCard(
-                        track: context.track,
-                        isTranscriptAvailable: viewModel.transcript != nil,
-                        viewModel: trackSummaryViewModel,
-                        seekAndPlayAction: { time in seekAndPlay(to: time) }
-                    )
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-                    .padding(.bottom, 4)
-                }
-                headerSection
-                transcriptScroll
-            }
-            .navigationTitle(trackName)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { toolbarItems() }
+            scrollableContent
+                .navigationTitle(trackName)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { toolbarItems() }
         }
         .task {
             await viewModel.loadTranscript()
@@ -346,7 +332,6 @@ struct TranscriptViewerSheet: View {
                 repairModeControls()
             }
         }
-        .padding()
     }
 
     @ToolbarContentBuilder
@@ -380,24 +365,45 @@ struct TranscriptViewerSheet: View {
         repairToolbarItems()
     }
 
-    @ViewBuilder
-    private var transcriptScroll: some View {
+    private var scrollableContent: some View {
         ScrollViewReader { proxy in
-            transcriptContent()
-                .onChange(of: scrollTargetSegmentID) { target in
-                    guard let target else { return }
-                    let scrollAction = {
-                        proxy.scrollTo(target, anchor: .center)
+            ScrollView {
+                VStack(spacing: 0) {
+                    if showTrackSummary, let context = resolveTrackContext() {
+                        TrackSummaryCard(
+                            track: context.track,
+                            isTranscriptAvailable: viewModel.transcript != nil,
+                            viewModel: trackSummaryViewModel,
+                            seekAndPlayAction: { time in seekAndPlay(to: time) }
+                        )
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+                        .padding(.bottom, 4)
                     }
 
-                    if scrollTargetShouldAnimate {
-                        withAnimation(.easeInOut) {
-                            scrollAction()
-                        }
-                    } else {
+                    headerSection
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
+
+                    transcriptContent()
+                        .padding(.horizontal)
+                        .padding(.bottom, 16)
+                }
+            }
+            .onChange(of: scrollTargetSegmentID) { target in
+                guard let target else { return }
+                let scrollAction = {
+                    proxy.scrollTo(target, anchor: .center)
+                }
+
+                if scrollTargetShouldAnimate {
+                    withAnimation(.easeInOut) {
                         scrollAction()
                     }
+                } else {
+                    scrollAction()
                 }
+            }
         }
     }
 
