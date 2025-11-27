@@ -1183,7 +1183,7 @@ private extension AudioPlayerViewModel {
         currentSessionStartTime = Date()
     }
     
-    private func flushListeningSession() {
+    func flushListeningSession() {
         guard let startTime = currentSessionStartTime,
               let track = currentTrack,
               let collection = activeCollection else {
@@ -1220,6 +1220,15 @@ private extension AudioPlayerViewModel {
         }
         
         currentSessionStartTime = nil
+    }
+}
+
+extension AudioPlayerViewModel {
+    func checkpointListeningSession() {
+        if isPlaying {
+            flushListeningSession()
+            startListeningSession()
+        }
     }
 }
 #endif

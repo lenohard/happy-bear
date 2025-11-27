@@ -1,37 +1,74 @@
 import SwiftUI
 import Charts
 
+// MARK: - Time Period Enum
+
+enum StatisticsPeriod: String, CaseIterable, Identifiable {
+    case daily
+    case weekly
+    
+    var id: String { rawValue }
+    
+    var title: String {
+        switch self {
+        case .daily:
+            return NSLocalizedString("listening_statistics_week_tab", comment: "Listening statistics daily tab label")
+        case .weekly:
+            return NSLocalizedString("listening_statistics_total_tab", comment: "Listening statistics weekly tab label")
+        }
+    }
+    
+    var windowSize: Int {
+        switch self {
+        case .daily: return 7
+        case .weekly: return 6
+        }
+    }
+}
+
+// MARK: - Data Point Model
+
+struct StatisticsDataPoint: Identifiable {
+    let id = UUID()
+    let date: Date
+    let duration: TimeInterval
+}
+
 // MARK: - ViewModel
 
 @MainActor
 class StatisticsViewModel: ObservableObject {
     @Published var dailyDurations: [Date: TimeInterval] = [:]
-    @Published var weeklyDurations: [WeeklyListeningDuration] = []
     @Published var collectionDurations: [UUID: TimeInterval] = [:]
-    @Published var weeklyCollectionDurations: [UUID: TimeInterval] = [:]
     @Published var topCollectionsTotal: [(collection: AudiobookCollection, duration: TimeInterval)] = []
-    @Published var topCollectionsRecentWeek: [(collection: AudiobookCollection, duration: TimeInterval)] = []
+    @Published var topCollectionsRecentPeriod: [(collection: AudiobookCollection, duration: TimeInterval)] = []
+    @Published var earliestDate: Date?
     
     private let databaseManager = GRDBDatabaseManager.shared
     
     func loadStatistics() async {
         do {
             let summary = try await databaseManager.loadListeningStatisticsSummary()
+            let earliest = try await databaseManager.getEarliestListeningDate()
             
             self.dailyDurations = summary.dailyDurations
-            self.weeklyDurations = summary.weeklyDurations
             self.collectionDurations = summary.collectionDurations
-            self.weeklyCollectionDurations = summary.recentWeekCollectionDurations
+            self.earliestDate = earliest
             
-            await loadTopCollections()
+            await loadTopCollections(recentDays: 7)
             
         } catch {
             print("Error loading statistics: \(error)")
         }
     }
     
-    private func loadTopCollections() async {
+    func loadTopCollections(recentDays: Int) async {
         do {
+            let calendar = Calendar.current
+            let now = Date()
+            let startDate = calendar.date(byAdding: .day, value: -recentDays, to: now) ?? now
+            let recentCollectionDurations = try await databaseManager.loadListeningDurationsByCollection(from: startDate, to: now)
+            
             let allCollections = try await databaseManager.loadAllCollections()
             let total = allCollections.compactMap { collection -> (collection: AudiobookCollection, duration: TimeInterval)? in
                 guard let duration = collectionDurations[collection.id], duration > 0 else { return nil }
@@ -39,14 +76,87 @@ class StatisticsViewModel: ObservableObject {
             }.sorted { $0.duration > $1.duration }
             
             let recent = allCollections.compactMap { collection -> (collection: AudiobookCollection, duration: TimeInterval)? in
-                guard let duration = weeklyCollectionDurations[collection.id], duration > 0 else { return nil }
+                guard let duration = recentCollectionDurations[collection.id], duration > 0 else { return nil }
                 return (collection: collection, duration: duration)
             }.sorted { $0.duration > $1.duration }
             
             self.topCollectionsTotal = Array(total.prefix(5))
-            self.topCollectionsRecentWeek = Array(recent.prefix(5))
+            self.topCollectionsRecentPeriod = Array(recent.prefix(5))
         } catch {
             print("Error loading collections for stats: \(error)")
+        }
+    }
+    
+    func getDataPoints(for period: StatisticsPeriod) -> [StatisticsDataPoint] {
+        let calendar = Calendar.current
+        let now = Date()
+        let windowSize = period.windowSize
+        
+        switch period {
+        case .daily:
+            // Last 7 days (sliding window)
+            return (0..<windowSize).reversed().compactMap { offset in
+                guard let date = calendar.date(byAdding: .day, value: -offset, to: now) else { return nil }
+                let dayKey = calendar.startOfDay(for: date)
+                let duration = dailyDurations[dayKey] ?? 0
+                return StatisticsDataPoint(date: dayKey, duration: duration)
+            }
+            
+        case .weekly:
+            // Last 6 weeks (sliding window)
+            return (0..<windowSize).reversed().compactMap { weekOffset in
+                guard let weekStart = calendar.date(byAdding: .weekOfYear, value: -weekOffset, to: now) else { return nil }
+                let weekStartNormalized = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: weekStart)) ?? weekStart
+                
+                // Sum all days in this week
+                var weekTotal: TimeInterval = 0
+                for dayOffset in 0..<7 {
+                    if let day = calendar.date(byAdding: .day, value: dayOffset, to: weekStartNormalized) {
+                        let dayKey = calendar.startOfDay(for: day)
+                        weekTotal += dailyDurations[dayKey] ?? 0
+                    }
+                }
+                
+                return StatisticsDataPoint(date: weekStartNormalized, duration: weekTotal)
+            }
+        }
+    }
+    
+    func calculateAverage(for period: StatisticsPeriod) -> TimeInterval {
+        guard let earliest = earliestDate else { return 0 }
+        
+        let calendar = Calendar.current
+        let now = Date()
+        let dataPoints = getDataPoints(for: period)
+        
+        // Calculate how many complete periods have passed since data collection started
+        let daysSinceStart = calendar.dateComponents([.day], from: calendar.startOfDay(for: earliest), to: calendar.startOfDay(for: now)).day ?? 0
+        
+        switch period {
+        case .daily:
+            // For daily: calculate average of previous 6 days (excluding today)
+            let previousDays = min(6, daysSinceStart)
+            guard previousDays > 0 else {
+                // If this is the first day, return current day's value
+                return dataPoints.last?.duration ?? 0
+            }
+            
+            let previousDataPoints = dataPoints.dropLast()
+            let total = previousDataPoints.reduce(0) { $0 + $1.duration }
+            return total / Double(previousDays)
+            
+        case .weekly:
+            // For weekly: calculate average of previous weeks (excluding current week)
+            let weeksSinceStart = daysSinceStart / 7
+            let previousWeeks = min(period.windowSize - 1, weeksSinceStart)
+            guard previousWeeks > 0 else {
+                // If this is the first week, return current week's value
+                return dataPoints.last?.duration ?? 0
+            }
+            
+            let previousDataPoints = dataPoints.dropLast()
+            let total = previousDataPoints.reduce(0) { $0 + $1.duration }
+            return total / Double(previousWeeks)
         }
     }
     
@@ -62,44 +172,38 @@ class StatisticsViewModel: ObservableObject {
 // MARK: - Main View
 
 struct ListeningStatisticsView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var viewModel = StatisticsViewModel()
-    @State private var selectedTab: StatisticsTab = .recentWeeks
+    @State private var selectedPeriod: StatisticsPeriod = .weekly
+    
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MM.dd"
+        return formatter
+    }()
     
     var body: some View {
         List {
             Section {
-                Picker("", selection: $selectedTab) {
-                    ForEach(StatisticsTab.allCases) { tab in
-                        Text(tab.title)
-                            .tag(tab)
+                Picker("", selection: $selectedPeriod) {
+                    ForEach(StatisticsPeriod.allCases) { period in
+                        Text(period.title)
+                            .tag(period)
                     }
                 }
                 .pickerStyle(.segmented)
                 .padding(.bottom, 12)
                 
-                if selectedTab == .recentWeeks {
-                    weeklyChart()
-                } else {
-                    currentWeekChart()
-                }
+                chartView(for: selectedPeriod)
             }
 
-            if selectedTab == .recentWeeks {
-                Section {
-                    ForEach(viewModel.topCollectionsTotal, id: \.collection.id) { item in
-                        ListeningStatisticsCollectionRow(item: item, formatter: viewModel.formatDuration(_:))
-                    }
-                } header: {
-                    Text(NSLocalizedString("listening_statistics_top_collections_header", comment: "Listening statistics total time section header"))
+            Section {
+                ForEach(viewModel.topCollectionsRecentPeriod, id: \.collection.id) { item in
+                    ListeningStatisticsCollectionRow(item: item, formatter: viewModel.formatDuration(_:))
                 }
-            } else {
-                Section {
-                    ForEach(viewModel.topCollectionsRecentWeek, id: \.collection.id) { item in
-                        ListeningStatisticsCollectionRow(item: item, formatter: viewModel.formatDuration(_:))
-                    }
-                } header: {
-                    Text(NSLocalizedString("listening_statistics_week_top_collections", comment: "Listening statistics current week top collections header"))
-                }
+            } header: {
+                let headerKey = selectedPeriod == .daily ? "listening_statistics_week_top_collections" : "listening_statistics_top_collections_header"
+                Text(NSLocalizedString(headerKey, comment: "Top collections header"))
             }
         }
         .navigationTitle("Listening Statistics")
@@ -107,24 +211,54 @@ struct ListeningStatisticsView: View {
         .task {
             await viewModel.loadStatistics()
         }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active {
+                Task {
+                    await viewModel.loadStatistics()
+                }
+            }
+        }
+        .onChange(of: selectedPeriod) { newPeriod in
+            Task {
+                let days = newPeriod == .daily ? 7 : 42
+                await viewModel.loadTopCollections(recentDays: days)
+            }
+        }
     }
-
-    private func weeklyChart() -> some View {
+    
+    @ViewBuilder
+    private func chartView(for period: StatisticsPeriod) -> some View {
+        let dataPoints = viewModel.getDataPoints(for: period)
+        let average = viewModel.calculateAverage(for: period)
+        
         Chart {
-            ForEach(viewModel.weeklyDurations) { week in
+            ForEach(dataPoints) { point in
                 BarMark(
-                    x: .value("Week", week.startDate, unit: .weekOfYear),
-                    y: .value("Duration", week.totalDuration / 3600)
+                    x: .value("Date", point.date, unit: period == .daily ? .day : .weekOfYear),
+                    y: .value("Duration", point.duration / 3600)
                 )
                 .foregroundStyle(Color.accentColor.gradient)
                 .cornerRadius(6)
             }
+            
+            if average > 0 {
+                RuleMark(y: .value("Average", average / 3600))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [5]))
+                    .foregroundStyle(.gray.opacity(0.8))
+                    .annotation(position: .leading, alignment: .bottom) {
+                        Text("Avg")
+                            .font(.caption2)
+                            .foregroundStyle(.gray)
+                    }
+            }
         }
         .frame(height: 220)
         .chartXAxis {
-            AxisMarks(values: viewModel.weeklyDurations.map { $0.startDate }) { value in
+            AxisMarks(values: dataPoints.map { $0.date }) { value in
                 if let dateValue = value.as(Date.self) {
-                    AxisValueLabel(dateValue.formatted(.dateTime.month(.abbreviated).day()))
+                    AxisValueLabel {
+                        Text(Self.dateFormatter.string(from: dateValue))
+                    }
                 }
             }
         }
@@ -134,63 +268,6 @@ struct ListeningStatisticsView: View {
                     AxisValueLabel("\(hours.formatted(.number.precision(.fractionLength(0...1))))h")
                 }
             }
-        }
-    }
-
-    private func currentWeekChart() -> some View {
-        Chart {
-            ForEach(currentWeekDays(), id: \.self) { date in
-                let dayKey = Calendar.current.startOfDay(for: date)
-                let duration = viewModel.dailyDurations[dayKey] ?? 0
-                LineMark(
-                    x: .value("Day", date, unit: .day),
-                    y: .value("Duration", duration / 3600)
-                )
-                .foregroundStyle(Color.accentColor)
-                AreaMark(
-                    x: .value("Day", date, unit: .day),
-                    y: .value("Duration", duration / 3600)
-                )
-                .foregroundStyle(Color.accentColor.opacity(0.2))
-            }
-        }
-        .frame(height: 220)
-        .chartXAxis {
-            AxisMarks(values: .stride(by: .day)) { value in
-                AxisValueLabel(format: .dateTime.weekday(.abbreviated))
-            }
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading) { value in
-                if let hours = value.as(Double.self) {
-                    AxisValueLabel("\(hours.formatted(.number.precision(.fractionLength(0...1))))h")
-                }
-            }
-        }
-    }
-    
-    private func currentWeekDays() -> [Date] {
-        let calendar = Calendar.current
-        guard let weekStart = calendar.date(from: calendar.dateComponents([.calendar, .yearForWeekOfYear, .weekOfYear], from: Date())) else {
-            return []
-        }
-        return (0..<7).compactMap { offset in
-            calendar.date(byAdding: .day, value: offset, to: weekStart)
-        }
-    }
-}
-enum StatisticsTab: String, CaseIterable, Identifiable {
-    case recentWeeks
-    case currentWeek
-
-    var id: String { rawValue }
-    
-    var title: String {
-        switch self {
-        case .recentWeeks:
-            return NSLocalizedString("listening_statistics_total_tab", comment: "Listening statistics total timeline tab label")
-        case .currentWeek:
-            return NSLocalizedString("listening_statistics_week_tab", comment: "Listening statistics current week tab label")
         }
     }
 }

@@ -12,6 +12,8 @@ struct AudiobookPlayerApp: App {
     @StateObject private var aiGenerationManager = AIGenerationManager()
     @State private var showSplash = true
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
             ZStack {
@@ -29,6 +31,11 @@ struct AudiobookPlayerApp: App {
                         showSplash = false
                     }
                     .zIndex(1)
+                }
+            }
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .background || newPhase == .inactive {
+                    audioPlayer.checkpointListeningSession()
                 }
             }
         }

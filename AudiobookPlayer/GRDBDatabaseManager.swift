@@ -1628,13 +1628,36 @@ actor GRDBDatabaseManager {
             return durations
         }
     }
+    
+    /// Get the earliest listening statistics date
+    func getEarliestListeningDate() throws -> Date? {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+        
+        return try db.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: "SELECT MIN(start_time) as earliest FROM listening_statistics"
+            ) else {
+                return nil
+            }
+            
+            let earliestValue = row["earliest"]
+            if let date = earliestValue as? Date {
+                return date
+            } else if let dateString = earliestValue as? String,
+                      let parsedDate = GRDBDatabaseManager.sqliteDateFormatter.date(from: dateString) {
+                return parsedDate
+            }
+            return nil
+        }
+    }
 
     /// Load listening statistics summary
     func loadListeningStatisticsSummary() throws -> ListeningStatisticsSummary {
         let totalDuration = try loadTotalListeningDuration()
         let collectionDurations = try loadListeningDurationsByCollection()
         
-        // Load daily stats for the last 30 days
+        // Load daily stats for the last 70 days
         let calendar = Calendar.current
         let now = Date()
         let daysBack = 70

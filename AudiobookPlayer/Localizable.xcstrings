@@ -1308,6 +1308,12 @@
         }
       }
     },
+    "Average" : {
+
+    },
+    "Avg" : {
+
+    },
     "backup_credentials_warning" : {
       "comment" : "Credentials warning",
       "localizations" : {
@@ -2154,7 +2160,7 @@
     "Currently selected: %lld" : {
 
     },
-    "Day" : {
+    "Date" : {
 
     },
     "Delete" : {
@@ -2958,7 +2964,7 @@
       }
     },
     "listening_statistics_total_tab" : {
-      "comment" : "Listening statistics total timeline tab label",
+      "comment" : "Listening statistics weekly tab label",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2969,13 +2975,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "总用时"
+            "value" : "最近几周"
           }
         }
       }
     },
     "listening_statistics_week_tab" : {
-      "comment" : "Listening statistics current week tab label",
+      "comment" : "Listening statistics daily tab label",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2986,7 +2992,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "周用时"
+            "value" : "最近七天"
           }
         }
       }
@@ -5554,9 +5560,6 @@
           }
         }
       }
-    },
-    "Week" : {
-
     },
     "Your AI generation tasks will appear here." : {
 
