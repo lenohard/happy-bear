@@ -664,6 +664,7 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func handlePlaybackFinished() {
+        flushListeningSession()
         if sleepTimerMode == .endOfTrack {
             stopPlayback(clearQueue: false)
             setSleepTimer(.off)
@@ -1018,6 +1019,7 @@ private extension AudioPlayerViewModel {
         startPlaybackImmediately()
         isPlaying = true
         applyPlaybackRateToPlayer()
+        startListeningSession()
         return .success
     }
 
@@ -1028,6 +1030,7 @@ private extension AudioPlayerViewModel {
         player.pause()
         isPlaying = false
         applyPlaybackRateToPlayer()
+        flushListeningSession()
         return .success
     }
 
