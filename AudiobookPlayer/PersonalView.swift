@@ -6,37 +6,21 @@ struct PersonalView: View {
     @EnvironmentObject private var tabSelection: TabSelectionManager
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
 
+    @State private var showHistorySheet = false
+
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    Button(action: showListeningHistorySheet) {
-                        Label {
-                            Text(NSLocalizedString("listening_history", comment: "Listening history section title"))
-                        } icon: {
-                            Image(systemName: "clock.arrow.circlepath")
-                        }
-                    }
-                }
+            ZStack {
+                Color(uiColor: .systemGroupedBackground)
+                    .ignoresSafeArea()
 
-                Section {
-                    NavigationLink {
-                        ListeningStatisticsView()
-                    } label: {
-                        Label {
-                            Text(NSLocalizedString("listening_statistics", comment: "Listening statistics section title"))
-                        } icon: {
-                            Image(systemName: "chart.bar.fill")
-                        }
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        historyAndStatisticsCard
+                        settingsCard
                     }
-                }
-
-                Section {
-                    NavigationLink {
-                        SettingsTabView()
-                    } label: {
-                        Label(NSLocalizedString("settings_tab", comment: "Settings tab"), systemImage: "gear")
-                    }
+                    .padding(.vertical, 24)
+                    .padding(.horizontal, 20)
                 }
             }
             .navigationTitle("Personal")
@@ -52,11 +36,49 @@ struct PersonalView: View {
         }
     }
 
+    private var historyAndStatisticsCard: some View {
+        PersonalCard {
+            Button(action: showListeningHistorySheet) {
+                PersonalCardRow(
+                    icon: "clock.arrow.circlepath",
+                    title: NSLocalizedString("listening_history", comment: "Listening history section title")
+                )
+            }
+            .buttonStyle(.plain)
+
+            Divider()
+                .padding(.leading, PersonalCardRow.dividerLeadingInset)
+                .padding(.trailing, PersonalCardRow.horizontalPadding)
+
+            NavigationLink {
+                ListeningStatisticsView()
+            } label: {
+                PersonalCardRow(
+                    icon: "chart.bar.fill",
+                    title: NSLocalizedString("listening_statistics", comment: "Listening statistics section title")
+                )
+            }
+            .tint(.primary)
+        }
+    }
+
+    private var settingsCard: some View {
+        PersonalCard {
+            NavigationLink {
+                SettingsTabView()
+            } label: {
+                PersonalCardRow(
+                    icon: "gear",
+                    title: NSLocalizedString("settings_tab", comment: "Settings tab")
+                )
+            }
+            .tint(.primary)
+        }
+    }
+
     private func showListeningHistorySheet() {
         showHistorySheet = true
     }
-
-    @State private var showHistorySheet = false
 
     private var historySheetEntries: [ListeningHistoryEntry] {
         buildListeningHistory(from: library, using: audioPlayer)
@@ -65,7 +87,6 @@ struct PersonalView: View {
     private func resumePlayback(collection: AudiobookCollection, track: AudiobookTrack) {
         if case .baiduNetdisk(_, _) = collection.source {
             guard let token = authViewModel.token else {
-                // Handle missing auth if needed, or rely on PlayingView to handle it when switching
                 return
             }
             audioPlayer.play(track: track, in: collection, token: token)
@@ -74,7 +95,6 @@ struct PersonalView: View {
         }
         tabSelection.switchToPlayingTab()
     }
-
 }
  
 private struct ListeningHistorySheet: View {
@@ -136,4 +156,68 @@ private struct ListeningHistorySheet: View {
     }
 
     @Environment(\.dismiss) private var dismiss
+}
+
+private struct PersonalCard<Content: View>: View {
+    private let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
+
+        return VStack(spacing: 0) {
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(shape.fill(Color(.secondarySystemGroupedBackground)))
+        .clipShape(shape)
+        .overlay(shape.stroke(Color(.separator).opacity(0.2)))
+        .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
+    }
+}
+
+private struct PersonalCardRow: View {
+    static let horizontalPadding: CGFloat = 20
+    static let iconContainerSize: CGFloat = 42
+    static let contentSpacing: CGFloat = 12
+
+    let icon: String
+    let title: String
+
+    var body: some View {
+        HStack(spacing: Self.contentSpacing) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.accentColor.opacity(0.12))
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .frame(width: Self.iconContainerSize, height: Self.iconContainerSize)
+
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.horizontal, Self.horizontalPadding)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
+    }
+}
+
+private extension PersonalCardRow {
+    static var dividerLeadingInset: CGFloat {
+        horizontalPadding + iconContainerSize + contentSpacing
+    }
 }
