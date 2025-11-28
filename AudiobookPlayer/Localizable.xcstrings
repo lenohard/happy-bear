@@ -3145,17 +3145,6 @@
     "No Corrections" : {
 
     },
-    "No corrections available" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "没有修复"
-          }
-        }
-      }
-    },
     "No matches found" : {
 
     },
@@ -4224,17 +4213,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "标题"
-          }
-        }
-      }
-    },
-    "Total Listening Time" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "总收听事件"
           }
         }
       }

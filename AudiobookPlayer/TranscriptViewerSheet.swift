@@ -277,29 +277,27 @@ struct TranscriptViewerSheet: View {
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 10) {
-                            SearchSummaryView(
-                                query: viewModel.searchText,
-                                totalMatches: viewModel.searchResults.count
-                            )
-                            .padding(.horizontal)
+                    LazyVStack(alignment: .leading, spacing: 10) {
+                        SearchSummaryView(
+                            query: viewModel.searchText,
+                            totalMatches: viewModel.searchResults.count
+                        )
+                        .padding(.horizontal)
 
-                            ForEach(viewModel.searchResults) { result in
-                                SearchResultRow(
-                                    result: result,
-                                    highlightedText: viewModel.highlightedSegmentText(result.segment),
-                                    isSelected: selectedSegment?.id == result.segment.id,
-                                    onTap: {
-                                        selectedSegment = result.segment
-                                        jumpToSegment(result.segment)
-                                    }
-                                )
-                                .id(result.segment.id)
-                            }
+                        ForEach(viewModel.searchResults) { result in
+                            SearchResultRow(
+                                result: result,
+                                highlightedText: viewModel.highlightedSegmentText(result.segment),
+                                isSelected: selectedSegment?.id == result.segment.id,
+                                onTap: {
+                                    selectedSegment = result.segment
+                                    jumpToSegment(result.segment)
+                                }
+                            )
+                            .id(result.segment.id)
                         }
-                        .padding()
                     }
+                    .padding()
                 }
             }
         }
@@ -984,9 +982,8 @@ struct SearchResultRow: View {
                     .foregroundStyle(Color.accentColor)
             }
 
-            AttributedText(highlightedText)
+            HighlightedTranscriptText(attributedString: highlightedText)
                 .font(.body)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 8)
@@ -1136,22 +1133,18 @@ struct SearchBar: View {
 
 // MARK: - Attributed Text for Highlighting
 
-struct AttributedText: UIViewRepresentable {
+struct HighlightedTranscriptText: View {
     let attributedString: NSAttributedString
 
-    init(_ attributedString: NSAttributedString) {
-        self.attributedString = attributedString
-    }
-
-    func makeUIView(context: Context) -> UILabel {
-        let label = UILabel()
-        label.numberOfLines = 0
-        label.lineBreakMode = .byWordWrapping
-        return label
-    }
-
-    func updateUIView(_ uiView: UILabel, context: Context) {
-        uiView.attributedText = attributedString
+    var body: some View {
+        Group {
+            if let converted = try? AttributedString(attributedString) {
+                Text(converted)
+            } else {
+                Text(attributedString.string)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
