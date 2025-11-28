@@ -88,6 +88,16 @@ struct SettingsTabView: View {
             Section {
                 baiduSourcesContent
             }
+
+            Section {
+                NavigationLink(destination: AboutView()) {
+                    HStack {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(.tint)
+                        Text(NSLocalizedString("about_navigation_title", comment: "About navigation title"))
+                    }
+                }
+            }
         }
         .navigationTitle(NSLocalizedString("settings_tab", comment: "Settings tab"))
         .sheet(item: $selectedNetdiskEntry) { entry in
