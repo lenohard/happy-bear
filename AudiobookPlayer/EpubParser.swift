@@ -123,9 +123,30 @@ final class EpubParser: NSObject, XMLParserDelegate {
             // Simple text extraction (stripping HTML tags)
             if let contentData = try? Data(contentsOf: chapterURL),
                let contentString = String(data: contentData, encoding: .utf8) {
-                let stripped = contentString.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression, range: nil)
-                    .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                var stripped = contentString
+                
+                // 1. Replace block endings and breaks with newlines to preserve structure
+                stripped = stripped.replacingOccurrences(of: "</(p|div|h[1-6]|li|blockquote|tr)>", with: "\n", options: .regularExpression, range: nil)
+                stripped = stripped.replacingOccurrences(of: "<br\\s*/?>", with: "\n", options: .regularExpression, range: nil)
+                
+                // 2. Strip all other tags
+                stripped = stripped.replacingOccurrences(of: "<[^>]+>", with: "", options: .regularExpression, range: nil)
+                
+                // 3. Decode basic HTML entities
+                stripped = stripped.replacingOccurrences(of: "&nbsp;", with: " ")
+                    .replacingOccurrences(of: "&lt;", with: "<")
+                    .replacingOccurrences(of: "&gt;", with: ">")
+                    .replacingOccurrences(of: "&amp;", with: "&")
+                    .replacingOccurrences(of: "&quot;", with: "\"")
+                    .replacingOccurrences(of: "&apos;", with: "'")
+                
+                // 4. Normalize whitespace
+                // Replace horizontal whitespace (non-newline) with single space
+                stripped = stripped.replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression, range: nil)
+                // Replace multiple newlines with double newline to ensure clean separation
+                stripped = stripped.replacingOccurrences(of: "\\n\\s*\\n", with: "\n\n", options: .regularExpression, range: nil)
+                
+                stripped = stripped.trimmingCharacters(in: .whitespacesAndNewlines)
                 
                 if !stripped.isEmpty {
                     // Try to find title in ToC map

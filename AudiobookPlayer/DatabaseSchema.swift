@@ -38,6 +38,7 @@ enum DatabaseSchema {
         metadata_json TEXT,
         is_favorite INTEGER NOT NULL DEFAULT 0,
         favorited_at DATETIME,
+        character_count INTEGER,
         FOREIGN KEY (collection_id) REFERENCES collections(id)
     );
 

@@ -142,6 +142,8 @@ struct TranscriptionJob: Identifiable, Codable {
     let errorMessage: String?
     let retryCount: Int  // Number of retry attempts
     let lastAttemptAt: Date?
+    let totalParagraphs: Int?
+    let processedParagraphs: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -154,6 +156,8 @@ struct TranscriptionJob: Identifiable, Codable {
         case errorMessage = "error_message"
         case retryCount = "retry_count"
         case lastAttemptAt = "last_attempt_at"
+        case totalParagraphs = "total_paragraphs"
+        case processedParagraphs = "processed_paragraphs"
     }
 
     init(
@@ -166,7 +170,9 @@ struct TranscriptionJob: Identifiable, Codable {
         completedAt: Date? = nil,
         errorMessage: String? = nil,
         retryCount: Int = 0,
-        lastAttemptAt: Date? = nil
+        lastAttemptAt: Date? = nil,
+        totalParagraphs: Int? = nil,
+        processedParagraphs: Int? = nil
     ) {
         self.id = id
         self.trackId = trackId
@@ -178,6 +184,8 @@ struct TranscriptionJob: Identifiable, Codable {
         self.errorMessage = errorMessage
         self.retryCount = retryCount
         self.lastAttemptAt = lastAttemptAt
+        self.totalParagraphs = totalParagraphs
+        self.processedParagraphs = processedParagraphs
     }
 
     /// Whether the job is still running
@@ -202,7 +210,9 @@ extension TranscriptionJob {
         progress: Double? = nil,
         errorMessage: String? = nil,
         sonioxJobId: String? = nil,
-        lastAttemptAt: Date? = nil
+        lastAttemptAt: Date? = nil,
+        totalParagraphs: Int? = nil,
+        processedParagraphs: Int? = nil
     ) -> TranscriptionJob {
         TranscriptionJob(
             id: id,
@@ -214,7 +224,9 @@ extension TranscriptionJob {
             completedAt: completedAt,
             errorMessage: errorMessage ?? self.errorMessage,
             retryCount: retryCount,
-            lastAttemptAt: lastAttemptAt ?? self.lastAttemptAt
+            lastAttemptAt: lastAttemptAt ?? self.lastAttemptAt,
+            totalParagraphs: totalParagraphs ?? self.totalParagraphs,
+            processedParagraphs: processedParagraphs ?? self.processedParagraphs
         )
     }
 }
@@ -341,6 +353,8 @@ struct TranscriptionJobRow: Codable {
     let errorMessage: String?
     let retryCount: Int
     let lastAttemptAt: Date?
+    let totalParagraphs: Int?
+    let processedParagraphs: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -353,6 +367,8 @@ struct TranscriptionJobRow: Codable {
         case errorMessage = "error_message"
         case retryCount = "retry_count"
         case lastAttemptAt = "last_attempt_at"
+        case totalParagraphs = "total_paragraphs"
+        case processedParagraphs = "processed_paragraphs"
     }
 
     init(from job: TranscriptionJob) {
@@ -366,6 +382,8 @@ struct TranscriptionJobRow: Codable {
         self.errorMessage = job.errorMessage
         self.retryCount = job.retryCount
         self.lastAttemptAt = job.lastAttemptAt
+        self.totalParagraphs = job.totalParagraphs
+        self.processedParagraphs = job.processedParagraphs
     }
 }
 

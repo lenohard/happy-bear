@@ -4,6 +4,15 @@ struct SmartView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
 
+    // Separate job counts for STT and TTS
+    private var sttJobCount: Int {
+        transcriptionManager.activeJobs.filter { !$0.sonioxJobId.hasPrefix("tts-") }.count
+    }
+    
+    private var ttsJobCount: Int {
+        transcriptionManager.activeJobs.filter { $0.sonioxJobId.hasPrefix("tts-") }.count
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -26,8 +35,8 @@ struct SmartView: View {
                         HStack {
                             Label("STT (Soniox)", systemImage: "waveform")
                             Spacer()
-                            if !transcriptionManager.activeJobs.isEmpty {
-                                BadgeView(count: transcriptionManager.activeJobs.count)
+                            if sttJobCount > 0 {
+                                BadgeView(count: sttJobCount)
                             }
                         }
                     }
@@ -35,7 +44,13 @@ struct SmartView: View {
                     NavigationLink {
                         EdgeTTSView()
                     } label: {
-                        Label("TTS (Edge)", systemImage: "speaker.wave.2")
+                        HStack {
+                            Label("TTS (Edge)", systemImage: "speaker.wave.2")
+                            Spacer()
+                            if ttsJobCount > 0 {
+                                BadgeView(count: ttsJobCount)
+                            }
+                        }
                     }
                 }
             }

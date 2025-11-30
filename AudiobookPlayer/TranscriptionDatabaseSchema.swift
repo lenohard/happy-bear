@@ -50,6 +50,8 @@ enum TranscriptionDatabaseSchema {
         error_message TEXT,
         retry_count INTEGER NOT NULL DEFAULT 0,
         last_attempt_at DATETIME,
+        total_paragraphs INTEGER,
+        processed_paragraphs INTEGER,
         FOREIGN KEY (track_id) REFERENCES tracks(id)
     );
 
