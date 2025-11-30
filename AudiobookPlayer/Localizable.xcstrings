@@ -26,6 +26,9 @@
         }
       }
     },
+    "%@ chars" : {
+
+    },
     "%@ provider" : {
 
     },
@@ -242,6 +245,9 @@
       }
     },
     "Active Jobs" : {
+
+    },
+    "Active STT Jobs" : {
 
     },
     "active_transcriptions" : {
@@ -2590,6 +2596,9 @@
     "Duration" : {
 
     },
+    "ebook_collection_indicator_accessibility" : {
+      "comment" : "Indicator for ebook collection"
+    },
     "Edge TTS" : {
 
     },
@@ -3362,7 +3371,10 @@
     "No segments match the current selection filter." : {
 
     },
-    "No Transcription Jobs" : {
+    "No STT Jobs" : {
+
+    },
+    "No TTS Jobs" : {
 
     },
     "no_active_transcriptions" : {
@@ -4338,6 +4350,9 @@
     "STT (Soniox)" : {
 
     },
+    "STT Jobs" : {
+
+    },
     "Tap refresh to load available models." : {
       "localizations" : {
         "zh-Hans" : {
@@ -5087,6 +5102,7 @@
       }
     },
     "Transcription Jobs" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5440,6 +5456,9 @@
     "TTS (Edge)" : {
 
     },
+    "TTS Jobs" : {
+
+    },
     "tts_files_delete_action" : {
       "comment" : "Delete action label used on the Soniox files list",
       "localizations" : {
@@ -5629,6 +5648,7 @@
     },
     "tts_jobs_history_title" : {
       "comment" : "Transcription Jobs",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5818,6 +5838,9 @@
 
     },
     "Your AI generation tasks will appear here." : {
+
+    },
+    "Your text-to-speech generation tasks will appear here." : {
 
     },
     "Your transcription tasks will appear here." : {

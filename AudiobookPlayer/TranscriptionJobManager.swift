@@ -13,7 +13,9 @@ extension GRDBDatabaseManager {
         trackId: String,
         sonioxJobId: String,
         status: String = "queued",
-        progress: Double? = nil
+        progress: Double? = nil,
+        totalParagraphs: Int? = nil,
+        processedParagraphs: Int? = nil
     ) throws -> TranscriptionJob {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
@@ -21,15 +23,18 @@ extension GRDBDatabaseManager {
             trackId: trackId,
             sonioxJobId: sonioxJobId,
             status: status,
-            progress: progress
+            progress: progress,
+            totalParagraphs: totalParagraphs,
+            processedParagraphs: processedParagraphs
         )
 
         try db.write { db in
             try db.execute(sql: """
                 INSERT INTO transcription_jobs (
                     id, track_id, soniox_job_id, status,
-                    progress, created_at, retry_count, last_attempt_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    progress, created_at, retry_count, last_attempt_at,
+                    total_paragraphs, processed_paragraphs
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     job.id,
@@ -39,7 +44,9 @@ extension GRDBDatabaseManager {
                     job.progress,
                     Self.sqliteDateFormatter.string(from: job.createdAt),
                     job.retryCount,
-                    NSNull()
+                    NSNull(),
+                    job.totalParagraphs,
+                    job.processedParagraphs
                 ]
             )
         }
@@ -271,6 +278,31 @@ extension GRDBDatabaseManager {
         }
     }
 
+    /// Update job progress with segment details
+    func updateJobProgress(
+        jobId: String,
+        progress: Double,
+        processedParagraphs: Int,
+        totalParagraphs: Int
+    ) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(sql: """
+                UPDATE transcription_jobs
+                SET progress = ?, processed_paragraphs = ?, total_paragraphs = ?
+                WHERE id = ?
+                """,
+                arguments: [
+                    progress,
+                    processedParagraphs,
+                    totalParagraphs,
+                    jobId
+                ]
+            )
+        }
+    }
+
     // MARK: - Cleanup
 
     /// Delete a transcription job (typically after completion confirmation)
@@ -350,7 +382,9 @@ extension GRDBDatabaseManager {
             completedAt: completedAt,
             errorMessage: errorMessage,
             retryCount: retryCount,
-            lastAttemptAt: lastAttempt
+            lastAttemptAt: lastAttempt,
+            totalParagraphs: row["total_paragraphs"],
+            processedParagraphs: row["processed_paragraphs"]
         )
     }
 }

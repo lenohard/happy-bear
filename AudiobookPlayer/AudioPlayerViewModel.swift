@@ -299,12 +299,21 @@ final class AudioPlayerViewModel: ObservableObject {
         
         Task {
             do {
+                // 1. Split content into paragraphs
+                let paragraphs = content.components(separatedBy: .newlines)
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                    .filter { !$0.isEmpty }
+                
+                let totalParagraphs = paragraphs.count
+                
                 // Create Job
                 let job = try await GRDBDatabaseManager.shared.createTranscriptionJob(
                     trackId: trackId,
                     sonioxJobId: sonioxJobId,
                     status: "queued",
-                    progress: 0.0
+                    progress: 0.0,
+                    totalParagraphs: totalParagraphs,
+                    processedParagraphs: 0
                 )
                 let dbJobId = job.id
                 
@@ -314,67 +323,140 @@ final class AudioPlayerViewModel: ObservableObject {
                 }
                 
                 // Update to processing
-                try await GRDBDatabaseManager.shared.updateJobStatus(jobId: dbJobId, status: "processing", progress: 0.1)
+                try await GRDBDatabaseManager.shared.updateJobStatus(jobId: dbJobId, status: "processing", progress: 0.0)
                 
                 let voice = defaults.string(forKey: "edge_tts_voice") ?? "en-US-AriaNeural"
                 let rate = defaults.string(forKey: "edge_tts_rate") ?? "+0%"
                 let pitch = defaults.string(forKey: "edge_tts_pitch") ?? "+0Hz"
                 
-                edgeTTSClient.generateAudio(text: content, voice: voice, rate: rate, pitch: pitch) { [weak self] result in
-                    guard let self = self else { return }
+                var combinedAudioData = Data()
+                var transcriptSegments: [TranscriptSegment] = []
+                var currentStartTimeMs = 0
+                
+                // 2. Process paragraphs
+                for (index, paragraph) in paragraphs.enumerated() {
+                    // Generate audio for this paragraph
+                    let audioData = try await generateAudioForParagraph(text: paragraph, voice: voice, rate: rate, pitch: pitch)
                     
-                    Task {
-                        switch result {
-                        case .success(let data):
-                            // Save to cache
-                            let baiduFileId = "tts"
-                            let filename = "tts.mp3"
-                            let cacheURL = self.cacheManager.createCacheFile(
-                                trackId: trackId,
-                                baiduFileId: baiduFileId,
-                                filename: filename,
-                                durationMs: nil,
-                                fileSizeBytes: data.count
-                            )
-                            
-                            do {
-                                try data.write(to: cacheURL)
-                                self.cacheManager.markCacheAsComplete(trackId: trackId, baiduFileId: baiduFileId)
-                                
-                                // Mark job complete
-                                try await GRDBDatabaseManager.shared.markJobCompleted(jobId: dbJobId)
-                                
-                                await MainActor.run {
-                                    self.statusMessage = "Audio generation complete for \"\(track.displayName)\"."
-                                    self.refreshActiveCacheStatus()
-                                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
-                                    if autoPlay {
-                                        self.play(track: track, in: collection, token: nil)
-                                    }
-                                }
-                            } catch {
-                                try? await GRDBDatabaseManager.shared.markJobFailed(jobId: dbJobId, errorMessage: error.localizedDescription)
-                                await MainActor.run {
-                                    self.statusMessage = "Failed to save generated audio: \(error.localizedDescription)"
-                                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
-                                }
-                            }
-                            
-                        case .failure(let error):
-                            try? await GRDBDatabaseManager.shared.markJobFailed(jobId: dbJobId, errorMessage: error.localizedDescription)
-                            await MainActor.run {
-                                self.statusMessage = "Audio generation failed: \(error.localizedDescription)"
-                                NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
-                            }
-                        }
+                    // Calculate duration
+                    let durationMs = try getDurationMs(for: audioData)
+                    
+                    // Create segment placeholder (will update transcriptId later)
+                    let segment = TranscriptSegment(
+                        transcriptId: "", 
+                        text: paragraph,
+                        startTimeMs: currentStartTimeMs,
+                        endTimeMs: currentStartTimeMs + durationMs,
+                        confidence: 1.0,
+                        speaker: "TTS",
+                        language: "en"
+                    )
+                    transcriptSegments.append(segment)
+                    
+                    // Update offsets
+                    currentStartTimeMs += durationMs
+                    combinedAudioData.append(audioData)
+                    
+                    // Update progress
+                    let progress = Double(index + 1) / Double(totalParagraphs)
+                    try await GRDBDatabaseManager.shared.updateJobProgress(
+                        jobId: dbJobId,
+                        progress: progress,
+                        processedParagraphs: index + 1,
+                        totalParagraphs: totalParagraphs
+                    )
+                    
+                    // Small delay to be nice to the API
+                    try await Task.sleep(nanoseconds: 50_000_000) // 0.05s
+                }
+                
+                // 3. Save final audio
+                let baiduFileId = "tts"
+                let filename = "tts.mp3"
+                let cacheURL = self.cacheManager.createCacheFile(
+                    trackId: trackId,
+                    baiduFileId: baiduFileId,
+                    filename: filename,
+                    durationMs: nil,
+                    fileSizeBytes: combinedAudioData.count
+                )
+                
+                try combinedAudioData.write(to: cacheURL)
+                self.cacheManager.markCacheAsComplete(trackId: trackId, baiduFileId: baiduFileId)
+                
+                // 4. Save Transcript
+                let transcriptId = UUID().uuidString
+                let finalSegments = transcriptSegments.map { segment in
+                    TranscriptSegment(
+                        id: segment.id,
+                        transcriptId: transcriptId,
+                        text: segment.text,
+                        startTimeMs: segment.startTimeMs,
+                        endTimeMs: segment.endTimeMs,
+                        confidence: segment.confidence,
+                        speaker: segment.speaker,
+                        language: segment.language
+                    )
+                }
+                
+                let transcript = Transcript(
+                    id: transcriptId,
+                    trackId: trackId,
+                    collectionId: collection.id.uuidString,
+                    language: "en",
+                    fullText: content,
+                    jobStatus: "complete",
+                    jobId: sonioxJobId
+                )
+                
+                try await GRDBDatabaseManager.shared.saveTranscript(transcript, segments: finalSegments)
+                
+                // Mark job complete
+                try await GRDBDatabaseManager.shared.markJobCompleted(jobId: dbJobId)
+                
+                await MainActor.run {
+                    self.statusMessage = "Audio generation complete for \"\(track.displayName)\"."
+                    self.refreshActiveCacheStatus()
+                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
+                    if autoPlay {
+                        self.play(track: track, in: collection, token: nil)
                     }
                 }
+                
             } catch {
+                // Mark failed
+                if let job = try? await GRDBDatabaseManager.shared.loadTranscriptionJobBySonioxId(sonioxJobId) {
+                    try? await GRDBDatabaseManager.shared.markJobFailed(jobId: job.id, errorMessage: error.localizedDescription)
+                }
+                
                 await MainActor.run {
-                    self.statusMessage = "Failed to start audio generation job: \(error.localizedDescription)"
+                    self.statusMessage = "Audio generation failed: \(error.localizedDescription)"
+                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
                 }
             }
         }
+    }
+    
+    private func generateAudioForParagraph(text: String, voice: String, rate: String, pitch: String) async throws -> Data {
+        return try await withCheckedThrowingContinuation { continuation in
+            edgeTTSClient.generateAudio(text: text, voice: voice, rate: rate, pitch: pitch) { result in
+                switch result {
+                case .success(let data):
+                    continuation.resume(returning: data)
+                case .failure(let error):
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+    
+    private func getDurationMs(for audioData: Data) throws -> Int {
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".mp3")
+        try audioData.write(to: tempURL)
+        let player = try AVAudioPlayer(contentsOf: tempURL)
+        let duration = player.duration
+        try? FileManager.default.removeItem(at: tempURL)
+        return Int(duration * 1000)
     }
 
     func playDirect(entry: BaiduNetdiskEntry, token: BaiduOAuthToken) {

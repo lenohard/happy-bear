@@ -66,9 +66,9 @@ struct SonioxSTTView: View {
                 // Quick Access Section
                 Section {
                     NavigationLink {
-                        TTSJobsListView()
+                        STTJobsListView()
                     } label: {
-                        Label("Transcription Jobs", systemImage: "list.bullet.clipboard")
+                        Label("STT Jobs", systemImage: "list.bullet.clipboard")
                     }
                     
                     NavigationLink {

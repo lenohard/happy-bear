@@ -39,6 +39,7 @@ enum DatabaseSchema {
         media_kind TEXT NOT NULL DEFAULT 'audio',
         is_favorite INTEGER NOT NULL DEFAULT 0,
         favorited_at DATETIME,
+        character_count INTEGER,
         FOREIGN KEY (collection_id) REFERENCES collections(id)
     );
 
