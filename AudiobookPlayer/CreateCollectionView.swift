@@ -121,15 +121,15 @@ struct CreateCollectionView: View {
                 LabeledContent("Tracks", value: "\(draft.totalTrackCount)")
                 LabeledContent("Total Size", value: formatBytes(draft.totalSize))
 
-                if !draft.nonAudioFiles.isEmpty {
-                    DisclosureGroup("\(draft.nonAudioFiles.count) non-audio files") {
-                        ForEach(draft.nonAudioFiles.prefix(10), id: \.self) { filename in
+                if !draft.nonPlayableFiles.isEmpty {
+                    DisclosureGroup("\(draft.nonPlayableFiles.count) non-media files") {
+                        ForEach(draft.nonPlayableFiles.prefix(10), id: \.self) { filename in
                             Text(filename)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
-                        if draft.nonAudioFiles.count > 10 {
-                            Text("... and \(draft.nonAudioFiles.count - 10) more")
+                        if draft.nonPlayableFiles.count > 10 {
+                            Text("... and \(draft.nonPlayableFiles.count - 10) more")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }

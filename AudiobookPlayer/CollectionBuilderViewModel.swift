@@ -11,7 +11,7 @@ enum CollectionBuildError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noAudioFound:
-            return "No audio files found in this folder"
+            return "No playable audio or video files found in this folder"
         case .tooManyTracks(let count):
             return "Too many tracks (\(count)). Maximum is 500 tracks per collection."
         case .expiredToken:
@@ -29,7 +29,7 @@ struct CollectionDraft {
     var folderPath: String
     var tracks: [AudiobookTrack]           // ALL discovered tracks
     var selectedTrackIds: Set<UUID>        // Phase 1: tracks user selected
-    var nonAudioFiles: [String]
+    var nonPlayableFiles: [String]
     var totalSize: Int64
     var coverSuggestion: CollectionCover
 
@@ -62,7 +62,6 @@ final class CollectionBuilderViewModel: ObservableObject {
 
     private let client: BaiduNetdiskClient
     private let maxTracksPerCollection = 500
-    private let audioExtensions: Set<String> = ["mp3", "m4a", "m4b", "aac", "flac", "wav", "opus", "ogg"]
 
     init(client: BaiduNetdiskClient = BaiduNetdiskClient()) {
         self.client = client
@@ -84,26 +83,26 @@ final class CollectionBuilderViewModel: ObservableObject {
             // Recursively fetch all files
             let allEntries = try await fetchAllFilesRecursively(path: path, token: token)
 
-            // Filter audio files
-            let audioEntries = allEntries.filter { entry in
+            // Filter playable media files (audio + video)
+            let mediaEntries = allEntries.filter { entry in
                 guard !entry.isDir else { return false }
                 let ext = (entry.serverFilename as NSString).pathExtension.lowercased()
-                return audioExtensions.contains(ext)
+                return PlayableMediaFormat.isPlayableExtension(ext)
             }
 
             // Validate
-            guard !audioEntries.isEmpty else {
+            guard !mediaEntries.isEmpty else {
                 state = .failed(.noAudioFound)
                 return
             }
 
-            if audioEntries.count > maxTracksPerCollection {
-                state = .failed(.tooManyTracks(audioEntries.count))
+            if mediaEntries.count > maxTracksPerCollection {
+                state = .failed(.tooManyTracks(mediaEntries.count))
                 return
             }
 
             // Sort by path and filename
-            let sortedEntries = audioEntries.sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+            let sortedEntries = mediaEntries.sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
 
             // Convert to tracks
             var tracks: [AudiobookTrack] = []
@@ -117,18 +116,19 @@ final class CollectionBuilderViewModel: ObservableObject {
                     duration: nil,
                     trackNumber: index + 1,
                     checksum: entry.md5,
-                    metadata: [:]
+                    metadata: [:],
+                    mediaKind: PlayableMediaFormat.mediaKind(forFilename: entry.serverFilename)
                 )
                 tracks.append(track)
             }
 
-            // Collect non-audio files for info
-            let nonAudioFiles = allEntries
-                .filter { !$0.isDir && !audioExtensions.contains(($0.serverFilename as NSString).pathExtension.lowercased()) }
+            // Collect non-playable files for info
+            let nonPlayableFiles = allEntries
+                .filter { !$0.isDir && !PlayableMediaFormat.isPlayableExtension(($0.serverFilename as NSString).pathExtension.lowercased()) }
                 .map { $0.serverFilename }
 
             // Calculate total size
-            let totalSize = audioEntries.reduce(0) { $0 + $1.size }
+            let totalSize = mediaEntries.reduce(0) { $0 + $1.size }
 
             // Generate default title
             let defaultTitle = title ?? (path as NSString).lastPathComponent
@@ -141,7 +141,7 @@ final class CollectionBuilderViewModel: ObservableObject {
                 folderPath: path,
                 tracks: tracks,
                 selectedTrackIds: Set(tracks.map(\.id)),          // ALL selected by default
-                nonAudioFiles: nonAudioFiles,
+                nonPlayableFiles: nonPlayableFiles,
                 totalSize: totalSize,
                 coverSuggestion: coverSuggestion
             )

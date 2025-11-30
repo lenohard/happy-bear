@@ -44,6 +44,7 @@ actor GRDBDatabaseManager {
             // Create all tables
             print("[GRDB] Executing createTableSQL...")
             try db.execute(sql: DatabaseSchema.createTableSQL)
+            try addMediaKindColumnIfNeeded(in: db)
             print("[GRDB] Schema tables created")
 
             // Create transcription tables
@@ -138,8 +139,9 @@ actor GRDBDatabaseManager {
                         location_type, location_payload,
                         file_size, duration, track_number,
                         checksum, metadata_json,
+                        media_kind,
                         is_favorite, favorited_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     arguments: [
                         track.id.uuidString,
@@ -153,6 +155,7 @@ actor GRDBDatabaseManager {
                         track.trackNumber,
                         track.checksum,
                         track.metadata.isEmpty ? nil : encodeJSON(track.metadata),
+                        track.mediaKind.rawValue,
                         track.isFavorite ? 1 : 0,
                         track.favoritedAt
                     ]
@@ -337,6 +340,7 @@ actor GRDBDatabaseManager {
                     track_number = ?,
                     checksum = ?,
                     metadata_json = ?,
+                    media_kind = ?,
                     is_favorite = ?,
                     favorited_at = ?
                 WHERE id = ? AND collection_id = ?
@@ -351,6 +355,7 @@ actor GRDBDatabaseManager {
                     track.trackNumber,
                     track.checksum,
                     track.metadata.isEmpty ? nil : encodeJSON(track.metadata),
+                    track.mediaKind.rawValue,
                     track.isFavorite ? 1 : 0,
                     track.favoritedAt,
                     track.id.uuidString,
@@ -737,6 +742,8 @@ actor GRDBDatabaseManager {
         let checksum = row["checksum"] as? String
         let metadataJson = row["metadata_json"] as? String
         let metadata = metadataJson.flatMap { decodeJSON($0) as? [String: String] } ?? [:]
+        let mediaKindRaw = row["media_kind"] as? String ?? "audio"
+        let mediaKind = AudiobookTrack.MediaKind(rawValue: mediaKindRaw) ?? .audio
         let isFavoriteValue: Int? = row["is_favorite"]
         let isFavorite = (isFavoriteValue ?? 0) == 1
 
@@ -1427,6 +1434,15 @@ actor GRDBDatabaseManager {
             lastRepairModel: lastRepairModel,
             lastRepairAt: lastRepairDate
         )
+    }
+
+    private func addMediaKindColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(tracks)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        guard !existingColumns.contains("media_kind") else { return }
+
+        try database.execute(sql: "ALTER TABLE tracks ADD COLUMN media_kind TEXT NOT NULL DEFAULT 'audio'")
     }
 
     private func addTranscriptRepairColumnsIfNeeded(in database: Database) throws {

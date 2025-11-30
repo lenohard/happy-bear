@@ -263,15 +263,21 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
         }
     }
 
+    enum MediaKind: String, Codable {
+        case audio
+        case video
+    }
+
     let id: UUID
     var displayName: String
-    var filename: String
+
     var location: Location
     var fileSize: Int64
     var duration: TimeInterval?
     var trackNumber: Int
     var checksum: String?
     var metadata: [String: String]
+    var mediaKind: MediaKind = .audio
     
     // NEW: Favorite properties
     var isFavorite: Bool = false
@@ -286,8 +292,13 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
         return false
     }
     
+    var isVideoTrack: Bool {
+        mediaKind == .video
+    }
+    
     private enum CodingKeys: String, CodingKey {
         case id, displayName, filename, location, fileSize, duration, trackNumber, checksum, metadata
+        case mediaKind
         case isFavorite, favoritedAt
         case characterCount
     }
@@ -431,6 +442,10 @@ extension AudiobookCollection {
         tracks.sorted {
             $0.filename.localizedCaseInsensitiveCompare($1.filename) == .orderedAscending
         }
+    }
+    
+    var containsVideoTracks: Bool {
+        tracks.contains { $0.mediaKind == .video }
     }
 
     func resumeTrack() -> AudiobookTrack? {

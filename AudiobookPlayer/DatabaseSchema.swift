@@ -36,6 +36,7 @@ enum DatabaseSchema {
         track_number INTEGER NOT NULL,
         checksum TEXT,
         metadata_json TEXT,
+        media_kind TEXT NOT NULL DEFAULT 'audio',
         is_favorite INTEGER NOT NULL DEFAULT 0,
         favorited_at DATETIME,
         FOREIGN KEY (collection_id) REFERENCES collections(id)
@@ -126,6 +127,7 @@ struct TrackRow: Codable {
     let trackNumber: Int
     let checksum: String?
     let metadataJson: String?
+    let mediaKind: String
     let isFavorite: Bool
     let favoritedAt: Date?
 }

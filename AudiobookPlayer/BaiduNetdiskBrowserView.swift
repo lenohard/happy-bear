@@ -11,8 +11,6 @@ struct BaiduNetdiskBrowserView: View {
     var selectedEntryIDs: Set<Int64>
     var onToggleSelection: ((BaiduNetdiskEntry) -> Void)?
 
-    private let audioExtensions: Set<String> = ["mp3", "m4a", "m4b", "aac", "flac", "wav"]
-
     init(
         tokenProvider: @escaping () -> BaiduOAuthToken?,
         onSelectFile: ((BaiduNetdiskEntry) -> Void)? = nil,
@@ -231,11 +229,11 @@ struct BaiduNetdiskBrowserView: View {
         viewModel.entries
     }
 
-    private var audioEntryCount: Int {
+    private var playableEntryCount: Int {
         viewModel.entries.reduce(into: 0) { partialResult, entry in
             guard !entry.isDir else { return }
             let ext = entry.serverFilename.split(separator: ".").last?.lowercased() ?? ""
-            if audioExtensions.contains(ext) {
+            if PlayableMediaFormat.isPlayableExtension(ext) {
                 partialResult += 1
             }
         }

@@ -42,6 +42,7 @@ final class AudioPlayerViewModel: ObservableObject {
     private var timeObserverToken: Any?
     private var endPlaybackObserver: NSObjectProtocol?
     private var timeControlStatusObserver: NSKeyValueObservation?
+    private var playerItemStatusObserver: NSKeyValueObservation?
     private var currentToken: BaiduOAuthToken?
     private var pendingInitialSeek: Double?
     private let netdiskClient: BaiduNetdiskClient
@@ -109,11 +110,15 @@ final class AudioPlayerViewModel: ObservableObject {
     var hasActivePlayer: Bool {
         player != nil
     }
+    
+    var sharedVideoPlayer: AVPlayer? {
+        player
+    }
 
     func prepare(with url: URL) {
         stopPlayback(clearQueue: true)
         pendingInitialSeek = nil
-        preparePlayer(with: url, autoPlay: false)
+        preparePlayer(with: url, autoPlay: false, track: nil)
         statusMessage = nil
 #if os(iOS)
         updateNowPlayingInfo()
@@ -235,7 +240,7 @@ final class AudioPlayerViewModel: ObservableObject {
             duration = max(duration, recordedDuration)
         }
 
-        preparePlayer(with: url, autoPlay: true)
+        preparePlayer(with: url, autoPlay: true, track: track)
         currentTrack = track
         statusMessage = "Playing \"\(track.displayName)\"."
 #if os(iOS)
@@ -409,7 +414,7 @@ final class AudioPlayerViewModel: ObservableObject {
         do {
             let url = try streamURL(for: track, token: token)
             pendingInitialSeek = nil
-            preparePlayer(with: url, autoPlay: true)
+            preparePlayer(with: url, autoPlay: true, track: track)
             currentTrack = track
             statusMessage = "Streaming \"\(track.displayName)\" from Baidu Netdisk."
 #if os(iOS)
@@ -782,7 +787,7 @@ final class AudioPlayerViewModel: ObservableObject {
 #endif
     }
 
-    func preparePlayer(with url: URL, autoPlay: Bool) {
+    func preparePlayer(with url: URL, autoPlay: Bool, track: AudiobookTrack?) {
         removeObservers()
 
         let asset = AVURLAsset(url: url)
@@ -791,6 +796,8 @@ final class AudioPlayerViewModel: ObservableObject {
         player?.automaticallyWaitsToMinimizeStalling = false
         player?.rate = Float(playbackRate)
 
+        observePlayerItemStatus(for: playerItem, track: track)
+        validateVideoTrackIfNeeded(asset: asset, track: track)
         addPeriodicTimeObserver()
         observeEnd(of: playerItem)
         observeTimeControlStatus()
@@ -838,6 +845,51 @@ final class AudioPlayerViewModel: ObservableObject {
         }
 
         pendingInitialSeek = nil
+    }
+
+    private func observePlayerItemStatus(for item: AVPlayerItem, track: AudiobookTrack?) {
+        playerItemStatusObserver?.invalidate()
+        playerItemStatusObserver = item.observe(\.status, options: [.new]) { [weak self] item, _ in
+            Task { @MainActor in
+                guard let self else { return }
+                if item.status == .failed {
+                    self.handlePlayerItemFailure(item.error, track: track)
+                }
+            }
+        }
+    }
+
+    private func handlePlayerItemFailure(_ error: Error?, track: AudiobookTrack?) {
+        stopPlayback(clearQueue: false)
+        if track?.mediaKind == .video {
+            statusMessage = NSLocalizedString("video_playback_failed_error", comment: "Video playback failed message")
+        } else if let error {
+            statusMessage = "Playback error: \(error.localizedDescription)"
+        } else {
+            statusMessage = NSLocalizedString("generic_playback_failed", comment: "Generic playback failure")
+        }
+    }
+
+    private func validateVideoTrackIfNeeded(asset: AVURLAsset, track: AudiobookTrack?) {
+        guard track?.mediaKind == .video else { return }
+
+        Task {
+            do {
+                let loadedTracks = try await asset.load(.tracks)
+                let hasAudio = loadedTracks.contains { $0.mediaType == .audio }
+                if !hasAudio {
+                    await MainActor.run {
+                        self.stopPlayback(clearQueue: false)
+                        self.statusMessage = NSLocalizedString(
+                            "video_missing_audio_error",
+                            comment: "Video missing audio track message"
+                        )
+                    }
+                }
+            } catch {
+                print("[AudioPlayer] Failed to inspect video track audio: \(error.localizedDescription)")
+            }
+        }
     }
 
     func observeEnd(of item: AVPlayerItem) {
@@ -916,6 +968,8 @@ final class AudioPlayerViewModel: ObservableObject {
         
         timeControlStatusObserver?.invalidate()
         timeControlStatusObserver = nil
+        playerItemStatusObserver?.invalidate()
+        playerItemStatusObserver = nil
     }
 
     func skip(by delta: Double) {
