@@ -260,6 +260,12 @@ final class AudioPlayerViewModel: ObservableObject {
         statusMessage = "Audio not generated for \"\(track.displayName)\"."
     }
 
+    func hasGeneratedAudio(for track: AudiobookTrack) -> Bool {
+        let trackId = track.id.uuidString
+        let baiduFileId = "tts"
+        return cacheManager.isCached(trackId: trackId, baiduFileId: baiduFileId, filename: "tts.mp3")
+    }
+
     func generateAudio(for track: AudiobookTrack, in collection: AudiobookCollection, autoPlay: Bool = false) {
         let trackId = track.id.uuidString
         let baiduFileId = "tts"

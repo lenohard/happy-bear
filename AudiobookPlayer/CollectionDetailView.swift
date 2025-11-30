@@ -745,21 +745,7 @@ struct CollectionDetailView: View {
                             }
                             
                             Button {
-                                // Trigger manual audio generation
-                                Task {
-                                    // We need to trigger this via AudioPlayerViewModel or a new method
-                                    // For now, let's just play it, which triggers generation if not cached
-                                    // But the requirement is to have a specific "Generate Audio" action
-                                    // So we might need to expose `playTextTrack` logic or similar without auto-playing,
-                                    // or just rely on the fact that playing generates it.
-                                    // However, the requirement says "Manual Generate Audio option".
-                                    // Let's add a method to AudioPlayerViewModel to generate without playing immediately, or just use play.
-                                    // Actually, the plan says: "Add a manual 'Generate Audio' option... When clicking play... pop up confirmation".
-                                    // So here we just want to trigger generation.
-                                    // I'll add `generateAudio(for: track)` to AudioPlayerViewModel later.
-                                    // For now, I'll put a placeholder or call a method I'll add.
-                                    await audioPlayer.generateAudio(for: track, in: collection)
-                                }
+                                audioPlayer.generateAudio(for: track, in: collection)
                             } label: {
                                 Label(NSLocalizedString("generate_audio_action", value: "Generate Audio", comment: "Generate audio action"), systemImage: "waveform.badge.plus")
                             }

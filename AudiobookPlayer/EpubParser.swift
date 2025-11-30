@@ -120,41 +120,86 @@ final class EpubParser: NSObject, XMLParserDelegate {
             let href = item.href
             let chapterURL = opfBaseURL.appendingPathComponent(href)
             
-            // Simple text extraction (stripping HTML tags)
+            // Rich text extraction that preserves paragraphs
             if let contentData = try? Data(contentsOf: chapterURL),
-               let contentString = String(data: contentData, encoding: .utf8) {
-                let stripped = contentString.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression, range: nil)
-                    .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
+               let cleaned = plainText(from: contentData),
+               !cleaned.isEmpty {
+                // Try to find title in ToC map
+                var title = "Chapter \(index + 1)"
                 
-                if !stripped.isEmpty {
-                    // Try to find title in ToC map
-                    var title = "Chapter \(index + 1)"
-                    
-                    // 1. Try exact href match
-                    if let tocTitle = tocMap[href] {
-                        title = tocTitle
-                    } 
-                    // 2. Try filename match (ignoring path)
-                    else {
-                        let filename = URL(fileURLWithPath: href).lastPathComponent
-                        if let tocTitle = tocMap[filename] {
-                             title = tocTitle
-                        }
+                // 1. Try exact href match
+                if let tocTitle = tocMap[href] {
+                    title = tocTitle
+                } 
+                // 2. Try filename match (ignoring path)
+                else {
+                    let filename = URL(fileURLWithPath: href).lastPathComponent
+                    if let tocTitle = tocMap[filename] {
+                         title = tocTitle
                     }
-                    
-                    chapters.append(EpubChapter(
-                        title: title,
-                        content: stripped,
-                        filename: href
-                    ))
                 }
+                
+                chapters.append(EpubChapter(
+                    title: title,
+                    content: cleaned,
+                    filename: href
+                ))
             }
         }
         
         return (metadataTitle.isEmpty ? "Unknown Title" : metadataTitle.trimmingCharacters(in: .whitespacesAndNewlines),
                 metadataCreator.isEmpty ? nil : metadataCreator.trimmingCharacters(in: .whitespacesAndNewlines),
                 chapters)
+    }
+    
+    private func plainText(from data: Data) -> String? {
+        if let attributed = try? NSAttributedString(
+            data: data,
+            options: [
+                .documentType: NSAttributedString.DocumentType.html,
+                .characterEncoding: String.Encoding.utf8.rawValue
+            ],
+            documentAttributes: nil
+        ) {
+            let normalized = Self.normalizeWhitespace(in: attributed.string)
+            if !normalized.isEmpty {
+                return normalized
+            }
+        }
+        
+        if let fallbackString = String(data: data, encoding: .utf8) {
+            let normalized = fallbackPlainText(from: fallbackString)
+            if !normalized.isEmpty {
+                return normalized
+            }
+        }
+        
+        return nil
+    }
+    
+    private func fallbackPlainText(from html: String) -> String {
+        var working = html.replacingOccurrences(of: "\r", with: "")
+        working = working.replacingOccurrences(of: "<br\\s*/?>", with: "\n", options: .regularExpression)
+        working = working.replacingOccurrences(of: "</p>", with: "\n\n", options: .caseInsensitive)
+        working = working.replacingOccurrences(of: "</h[1-6]>", with: "\n\n", options: .regularExpression)
+        working = working.replacingOccurrences(of: "<li[^>]*>", with: "\n• ", options: .regularExpression)
+        working = working.replacingOccurrences(of: "&nbsp;", with: " ")
+        working = working.replacingOccurrences(of: "&amp;", with: "&")
+        working = working.replacingOccurrences(of: "&quot;", with: "\"")
+        working = working.replacingOccurrences(of: "&apos;", with: "'")
+        working = working.replacingOccurrences(of: "&lt;", with: "<")
+        working = working.replacingOccurrences(of: "&gt;", with: ">")
+        working = working.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
+        return Self.normalizeWhitespace(in: working)
+    }
+    
+    private static func normalizeWhitespace(in text: String) -> String {
+        var normalized = text.replacingOccurrences(of: "\t", with: " ")
+        normalized = normalized.replacingOccurrences(of: "\u{00a0}", with: " ")
+        normalized = normalized.replacingOccurrences(of: " *\n *", with: "\n", options: .regularExpression)
+        normalized = normalized.replacingOccurrences(of: "\n{3,}", with: "\n\n", options: .regularExpression)
+        normalized = normalized.replacingOccurrences(of: "[ ]{2,}", with: " ", options: .regularExpression)
+        return normalized.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     // MARK: - XMLParserDelegate
