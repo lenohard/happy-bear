@@ -38,6 +38,7 @@
 		8603AC0C2EDB648F00889565 /* EbookReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC0B2EDB648F00889565 /* EbookReaderView.swift */; };
 		8603AC0E2EDB71EF00889565 /* CreateEbookCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC0D2EDB71EE00889565 /* CreateEbookCollectionView.swift */; };
 		8603AC102EDC139B00889565 /* StorageManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC0F2EDC139B00889565 /* StorageManagementView.swift */; };
+		8603AC122EDC550000889565 /* STTJobsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC112EDC550000889565 /* STTJobsListView.swift */; };
 		8617DDE82EBE0A26006E7CA7 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */; };
 		8617DDE92EBE0A26006E7CA7 /* DatabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDF2EBE0A26006E7CA7 /* DatabaseConfig.swift */; };
 		8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */; };
@@ -144,6 +145,7 @@
 		8603AC0B2EDB648F00889565 /* EbookReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EbookReaderView.swift; sourceTree = "<group>"; };
 		8603AC0D2EDB71EE00889565 /* CreateEbookCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateEbookCollectionView.swift; sourceTree = "<group>"; };
 		8603AC0F2EDC139B00889565 /* StorageManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManagementView.swift; sourceTree = "<group>"; };
+		8603AC112EDC550000889565 /* STTJobsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = STTJobsListView.swift; sourceTree = "<group>"; };
 		8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayClient.swift; sourceTree = "<group>"; };
 		8617DDDA2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayKeychainStore.swift; sourceTree = "<group>"; };
 		8617DDDB2EBE0A26006E7CA7 /* AIGatewayModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayModels.swift; sourceTree = "<group>"; };
@@ -323,6 +325,7 @@
 				6F99A0042C4C200000AA00AA /* BaiduNetdiskBrowserViewModel.swift */,
 				6F99A0062C4C200000AA00AA /* BaiduNetdiskBrowserView.swift */,
 				6F6E7F722C4A9B0500AA00AA /* AudioPlayerViewModel.swift */,
+				8603AC112EDC550000889565 /* STTJobsListView.swift */,
 				6FD0A0012C5B0C0000AA00AB /* AudioCacheManager.swift */,
 				6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */,
 				6F6E7F702C4A9B0500AA00AB /* BaiduAuthViewModel.swift */,
@@ -526,6 +529,7 @@
 				8617DDF52EBE0A26006E7CA7 /* TranscriptionManager.swift in Sources */,
 				86E5D0042ED05DC800CE62A1 /* PreviewData.swift in Sources */,
 				8617DDF62EBE0A26006E7CA7 /* AIGatewayViewModel.swift in Sources */,
+				8603AC122EDC550000889565 /* STTJobsListView.swift in Sources */,
 				8603AC062EDAF98D00889565 /* EdgeTTSClient.swift in Sources */,
 				8603AC072EDAF98D00889565 /* FloatingBubbleWindowManager.swift in Sources */,
 				8603AC082EDAF98D00889565 /* EpubParser.swift in Sources */,

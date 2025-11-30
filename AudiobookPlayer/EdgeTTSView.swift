@@ -44,6 +44,13 @@ struct EdgeTTSView: View {
                 }
             }
             
+            Section {
+                NavigationLink {
+                    TTSJobsListView()
+                } label: {
+                    Label("TTS Jobs", systemImage: "list.bullet.clipboard")
+                }
+            }
             
             Section {
                 Button(action: testVoice) {

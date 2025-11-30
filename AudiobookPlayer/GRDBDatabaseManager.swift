@@ -52,6 +52,12 @@ actor GRDBDatabaseManager {
             print("[GRDB] Transcription tables created")
             try addTranscriptRepairColumnsIfNeeded(in: db)
             print("[GRDB] Transcript repair columns ensured")
+            try addTranscriptionJobParagraphColumnsIfNeeded(in: db)
+            print("[GRDB] Transcription job paragraph columns ensured")
+
+            // Ensure new optional columns exist
+            try addTrackCharacterCountColumnIfNeeded(in: db)
+            print("[GRDB] Track character_count column ensured")
 
             print("[GRDB] Executing track summary schema...")
             try db.execute(sql: TrackSummaryDatabaseSchema.createTableSQL)
@@ -138,8 +144,9 @@ actor GRDBDatabaseManager {
                         location_type, location_payload,
                         file_size, duration, track_number,
                         checksum, metadata_json,
-                        is_favorite, favorited_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        is_favorite, favorited_at,
+                        character_count
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     arguments: [
                         track.id.uuidString,
@@ -154,7 +161,8 @@ actor GRDBDatabaseManager {
                         track.checksum,
                         track.metadata.isEmpty ? nil : encodeJSON(track.metadata),
                         track.isFavorite ? 1 : 0,
-                        track.favoritedAt
+                        track.favoritedAt,
+                        track.characterCount
                     ]
                 )
                 if idx % 20 == 0 {
@@ -338,7 +346,8 @@ actor GRDBDatabaseManager {
                     checksum = ?,
                     metadata_json = ?,
                     is_favorite = ?,
-                    favorited_at = ?
+                    favorited_at = ?,
+                    character_count = ?
                 WHERE id = ? AND collection_id = ?
                 """,
                 arguments: [
@@ -353,6 +362,7 @@ actor GRDBDatabaseManager {
                     track.metadata.isEmpty ? nil : encodeJSON(track.metadata),
                     track.isFavorite ? 1 : 0,
                     track.favoritedAt,
+                    track.characterCount,
                     track.id.uuidString,
                     collectionId.uuidString
                 ]
@@ -755,6 +765,8 @@ actor GRDBDatabaseManager {
             print("[FAVORITES-DB] Read favorite track from DB: \(displayName), favoritedAt=\(favoritedAt as Any)")
         }
 
+        let charCount: Int? = row["character_count"]
+
         return AudiobookTrack(
             id: uuid,
             displayName: displayName,
@@ -766,7 +778,8 @@ actor GRDBDatabaseManager {
             checksum: checksum,
             metadata: metadata,
             isFavorite: isFavorite,
-            favoritedAt: favoritedAt
+            favoritedAt: favoritedAt,
+            characterCount: charCount
         )
     }
 
@@ -1337,6 +1350,65 @@ actor GRDBDatabaseManager {
         }
     }
 
+    /// Save a complete transcript with segments
+    func saveTranscript(_ transcript: Transcript, segments: [TranscriptSegment]) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            // Find existing transcript ID to cleanup segments
+            let oldTranscriptId = try String.fetchOne(db, sql: "SELECT id FROM transcripts WHERE track_id = ?", arguments: [transcript.trackId])
+            
+            if let oldId = oldTranscriptId {
+                try db.execute(sql: "DELETE FROM transcript_segments WHERE transcript_id = ?", arguments: [oldId])
+                try db.execute(sql: "DELETE FROM transcripts WHERE id = ?", arguments: [oldId])
+            }
+            
+            // Insert transcript
+            try db.execute(sql: """
+                INSERT INTO transcripts (
+                    id, track_id, collection_id, language, full_text,
+                    created_at, updated_at, job_status, job_id, error_message
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                arguments: [
+                    transcript.id,
+                    transcript.trackId,
+                    transcript.collectionId,
+                    transcript.language,
+                    transcript.fullText,
+                    transcript.createdAt,
+                    transcript.updatedAt,
+                    transcript.jobStatus,
+                    transcript.jobId,
+                    transcript.errorMessage
+                ]
+            )
+
+            // Insert segments
+            for segment in segments {
+                try db.execute(sql: """
+                    INSERT INTO transcript_segments (
+                        id, transcript_id, text, start_time_ms, end_time_ms,
+                        confidence, speaker, language, last_repair_model, last_repair_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    arguments: [
+                        segment.id,
+                        segment.transcriptId,
+                        segment.text,
+                        segment.startTimeMs,
+                        segment.endTimeMs,
+                        segment.confidence,
+                        segment.speaker,
+                        segment.language,
+                        segment.lastRepairModel,
+                        segment.lastRepairAt
+                    ]
+                )
+            }
+        }
+    }
+
     // MARK: - Private Helpers for Transcription
 
     private func reconstructTranscript(row: Row) throws -> Transcript? {
@@ -1439,6 +1511,27 @@ actor GRDBDatabaseManager {
 
         if !existingColumns.contains("last_repair_at") {
             try database.execute(sql: "ALTER TABLE transcript_segments ADD COLUMN last_repair_at DATETIME")
+        }
+    }
+    
+    private func addTranscriptionJobParagraphColumnsIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(transcription_jobs)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("total_paragraphs") {
+            try database.execute(sql: "ALTER TABLE transcription_jobs ADD COLUMN total_paragraphs INTEGER")
+        }
+
+        if !existingColumns.contains("processed_paragraphs") {
+            try database.execute(sql: "ALTER TABLE transcription_jobs ADD COLUMN processed_paragraphs INTEGER")
+        }
+    }
+
+    private func addTrackCharacterCountColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(tracks)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+        if !existingColumns.contains("character_count") {
+            try database.execute(sql: "ALTER TABLE tracks ADD COLUMN character_count INTEGER")
         }
     }
     

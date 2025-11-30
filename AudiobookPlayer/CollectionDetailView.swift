@@ -484,9 +484,17 @@ struct CollectionDetailView: View {
                 coverEditor(for: collection)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(collection.title)
-                        .font(.title3)
-                        .bold()
+                    HStack(spacing: 6) {
+                        Text(collection.title)
+                            .font(.title3)
+                            .bold()
+                        if case .ebook = collection.source {
+                            Image(systemName: "book")
+                                .font(.title3)
+                                .foregroundStyle(.blue)
+                                .accessibilityLabel(NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection"))
+                        }
+                    }
 
                     if let description = collection.description, !description.isEmpty {
                         Text(description)
@@ -1517,9 +1525,16 @@ private struct TrackDetailRow: View, Equatable {
     private var metadataRow: some View {
         HStack(spacing: 6) {
             HStack(spacing: 4) {
-                Text(formatBytes(track.fileSize))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                // Show character count for text tracks, file size for others
+                if track.isTextTrack, let charCount = track.characterCount {
+                    Text("\(formatNumber(charCount)) chars")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(formatBytes(track.fileSize))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
 
                 if hasTranscript {
                     Image(systemName: "text.alignleft")
@@ -1581,6 +1596,22 @@ private struct TrackDetailRow: View, Equatable {
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
+    }
+    
+    private func formatNumber(_ number: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 1
+        
+        if number >= 1_000_000 {
+            let millions = Double(number) / 1_000_000
+            return "\(formatter.string(from: NSNumber(value: millions)) ?? "")M"
+        } else if number >= 1_000 {
+            let thousands = Double(number) / 1_000
+            return "\(formatter.string(from: NSNumber(value: thousands)) ?? "")k"
+        } else {
+            return "\(number)"
+        }
     }
 }
 

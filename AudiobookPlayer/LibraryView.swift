@@ -303,9 +303,17 @@ private struct LibraryCollectionRow: View {
             coverView
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(collection.title)
-                    .font(.headline)
-                    .lineLimit(2)
+                HStack(spacing: 6) {
+                    Text(collection.title)
+                        .font(.headline)
+                        .lineLimit(2)
+                    if case .ebook = collection.source {
+                        Image(systemName: "book")
+                            .font(.subheadline)
+                            .foregroundStyle(.blue)
+                            .accessibilityLabel(NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection"))
+                    }
+                }
 
                 if let author = collection.author, !author.isEmpty {
                     Text(author)

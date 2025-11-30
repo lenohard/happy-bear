@@ -1,27 +1,26 @@
 import SwiftUI
 
-struct TTSJobsListView: View {
+/// STT (Soniox) Jobs List – shows ONLY transcription (non-TTS) jobs
+struct STTJobsListView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var library: LibraryStore
     @State private var selectedJobForTranscript: TranscriptionJob?
 
-    // Filter to show only TTS jobs (not STT jobs)
-    private var ttsActiveJobs: [TranscriptionJob] {
-        transcriptionManager.activeJobs.filter { $0.sonioxJobId.hasPrefix("tts-") }
+    private var activeSTTJobs: [TranscriptionJob] {
+        transcriptionManager.activeJobs.filter { !$0.sonioxJobId.hasPrefix("tts-") }
     }
-    
-    private var ttsHistoryJobs: [TranscriptionJob] {
-        transcriptionManager.allRecentJobs.filter { 
-            $0.sonioxJobId.hasPrefix("tts-") && ($0.status == "completed" || $0.status == "failed")
-        }
+
+    private var historySTTJobs: [TranscriptionJob] {
+        transcriptionManager.allRecentJobs
+            .filter { ($0.status == "completed" || $0.status == "failed") && !$0.sonioxJobId.hasPrefix("tts-") }
     }
 
     var body: some View {
         List {
-            if !ttsActiveJobs.isEmpty {
-                Section(header: Text("Active Jobs")) {
-                    ForEach(ttsActiveJobs) { job in
-                        TTSJobCardView(job: job)
+            if !activeSTTJobs.isEmpty {
+                Section(header: Text("Active STT Jobs")) {
+                    ForEach(activeSTTJobs) { job in
+                        STTJobCardView(job: job)
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
@@ -46,10 +45,10 @@ struct TTSJobsListView: View {
                 }
             }
 
-            if !ttsHistoryJobs.isEmpty {
+            if !historySTTJobs.isEmpty {
                 Section(header: Text("History")) {
-                    ForEach(ttsHistoryJobs) { job in
-                        TTSJobCardView(job: job)
+                    ForEach(historySTTJobs) { job in
+                        STTJobCardView(job: job)
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
@@ -78,15 +77,15 @@ struct TTSJobsListView: View {
                 }
             }
             
-            if ttsActiveJobs.isEmpty && ttsHistoryJobs.isEmpty {
+            if activeSTTJobs.isEmpty && historySTTJobs.isEmpty {
                 Section {
                     VStack(spacing: 12) {
-                        Image(systemName: "speaker.wave.2.fill")
+                        Image(systemName: "waveform.badge.magnifyingglass")
                             .font(.system(size: 48))
                             .foregroundStyle(.secondary)
-                        Text("No TTS Jobs")
+                        Text("No STT Jobs")
                             .font(.headline)
-                        Text("Your text-to-speech generation tasks will appear here.")
+                        Text("Your transcription tasks will appear here.")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
@@ -98,7 +97,7 @@ struct TTSJobsListView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("TTS Jobs")
+        .navigationTitle("STT Jobs")
         .sheet(item: $selectedJobForTranscript) { job in
             TranscriptViewerSheet(
                 trackId: job.trackId,
@@ -117,39 +116,29 @@ struct TTSJobsListView: View {
     }
     
     private func pauseJob(_ job: TranscriptionJob) {
-        Task {
-            try? await transcriptionManager.pauseJob(jobId: job.id)
-        }
+        Task { try? await transcriptionManager.pauseJob(jobId: job.id) }
     }
 
     private func resumeJob(_ job: TranscriptionJob) {
-        Task {
-            try? await transcriptionManager.resumeJob(jobId: job.id)
-        }
+        Task { try? await transcriptionManager.resumeJob(jobId: job.id) }
     }
 
     private func retryJob(_ job: TranscriptionJob) {
-        Task {
-            try? await transcriptionManager.retryJob(jobId: job.id)
-        }
+        Task { try? await transcriptionManager.retryJob(jobId: job.id) }
     }
 
     private func deleteJob(_ job: TranscriptionJob) {
-        Task {
-            try? await transcriptionManager.deleteJob(jobId: job.id)
-        }
+        Task { try? await transcriptionManager.deleteJob(jobId: job.id) }
     }
 }
 
-struct TTSJobCardView: View {
+struct STTJobCardView: View {
     @EnvironmentObject private var library: LibraryStore
     let job: TranscriptionJob
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Header with title and status
             HStack(alignment: .top, spacing: 12) {
-                // Icon based on job status
                 statusIcon(for: job.status)
                     .font(.title3)
                     .frame(width: 32, height: 32)
@@ -167,18 +156,14 @@ struct TTSJobCardView: View {
                 
                 Spacer()
                 
-                TTSJobStatusBadge(status: job.status)
+                STTJobStatusBadge(status: job.status)
             }
             .padding(16)
             
-            // Progress bar for active jobs
             if (job.status == "downloading" || job.status == "uploading" || job.status == "transcribing" || job.status == "processing"), let progress = job.progress {
-                Divider()
-                    .padding(.horizontal, 16)
-                
+                Divider().padding(.horizontal, 16)
                 VStack(spacing: 4) {
-                    ProgressView(value: progress, total: 1.0)
-                        .progressViewStyle(.linear)
+                    ProgressView(value: progress, total: 1.0).progressViewStyle(.linear)
                     HStack {
                         Text(statusText(for: job))
                             .font(.caption2)
@@ -191,9 +176,7 @@ struct TTSJobCardView: View {
                 }
                 .padding(16)
             } else if job.status == "failed", let errorMessage = job.errorMessage {
-                Divider()
-                    .padding(.horizontal, 16)
-                
+                Divider().padding(.horizontal, 16)
                 Text(errorMessage)
                     .font(.subheadline)
                     .foregroundStyle(.red)
@@ -228,24 +211,11 @@ struct TTSJobCardView: View {
     }
     
     private func statusText(for job: TranscriptionJob) -> String {
-        // Check if this is a TTS job (sonioxJobId starts with "tts-")
-        let isTTSJob = job.sonioxJobId.hasPrefix("tts-")
-        
         switch job.status {
         case "queued": return "Queued"
         case "downloading": return NSLocalizedString("status_downloading_audio", comment: "")
         case "uploading": return NSLocalizedString("status_uploading_audio", comment: "")
-        case "transcribing", "processing":
-            if isTTSJob {
-                // For TTS jobs, show segment progress if available
-                if let processed = job.processedParagraphs, let total = job.totalParagraphs {
-                    return "Generating audio (paragraph \(processed) of \(total))"
-                } else {
-                    return "Generating audio..."
-                }
-            } else {
-                return "Transcribing..."
-            }
+        case "transcribing", "processing": return "Transcribing..."
         case "completed": return "Completed"
         case "failed": return "Failed (retry \(job.retryCount))"
         case "paused": return NSLocalizedString("tts_jobs_status_paused", comment: "")
@@ -267,29 +237,17 @@ struct TTSJobCardView: View {
     @ViewBuilder
     private func statusIcon(for status: String) -> some View {
         switch status {
-        case "queued":
-            Image(systemName: "clock.fill")
-                .foregroundStyle(.orange)
-        case "downloading", "uploading", "transcribing", "processing":
-            Image(systemName: "waveform")
-                .foregroundStyle(.blue)
-        case "completed":
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(.green)
-        case "failed":
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.red)
-        case "paused":
-            Image(systemName: "pause.circle.fill")
-                .foregroundStyle(.orange)
-        default:
-            Image(systemName: "questionmark.circle.fill")
-                .foregroundStyle(.secondary)
+        case "queued": Image(systemName: "clock.fill").foregroundStyle(.orange)
+        case "downloading", "uploading", "transcribing", "processing": Image(systemName: "waveform").foregroundStyle(.blue)
+        case "completed": Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)
+        case "failed": Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.red)
+        case "paused": Image(systemName: "pause.circle.fill").foregroundStyle(.orange)
+        default: Image(systemName: "questionmark.circle.fill").foregroundStyle(.secondary)
         }
     }
 }
 
-struct TTSJobStatusBadge: View {
+struct STTJobStatusBadge: View {
     let status: String
     
     var body: some View {
@@ -301,10 +259,7 @@ struct TTSJobStatusBadge: View {
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
-        .background(
-            Capsule()
-                .fill(statusColor.opacity(0.15))
-        )
+        .background(Capsule().fill(statusColor.opacity(0.15)))
         .foregroundStyle(statusColor)
     }
     
@@ -344,7 +299,7 @@ struct TTSJobStatusBadge: View {
 
 #Preview {
     NavigationStack {
-        TTSJobsListView()
+        STTJobsListView()
             .environmentObject(TranscriptionManager.preview)
             .environmentObject(LibraryStore.preview)
     }
