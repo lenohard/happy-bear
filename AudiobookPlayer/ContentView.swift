@@ -725,11 +725,7 @@ struct PlayingView: View {
     }
 
     private func seekAndPlay(to time: TimeInterval) {
-        audioPlayer.seek(to: time)
-        if !audioPlayer.isPlaying {
-            audioPlayer.startPlaybackImmediately()
-            audioPlayer.isPlaying = true
-        }
+        audioPlayer.seekAndResume(to: time)
     }
 
     private func presentTranscriptionSheet(for track: AudiobookTrack, in collection: AudiobookCollection) {

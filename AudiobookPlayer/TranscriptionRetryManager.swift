@@ -164,6 +164,10 @@ extension TranscriptionManager {
                 suggestedFilename: track.id.uuidString + "_retry_remote_" + track.filename,
                 fallbackTotalBytes: track.fileSize
             ).0
+
+        case .text, .cachedText:
+            // Text-based tracks (ebooks) cannot be transcribed as audio
+            throw TranscriptionError.invalidAudioFile
         }
     }
 

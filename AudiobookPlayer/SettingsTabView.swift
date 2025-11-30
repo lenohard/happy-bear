@@ -36,11 +36,11 @@ struct SettingsTabView: View {
     var body: some View {
         List {
             Section {
-                NavigationLink(destination: CacheManagementView()) {
+                NavigationLink(destination: StorageManagementView()) {
                     HStack {
                         Image(systemName: "internaldrive")
                             .foregroundStyle(.tint)
-                        Text(NSLocalizedString("cache_management_row_title", comment: "Cache Management row in Settings"))
+                        Text(NSLocalizedString("storage_management_row_title", value: "Storage Management", comment: "Storage Management row in Settings"))
                     }
                 }
             }

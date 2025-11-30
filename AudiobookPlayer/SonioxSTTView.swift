@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct TTSTabView: View {
+struct SonioxSTTView: View {
     @StateObject private var sonioxViewModel = SonioxKeyViewModel()
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var library: LibraryStore
@@ -479,7 +479,7 @@ struct SonioxFilesListView: View {
 
 
 #Preview {
-    TTSTabView()
+    SonioxSTTView()
         .environmentObject(TranscriptionManager.preview)
         .environmentObject(LibraryStore.preview)
 }

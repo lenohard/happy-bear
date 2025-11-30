@@ -18,6 +18,8 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var playbackRate: Double
     @Published var sleepTimerMode: SleepTimerMode = .off
     @Published var sleepTimerRemaining: TimeInterval?
+    @Published var showGenerateAudioConfirmation = false
+    @Published var trackToGenerateAudio: AudiobookTrack?
 
     enum SleepTimerMode: Equatable {
         case off
@@ -39,6 +41,7 @@ final class AudioPlayerViewModel: ObservableObject {
     private var player: AVPlayer?
     private var timeObserverToken: Any?
     private var endPlaybackObserver: NSObjectProtocol?
+    private var timeControlStatusObserver: NSKeyValueObservation?
     private var currentToken: BaiduOAuthToken?
     private var pendingInitialSeek: Double?
     private let netdiskClient: BaiduNetdiskClient
@@ -176,6 +179,8 @@ final class AudioPlayerViewModel: ObservableObject {
         prepareCollection(collection)
     }
 
+    private let edgeTTSClient = EdgeTTSClient()
+
     func play(track: AudiobookTrack, in collection: AudiobookCollection, token: BaiduOAuthToken?) {
         prepareCollection(collection)
         currentToken = token
@@ -184,32 +189,186 @@ final class AudioPlayerViewModel: ObservableObject {
             progressTracker.stopTracking(for: existingTrack.id.uuidString)
         }
 
-        do {
-            let url = try streamURL(for: track, token: token)
-            let resumeState = collection.playbackStates[track.id]
-            if let resumePosition = resumeState?.position, resumePosition > 1 {
-                pendingInitialSeek = resumePosition
-                currentTime = resumePosition
+        // Check for ebook track and missing audio
+        if track.isTextTrack {
+             let trackId = track.id.uuidString
+             let baiduFileId = "tts"
+             // Check cache
+             if !cacheManager.isCached(trackId: trackId, baiduFileId: baiduFileId, filename: "tts.mp3") {
+                 trackToGenerateAudio = track
+                 showGenerateAudioConfirmation = true
+                 return
+             }
+        }
+
+        switch track.location {
+        case .text(let content):
+            playTextTrack(track, content: content, in: collection)
+        case .cachedText(let filename):
+            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent(filename)
+            if let content = try? String(contentsOf: url) {
+                playTextTrack(track, content: content, in: collection)
             } else {
-                pendingInitialSeek = nil
-                currentTime = 0
+                statusMessage = "Failed to load text content for playback."
             }
-
-            if let recordedDuration = resumeState?.duration {
-                duration = max(duration, recordedDuration)
+        default:
+            do {
+                let url = try streamURL(for: track, token: token)
+                startPlayback(url: url, track: track, collection: collection)
+            } catch {
+                statusMessage = "Playback error: \(error.localizedDescription)"
             }
+        }
+    }
 
-            preparePlayer(with: url, autoPlay: true)
-            currentTrack = track
-            statusMessage = "Playing \"\(track.displayName)\"."
+    private func startPlayback(url: URL, track: AudiobookTrack, collection: AudiobookCollection) {
+        let resumeState = collection.playbackStates[track.id]
+        if let resumePosition = resumeState?.position, resumePosition > 1 {
+            pendingInitialSeek = resumePosition
+            currentTime = resumePosition
+        } else {
+            pendingInitialSeek = nil
+            currentTime = 0
+        }
+
+        if let recordedDuration = resumeState?.duration {
+            duration = max(duration, recordedDuration)
+        }
+
+        preparePlayer(with: url, autoPlay: true)
+        currentTrack = track
+        statusMessage = "Playing \"\(track.displayName)\"."
 #if os(iOS)
-            updateNowPlayingInfo()
+        updateNowPlayingInfo()
 #endif
-            refreshActiveCacheStatus()
-            // Disabled auto-cache to reduce battery drain - user must manually cache via cache sheet
-            // autoCacheIfPossible(track)
-        } catch {
-            statusMessage = "Playback error: \(error.localizedDescription)"
+        refreshActiveCacheStatus()
+    }
+
+    private func playTextTrack(_ track: AudiobookTrack, content: String, in collection: AudiobookCollection) {
+        let trackId = track.id.uuidString
+        let baiduFileId = "tts"
+        let filename = "tts.mp3"
+
+        // Check cache
+        if let cachedURL = cacheManager.getCachedAssetURL(for: trackId, baiduFileId: baiduFileId, filename: filename) {
+            startPlayback(url: cachedURL, track: track, collection: collection)
+            return
+        }
+
+        // If not cached, we shouldn't be here because play() guards it.
+        // But if we are, just show error or do nothing.
+        statusMessage = "Audio not generated for \"\(track.displayName)\"."
+    }
+
+    func generateAudio(for track: AudiobookTrack, in collection: AudiobookCollection, autoPlay: Bool = false) {
+        let trackId = track.id.uuidString
+        let baiduFileId = "tts"
+        
+        // Check if already exists
+        if cacheManager.isCached(trackId: trackId, baiduFileId: baiduFileId, filename: "tts.mp3") {
+            statusMessage = "Audio already exists for \"\(track.displayName)\"."
+            if autoPlay {
+                play(track: track, in: collection, token: nil)
+            }
+            return
+        }
+        
+        switch track.location {
+        case .text(let content):
+            generateAudio(for: track, content: content, in: collection, autoPlay: autoPlay)
+        case .cachedText(let filename):
+            let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent(filename)
+            if let content = try? String(contentsOf: url) {
+                generateAudio(for: track, content: content, in: collection, autoPlay: autoPlay)
+            } else {
+                statusMessage = "Failed to load text content."
+            }
+        default:
+            break
+        }
+    }
+
+    private func generateAudio(for track: AudiobookTrack, content: String, in collection: AudiobookCollection, autoPlay: Bool) {
+        let trackId = track.id.uuidString
+        let sonioxJobId = "tts-\(UUID().uuidString)"
+        
+        Task {
+            do {
+                // Create Job
+                let job = try await GRDBDatabaseManager.shared.createTranscriptionJob(
+                    trackId: trackId,
+                    sonioxJobId: sonioxJobId,
+                    status: "queued",
+                    progress: 0.0
+                )
+                let dbJobId = job.id
+                
+                await MainActor.run {
+                    statusMessage = "Starting audio generation for \"\(track.displayName)\"..."
+                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
+                }
+                
+                // Update to processing
+                try await GRDBDatabaseManager.shared.updateJobStatus(jobId: dbJobId, status: "processing", progress: 0.1)
+                
+                let voice = defaults.string(forKey: "edge_tts_voice") ?? "en-US-AriaNeural"
+                let rate = defaults.string(forKey: "edge_tts_rate") ?? "+0%"
+                let pitch = defaults.string(forKey: "edge_tts_pitch") ?? "+0Hz"
+                
+                edgeTTSClient.generateAudio(text: content, voice: voice, rate: rate, pitch: pitch) { [weak self] result in
+                    guard let self = self else { return }
+                    
+                    Task {
+                        switch result {
+                        case .success(let data):
+                            // Save to cache
+                            let baiduFileId = "tts"
+                            let filename = "tts.mp3"
+                            let cacheURL = self.cacheManager.createCacheFile(
+                                trackId: trackId,
+                                baiduFileId: baiduFileId,
+                                filename: filename,
+                                durationMs: nil,
+                                fileSizeBytes: data.count
+                            )
+                            
+                            do {
+                                try data.write(to: cacheURL)
+                                self.cacheManager.markCacheAsComplete(trackId: trackId, baiduFileId: baiduFileId)
+                                
+                                // Mark job complete
+                                try await GRDBDatabaseManager.shared.markJobCompleted(jobId: dbJobId)
+                                
+                                await MainActor.run {
+                                    self.statusMessage = "Audio generation complete for \"\(track.displayName)\"."
+                                    self.refreshActiveCacheStatus()
+                                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
+                                    if autoPlay {
+                                        self.play(track: track, in: collection, token: nil)
+                                    }
+                                }
+                            } catch {
+                                try? await GRDBDatabaseManager.shared.markJobFailed(jobId: dbJobId, errorMessage: error.localizedDescription)
+                                await MainActor.run {
+                                    self.statusMessage = "Failed to save generated audio: \(error.localizedDescription)"
+                                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
+                                }
+                            }
+                            
+                        case .failure(let error):
+                            try? await GRDBDatabaseManager.shared.markJobFailed(jobId: dbJobId, errorMessage: error.localizedDescription)
+                            await MainActor.run {
+                                self.statusMessage = "Audio generation failed: \(error.localizedDescription)"
+                                NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
+                            }
+                        }
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.statusMessage = "Failed to start audio generation job: \(error.localizedDescription)"
+                }
+            }
         }
     }
 
@@ -377,6 +536,16 @@ final class AudioPlayerViewModel: ObservableObject {
         }
     }
 
+    func seekAndResume(to time: Double) {
+        seek(to: time)
+        if !isPlaying {
+            startPlaybackImmediately()
+            isPlaying = true
+            startListeningSession()
+            applyPlaybackRateToPlayer()
+        }
+    }
+
     func cacheStatus(for track: AudiobookTrack) -> CacheStatusSnapshot? {
         computeCacheStatus(for: track)
     }
@@ -422,6 +591,20 @@ final class AudioPlayerViewModel: ObservableObject {
         cacheManager.removeCacheFile(trackId: track.id.uuidString, baiduFileId: String(fsId), filename: track.filename)
         progressTracker.clearProgress(for: track.id.uuidString)
         progressTracker.stopTracking(for: track.id.uuidString)
+        refreshActiveCacheStatus()
+    }
+    
+    func getCollectionCacheSize(trackIds: [String]) -> Int64 {
+        cacheManager.getCacheSize(for: trackIds)
+    }
+    
+    func removeCollectionCache(trackIds: [String]) {
+        downloadManager.cancelDownloads(for: trackIds)
+        cacheManager.removeCache(for: trackIds)
+        for trackId in trackIds {
+            progressTracker.clearProgress(for: trackId)
+            progressTracker.stopTracking(for: trackId)
+        }
         refreshActiveCacheStatus()
     }
 
@@ -580,6 +763,9 @@ final class AudioPlayerViewModel: ObservableObject {
             )
         case .external:
             return nil
+        case .text, .cachedText:
+            // Text-based tracks (ebooks) don't have cache status
+            return nil
         }
     }
 
@@ -607,6 +793,7 @@ final class AudioPlayerViewModel: ObservableObject {
 
         addPeriodicTimeObserver()
         observeEnd(of: playerItem)
+        observeTimeControlStatus()
 
         let initialPosition = pendingInitialSeek
         if let initialPosition {
@@ -726,6 +913,9 @@ final class AudioPlayerViewModel: ObservableObject {
             NotificationCenter.default.removeObserver(observer)
             endPlaybackObserver = nil
         }
+        
+        timeControlStatusObserver?.invalidate()
+        timeControlStatusObserver = nil
     }
 
     func skip(by delta: Double) {
@@ -789,6 +979,12 @@ final class AudioPlayerViewModel: ObservableObject {
 
     func streamURL(for track: AudiobookTrack, token: BaiduOAuthToken?) throws -> URL {
         switch track.location {
+        case .text:
+             // This should not be called directly if playTextTrack handles it, 
+             // but for completeness or if called elsewhere:
+             throw CacheResolutionError.missingStreamingURL
+        case .cachedText:
+             throw CacheResolutionError.missingStreamingURL
         case let .baidu(fsId, path):
             let baiduFileId = String(fsId)
 
@@ -1223,6 +1419,32 @@ private extension AudioPlayerViewModel {
         }
         
         currentSessionStartTime = nil
+    }
+    
+    private func observeTimeControlStatus() {
+        timeControlStatusObserver = player?.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
+            guard let self else { return }
+            switch player.timeControlStatus {
+            case .paused:
+                if self.isPlaying {
+                    print("[AudioPlayer] Detected external pause, updating state")
+                    self.isPlaying = false
+                    self.flushListeningSession()
+                    // We don't need to set rate to 0 here as pause implies it, 
+                    // but we should ensure UI reflects state.
+                }
+            case .playing:
+                if !self.isPlaying {
+                    print("[AudioPlayer] Detected external play, updating state")
+                    self.isPlaying = true
+                    self.startListeningSession()
+                }
+            case .waitingToPlayAtSpecifiedRate:
+                break
+            @unknown default:
+                break
+            }
+        }
     }
 }
 

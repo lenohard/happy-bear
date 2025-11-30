@@ -12,6 +12,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case local(directoryBookmark: Data)
         case external(description: String)
         case ephemeralBaidu(path: String)
+        case ebook(importedDate: Date)
 
         private enum CodingKeys: String, CodingKey {
             case type
@@ -20,6 +21,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case directoryBookmark
             case description
             case ephemeralPath
+            case importedDate
         }
 
         private enum SourceType: String, Codable {
@@ -27,6 +29,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case local
             case external
             case ephemeralBaidu
+            case ebook
         }
 
         init(from decoder: Decoder) throws {
@@ -47,6 +50,9 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case .ephemeralBaidu:
                 let path = try container.decode(String.self, forKey: .ephemeralPath)
                 self = .ephemeralBaidu(path: path)
+            case .ebook:
+                let date = try container.decode(Date.self, forKey: .importedDate)
+                self = .ebook(importedDate: date)
             }
         }
 
@@ -67,6 +73,9 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case let .ephemeralBaidu(path):
                 try container.encode(SourceType.ephemeralBaidu, forKey: .type)
                 try container.encode(path, forKey: .ephemeralPath)
+            case let .ebook(importedDate):
+                try container.encode(SourceType.ebook, forKey: .type)
+                try container.encode(importedDate, forKey: .importedDate)
             }
         }
     }
@@ -185,6 +194,8 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
         case baidu(fsId: Int64, path: String)
         case local(urlBookmark: Data)
         case external(url: URL)
+        case text(content: String)
+        case cachedText(filename: String)
 
         private enum CodingKeys: String, CodingKey {
             case type
@@ -192,12 +203,16 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
             case path
             case urlBookmark
             case url
+            case content
+            case filename
         }
 
         private enum LocationType: String, Codable {
             case baidu
             case local
             case external
+            case text
+            case cachedText
         }
 
         init(from decoder: Decoder) throws {
@@ -215,6 +230,12 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
             case .external:
                 let url = try container.decode(URL.self, forKey: .url)
                 self = .external(url: url)
+            case .text:
+                let content = try container.decode(String.self, forKey: .content)
+                self = .text(content: content)
+            case .cachedText:
+                let filename = try container.decode(String.self, forKey: .filename)
+                self = .cachedText(filename: filename)
             }
         }
 
@@ -232,6 +253,12 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
             case let .external(url):
                 try container.encode(LocationType.external, forKey: .type)
                 try container.encode(url, forKey: .url)
+            case let .text(content):
+                try container.encode(LocationType.text, forKey: .type)
+                try container.encode(content, forKey: .content)
+            case let .cachedText(filename):
+                try container.encode(LocationType.cachedText, forKey: .type)
+                try container.encode(filename, forKey: .filename)
             }
         }
     }
@@ -250,9 +277,19 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
     var isFavorite: Bool = false
     var favoritedAt: Date?
     
+    // NEW: Character count for text tracks
+    var characterCount: Int?
+    
+    var isTextTrack: Bool {
+        if case .text = location { return true }
+        if case .cachedText = location { return true }
+        return false
+    }
+    
     private enum CodingKeys: String, CodingKey {
         case id, displayName, filename, location, fileSize, duration, trackNumber, checksum, metadata
         case isFavorite, favoritedAt
+        case characterCount
     }
 }
 
@@ -405,5 +442,10 @@ extension AudiobookCollection {
         }
 
         return sorted.first
+    }
+    
+    var totalCharacterCount: Int? {
+        let count = tracks.reduce(0) { $0 + ($1.characterCount ?? 0) }
+        return count > 0 ? count : nil
     }
 }

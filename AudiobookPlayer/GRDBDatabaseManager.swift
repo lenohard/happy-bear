@@ -858,6 +858,31 @@ actor GRDBDatabaseManager {
             }
             return .external(description: description)
 
+        case "ebook":
+            guard let dateStr = dict["importedDate"] as? String else {
+                // Try decoding as timestamp if string fails (though Codable usually encodes Date as float)
+                if let timestamp = dict["importedDate"] as? Double {
+                    return .ebook(importedDate: Date(timeIntervalSinceReferenceDate: timestamp))
+                }
+                throw DatabaseError.inconsistentData("Missing ebook importedDate")
+            }
+            // Codable default date encoding might be ISO8601 or reference date.
+            // Let's try to parse it if it's a string, or assume it's a timestamp if double.
+            // Actually, Codable for Date defaults to reference date (Double) unless configured otherwise.
+            // But here we are decoding JSON manually.
+            // Let's see how it was encoded.
+            // LibraryModels.swift uses default Codable.
+            // Default JSONEncoder encodes Date as float (timeIntervalSinceReferenceDate).
+            // So dict["importedDate"] should be a Double.
+            if let timestamp = dict["importedDate"] as? Double {
+                return .ebook(importedDate: Date(timeIntervalSinceReferenceDate: timestamp))
+            }
+            // Fallback for ISO8601 if that was used
+            if let date = Self.sqliteDateFormatter.date(from: dateStr) {
+                 return .ebook(importedDate: date)
+            }
+             throw DatabaseError.inconsistentData("Invalid ebook importedDate")
+
         default:
             throw DatabaseError.inconsistentData("Unknown source type: \(type)")
         }
@@ -889,6 +914,18 @@ actor GRDBDatabaseManager {
                 throw DatabaseError.inconsistentData("Invalid external URL")
             }
             return .external(url: url)
+
+        case "text":
+            guard let content = dict["content"] as? String else {
+                throw DatabaseError.inconsistentData("Missing text content")
+            }
+            return .text(content: content)
+
+        case "cachedText":
+            guard let filename = dict["filename"] as? String else {
+                throw DatabaseError.inconsistentData("Missing cached text filename")
+            }
+            return .cachedText(filename: filename)
 
         default:
             throw DatabaseError.inconsistentData("Unknown location type: \(type)")
@@ -1527,6 +1564,18 @@ actor GRDBDatabaseManager {
         }
     }
     
+    /// Delete listening statistics for a collection
+    func deleteStatistics(for collectionId: UUID) async throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+        
+        try await db.write { db in
+            try db.execute(
+                sql: "DELETE FROM listening_statistics WHERE collection_id = ?",
+                arguments: [collectionId.uuidString]
+            )
+        }
+    }
+    
     /// Load daily listening durations for a date range
     func loadDailyListeningDurations(from startDate: Date, to endDate: Date) throws -> [Date: TimeInterval] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
@@ -1736,6 +1785,7 @@ extension AudiobookCollection.Source {
         case .local: return "local"
         case .external: return "external"
         case .ephemeralBaidu: return "ephemeralBaidu"
+        case .ebook: return "ebook"
         }
     }
 
@@ -1754,6 +1804,9 @@ extension AudiobookCollection.Source {
 
         case let .ephemeralBaidu(path):
             payload = ["ephemeralPath": path]
+
+        case let .ebook(importedDate):
+            payload = ["importedDate": importedDate.timeIntervalSince1970]
         }
 
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
@@ -1770,6 +1823,8 @@ extension AudiobookTrack.Location {
         case .baidu: return "baidu"
         case .local: return "local"
         case .external: return "external"
+        case .text: return "text"
+        case .cachedText: return "cachedText"
         }
     }
 
@@ -1785,6 +1840,12 @@ extension AudiobookTrack.Location {
 
         case let .external(url):
             payload = ["url": url.absoluteString]
+
+        case let .text(content):
+            payload = ["content": content]
+
+        case let .cachedText(filename):
+            payload = ["filename": filename]
         }
 
         guard let data = try? JSONSerialization.data(withJSONObject: payload),

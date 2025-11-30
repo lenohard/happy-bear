@@ -21,15 +21,21 @@ struct SmartView: View {
                     }
 
                     NavigationLink {
-                        TTSTabView()
+                        SonioxSTTView()
                     } label: {
                         HStack {
-                            Label(NSLocalizedString("tts_tab", comment: "TTS tab"), systemImage: "waveform")
+                            Label("STT (Soniox)", systemImage: "waveform")
                             Spacer()
                             if !transcriptionManager.activeJobs.isEmpty {
                                 BadgeView(count: transcriptionManager.activeJobs.count)
                             }
                         }
+                    }
+                    
+                    NavigationLink {
+                        EdgeTTSView()
+                    } label: {
+                        Label("TTS (Edge)", systemImage: "speaker.wave.2")
                     }
                 }
             }

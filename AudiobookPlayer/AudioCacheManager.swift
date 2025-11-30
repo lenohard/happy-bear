@@ -300,4 +300,40 @@ final class AudioCacheManager {
     func cacheDirectoryPath() -> String {
         cacheDirectory.path
     }
+    
+    func getCacheSize(for trackIds: [String]) -> Int64 {
+        var totalSize: Int64 = 0
+        let files = (try? fileManager.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: [.fileSizeKey], options: .skipsHiddenFiles)) ?? []
+        
+        for file in files {
+            let filename = file.lastPathComponent
+            // Cache filename format: "{baiduFileId}_{trackId}.{ext}" or "{baiduFileId}_{trackId}.json"
+            // We check if the filename contains any of the track IDs.
+            // This is a bit inefficient O(N*M), but for reasonable cache sizes it's okay.
+            // Optimization: The filename ends with `_{trackId}.ext`.
+            
+            for trackId in trackIds {
+                if filename.contains("_\(trackId).") {
+                    let size = (try? fileManager.attributesOfItem(atPath: file.path)[.size] as? Int64) ?? 0
+                    totalSize += size
+                    break // Found the track for this file
+                }
+            }
+        }
+        return totalSize
+    }
+    
+    func removeCache(for trackIds: [String]) {
+        let files = (try? fileManager.contentsOfDirectory(at: cacheDirectory, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)) ?? []
+        
+        for file in files {
+            let filename = file.lastPathComponent
+            for trackId in trackIds {
+                if filename.contains("_\(trackId).") {
+                    try? fileManager.removeItem(at: file)
+                    break
+                }
+            }
+        }
+    }
 }

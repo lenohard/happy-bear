@@ -2,6 +2,7 @@ import SwiftUI
 #if canImport(UIKit)
 import UIKit
 #endif
+import UniformTypeIdentifiers
 
 struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
@@ -11,6 +12,7 @@ struct LibraryView: View {
 
     @State private var activeSource: ImportSource?
     @State private var pendingImport: PendingImport?
+    @State private var pendingEbookImport: PendingEbookImport?
     @State private var duplicateImport: DuplicateImportAlert?
     
     private var selectedCollectionID: Binding<UUID?> {
@@ -87,6 +89,10 @@ struct LibraryView: View {
                             }
                             activeSource = .baidu
                         }
+                        
+                        Button("Import Ebook") {
+                            activeSource = .ebook
+                        }
                     } label: {
                         Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "plus.circle.fill")
                             .labelStyle(.titleAndIcon)
@@ -133,7 +139,16 @@ struct LibraryView: View {
                 }
             )
         }
-        .sheet(item: $activeSource) { source in
+        .sheet(item: Binding(
+            get: {
+                // Only show sheet for .baidu, not for .ebook (handled by fileImporter)
+                if case .baidu = activeSource {
+                    return activeSource
+                }
+                return nil
+            },
+            set: { activeSource = $0 }
+        )) { source in
             switch source {
             case .baidu:
                 NavigationStack {
@@ -149,7 +164,27 @@ struct LibraryView: View {
                         }
                     )
                 }
+            case .ebook:
+                EmptyView() // This case should never be reached
             }
+        }
+        .fileImporter(
+            isPresented: Binding(
+                get: { activeSource == .ebook },
+                set: { if !$0 { activeSource = nil } }
+            ),
+            allowedContentTypes: [.epub],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                guard let url = urls.first else { return }
+                // Show preview sheet instead of importing directly
+                pendingEbookImport = PendingEbookImport(url: url)
+            case .failure(let error):
+                print("File picker failed: \(error)")
+            }
+            activeSource = nil
         }
         .sheet(item: $pendingImport) { importSelection in
             CreateCollectionView(
@@ -158,6 +193,14 @@ struct LibraryView: View {
                 onComplete: { _ in
                     // Collection is automatically added to library,
                     // don't interrupt current playback
+                }
+            )
+        }
+        .sheet(item: $pendingEbookImport) { ebookImport in
+            CreateEbookCollectionView(
+                epubURL: ebookImport.url,
+                onComplete: { _ in
+                    // Collection is automatically added to library
                 }
             )
         }
@@ -419,11 +462,14 @@ struct CollectionCoverArtView: View {
 
 private enum ImportSource: Identifiable {
     case baidu
+    case ebook
 
     var id: String {
         switch self {
         case .baidu:
             return "baidu"
+        case .ebook:
+            return "ebook"
         }
     }
 }
@@ -438,4 +484,9 @@ private struct DuplicateImportAlert: Identifiable {
 private struct PendingImport: Identifiable {
     let path: String
     var id: String { path }
+}
+
+private struct PendingEbookImport: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
 }

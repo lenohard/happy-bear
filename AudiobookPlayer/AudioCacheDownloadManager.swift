@@ -81,6 +81,13 @@ final class AudioCacheDownloadManager {
         completions.removeValue(forKey: trackId)
     }
 
+    /// Cancel downloads for multiple track IDs.
+    func cancelDownloads(for trackIds: [String]) {
+        for trackId in trackIds {
+            cancelCaching(for: trackId)
+        }
+    }
+
     func isDownloading(trackId: String) -> Bool {
         activeDownloads[trackId] != nil
     }

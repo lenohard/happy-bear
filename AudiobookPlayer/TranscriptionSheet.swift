@@ -405,6 +405,10 @@ struct TranscriptionSheet: View {
             }
             let (url, _) = try await downloadExternalAsset(track: track, url: url, progressHandler: progressHandler)
             return url
+
+        case .text, .cachedText:
+            // Text-based tracks (ebooks) cannot be transcribed as audio
+            throw TranscriptionManager.TranscriptionError.invalidAudioFile
         }
     }
 

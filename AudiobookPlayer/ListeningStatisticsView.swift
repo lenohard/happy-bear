@@ -67,9 +67,10 @@ class StatisticsViewModel: ObservableObject {
             let calendar = Calendar.current
             let now = Date()
             let startDate = calendar.date(byAdding: .day, value: -recentDays, to: now) ?? now
-            let recentCollectionDurations = try await databaseManager.loadListeningDurationsByCollection(from: startDate, to: now)
             
+            let recentCollectionDurations = try await databaseManager.loadListeningDurationsByCollection(from: startDate, to: now)
             let allCollections = try await databaseManager.loadAllCollections()
+            
             let total = allCollections.compactMap { collection -> (collection: AudiobookCollection, duration: TimeInterval)? in
                 guard let duration = collectionDurations[collection.id], duration > 0 else { return nil }
                 return (collection: collection, duration: duration)
@@ -167,6 +168,15 @@ class StatisticsViewModel: ObservableObject {
         formatter.zeroFormattingBehavior = .dropAll
         return formatter.string(from: duration) ?? "0m"
     }
+    
+    func deleteStatistics(for collection: AudiobookCollection) async {
+        do {
+            try await databaseManager.deleteStatistics(for: collection.id)
+            await loadStatistics()
+        } catch {
+            print("Error deleting statistics: \(error)")
+        }
+    }
 }
 
 // MARK: - Main View
@@ -200,6 +210,15 @@ struct ListeningStatisticsView: View {
             Section {
                 ForEach(viewModel.topCollectionsRecentPeriod, id: \.collection.id) { item in
                     ListeningStatisticsCollectionRow(item: item, formatter: viewModel.formatDuration(_:))
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button(role: .destructive) {
+                                Task {
+                                    await viewModel.deleteStatistics(for: item.collection)
+                                }
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                 }
             } header: {
                 let headerKey = selectedPeriod == .daily ? "listening_statistics_week_top_collections" : "listening_statistics_top_collections_header"

@@ -30,6 +30,14 @@
 		6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6FC0200A2C5B0C0000AA00AA /* Localizable.strings */; };
 		6FD0A0022C5B0C0000AA00AB /* AudioCacheManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0012C5B0C0000AA00AB /* AudioCacheManager.swift */; };
 		6FD0A0042C5B0C0000AA00AB /* CachedAudioAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */; };
+		8603AC062EDAF98D00889565 /* EdgeTTSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC012EDAF98D00889565 /* EdgeTTSClient.swift */; };
+		8603AC072EDAF98D00889565 /* FloatingBubbleWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC042EDAF98D00889565 /* FloatingBubbleWindowManager.swift */; };
+		8603AC082EDAF98D00889565 /* EpubParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC032EDAF98D00889565 /* EpubParser.swift */; };
+		8603AC092EDAF98D00889565 /* EdgeTTSView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC022EDAF98D00889565 /* EdgeTTSView.swift */; };
+		8603AC0A2EDAF98D00889565 /* SonioxSTTView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC052EDAF98D00889565 /* SonioxSTTView.swift */; };
+		8603AC0C2EDB648F00889565 /* EbookReaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC0B2EDB648F00889565 /* EbookReaderView.swift */; };
+		8603AC0E2EDB71EF00889565 /* CreateEbookCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC0D2EDB71EE00889565 /* CreateEbookCollectionView.swift */; };
+		8603AC102EDC139B00889565 /* StorageManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC0F2EDC139B00889565 /* StorageManagementView.swift */; };
 		8617DDE82EBE0A26006E7CA7 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */; };
 		8617DDE92EBE0A26006E7CA7 /* DatabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDF2EBE0A26006E7CA7 /* DatabaseConfig.swift */; };
 		8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */; };
@@ -73,7 +81,6 @@
 		86E5CFFD2ED0458600CE62A1 /* AIJobsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFFB2ED0458600CE62A1 /* AIJobsListView.swift */; };
 		86E5CFFE2ED0458600CE62A1 /* AIModelsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFFC2ED0458600CE62A1 /* AIModelsListView.swift */; };
 		86E5D0012ED054E200CE62A1 /* TTSJobsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5CFFF2ED054E200CE62A1 /* TTSJobsListView.swift */; };
-		86E5D0022ED054E200CE62A1 /* TTSTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D0002ED054E200CE62A1 /* TTSTabView.swift */; };
 		86E5D0042ED05DC800CE62A1 /* PreviewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D0032ED05DC800CE62A1 /* PreviewData.swift */; };
 		86E5D1022ECDC8C400CE62A1 /* TrackSummaryGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */; };
 		86E5D1132ECDCB1100CE62A1 /* TrackSummaryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */; };
@@ -129,6 +136,14 @@
 		6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitLibrarySync.swift; sourceTree = "<group>"; };
 		6FD0A0012C5B0C0000AA00AB /* AudioCacheManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioCacheManager.swift; sourceTree = "<group>"; };
 		6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CachedAudioAsset.swift; sourceTree = "<group>"; };
+		8603AC012EDAF98D00889565 /* EdgeTTSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeTTSClient.swift; sourceTree = "<group>"; };
+		8603AC022EDAF98D00889565 /* EdgeTTSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeTTSView.swift; sourceTree = "<group>"; };
+		8603AC032EDAF98D00889565 /* EpubParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpubParser.swift; sourceTree = "<group>"; };
+		8603AC042EDAF98D00889565 /* FloatingBubbleWindowManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingBubbleWindowManager.swift; sourceTree = "<group>"; };
+		8603AC052EDAF98D00889565 /* SonioxSTTView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxSTTView.swift; sourceTree = "<group>"; };
+		8603AC0B2EDB648F00889565 /* EbookReaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EbookReaderView.swift; sourceTree = "<group>"; };
+		8603AC0D2EDB71EE00889565 /* CreateEbookCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateEbookCollectionView.swift; sourceTree = "<group>"; };
+		8603AC0F2EDC139B00889565 /* StorageManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageManagementView.swift; sourceTree = "<group>"; };
 		8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayClient.swift; sourceTree = "<group>"; };
 		8617DDDA2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayKeychainStore.swift; sourceTree = "<group>"; };
 		8617DDDB2EBE0A26006E7CA7 /* AIGatewayModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayModels.swift; sourceTree = "<group>"; };
@@ -172,7 +187,6 @@
 		86E5CFFB2ED0458600CE62A1 /* AIJobsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIJobsListView.swift; sourceTree = "<group>"; };
 		86E5CFFC2ED0458600CE62A1 /* AIModelsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelsListView.swift; sourceTree = "<group>"; };
 		86E5CFFF2ED054E200CE62A1 /* TTSJobsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSJobsListView.swift; sourceTree = "<group>"; };
-		86E5D0002ED054E200CE62A1 /* TTSTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSTabView.swift; sourceTree = "<group>"; };
 		86E5D0032ED05DC800CE62A1 /* PreviewData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewData.swift; sourceTree = "<group>"; };
 		86E5D1012ECDC8C400CE62A1 /* TrackSummaryGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryGenerator.swift; sourceTree = "<group>"; };
 		86E5D1122ECDCB1100CE62A1 /* TrackSummaryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackSummaryViewModel.swift; sourceTree = "<group>"; };
@@ -237,6 +251,11 @@
 				86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */,
 				8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */,
 				86AD83AB2EB9AD5100FAB6DF /* CacheProgressTracker.swift */,
+				8603AC012EDAF98D00889565 /* EdgeTTSClient.swift */,
+				8603AC022EDAF98D00889565 /* EdgeTTSView.swift */,
+				8603AC032EDAF98D00889565 /* EpubParser.swift */,
+				8603AC042EDAF98D00889565 /* FloatingBubbleWindowManager.swift */,
+				8603AC052EDAF98D00889565 /* SonioxSTTView.swift */,
 				6F6E7F6E2C4A9B0500AA00AA /* AudiobookPlayerApp.swift */,
 				86FE175F2EC2531500027E93 /* ProviderIconView.swift */,
 				86FE17592EC20F6400027E93 /* CacheManagementView.swift */,
@@ -251,7 +270,6 @@
 				8617DDDD2EBE0A26006E7CA7 /* AITabView.swift */,
 				86E5D0032ED05DC800CE62A1 /* PreviewData.swift */,
 				86E5CFFF2ED054E200CE62A1 /* TTSJobsListView.swift */,
-				86E5D0002ED054E200CE62A1 /* TTSTabView.swift */,
 				86C5F7002F0AFA4300647B2C /* AITranscriptRepair.swift */,
 				8617DDDE2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift */,
 				8617DDDF2EBE0A26006E7CA7 /* DatabaseConfig.swift */,
@@ -261,6 +279,9 @@
 				86FD8E032ED6E9A7002A2036 /* ListeningHistory.swift */,
 				86FD8E052ED6F314002A2036 /* ListeningStatistic.swift */,
 				86FD8E062ED6F314002A2036 /* ListeningStatisticsView.swift */,
+				8603AC0B2EDB648F00889565 /* EbookReaderView.swift */,
+				8603AC0D2EDB71EE00889565 /* CreateEbookCollectionView.swift */,
+				8603AC0F2EDC139B00889565 /* StorageManagementView.swift */,
 				86FD8DFF2ED6E0AB002A2036 /* PersonalView.swift */,
 				86FD8E002ED6E0AB002A2036 /* SmartView.swift */,
 				869F06BD2ED6200A00B79131 /* TranscriptCorrectionsView.swift */,
@@ -505,6 +526,12 @@
 				8617DDF52EBE0A26006E7CA7 /* TranscriptionManager.swift in Sources */,
 				86E5D0042ED05DC800CE62A1 /* PreviewData.swift in Sources */,
 				8617DDF62EBE0A26006E7CA7 /* AIGatewayViewModel.swift in Sources */,
+				8603AC062EDAF98D00889565 /* EdgeTTSClient.swift in Sources */,
+				8603AC072EDAF98D00889565 /* FloatingBubbleWindowManager.swift in Sources */,
+				8603AC082EDAF98D00889565 /* EpubParser.swift in Sources */,
+				8603AC0E2EDB71EF00889565 /* CreateEbookCollectionView.swift in Sources */,
+				8603AC092EDAF98D00889565 /* EdgeTTSView.swift in Sources */,
+				8603AC0A2EDAF98D00889565 /* SonioxSTTView.swift in Sources */,
 				6FC010032C5B0C0000AA00AA /* LibraryStore.swift in Sources */,
 				6F99A0032C4C200000AA00AA /* BaiduNetdiskClient.swift in Sources */,
 				6F6E7F712C4A9B0500AA00AA /* ContentView.swift in Sources */,
@@ -513,15 +540,16 @@
 				86FD8E022ED6E0AB002A2036 /* SmartView.swift in Sources */,
 				8685F36A2EBF3607003D8173 /* TranscriptViewerSheet.swift in Sources */,
 				8685F36B2EBF3607003D8173 /* TranscriptionRetryManager.swift in Sources */,
+				8603AC0C2EDB648F00889565 /* EbookReaderView.swift in Sources */,
 				8685F36C2EBF3607003D8173 /* TranscriptionJobManager.swift in Sources */,
 				8685F36D2EBF3607003D8173 /* TranscriptViewModel.swift in Sources */,
 				6F99A0012C4C200000AA00AA /* BaiduTokenStore.swift in Sources */,
 				6F6E7F6F2C4A9B0500AA00AB /* BaiduOAuth.swift in Sources */,
 				86E5CFF82ECEFBFD00CE62A1 /* AIGatewayReasoning.swift in Sources */,
+				8603AC102EDC139B00889565 /* StorageManagementView.swift in Sources */,
 				6FC010012C5B0C0000AA00AA /* LibraryModels.swift in Sources */,
 				6F6E7F712C4A9B0500AA00AB /* BaiduAuthViewModel.swift in Sources */,
 				86E5D0012ED054E200CE62A1 /* TTSJobsListView.swift in Sources */,
-				86E5D0022ED054E200CE62A1 /* TTSTabView.swift in Sources */,
 				8685F3632EBE204F003D8173 /* TemporaryPlaybackContext.swift in Sources */,
 				6F6E7F732C4A9B0500AA00AA /* AudioPlayerViewModel.swift in Sources */,
 				6FD0A0022C5B0C0000AA00AB /* AudioCacheManager.swift in Sources */,

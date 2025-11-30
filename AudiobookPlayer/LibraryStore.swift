@@ -574,6 +574,8 @@ final class LibraryStore: ObservableObject {
             return true
         case .baiduNetdisk:
             return true
+        case .ebook:
+            return true
         case .external, .ephemeralBaidu:
             return false
         }
@@ -629,6 +631,49 @@ final class LibraryStore: ObservableObject {
             Task(priority: .utility) {
                 try? await syncEngine.saveRemoteCollection(collection)
             }
+        }
+    }
+    func importEbook(url: URL) async throws {
+        let parser = EpubParser()
+        let (title, author, chapters) = try parser.parse(epubURL: url)
+        
+        let collectionId = UUID()
+        let now = Date()
+        
+        // Create tracks from chapters
+        let tracks = chapters.enumerated().map { index, chapter in
+            AudiobookTrack(
+                id: UUID(),
+                displayName: chapter.title,
+                filename: chapter.filename,
+                location: .text(content: chapter.content),
+                fileSize: Int64(chapter.content.utf8.count),
+                duration: nil,
+                trackNumber: index + 1,
+                checksum: nil,
+                metadata: [:],
+                isFavorite: false,
+                favoritedAt: nil
+            )
+        }
+        
+        let collection = AudiobookCollection(
+            id: collectionId,
+            title: title,
+            author: author,
+            description: nil,
+            coverAsset: .generatedCover(for: title),
+            createdAt: now,
+            updatedAt: now,
+            source: .ebook(importedDate: now),
+            tracks: tracks,
+            lastPlayedTrackId: nil,
+            playbackStates: [:],
+            tags: []
+        )
+        
+        await MainActor.run {
+            self.save(collection)
         }
     }
 }

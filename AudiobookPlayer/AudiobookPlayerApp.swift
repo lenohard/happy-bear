@@ -11,6 +11,7 @@ struct AudiobookPlayerApp: App {
     @StateObject private var transcriptionManager = TranscriptionManager()
     @StateObject private var aiGenerationManager = AIGenerationManager()
     @State private var showSplash = true
+    @State private var pendingEbookURL: URL?
 
     @Environment(\.scenePhase) private var scenePhase
 
@@ -38,9 +39,82 @@ struct AudiobookPlayerApp: App {
                     audioPlayer.checkpointListeningSession()
                 }
             }
+            .onOpenURL { url in
+                handleIncomingURL(url)
+            }
+            .sheet(item: Binding(
+                get: { pendingEbookURL.map { PendingEbookImport(url: $0) } },
+                set: { pendingEbookURL = $0?.url }
+            )) { ebookImport in
+                CreateEbookCollectionView(
+                    epubURL: ebookImport.url,
+                    onComplete: { _ in
+                        pendingEbookURL = nil
+                    }
+                )
+                .environmentObject(libraryStore)
+            }
+        }
+    }
+    
+    // MARK: - URL Handling
+    
+    private func handleIncomingURL(_ url: URL) {
+        // Check if it's an EPUB file
+        guard url.pathExtension.lowercased() == "epub" else {
+            print("Unsupported file type: \(url.pathExtension)")
+            return
+        }
+        
+        // Prepare the EPUB file for preview
+        Task {
+            do {
+                // For security-scoped resources (files from other apps)
+                let accessing = url.startAccessingSecurityScopedResource()
+                defer {
+                    if accessing {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                
+                // Copy to temporary location if needed (inbox files are temporary)
+                let tempURL: URL
+                if url.path.contains("Inbox") {
+                    // File is in the app's Inbox (temporary), copy it
+                    let tempDir = FileManager.default.temporaryDirectory
+                    tempURL = tempDir.appendingPathComponent(url.lastPathComponent)
+                    
+                    // Remove existing temp file if any
+                    try? FileManager.default.removeItem(at: tempURL)
+                    
+                    // Copy the file
+                    try FileManager.default.copyItem(at: url, to: tempURL)
+                    
+                    // Clean up the inbox file
+                    try? FileManager.default.removeItem(at: url)
+                } else {
+                    tempURL = url
+                }
+                
+                // Show preview sheet and switch to library tab
+                await MainActor.run {
+                    pendingEbookURL = tempURL
+                    tabSelection.selectedTab = .library
+                }
+                
+                print("Prepared EPUB for preview: \(url.lastPathComponent)")
+            } catch {
+                print("Failed to prepare EPUB: \(error)")
+            }
         }
     }
 }
+
+private struct PendingEbookImport: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
+}
+
 
 // MARK: - App Delegate for Quick Actions
 

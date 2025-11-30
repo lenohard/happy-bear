@@ -25,6 +25,7 @@ struct CollectionDetailView: View {
     @State private var collectionDescriptionDraft = ""
     @State private var trackForTranscription: AudiobookTrack?
     @State private var trackForViewing: AudiobookTrack?
+    @State private var trackForReading: AudiobookTrack?
     @State private var transcriptStatusCache: [UUID: Bool] = [:]
     @State private var pendingAutoFocusTrackId: UUID?
     @State private var didAutoFocusTrack = false
@@ -73,6 +74,7 @@ struct CollectionDetailView: View {
     }
 
     enum SortOption: String, CaseIterable, Identifiable {
+        case trackNumber = "Track Number"
         case titleAscending = "Title Ascending"
         case titleDescending = "Title Descending"
         
@@ -80,13 +82,15 @@ struct CollectionDetailView: View {
         
         var localizedName: String {
             switch self {
-            case .titleAscending: return NSLocalizedString("sort_title_asc", value: "标题升序", comment: "Sort option: Title Ascending")
-            case .titleDescending: return NSLocalizedString("sort_title_desc", value: "标题降序", comment: "Sort option: Title Descending")
+            case .trackNumber: return NSLocalizedString("sort_track_number", value: "Track Number", comment: "Sort option: Track Number")
+            case .titleAscending: return NSLocalizedString("sort_title_asc", value: "Title Ascending", comment: "Sort option: Title Ascending")
+            case .titleDescending: return NSLocalizedString("sort_title_desc", value: "Title Descending", comment: "Sort option: Title Descending")
             }
         }
         
         var icon: String {
             switch self {
+            case .trackNumber: return "list.number"
             case .titleAscending: return "arrow.up"
             case .titleDescending: return "arrow.down"
             }
@@ -94,7 +98,7 @@ struct CollectionDetailView: View {
     }
 
     @State private var selectedFilter: FilterOption = .all
-    @State private var selectedSort: SortOption = .titleAscending
+    @State private var selectedSort: SortOption = .trackNumber
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -106,13 +110,20 @@ struct CollectionDetailView: View {
         let tracks = collection.tracks
         
         switch selectedSort {
+        case .trackNumber:
+            return tracks.sorted {
+                if $0.trackNumber != $1.trackNumber {
+                    return $0.trackNumber < $1.trackNumber
+                }
+                return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
+            }
         case .titleAscending:
             return tracks.sorted {
-                $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
+                $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
             }
         case .titleDescending:
             return tracks.sorted {
-                $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedDescending
+                $0.displayName.localizedStandardCompare($1.displayName) == .orderedDescending
             }
         }
     }
@@ -236,6 +247,26 @@ struct CollectionDetailView: View {
             } message: { error in
                 Text(error)
             }
+            .alert(
+                "Generate Audio",
+                isPresented: $audioPlayer.showGenerateAudioConfirmation
+            ) {
+                Button("Cancel", role: .cancel) {
+                    audioPlayer.showGenerateAudioConfirmation = false
+                    audioPlayer.trackToGenerateAudio = nil
+                }
+                Button("Generate") {
+                    if let track = audioPlayer.trackToGenerateAudio, let collection = collection {
+                        audioPlayer.generateAudio(for: track, in: collection, autoPlay: true)
+                    }
+                    audioPlayer.showGenerateAudioConfirmation = false
+                    audioPlayer.trackToGenerateAudio = nil
+                }
+            } message: {
+                if let track = audioPlayer.trackToGenerateAudio {
+                    Text("Audio has not been generated for \"\(track.displayName)\". Would you like to generate it now?")
+                }
+            }
 
         let viewWithSheets = viewWithAlerts
             .sheet(isPresented: $showTrackPicker) {
@@ -283,6 +314,13 @@ struct CollectionDetailView: View {
             }
             .sheet(item: $trackForViewing) { track in
                 TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName, showTrackSummary: true)
+            }
+            .sheet(item: $trackForReading) { track in
+                if let collection = collection {
+                    NavigationStack {
+                        EbookReaderView(track: track, collection: collection)
+                    }
+                }
             }
             .sheet(isPresented: $showBatchRename) {
                 if let collection = collection {
@@ -473,10 +511,16 @@ struct CollectionDetailView: View {
                             .foregroundStyle(.secondary)
                     }
 
-                    let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
-                    Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.tracks.count, formatBytes(totalSize)))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    if case .ebook = collection.source, let charCount = collection.totalCharacterCount {
+                         Text("\(collection.tracks.count) tracks • \(formatNumber(charCount)) chars")
+                             .font(.caption)
+                             .foregroundStyle(.secondary)
+                    } else {
+                        let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
+                        Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.tracks.count, formatBytes(totalSize)))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .overlay(alignment: .topTrailing) {
@@ -501,6 +545,22 @@ struct CollectionDetailView: View {
                 }
             }
             .padding(.vertical, 4)
+        }
+    }
+    
+    private func formatNumber(_ number: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 1
+        
+        if number >= 1_000_000 {
+            let millions = Double(number) / 1_000_000
+            return "\(formatter.string(from: NSNumber(value: millions)) ?? "")M"
+        } else if number >= 1_000 {
+            let thousands = Double(number) / 1_000
+            return "\(formatter.string(from: NSNumber(value: thousands)) ?? "")k"
+        } else {
+            return "\(number)"
         }
     }
 
@@ -676,6 +736,42 @@ struct CollectionDetailView: View {
                         }
                     }
                     .contextMenu {
+                        // Add Read option for text tracks
+                        if case .text = track.location {
+                            Button {
+                                trackForReading = track
+                            } label: {
+                                Label("Read", systemImage: "book")
+                            }
+                            
+                            Button {
+                                // Trigger manual audio generation
+                                Task {
+                                    // We need to trigger this via AudioPlayerViewModel or a new method
+                                    // For now, let's just play it, which triggers generation if not cached
+                                    // But the requirement is to have a specific "Generate Audio" action
+                                    // So we might need to expose `playTextTrack` logic or similar without auto-playing,
+                                    // or just rely on the fact that playing generates it.
+                                    // However, the requirement says "Manual Generate Audio option".
+                                    // Let's add a method to AudioPlayerViewModel to generate without playing immediately, or just use play.
+                                    // Actually, the plan says: "Add a manual 'Generate Audio' option... When clicking play... pop up confirmation".
+                                    // So here we just want to trigger generation.
+                                    // I'll add `generateAudio(for: track)` to AudioPlayerViewModel later.
+                                    // For now, I'll put a placeholder or call a method I'll add.
+                                    await audioPlayer.generateAudio(for: track, in: collection)
+                                }
+                            } label: {
+                                Label(NSLocalizedString("generate_audio_action", value: "Generate Audio", comment: "Generate audio action"), systemImage: "waveform.badge.plus")
+                            }
+                        } else if case .cachedText = track.location {
+                            Button {
+                                trackForReading = track
+                            } label: {
+                                Label("Read", systemImage: "book")
+                            }
+                            // Already generated, maybe offer re-generate?
+                        }
+
                         if isTranscribingTrack {
                             Button {
                                 trackForTranscription = track
@@ -685,7 +781,7 @@ struct CollectionDetailView: View {
                                     systemImage: "waveform.badge.exclamationmark"
                                 )
                             }
-                        } else if !hasTranscript {
+                        } else if !hasTranscript && !track.isTextTrack { // Hide transcribe for text tracks
                             Button {
                                 trackForTranscription = track
                             } label: {

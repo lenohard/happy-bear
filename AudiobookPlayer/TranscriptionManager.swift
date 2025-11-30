@@ -98,6 +98,17 @@ class TranscriptionManager: NSObject, ObservableObject {
         Task {
             await refreshActiveJobsFromDatabase()
         }
+        
+        NotificationCenter.default.addObserver(
+            forName: NSNotification.Name("TranscriptionJobUpdated"),
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task {
+                await self?.refreshActiveJobsFromDatabase()
+                await self?.refreshAllRecentJobs()
+            }
+        }
     }
 
     // MARK: - API Key Management

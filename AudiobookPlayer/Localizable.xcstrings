@@ -4,6 +4,9 @@
     "" : {
 
     },
+    "--" : {
+
+    },
     "... and %lld more" : {
 
     },
@@ -42,6 +45,9 @@
     "%lld" : {
 
     },
+    "%lld characters" : {
+
+    },
     "%lld corrections" : {
 
     },
@@ -76,6 +82,19 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld / %2$lld"
+          }
+        }
+      }
+    },
+    "%lld tracks" : {
+
+    },
+    "%lld tracks • %@ chars" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld tracks • %2$@ chars"
           }
         }
       }
@@ -1414,6 +1433,18 @@
         }
       }
     },
+    "Are you sure you want to delete all downloaded/cached audio for '%@'? This action cannot be undone." : {
+
+    },
+    "Audio has not been generated for \"%@\". Would you like to generate it now?" : {
+
+    },
+    "Author" : {
+
+    },
+    "Author (optional)" : {
+
+    },
     "Authorizing…" : {
 
     },
@@ -1674,6 +1705,9 @@
         }
       }
     },
+    "Book Details" : {
+
+    },
     "browse_baidu_netdisk" : {
       "comment" : "Browse Baidu netdisk",
       "localizations" : {
@@ -1812,6 +1846,7 @@
     },
     "cache_management_row_title" : {
       "comment" : "Cache Management row in Settings",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1921,6 +1956,12 @@
           }
         }
       }
+    },
+    "Chapters" : {
+
+    },
+    "Close" : {
+
     },
     "close_button" : {
       "comment" : "Close button",
@@ -2298,6 +2339,12 @@
     "Delete %lld corrections?" : {
 
     },
+    "Delete Storage" : {
+
+    },
+    "Delete Storage for Collection" : {
+
+    },
     "delete_cache_confirm" : {
       "comment" : "Delete cached track button",
       "localizations" : {
@@ -2543,6 +2590,9 @@
     "Duration" : {
 
     },
+    "Edge TTS" : {
+
+    },
     "edit_collection_details_action" : {
       "comment" : "Edit collection details action",
       "localizations" : {
@@ -2682,6 +2732,9 @@
           }
         }
       }
+    },
+    "Failed to parse ebook" : {
+
     },
     "failed_status" : {
 
@@ -2878,6 +2931,27 @@
         }
       }
     },
+    "Generate" : {
+
+    },
+    "Generate Audio" : {
+
+    },
+    "generate_audio_action" : {
+      "comment" : "Generate audio action",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Generate Audio"
+          }
+        }
+      }
+    },
+    "Generating..." : {
+
+    },
     "hide_for_session" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2913,6 +2987,9 @@
           }
         }
       }
+    },
+    "Import Ebook" : {
+
     },
     "import_again_button" : {
       "comment" : "Import again button",
@@ -3261,6 +3338,9 @@
     "No AI Jobs" : {
 
     },
+    "No collections found" : {
+
+    },
     "No Corrections" : {
 
     },
@@ -3457,8 +3537,14 @@
         }
       }
     },
+    "Parsing ebook..." : {
+
+    },
     "pause_track_button_accessibility" : {
       "comment" : "Accessibility label for pause track button"
+    },
+    "Per-Collection Storage" : {
+
     },
     "Personal" : {
       "localizations" : {
@@ -3469,6 +3555,12 @@
           }
         }
       }
+    },
+    "Pitch" : {
+
+    },
+    "Play" : {
+
     },
     "play_collection_accessibility" : {
       "comment" : "Play collection accessibility label",
@@ -3577,7 +3669,13 @@
         }
       }
     },
+    "Rate" : {
+
+    },
     "Re-authenticate" : {
+
+    },
+    "Read" : {
 
     },
     "recent_errors" : {
@@ -3949,6 +4047,9 @@
         }
       }
     },
+    "Select Chapters" : {
+
+    },
     "Select Tracks" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3958,6 +4059,9 @@
           }
         }
       }
+    },
+    "Selected Chapters" : {
+
     },
     "Selected Tracks" : {
 
@@ -4129,7 +4233,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "标题升序"
+            "value" : "Title Ascending"
           }
         }
       }
@@ -4141,7 +4245,19 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "标题降序"
+            "value" : "Title Descending"
+          }
+        }
+      }
+    },
+    "sort_track_number" : {
+      "comment" : "Sort option: Track Number",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Track Number"
           }
         }
       }
@@ -4195,6 +4311,33 @@
         }
       }
     },
+    "storage_management_row_title" : {
+      "comment" : "Storage Management row in Settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Storage Management"
+          }
+        }
+      }
+    },
+    "storage_management_title" : {
+      "comment" : "Storage management title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Storage Management"
+          }
+        }
+      }
+    },
+    "STT (Soniox)" : {
+
+    },
     "Tap refresh to load available models." : {
       "localizations" : {
         "zh-Hans" : {
@@ -4225,6 +4368,9 @@
         }
       }
     },
+    "Test Voice" : {
+
+    },
     "Test with sample audio" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4254,6 +4400,9 @@
           }
         }
       }
+    },
+    "These settings will be applied when playing Ebook text tracks." : {
+
     },
     "This folder is empty." : {
       "localizations" : {
@@ -5288,6 +5437,9 @@
         }
       }
     },
+    "TTS (Edge)" : {
+
+    },
     "tts_files_delete_action" : {
       "comment" : "Delete action label used on the Soniox files list",
       "localizations" : {
@@ -5511,6 +5663,7 @@
     },
     "tts_tab" : {
       "comment" : "TTS tab",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5657,6 +5810,12 @@
           }
         }
       }
+    },
+    "Voice" : {
+
+    },
+    "Voice Settings" : {
+
     },
     "Your AI generation tasks will appear here." : {
 
