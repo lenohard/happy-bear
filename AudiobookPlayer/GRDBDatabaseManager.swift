@@ -753,7 +753,8 @@ actor GRDBDatabaseManager {
         let metadataJson = row["metadata_json"] as? String
         let metadata = metadataJson.flatMap { decodeJSON($0) as? [String: String] } ?? [:]
         let mediaKindRaw = row["media_kind"] as? String ?? "audio"
-        let mediaKind = AudiobookTrack.MediaKind(rawValue: mediaKindRaw) ?? .audio
+        let storedMediaKind = AudiobookTrack.MediaKind(rawValue: mediaKindRaw) ?? .audio
+        let mediaKind = resolveMediaKind(storedMediaKind, filename: filename)
         let isFavoriteValue: Int? = row["is_favorite"]
         let isFavorite = (isFavoriteValue ?? 0) == 1
 
@@ -784,10 +785,21 @@ actor GRDBDatabaseManager {
             trackNumber: trackNumber,
             checksum: checksum,
             metadata: metadata,
+            mediaKind: mediaKind,
             isFavorite: isFavorite,
             favoritedAt: favoritedAt,
             characterCount: charCount
         )
+    }
+
+    private func resolveMediaKind(_ stored: AudiobookTrack.MediaKind, filename: String) -> AudiobookTrack.MediaKind {
+        if stored == .audio {
+            let detected = PlayableMediaFormat.mediaKind(forFilename: filename)
+            if detected == .video {
+                return .video
+            }
+        }
+        return stored
     }
 
     private func reconstructPlaybackState(row: Row) throws -> TrackPlaybackState? {
