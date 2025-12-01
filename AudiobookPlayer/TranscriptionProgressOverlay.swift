@@ -167,7 +167,9 @@ struct StatusBadge: View {
             return .gray
         case "downloading", "uploading":
             return .blue
-        case "uploading", "transcribing", "processing":
+        case "extracting":
+            return .orange
+        case "generating", "transcribing", "processing":
             return .blue
         case "completed":
             return .green
@@ -184,8 +186,12 @@ struct StatusBadge: View {
             return "queued_status"
         case "downloading":
             return "downloading_status"
+        case "extracting":
+            return "extracting_status"
         case "uploading":
             return "uploading_status"
+        case "generating":
+            return "tts_generating_audio"
         case "transcribing", "processing":
             return "transcribing_status"
         case "completed":
@@ -254,6 +260,39 @@ struct TranscriptionJobRowView: View {
     private var progressValue: Double {
         min(max(job.progress ?? 0, 0), 1)
     }
+    
+    private var isTTSJob: Bool { job.sonioxJobId.hasPrefix("tts-") }
+    
+    private var detailStatusText: String {
+        switch job.status {
+        case "queued":
+            return NSLocalizedString("queued_status", comment: "")
+        case "downloading":
+            return NSLocalizedString("downloading_status", comment: "")
+        case "extracting":
+            return NSLocalizedString("extracting_status", comment: "")
+        case "uploading":
+            return NSLocalizedString("uploading_status", comment: "")
+        case "transcribing", "processing", "generating":
+            if isTTSJob {
+                if let processed = job.processedParagraphs, let total = job.totalParagraphs, total > 0 {
+                    return String(format: NSLocalizedString("tts_generating_paragraph_progress", comment: ""), processed, total)
+                } else {
+                    return NSLocalizedString("tts_generating_audio", comment: "")
+                }
+            } else {
+                return NSLocalizedString("transcribing_status", comment: "")
+            }
+        case "completed":
+            return NSLocalizedString("completed_status", comment: "")
+        case "failed":
+            return NSLocalizedString("failed_status", comment: "")
+        case "paused":
+            return NSLocalizedString("tts_jobs_status_paused", comment: "")
+        default:
+            return job.status.capitalized
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -283,7 +322,7 @@ struct TranscriptionJobRowView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(job.status.capitalized)
+                Text(detailStatusText)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
