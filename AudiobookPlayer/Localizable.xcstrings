@@ -70,7 +70,7 @@
     "%lld models" : {
 
     },
-    "%lld non-audio files" : {
+    "%lld non-media files" : {
 
     },
     "%lld of %lld" : {
@@ -2961,6 +2961,9 @@
     "Generating..." : {
 
     },
+    "generic_playback_failed" : {
+      "comment" : "Generic playback failure"
+    },
     "hide_for_session" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4146,6 +4149,9 @@
           }
         }
       }
+    },
+    "Show Video" : {
+
     },
     "sign_in_on_sources_tab" : {
       "comment" : "Sign in on sources tab message",
@@ -5799,6 +5805,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用此目录 (%lld 文件)"
+          }
+        }
+      }
+    },
+    "video_collection_indicator_accessibility" : {
+      "comment" : "Indicator for video collection",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Video collection"
+          }
+        }
+      }
+    },
+    "video_missing_audio_error" : {
+      "comment" : "Video missing audio track message"
+    },
+    "video_playback_failed_error" : {
+      "comment" : "Video playback failed message"
+    },
+    "video_track_indicator_label" : {
+      "comment" : "Video track indicator",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Video"
           }
         }
       }

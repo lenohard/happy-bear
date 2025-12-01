@@ -1,4 +1,5 @@
 import SwiftUI
+import AVKit
 
 @MainActor
 final class TabSelectionManager: ObservableObject {
@@ -145,6 +146,7 @@ struct PlayingView: View {
     @State private var libraryLoaded = false
     @StateObject private var trackSummaryViewModel = TrackSummaryViewModel()
     @State private var autoSummaryGuards: Set<String> = []
+    @State private var showingVideoPlayer = false
 
     private var currentPlayback: PlaybackSnapshot? {
         guard let currentTrack = audioPlayer.currentTrack else {
@@ -259,6 +261,11 @@ struct PlayingView: View {
         .sheet(item: $transcriptViewerTrack) { track in
             TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
         }
+        .sheet(isPresented: $showingVideoPlayer) {
+            if let player = audioPlayer.sharedVideoPlayer {
+                VideoPlayerSheet(player: player)
+            }
+        }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             syncPlaybackState()
             refreshTranscriptStatus()
@@ -338,6 +345,21 @@ struct PlayingView: View {
                         .font(.headline)
                         .lineLimit(2)
                         .foregroundStyle(.secondary)
+                    
+                    if snapshot.track.isVideoTrack {
+                        Button {
+                            showingVideoPlayer = true
+                        } label: {
+                            Label("Show Video", systemImage: "film")
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.orange.opacity(0.1))
+                                .foregroundStyle(.orange)
+                                .clipShape(Capsule())
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
 
                 Spacer()

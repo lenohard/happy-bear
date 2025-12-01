@@ -148,7 +148,7 @@ actor GRDBDatabaseManager {
                         media_kind,
                         is_favorite, favorited_at,
                         character_count
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     arguments: [
                         track.id.uuidString,

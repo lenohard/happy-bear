@@ -72,7 +72,7 @@ struct BaiduNetdiskBrowserView: View {
                         onSelectFolder(viewModel.currentPath)
                     } label: {
                         Label {
-                            let count = audioEntryCount
+                            let count = playableEntryCount
                             if count > 0 {
                                 Text("Use This Folder (\(count) files here)")
                             } else {

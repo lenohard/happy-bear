@@ -270,6 +270,7 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
 
     let id: UUID
     var displayName: String
+    var filename: String
 
     var location: Location
     var fileSize: Int64

@@ -313,6 +313,13 @@ private struct LibraryCollectionRow: View {
                             .foregroundStyle(.blue)
                             .accessibilityLabel(NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection"))
                     }
+                    
+                    if collection.containsVideoTracks {
+                        Image(systemName: "film")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                            .accessibilityLabel(NSLocalizedString("video_collection_indicator_accessibility", value: "Video collection", comment: "Indicator for video collection"))
+                    }
                 }
 
                 if let author = collection.author, !author.isEmpty {

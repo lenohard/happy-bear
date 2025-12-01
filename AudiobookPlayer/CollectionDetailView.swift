@@ -1550,6 +1550,13 @@ private struct TrackDetailRow: View, Equatable {
                         .accessibilityLabel(NSLocalizedString("track_summary_indicator_label", comment: "Track summary availability indicator"))
                 }
 
+                if track.isVideoTrack {
+                    Image(systemName: "film")
+                        .font(.caption2)
+                        .foregroundStyle(.orange)
+                        .accessibilityLabel(NSLocalizedString("video_track_indicator_label", value: "Video", comment: "Video track indicator"))
+                }
+
                 if isTranscribing {
                     HStack(spacing: 4) {
                         ProgressView()
