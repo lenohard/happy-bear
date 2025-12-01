@@ -26,6 +26,7 @@ struct CollectionDetailView: View {
     @State private var trackForTranscription: AudiobookTrack?
     @State private var trackForViewing: AudiobookTrack?
     @State private var trackForReading: AudiobookTrack?
+    @State private var trackForTTSProgress: AudiobookTrack?
     @State private var transcriptStatusCache: [UUID: Bool] = [:]
     @State private var pendingAutoFocusTrackId: UUID?
     @State private var didAutoFocusTrack = false
@@ -312,6 +313,9 @@ struct CollectionDetailView: View {
                     collectionDescription: collection?.description
                 )
             }
+            .sheet(item: $trackForTTSProgress) { track in
+                TTSJobProgressSheet(track: track)
+            }
             .sheet(item: $trackForViewing) { track in
                 TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName, showTrackSummary: true)
             }
@@ -402,20 +406,18 @@ struct CollectionDetailView: View {
 
         return viewWithStateEvents
             .onAppear {
-                // Initialize transcribing IDs
-                transcribingTrackIds = Set(transcriptionManager.activeJobs.compactMap { UUID(uuidString: $0.trackId) })
-                
+                refreshSttTranscribingTrackIds(from: transcriptionManager.activeJobs)
+                refreshTTSGeneratingTrackIds(from: transcriptionManager.activeJobs)
+
                 loadTranscriptStatus()
                 prepareAutoFocusTargetIfNeeded(for: self.collection)
                 refreshTrackSummaryIndicators(for: self.collection)
             }
+            .onReceive(transcriptionManager.$activeJobs) { jobs in
+                refreshSttTranscribingTrackIds(from: jobs)
+                refreshTTSGeneratingTrackIds(from: jobs)
+            }
             .onChange(of: aiGenerationManager.activeJobs) { jobs in
-                // Optimize: Update the set of transcribing IDs once, instead of filtering in every row
-                let newIds = Set(jobs.compactMap { job in job.trackId.flatMap(UUID.init) })
-                if newIds != transcribingTrackIds {
-                    transcribingTrackIds = newIds
-                }
-                
                 guard jobs.contains(where: { $0.type == .trackSummary }) else { return }
                 refreshTrackSummaryIndicators(for: self.collection)
             }
@@ -746,7 +748,7 @@ struct CollectionDetailView: View {
                     let trackIsActive = isCurrentTrack(track: track)
                     let hasTranscript = transcriptStatusCache[track.id] ?? false
                     // Optimized O(1) lookup
-                    let isTranscribingTrack = transcribingTrackIds.contains(track.id)
+                let isTranscribingTrack = sttTranscribingTrackIds.contains(track.id)
 
                     TrackDetailRow(
                         index: index,
@@ -797,25 +799,22 @@ struct CollectionDetailView: View {
                             } label: {
                                 Label("Read", systemImage: "book")
                             }
-                            
-                            Button {
-                                // Trigger manual audio generation
-                                Task {
-                                    // We need to trigger this via AudioPlayerViewModel or a new method
-                                    // For now, let's just play it, which triggers generation if not cached
-                                    // But the requirement is to have a specific "Generate Audio" action
-                                    // So we might need to expose `playTextTrack` logic or similar without auto-playing,
-                                    // or just rely on the fact that playing generates it.
-                                    // However, the requirement says "Manual Generate Audio option".
-                                    // Let's add a method to AudioPlayerViewModel to generate without playing immediately, or just use play.
-                                    // Actually, the plan says: "Add a manual 'Generate Audio' option... When clicking play... pop up confirmation".
-                                    // So here we just want to trigger generation.
-                                    // I'll add `generateAudio(for: track)` to AudioPlayerViewModel later.
-                                    // For now, I'll put a placeholder or call a method I'll add.
-                                    await audioPlayer.generateAudio(for: track, in: collection)
+
+                            if ttsGeneratingTrackIds.contains(track.id) {
+                                Button {
+                                    trackForTTSProgress = track
+                                } label: {
+                                    Label("View TTS progress", systemImage: "waveform.path.ecg")
                                 }
-                            } label: {
-                                Label(NSLocalizedString("generate_audio_action", value: "Generate Audio", comment: "Generate audio action"), systemImage: "waveform.badge.plus")
+                            } else {
+                                Button {
+                                    trackForTTSProgress = track
+                                    Task {
+                                        await audioPlayer.generateAudio(for: track, in: collection)
+                                    }
+                                } label: {
+                                    Label(NSLocalizedString("generate_audio_action", value: "Generate Audio", comment: "Generate audio action"), systemImage: "waveform.badge.plus")
+                                }
                             }
                         } else if case .cachedText = track.location {
                             Button {
@@ -1170,7 +1169,8 @@ struct CollectionDetailView: View {
     }
 
     @State private var transcriptStatusTask: Task<Void, Never>?
-    @State private var transcribingTrackIds: Set<UUID> = []
+    @State private var sttTranscribingTrackIds: Set<UUID> = []
+    @State private var ttsGeneratingTrackIds: Set<UUID> = []
 
     // ... (removed duplicates)
 
@@ -1319,6 +1319,31 @@ struct CollectionDetailView: View {
             await MainActor.run {
                 isUpdatingCover = false
             }
+        }
+    }
+
+    private func refreshSttTranscribingTrackIds(from jobs: [TranscriptionJob]) {
+        let newIds = Set(
+            jobs
+                .filter { !$0.sonioxJobId.hasPrefix("tts-") }
+                .compactMap { UUID(uuidString: $0.trackId) }
+        )
+
+        if newIds != sttTranscribingTrackIds {
+            sttTranscribingTrackIds = newIds
+        }
+    }
+
+    private func refreshTTSGeneratingTrackIds(from jobs: [TranscriptionJob]) {
+        let generatingStates: Set<String> = ["queued", "downloading", "uploading", "transcribing", "processing", "generating"]
+        let newIds = Set(
+            jobs
+                .filter { generatingStates.contains($0.status) && $0.sonioxJobId.hasPrefix("tts-") }
+                .compactMap { UUID(uuidString: $0.trackId) }
+        )
+
+        if newIds != ttsGeneratingTrackIds {
+            ttsGeneratingTrackIds = newIds
         }
     }
 }
