@@ -41,8 +41,6 @@ struct CollectionDetailView: View {
     @State private var isUpdatingCover = false
     @State private var coverUpdateError: String?
     @State private var showCoverUpdateError = false
-    @State private var scrubberThumbOffset: CGFloat = 0
-    @State private var isDraggingScrubber = false
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -479,85 +477,47 @@ struct CollectionDetailView: View {
                     attemptAutoFocusIfNeeded(using: proxy)
                 }
                 
-                // Scroll Scrubber - iOS Style
+                // Jump to Top/Bottom Buttons
                 if filteredTracks.count > 10 {
-                    ScrollScrubberView(
-                        trackCount: filteredTracks.count,
-                        thumbOffset: $scrubberThumbOffset,
-                        isDragging: $isDraggingScrubber,
-                        onScroll: { progress in
-                            let targetIndex = Int(Double(filteredTracks.count - 1) * progress)
-                            if targetIndex >= 0 && targetIndex < filteredTracks.count {
-                                let track = filteredTracks[targetIndex]
-                                withAnimation(.easeOut(duration: 0.2)) {
-                                    proxy.scrollTo(track.id, anchor: .center)
+                    VStack {
+                        Spacer()
+                        VStack(spacing: 8) {
+                            // Jump to Top
+                            Button {
+                                if let first = filteredTracks.first {
+                                    withAnimation {
+                                        proxy.scrollTo(first.id, anchor: .top)
+                                    }
                                 }
+                            } label: {
+                                Image(systemName: "chevron.up")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.secondary.opacity(0.6))
+                                    .clipShape(Circle())
+                            }
+                            
+                            // Jump to Bottom
+                            Button {
+                                if let last = filteredTracks.last {
+                                    withAnimation {
+                                        proxy.scrollTo(last.id, anchor: .bottom)
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.secondary.opacity(0.6))
+                                    .clipShape(Circle())
                             }
                         }
-                    )
-                    .frame(width: 40)
-                    .padding(.trailing, 4)
+                        .padding(.trailing, 8)
+                        .padding(.bottom, 16)
+                    }
                 }
-            }
-        }
-    }
-    
-    // MARK: - Scroll Scrubber Component
-    private struct ScrollScrubberView: View {
-        let trackCount: Int
-        @Binding var thumbOffset: CGFloat
-        @Binding var isDragging: Bool
-        let onScroll: (Double) -> Void
-        
-        private let trackWidth: CGFloat = 2
-        private let thumbWidthIdle: CGFloat = 4
-        private let thumbWidthDragging: CGFloat = 12
-        private let thumbHeight: CGFloat = 30
-        
-        var body: some View {
-            GeometryReader { geometry in
-                ZStack(alignment: .top) {
-                    // Track
-                    Capsule()
-                        .fill(Color.secondary.opacity(isDragging ? 0.2 : 0.05))
-                        .frame(width: trackWidth)
-                        .frame(maxHeight: .infinity)
-                    
-                    // Thumb - small when idle, expands when dragging
-                    Capsule()
-                        .fill(Color.secondary.opacity(isDragging ? 0.8 : 0.4))
-                        .frame(
-                            width: isDragging ? thumbWidthDragging : thumbWidthIdle,
-                            height: thumbHeight
-                        )
-                        .offset(y: thumbOffset)
-                        .animation(.easeOut(duration: 0.15), value: thumbOffset)
-                        .animation(.easeOut(duration: 0.2), value: isDragging)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { value in
-                            isDragging = true
-                            
-                            let maxOffset = geometry.size.height - thumbHeight
-                            let newOffset = max(0, min(maxOffset, value.location.y - thumbHeight / 2))
-                            thumbOffset = newOffset
-                            
-                            let progress = maxOffset > 0 ? Double(newOffset / maxOffset) : 0
-                            onScroll(progress)
-                            
-                            // Haptic feedback (throttled)
-                            if Int(newOffset) % 20 == 0 {
-                                let generator = UIImpactFeedbackGenerator(style: .light)
-                                generator.impactOccurred()
-                            }
-                        }
-                        .onEnded { _ in
-                            isDragging = false
-                        }
-                )
             }
         }
     }
