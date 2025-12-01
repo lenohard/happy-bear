@@ -28,6 +28,7 @@ struct TranscriptionSheet: View {
     private enum Stage {
         case idle
         case downloading
+        case extracting
         case uploading
         case transcribing
         case processing
@@ -38,6 +39,8 @@ struct TranscriptionSheet: View {
             switch self {
             case .downloading:
                 return "transcription_step_downloading"
+            case .extracting:
+                return "transcription_step_extracting"
             case .uploading:
                 return "transcription_step_uploading"
             case .transcribing:
@@ -55,6 +58,7 @@ struct TranscriptionSheet: View {
             switch self {
             case .idle: return "idle"
             case .downloading: return "downloading"
+            case .extracting: return "extracting"
             case .uploading: return "uploading"
             case .transcribing: return "transcribing"
             case .processing: return "processing"
@@ -66,6 +70,7 @@ struct TranscriptionSheet: View {
         init(jobStatus: String) {
             switch jobStatus {
             case "downloading": self = .downloading
+            case "extracting": self = .extracting
             case "uploading": self = .uploading
             case "transcribing", "processing": self = .transcribing
             case "completed": self = .completed
@@ -126,6 +131,10 @@ struct TranscriptionSheet: View {
 
                             if stage == .downloading, totalBytes > 0 {
                                 Text(String(format: NSLocalizedString("transcription_progress_download", comment: ""), formatBytes(downloadedBytes), formatBytes(totalBytes)))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else if stage == .extracting {
+                                Text(NSLocalizedString("transcription_extracting_audio", comment: ""))
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             } else if stage == .uploading, totalBytes > 0 {
@@ -453,7 +462,8 @@ struct TranscriptionSheet: View {
     @ViewBuilder
     private var processTimeline: some View {
         VStack(spacing: 8) {
-            timelineRow(label: NSLocalizedString("transcription_step_downloading", comment: ""), isActive: stage == .downloading || stage == .uploading || stage == .transcribing || stage == .processing || stage == .finalizing || stage == .completed)
+            timelineRow(label: NSLocalizedString("transcription_step_downloading", comment: ""), isActive: stage == .downloading || stage == .extracting || stage == .uploading || stage == .transcribing || stage == .processing || stage == .finalizing || stage == .completed)
+            timelineRow(label: NSLocalizedString("transcription_step_extracting", comment: ""), isActive: stage == .extracting || stage == .uploading || stage == .transcribing || stage == .processing || stage == .finalizing || stage == .completed)
             timelineRow(label: NSLocalizedString("transcription_step_uploading", comment: ""), isActive: stage == .uploading || stage == .transcribing || stage == .processing || stage == .finalizing || stage == .completed)
             timelineRow(label: NSLocalizedString("transcription_step_transcribing", comment: ""), isActive: stage == .transcribing || stage == .processing || stage == .finalizing || stage == .completed)
             timelineRow(label: NSLocalizedString("transcription_step_processing", comment: ""), isActive: stage == .processing || stage == .finalizing || stage == .completed)
@@ -677,6 +687,8 @@ extension TranscriptionSheet {
         switch stage {
         case .downloading:
             return 0.1
+        case .extracting:
+            return 0.15
         case .uploading:
             return 0.2
         case .transcribing:
