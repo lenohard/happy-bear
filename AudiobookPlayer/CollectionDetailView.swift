@@ -459,7 +459,7 @@ struct CollectionDetailView: View {
 
     private func listContent(_ collection: AudiobookCollection) -> some View {
         ScrollViewReader { proxy in
-            ZStack(alignment: .trailing) {
+            ZStack(alignment: .center) {
                 List {
                     summarySection(collection)
                         .id("summary-section")
@@ -477,46 +477,47 @@ struct CollectionDetailView: View {
                     attemptAutoFocusIfNeeded(using: proxy)
                 }
                 
-                // Jump to Top/Bottom Buttons
+                // Jump to Top/Bottom Buttons (Centered)
                 if filteredTracks.count > 10 {
                     VStack {
-                        Spacer()
-                        VStack(spacing: 8) {
-                            // Jump to Top
-                            Button {
-                                if let first = filteredTracks.first {
-                                    withAnimation {
-                                        proxy.scrollTo(first.id, anchor: .top)
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "chevron.up")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .frame(width: 28, height: 28)
-                                    .background(Color.secondary.opacity(0.6))
-                                    .clipShape(Circle())
+                        // Top Button
+                        Button {
+                            withAnimation {
+                                // Scroll to summary section (top of list)
+                                proxy.scrollTo("summary-section", anchor: .top)
                             }
-                            
-                            // Jump to Bottom
-                            Button {
-                                if let last = filteredTracks.last {
-                                    withAnimation {
-                                        proxy.scrollTo(last.id, anchor: .bottom)
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.white)
-                                    .frame(width: 28, height: 28)
-                                    .background(Color.secondary.opacity(0.6))
-                                    .clipShape(Circle())
-                            }
+                        } label: {
+                            Image(systemName: "chevron.up")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.secondary)
+                                .padding(10)
+                                .background(.regularMaterial, in: Circle())
+                                .shadow(color: .black.opacity(0.1), radius: 3)
                         }
-                        .padding(.trailing, 8)
-                        .padding(.bottom, 16)
+                        .padding(.top, 8)
+                        .accessibilityLabel(Text("Scroll to top"))
+                        
+                        Spacer()
+                        
+                        // Bottom Button
+                        Button {
+                            if let last = filteredTracks.last {
+                                withAnimation {
+                                    proxy.scrollTo(last.id, anchor: .bottom)
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.secondary)
+                                .padding(10)
+                                .background(.regularMaterial, in: Circle())
+                                .shadow(color: .black.opacity(0.1), radius: 3)
+                        }
+                        .padding(.bottom, 8)
+                        .accessibilityLabel(Text("Scroll to bottom"))
                     }
+                    .padding(.vertical, 4)
                 }
             }
         }
