@@ -509,25 +509,30 @@ struct CollectionDetailView: View {
         @Binding var isDragging: Bool
         let onScroll: (Double) -> Void
         
-        private let trackWidth: CGFloat = 3
-        private let thumbWidth: CGFloat = 20
-        private let thumbHeight: CGFloat = 40
+        private let trackWidth: CGFloat = 2
+        private let thumbWidthIdle: CGFloat = 4
+        private let thumbWidthDragging: CGFloat = 12
+        private let thumbHeight: CGFloat = 30
         
         var body: some View {
             GeometryReader { geometry in
                 ZStack(alignment: .top) {
                     // Track
                     Capsule()
-                        .fill(Color.secondary.opacity(isDragging ? 0.2 : 0.1))
+                        .fill(Color.secondary.opacity(isDragging ? 0.2 : 0.05))
                         .frame(width: trackWidth)
                         .frame(maxHeight: .infinity)
                     
-                    // Thumb
+                    // Thumb - small when idle, expands when dragging
                     Capsule()
-                        .fill(Color.secondary.opacity(isDragging ? 0.8 : 0.5))
-                        .frame(width: thumbWidth, height: thumbHeight)
+                        .fill(Color.secondary.opacity(isDragging ? 0.8 : 0.4))
+                        .frame(
+                            width: isDragging ? thumbWidthDragging : thumbWidthIdle,
+                            height: thumbHeight
+                        )
                         .offset(y: thumbOffset)
-                        .animation(.easeOut(duration: 0.1), value: thumbOffset)
+                        .animation(.easeOut(duration: 0.15), value: thumbOffset)
+                        .animation(.easeOut(duration: 0.2), value: isDragging)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Rectangle())
