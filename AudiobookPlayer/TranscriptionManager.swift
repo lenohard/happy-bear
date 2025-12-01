@@ -1,5 +1,6 @@
 import Foundation
 import OSLog
+import AVFoundation
 
 // MARK: - Transcription Manager
 
@@ -209,18 +210,48 @@ class TranscriptionManager: NSObject, ObservableObject {
                 }
             }
 
+            var uploadFileURL = audioFileURL
+            var extractedAudioURL: URL?
+
+            // Check if track is video and extract audio if needed
+            if let (track, _) = try? await dbManager.loadTrack(id: trackId), track.mediaKind == .video {
+                 logger.info("[TranscriptionManager] Track is video, extracting audio...")
+                 
+                 if let jobId = currentJobId {
+                     try await dbManager.updateJobStatus(jobId: jobId, status: "extracting", progress: 0.1)
+                     updateActiveJob(jobId: jobId) { existing in
+                        existing.updating(status: "extracting", progress: 0.1, lastAttemptAt: Date())
+                     }
+                 }
+                 
+                 extractedAudioURL = try await extractAudioFromVideo(videoURL: audioFileURL)
+                 uploadFileURL = extractedAudioURL!
+                 logger.info("[TranscriptionManager] Audio extracted to \(uploadFileURL.path)")
+                 
+                 // Update status back to uploading
+                 if let jobId = currentJobId {
+                     try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.15)
+                     updateActiveJob(jobId: jobId) { existing in
+                        existing.updating(status: "uploading", progress: 0.15, lastAttemptAt: Date())
+                     }
+                 }
+            }
+
             // Step 1: Upload file to Soniox
-            let fileId = try await sonioxAPI.uploadFile(fileURL: audioFileURL)
+            let fileId = try await sonioxAPI.uploadFile(fileURL: uploadFileURL)
             logger.info("[TranscriptionManager] Upload complete for track \(trackIdStr, privacy: .public); fileId=\(fileId, privacy: .public) size=\(fileSizeBytes, privacy: .public)")
 
             if let jobId = currentJobId {
-                try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.15)
+                try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.2)
                 updateActiveJob(jobId: jobId) { existing in
-                    existing.updating(status: "uploading", progress: 0.15, lastAttemptAt: Date())
+                    existing.updating(status: "uploading", progress: 0.2, lastAttemptAt: Date())
                 }
             }
 
             // Cleanup temporary file if needed
+            if let extracted = extractedAudioURL {
+                try? FileManager.default.removeItem(at: extracted)
+            }
             cleanupTemporaryFileIfNeeded(audioFileURL)
 
             DispatchQueue.main.async { self.transcriptionProgress = 0.2 }
@@ -752,6 +783,34 @@ class TranscriptionManager: NSObject, ObservableObject {
         } catch {
             throw TranscriptionError.databaseError(error.localizedDescription)
         }
+    }
+
+    private func extractAudioFromVideo(videoURL: URL) async throws -> URL {
+        let asset = AVAsset(url: videoURL)
+        
+        // Create export session
+        guard let exportSession = AVAssetExportSession(asset: asset, presetName: AVAssetExportPresetAppleM4A) else {
+            throw TranscriptionError.transcriptionFailed("Could not create export session")
+        }
+        
+        // Create temporary output URL
+        let tempDir = FileManager.default.temporaryDirectory
+        let outputURL = tempDir.appendingPathComponent(UUID().uuidString).appendingPathExtension("m4a")
+        
+        exportSession.outputURL = outputURL
+        exportSession.outputFileType = .m4a
+        
+        await exportSession.export()
+        
+        if let error = exportSession.error {
+            throw TranscriptionError.transcriptionFailed("Audio extraction failed: \(error.localizedDescription)")
+        }
+        
+        guard exportSession.status == .completed else {
+            throw TranscriptionError.transcriptionFailed("Audio extraction failed with status: \(exportSession.status.rawValue)")
+        }
+        
+        return outputURL
     }
 
     private func markTranscriptFailure(trackId: String, message: String) async {
