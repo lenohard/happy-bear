@@ -41,6 +41,8 @@ struct CollectionDetailView: View {
     @State private var isUpdatingCover = false
     @State private var coverUpdateError: String?
     @State private var showCoverUpdateError = false
+    @State private var scrubberThumbOffset: CGFloat = 0
+    @State private var isDraggingScrubber = false
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -459,20 +461,98 @@ struct CollectionDetailView: View {
 
     private func listContent(_ collection: AudiobookCollection) -> some View {
         ScrollViewReader { proxy in
-            List {
-                summarySection(collection)
-                tracksSection(collection)
+            ZStack(alignment: .trailing) {
+                List {
+                    summarySection(collection)
+                        .id("summary-section")
+                    tracksSection(collection)
+                }
+                .listStyle(.insetGrouped)
+                .onAppear {
+                    prepareAutoFocusTargetIfNeeded(for: collection)
+                    attemptAutoFocusIfNeeded(using: proxy)
+                }
+                .onChange(of: pendingAutoFocusTrackId) { _ in
+                    attemptAutoFocusIfNeeded(using: proxy)
+                }
+                .onChange(of: filteredTracks.map(\.id)) { _ in
+                    attemptAutoFocusIfNeeded(using: proxy)
+                }
+                
+                // Scroll Scrubber - iOS Style
+                if filteredTracks.count > 10 {
+                    ScrollScrubberView(
+                        trackCount: filteredTracks.count,
+                        thumbOffset: $scrubberThumbOffset,
+                        isDragging: $isDraggingScrubber,
+                        onScroll: { progress in
+                            let targetIndex = Int(Double(filteredTracks.count - 1) * progress)
+                            if targetIndex >= 0 && targetIndex < filteredTracks.count {
+                                let track = filteredTracks[targetIndex]
+                                withAnimation(.easeOut(duration: 0.2)) {
+                                    proxy.scrollTo(track.id, anchor: .center)
+                                }
+                            }
+                        }
+                    )
+                    .frame(width: 40)
+                    .padding(.trailing, 4)
+                }
             }
-            .listStyle(.insetGrouped)
-            .onAppear {
-                prepareAutoFocusTargetIfNeeded(for: collection)
-                attemptAutoFocusIfNeeded(using: proxy)
-            }
-            .onChange(of: pendingAutoFocusTrackId) { _ in
-                attemptAutoFocusIfNeeded(using: proxy)
-            }
-            .onChange(of: filteredTracks.map(\.id)) { _ in
-                attemptAutoFocusIfNeeded(using: proxy)
+        }
+    }
+    
+    // MARK: - Scroll Scrubber Component
+    private struct ScrollScrubberView: View {
+        let trackCount: Int
+        @Binding var thumbOffset: CGFloat
+        @Binding var isDragging: Bool
+        let onScroll: (Double) -> Void
+        
+        private let trackWidth: CGFloat = 3
+        private let thumbWidth: CGFloat = 20
+        private let thumbHeight: CGFloat = 40
+        
+        var body: some View {
+            GeometryReader { geometry in
+                ZStack(alignment: .top) {
+                    // Track
+                    Capsule()
+                        .fill(Color.secondary.opacity(isDragging ? 0.2 : 0.1))
+                        .frame(width: trackWidth)
+                        .frame(maxHeight: .infinity)
+                    
+                    // Thumb
+                    Capsule()
+                        .fill(Color.secondary.opacity(isDragging ? 0.8 : 0.5))
+                        .frame(width: thumbWidth, height: thumbHeight)
+                        .offset(y: thumbOffset)
+                        .animation(.easeOut(duration: 0.1), value: thumbOffset)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            isDragging = true
+                            
+                            let maxOffset = geometry.size.height - thumbHeight
+                            let newOffset = max(0, min(maxOffset, value.location.y - thumbHeight / 2))
+                            thumbOffset = newOffset
+                            
+                            let progress = maxOffset > 0 ? Double(newOffset / maxOffset) : 0
+                            onScroll(progress)
+                            
+                            // Haptic feedback (throttled)
+                            if Int(newOffset) % 20 == 0 {
+                                let generator = UIImpactFeedbackGenerator(style: .light)
+                                generator.impactOccurred()
+                            }
+                        }
+                        .onEnded { _ in
+                            isDragging = false
+                        }
+                )
             }
         }
     }
