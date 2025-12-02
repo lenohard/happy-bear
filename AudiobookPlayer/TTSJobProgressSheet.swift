@@ -86,6 +86,20 @@ struct TTSJobProgressSheet: View {
         return statusText
     }
 
+    private var paragraphCountSummary: String? {
+        guard let job = job else { return nil }
+        let pending = job.pendingParagraphs ?? 0
+        let finished = job.processedParagraphs ?? 0
+        let total = job.totalParagraphs ?? (finished + pending)
+        let remaining = max(total - finished, 0)
+        return String(
+            format: NSLocalizedString("tts_paragraph_counts", comment: "Paragraph status summary"),
+            pending,
+            finished,
+            remaining
+        )
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
@@ -113,18 +127,24 @@ struct TTSJobProgressSheet: View {
                         .frame(height: 10)
 
                     VStack(spacing: 4) {
-                        Text(progressLabel)
-                            .font(.subheadline)
-                            .foregroundStyle(.primary)
-                            .multilineTextAlignment(.center)
+                    Text(progressLabel)
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                        .multilineTextAlignment(.center)
 
-                        if let paragraphText = paragraphProgressText {
-                            Text(paragraphText)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                    if let paragraphText = paragraphProgressText {
+                        Text(paragraphText)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    if let counts = paragraphCountSummary {
+                        Text(counts)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
                 }
+            }
                 .padding(.horizontal, 16)
 
                 if job?.isCompleted == true, let collection = trackCollection {

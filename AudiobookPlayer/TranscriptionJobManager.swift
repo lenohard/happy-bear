@@ -15,7 +15,8 @@ extension GRDBDatabaseManager {
         status: String = "queued",
         progress: Double? = nil,
         totalParagraphs: Int? = nil,
-        processedParagraphs: Int? = nil
+        processedParagraphs: Int? = nil,
+        pendingParagraphs: Int? = nil
     ) throws -> TranscriptionJob {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
@@ -25,7 +26,8 @@ extension GRDBDatabaseManager {
             status: status,
             progress: progress,
             totalParagraphs: totalParagraphs,
-            processedParagraphs: processedParagraphs
+            processedParagraphs: processedParagraphs,
+            pendingParagraphs: pendingParagraphs
         )
 
         try db.write { db in
@@ -33,8 +35,8 @@ extension GRDBDatabaseManager {
                 INSERT INTO transcription_jobs (
                     id, track_id, soniox_job_id, status,
                     progress, created_at, retry_count, last_attempt_at,
-                    total_paragraphs, processed_paragraphs
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    total_paragraphs, processed_paragraphs, pending_paragraphs
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     job.id,
@@ -46,7 +48,8 @@ extension GRDBDatabaseManager {
                     job.retryCount,
                     NSNull(),
                     job.totalParagraphs,
-                    job.processedParagraphs
+                    job.processedParagraphs,
+                    job.pendingParagraphs
                 ]
             )
         }
@@ -283,20 +286,25 @@ extension GRDBDatabaseManager {
         jobId: String,
         progress: Double,
         processedParagraphs: Int,
-        totalParagraphs: Int
+        totalParagraphs: Int,
+        pendingParagraphs: Int? = nil
     ) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
         try db.write { db in
             try db.execute(sql: """
                 UPDATE transcription_jobs
-                SET progress = ?, processed_paragraphs = ?, total_paragraphs = ?
+                SET progress = ?,
+                    processed_paragraphs = ?,
+                    total_paragraphs = ?,
+                    pending_paragraphs = ?
                 WHERE id = ?
                 """,
                 arguments: [
                     progress,
                     processedParagraphs,
                     totalParagraphs,
+                    pendingParagraphs,
                     jobId
                 ]
             )
@@ -372,6 +380,8 @@ extension GRDBDatabaseManager {
             lastAttempt = parsedDate
         }
 
+        let pendingParagraphs = row["pending_paragraphs"] as? Int
+
         return TranscriptionJob(
             id: id,
             trackId: trackId,
@@ -384,7 +394,8 @@ extension GRDBDatabaseManager {
             retryCount: retryCount,
             lastAttemptAt: lastAttempt,
             totalParagraphs: row["total_paragraphs"],
-            processedParagraphs: row["processed_paragraphs"]
+            processedParagraphs: row["processed_paragraphs"],
+            pendingParagraphs: pendingParagraphs
         )
     }
 }

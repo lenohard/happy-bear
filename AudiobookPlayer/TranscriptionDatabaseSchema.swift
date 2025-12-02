@@ -52,6 +52,7 @@ enum TranscriptionDatabaseSchema {
         last_attempt_at DATETIME,
         total_paragraphs INTEGER,
         processed_paragraphs INTEGER,
+        pending_paragraphs INTEGER,
         FOREIGN KEY (track_id) REFERENCES tracks(id)
     );
 

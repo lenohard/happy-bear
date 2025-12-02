@@ -144,6 +144,7 @@ struct TranscriptionJob: Identifiable, Codable {
     let lastAttemptAt: Date?
     let totalParagraphs: Int?
     let processedParagraphs: Int?
+    let pendingParagraphs: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -158,6 +159,7 @@ struct TranscriptionJob: Identifiable, Codable {
         case lastAttemptAt = "last_attempt_at"
         case totalParagraphs = "total_paragraphs"
         case processedParagraphs = "processed_paragraphs"
+        case pendingParagraphs = "pending_paragraphs"
     }
 
     init(
@@ -172,7 +174,8 @@ struct TranscriptionJob: Identifiable, Codable {
         retryCount: Int = 0,
         lastAttemptAt: Date? = nil,
         totalParagraphs: Int? = nil,
-        processedParagraphs: Int? = nil
+        processedParagraphs: Int? = nil,
+        pendingParagraphs: Int? = nil
     ) {
         self.id = id
         self.trackId = trackId
@@ -186,6 +189,7 @@ struct TranscriptionJob: Identifiable, Codable {
         self.lastAttemptAt = lastAttemptAt
         self.totalParagraphs = totalParagraphs
         self.processedParagraphs = processedParagraphs
+        self.pendingParagraphs = pendingParagraphs
     }
 
     /// Whether the job is still running
@@ -355,6 +359,7 @@ struct TranscriptionJobRow: Codable {
     let lastAttemptAt: Date?
     let totalParagraphs: Int?
     let processedParagraphs: Int?
+    let pendingParagraphs: Int?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -369,6 +374,7 @@ struct TranscriptionJobRow: Codable {
         case lastAttemptAt = "last_attempt_at"
         case totalParagraphs = "total_paragraphs"
         case processedParagraphs = "processed_paragraphs"
+        case pendingParagraphs = "pending_paragraphs"
     }
 
     init(from job: TranscriptionJob) {
@@ -384,6 +390,7 @@ struct TranscriptionJobRow: Codable {
         self.lastAttemptAt = job.lastAttemptAt
         self.totalParagraphs = job.totalParagraphs
         self.processedParagraphs = job.processedParagraphs
+        self.pendingParagraphs = job.pendingParagraphs
     }
 }
 

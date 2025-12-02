@@ -1553,6 +1553,10 @@ actor GRDBDatabaseManager {
         if !existingColumns.contains("processed_paragraphs") {
             try database.execute(sql: "ALTER TABLE transcription_jobs ADD COLUMN processed_paragraphs INTEGER")
         }
+
+        if !existingColumns.contains("pending_paragraphs") {
+            try database.execute(sql: "ALTER TABLE transcription_jobs ADD COLUMN pending_paragraphs INTEGER")
+        }
     }
 
     private func addTrackCharacterCountColumnIfNeeded(in database: Database) throws {

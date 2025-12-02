@@ -247,6 +247,9 @@ final class AudioPlayerViewModel: ObservableObject {
         updateNowPlayingInfo()
 #endif
         refreshActiveCacheStatus()
+        
+        // Auto-generate next track audio if enabled and collection is ebook
+        autoGenerateNextTrackIfNeeded(currentTrack: track, collection: collection)
     }
 
     private func playTextTrack(_ track: AudiobookTrack, content: String, in collection: AudiobookCollection) {
@@ -332,41 +335,70 @@ final class AudioPlayerViewModel: ObservableObject {
                 var combinedAudioData = Data()
                 var transcriptSegments: [TranscriptSegment] = []
                 var currentStartTimeMs = 0
+                var processedParagraphsCount = 0
+                var pendingParagraphsCount = 0
+
+                try await GRDBDatabaseManager.shared.updateJobProgress(
+                    jobId: dbJobId,
+                    progress: 0.0,
+                    processedParagraphs: processedParagraphsCount,
+                    totalParagraphs: totalParagraphs,
+                    pendingParagraphs: pendingParagraphsCount
+                )
                 
                 // 2. Process paragraphs
-                for (index, paragraph) in paragraphs.enumerated() {
-                    // Generate audio for this paragraph
-                    let audioData = try await generateAudioForParagraph(text: paragraph, voice: voice, rate: rate, pitch: pitch)
-                    
-                    // Calculate duration
-                    let durationMs = try getDurationMs(for: audioData)
-                    
-                    // Create segment placeholder (will update transcriptId later)
-                    let segment = TranscriptSegment(
-                        transcriptId: "", 
-                        text: paragraph,
-                        startTimeMs: currentStartTimeMs,
-                        endTimeMs: currentStartTimeMs + durationMs,
-                        confidence: 1.0,
-                        speaker: "TTS",
-                        language: "en"
-                    )
-                    transcriptSegments.append(segment)
-                    
-                    // Update offsets
-                    currentStartTimeMs += durationMs
-                    combinedAudioData.append(audioData)
-                    
-                    // Update progress
-                    let progress = Double(index + 1) / Double(totalParagraphs)
+                for paragraph in paragraphs {
+                    pendingParagraphsCount += 1
+                    let currentProgress = totalParagraphs > 0 ? Double(processedParagraphsCount) / Double(totalParagraphs) : 0
                     try await GRDBDatabaseManager.shared.updateJobProgress(
                         jobId: dbJobId,
-                        progress: progress,
-                        processedParagraphs: index + 1,
-                        totalParagraphs: totalParagraphs
+                        progress: currentProgress,
+                        processedParagraphs: processedParagraphsCount,
+                        totalParagraphs: totalParagraphs,
+                        pendingParagraphs: pendingParagraphsCount
                     )
-                    
-                    // Small delay to be nice to the API
+
+                    do {
+                        let audioData = try await generateAudioForParagraph(text: paragraph, voice: voice, rate: rate, pitch: pitch)
+                        
+                        let durationMs = try getDurationMs(for: audioData)
+                        
+                        let segment = TranscriptSegment(
+                            transcriptId: "",
+                            text: paragraph,
+                            startTimeMs: currentStartTimeMs,
+                            endTimeMs: currentStartTimeMs + durationMs,
+                            confidence: 1.0,
+                            speaker: "TTS",
+                            language: "en"
+                        )
+                        transcriptSegments.append(segment)
+                        currentStartTimeMs += durationMs
+                        combinedAudioData.append(audioData)
+
+                        pendingParagraphsCount = max(pendingParagraphsCount - 1, 0)
+                        processedParagraphsCount += 1
+                        let updatedProgress = totalParagraphs > 0 ? Double(processedParagraphsCount) / Double(totalParagraphs) : 0
+                        try await GRDBDatabaseManager.shared.updateJobProgress(
+                            jobId: dbJobId,
+                            progress: updatedProgress,
+                            processedParagraphs: processedParagraphsCount,
+                            totalParagraphs: totalParagraphs,
+                            pendingParagraphs: pendingParagraphsCount
+                        )
+                    } catch {
+                        pendingParagraphsCount = max(pendingParagraphsCount - 1, 0)
+                        let fallbackProgress = totalParagraphs > 0 ? Double(processedParagraphsCount) / Double(totalParagraphs) : 0
+                        try? await GRDBDatabaseManager.shared.updateJobProgress(
+                            jobId: dbJobId,
+                            progress: fallbackProgress,
+                            processedParagraphs: processedParagraphsCount,
+                            totalParagraphs: totalParagraphs,
+                            pendingParagraphs: pendingParagraphsCount
+                        )
+                        throw error
+                    }
+
                     try await Task.sleep(nanoseconds: 50_000_000) // 0.05s
                 }
                 
@@ -736,6 +768,45 @@ final class AudioPlayerViewModel: ObservableObject {
         activeCollection = nil
         playlist = []
     }
+    
+    private func autoGenerateNextTrackIfNeeded(currentTrack: AudiobookTrack, collection: AudiobookCollection) {
+        // Only auto-generate for ebook collections when setting is enabled
+        // Note: Default is true if key doesn't exist (matching @AppStorage default in SettingsTabView)
+        let autoGenerateEnabled = defaults.object(forKey: "autoGenerateNextEbookAudio") as? Bool ?? true
+        guard case .ebook = collection.source,
+              autoGenerateEnabled else {
+            return
+        }
+        
+        // Find the current track in the playlist
+        guard let currentIndex = playlist.firstIndex(where: { $0.id == currentTrack.id }) else {
+            return
+        }
+        
+        // Check if there's a next track
+        let nextIndex = playlist.index(after: currentIndex)
+        guard playlist.indices.contains(nextIndex) else {
+            return
+        }
+        
+        let nextTrack = playlist[nextIndex]
+        
+        // Only generate if it's a text track and doesn't have audio yet
+        guard nextTrack.isTextTrack else {
+            return
+        }
+        
+        let trackId = nextTrack.id.uuidString
+        let baiduFileId = "tts"
+        let filename = "tts.mp3"
+        
+        guard !cacheManager.isCached(trackId: trackId, baiduFileId: baiduFileId, filename: filename) else {
+            return
+        }
+        
+        // Generate audio in background without auto-play
+        generateAudio(for: nextTrack, in: collection, autoPlay: false)
+    }
 
     // MARK: - Private helpers
 
@@ -1017,6 +1088,11 @@ final class AudioPlayerViewModel: ObservableObject {
         }
 
         let nextTrack = playlist[nextIndex]
+        
+        // Auto-generate audio for the track after next if it's an ebook collection and setting is enabled
+        // We call this with nextTrack so it will generate audio for the track AFTER the next one
+        autoGenerateNextTrackIfNeeded(currentTrack: nextTrack, collection: collection)
+        
         play(track: nextTrack, in: collection, token: currentToken)
     }
 

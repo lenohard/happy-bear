@@ -842,6 +842,7 @@
     },
     "ai_repair_apply" : {
       "comment" : "Apply repairs",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -852,6 +853,7 @@
       }
     },
     "ai_repair_cancel" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -874,6 +876,7 @@
     },
     "ai_repair_missing_key" : {
       "comment" : "AI key missing",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -885,6 +888,7 @@
     },
     "ai_repair_missing_key_hint" : {
       "comment" : "Prompt to add AI key",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -895,6 +899,7 @@
       }
     },
     "ai_repair_toggle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1440,10 +1445,24 @@
       }
     },
     "Are you sure you want to delete all downloaded/cached audio for '%@'? This action cannot be undone." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你确定你要删除所有已经下载的’%@音频么, 这个操作无法被恢复"
+          }
+        }
+      }
     },
     "Audio has not been generated for \"%@\". Would you like to generate it now?" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "你确定要生成”%@”的音频么？"
+          }
+        }
+      }
     },
     "Author" : {
 
@@ -1454,7 +1473,18 @@
     "Authorizing…" : {
 
     },
+    "Auto-generate next ebook audio" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动生成下一本的音频"
+          }
+        }
+      }
+    },
     "Auto-select low confidence segments" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1850,24 +1880,6 @@
         }
       }
     },
-    "cache_management_row_title" : {
-      "comment" : "Cache Management row in Settings",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cache Management"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "缓存管理"
-          }
-        }
-      }
-    },
     "cache_retention_days" : {
       "comment" : "Cache retention days format",
       "localizations" : {
@@ -2172,6 +2184,7 @@
       }
     },
     "completed_status" : {
+      "comment" : "Completed job status",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2182,6 +2195,7 @@
       }
     },
     "Confidence threshold" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2322,9 +2336,6 @@
           }
         }
       }
-    },
-    "Currently selected: %lld" : {
-
     },
     "Date" : {
 
@@ -2742,11 +2753,28 @@
         }
       }
     },
+    "extracting_status" : {
+      "comment" : "Status label while extracting audio from STT response",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Extracting audio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在提取音频"
+          }
+        }
+      }
+    },
     "Failed to parse ebook" : {
 
     },
     "failed_status" : {
-
+      "comment" : "Failed job status"
     },
     "favorite_tracks_empty" : {
       "comment" : "Empty favorites message",
@@ -2941,10 +2969,24 @@
       }
     },
     "Generate" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成"
+          }
+        }
+      }
     },
     "Generate Audio" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成音频"
+          }
+        }
+      }
     },
     "generate_audio_action" : {
       "comment" : "Generate audio action",
@@ -2954,6 +2996,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Generate Audio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成音频"
           }
         }
       }
@@ -2982,7 +3030,14 @@
       }
     },
     "History" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "历史"
+          }
+        }
+      }
     },
     "Import Audiobook" : {
       "localizations" : {
@@ -3001,7 +3056,14 @@
       }
     },
     "Import Ebook" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入电子书"
+          }
+        }
+      }
     },
     "import_again_button" : {
       "comment" : "Import again button",
@@ -3371,9 +3433,6 @@
     "No results for \"%@\"" : {
 
     },
-    "No segments match the current selection filter." : {
-
-    },
     "No STT Jobs" : {
 
     },
@@ -3577,6 +3636,16 @@
     "Play" : {
 
     },
+    "Play audio" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "立即播放"
+          }
+        }
+      }
+    },
     "play_collection_accessibility" : {
       "comment" : "Play collection accessibility label",
       "localizations" : {
@@ -3674,6 +3743,9 @@
     "Preview Changes (%lld)" : {
 
     },
+    "queued_status" : {
+      "comment" : "Queued job status"
+    },
     "Quick Access" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3691,7 +3763,14 @@
 
     },
     "Read" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阅读"
+          }
+        }
+      }
     },
     "recent_errors" : {
 
@@ -3813,6 +3892,7 @@
     },
     "repair_controls_toggle" : {
       "comment" : "Toggle repair controls",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3830,6 +3910,7 @@
     },
     "repair_stats_summary_format" : {
       "comment" : "Stats summary format",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3847,6 +3928,7 @@
     },
     "repair_threshold_summary" : {
       "comment" : "Threshold summary",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3864,6 +3946,7 @@
     },
     "repair_toggle_hide_repaired" : {
       "comment" : "Toggle label",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3881,6 +3964,7 @@
     },
     "repair_toggle_select_all" : {
       "comment" : "Toggle label",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3898,6 +3982,7 @@
     },
     "repair_toggle_selected_only" : {
       "comment" : "Toggle label",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3994,6 +4079,12 @@
         }
       }
     },
+    "Scroll to bottom" : {
+
+    },
+    "Scroll to top" : {
+
+    },
     "Search files" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4043,6 +4134,7 @@
       }
     },
     "Select" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -4083,6 +4175,7 @@
     },
     "settings_auto_summary_description" : {
       "comment" : "Auto summary description",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4151,7 +4244,14 @@
       }
     },
     "Show Video" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "播放"
+          }
+        }
+      }
     },
     "sign_in_on_sources_tab" : {
       "comment" : "Sign in on sources tab message",
@@ -4979,6 +5079,9 @@
         }
       }
     },
+    "transcribing_status" : {
+
+    },
     "Transcript Corrections" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5103,17 +5206,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在资料库中找不到对应的音轨。跳转到转录片段前请确认该有声书仍然存在。"
-          }
-        }
-      }
-    },
-    "Transcription Jobs" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "转录任务"
           }
         }
       }
@@ -5256,6 +5348,16 @@
         }
       }
     },
+    "transcription_extracting_audio" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在提取音频"
+          }
+        }
+      }
+    },
     "transcription_progress_download" : {
       "localizations" : {
         "en" : {
@@ -5332,6 +5434,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在下载音频…"
+          }
+        }
+      }
+    },
+    "transcription_step_extracting" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提取阶段"
           }
         }
       }
@@ -5462,6 +5574,16 @@
     "TTS (Edge)" : {
 
     },
+    "TTS Job Progress" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看 TTS 进度"
+          }
+        }
+      }
+    },
     "TTS Jobs" : {
 
     },
@@ -5567,6 +5689,40 @@
         }
       }
     },
+    "tts_generating_audio" : {
+      "comment" : "Generating audio status\nStatus when TTS job is preparing",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Generating audio..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在生成音频…"
+          }
+        }
+      }
+    },
+    "tts_generating_paragraph_progress" : {
+      "comment" : "Paragraph progress for TTS job",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Generating audio (paragraph %d of %d)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在生成音频（第 %d 段，共 %d 段）"
+          }
+        }
+      }
+    },
     "tts_jobs_action_continue" : {
       "comment" : "Resume transcription job action",
       "localizations" : {
@@ -5652,24 +5808,6 @@
         }
       }
     },
-    "tts_jobs_history_title" : {
-      "comment" : "Transcription Jobs",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transcription History"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "转写历史"
-          }
-        }
-      }
-    },
     "tts_jobs_status_paused" : {
       "comment" : "Status label for paused transcription job",
       "localizations" : {
@@ -5687,20 +5825,19 @@
         }
       }
     },
-    "tts_tab" : {
-      "comment" : "TTS tab",
-      "extractionState" : "stale",
+    "tts_paragraph_counts" : {
+      "comment" : "Paragraph status summary",
       "localizations" : {
         "en" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "TTS"
+            "state" : "new",
+            "value" : "Requesting %d / Finished %d / Remaining %d"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "TTS"
+            "value" : "请求 %d / 已完成 %d / 剩余 %d"
           }
         }
       }
@@ -5742,6 +5879,7 @@
       }
     },
     "Unselect" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5809,18 +5947,6 @@
         }
       }
     },
-    "video_collection_indicator_accessibility" : {
-      "comment" : "Indicator for video collection",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Video collection"
-          }
-        }
-      }
-    },
     "video_missing_audio_error" : {
       "comment" : "Video missing audio track message"
     },
@@ -5836,8 +5962,17 @@
             "state" : "new",
             "value" : "Video"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视频"
+          }
         }
       }
+    },
+    "View TTS progress" : {
+
     },
     "view_collection_button" : {
       "comment" : "View collection button",

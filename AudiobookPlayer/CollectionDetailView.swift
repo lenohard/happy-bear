@@ -42,6 +42,9 @@ struct CollectionDetailView: View {
     @State private var isUpdatingCover = false
     @State private var coverUpdateError: String?
     @State private var showCoverUpdateError = false
+    @State private var collectionListViewportHeight: CGFloat?
+    @State private var summarySectionMinY: CGFloat?
+    @State private var lastTrackFrameMaxY: CGFloat?
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -161,6 +164,25 @@ struct CollectionDetailView: View {
             track.displayName.localizedCaseInsensitiveContains(query) ||
             track.filename.localizedCaseInsensitiveContains(query)
         }
+    }
+
+    private var showScrollToTopButton: Bool {
+        guard let minY = summarySectionMinY else {
+            return false
+        }
+
+        return minY < 0
+    }
+
+    private var showScrollToBottomButton: Bool {
+        guard let maxY = lastTrackFrameMaxY,
+              let viewportHeight = collectionListViewportHeight,
+              viewportHeight > 0
+        else {
+            return false
+        }
+
+        return maxY > viewportHeight
     }
 
     var body: some View {
@@ -465,6 +487,15 @@ struct CollectionDetailView: View {
                 List {
                     summarySection(collection)
                         .id("summary-section")
+                        .background(
+                            GeometryReader { proxy in
+                                Color.clear
+                                    .preference(
+                                        key: SummaryFramePreferenceKey.self,
+                                        value: proxy.frame(in: .named(CollectionListViewMeta.viewportCoordinateSpace)).minY
+                                    )
+                            }
+                        )
                     tracksSection(collection)
                 }
                 .listStyle(.insetGrouped)
@@ -480,47 +511,66 @@ struct CollectionDetailView: View {
                 }
                 
                 // Jump to Top/Bottom Buttons (Centered)
-                if filteredTracks.count > 10 {
+                if filteredTracks.count > 10 && (showScrollToTopButton || showScrollToBottomButton) {
                     VStack {
-                        // Top Button
-                        Button {
-                            withAnimation {
-                                // Scroll to summary section (top of list)
-                                proxy.scrollTo("summary-section", anchor: .top)
+                        if showScrollToTopButton {
+                            Button {
+                                withAnimation {
+                                    proxy.scrollTo("summary-section", anchor: .top)
+                                }
+                            } label: {
+                                Image(systemName: "chevron.up")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(10)
+                                    .background(.regularMaterial, in: Circle())
+                                    .shadow(color: .black.opacity(0.1), radius: 3)
                             }
-                        } label: {
-                            Image(systemName: "chevron.up")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.secondary)
-                                .padding(10)
-                                .background(.regularMaterial, in: Circle())
-                                .shadow(color: .black.opacity(0.1), radius: 3)
+                            .padding(.top, 8)
+                            .accessibilityLabel(Text("Scroll to top"))
                         }
-                        .padding(.top, 8)
-                        .accessibilityLabel(Text("Scroll to top"))
                         
                         Spacer()
                         
-                        // Bottom Button
-                        Button {
-                            if let last = filteredTracks.last {
-                                withAnimation {
-                                    proxy.scrollTo(last.id, anchor: .bottom)
+                        if showScrollToBottomButton {
+                            Button {
+                                if let last = filteredTracks.last {
+                                    withAnimation {
+                                        proxy.scrollTo(last.id, anchor: .bottom)
+                                    }
                                 }
+                            } label: {
+                                Image(systemName: "chevron.down")
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(.secondary)
+                                    .padding(10)
+                                    .background(.regularMaterial, in: Circle())
+                                    .shadow(color: .black.opacity(0.1), radius: 3)
                             }
-                        } label: {
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.secondary)
-                                .padding(10)
-                                .background(.regularMaterial, in: Circle())
-                                .shadow(color: .black.opacity(0.1), radius: 3)
+                            .padding(.bottom, 8)
+                            .accessibilityLabel(Text("Scroll to bottom"))
                         }
-                        .padding(.bottom, 8)
-                        .accessibilityLabel(Text("Scroll to bottom"))
                     }
                     .padding(.vertical, 4)
                 }
+            }
+            .coordinateSpace(name: CollectionListViewMeta.viewportCoordinateSpace)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear
+                        .onAppear {
+                            collectionListViewportHeight = proxy.size.height
+                        }
+                        .onChange(of: proxy.size.height) { newHeight in
+                            collectionListViewportHeight = newHeight
+                        }
+                }
+            )
+            .onPreferenceChange(SummaryFramePreferenceKey.self) { minY in
+                summarySectionMinY = minY
+            }
+            .onPreferenceChange(LastTrackFramePreferenceKey.self) { maxY in
+                lastTrackFrameMaxY = maxY
             }
         }
     }
@@ -765,6 +815,18 @@ struct CollectionDetailView: View {
                         },
                         onToggleFavorite: {
                             library.toggleFavorite(for: track.id, in: collection.id)
+                        }
+                    )
+                    .background(
+                        Group {
+                            if index == filteredTracks.count - 1 {
+                                GeometryReader { proxy in
+                                    Color.clear.preference(
+                                        key: LastTrackFramePreferenceKey.self,
+                                        value: proxy.frame(in: .named(CollectionListViewMeta.viewportCoordinateSpace)).maxY
+                                    )
+                                }
+                            }
                         }
                     )
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
@@ -1345,6 +1407,26 @@ struct CollectionDetailView: View {
         if newIds != ttsGeneratingTrackIds {
             ttsGeneratingTrackIds = newIds
         }
+    }
+}
+
+private enum CollectionListViewMeta {
+    static let viewportCoordinateSpace = "collection-detail-list-viewport"
+}
+
+private struct SummaryFramePreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+private struct LastTrackFramePreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
     }
 }
 
