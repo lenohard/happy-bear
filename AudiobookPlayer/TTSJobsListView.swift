@@ -172,7 +172,7 @@ struct TTSJobCardView: View {
             .padding(16)
             
             // Progress bar for active jobs
-            if (job.status == "downloading" || job.status == "uploading" || job.status == "transcribing" || job.status == "processing"), let progress = job.progress {
+            if (["downloading", "uploading", "transcribing", "processing", "generating"]).contains(job.status), let progress = job.progress {
                 Divider()
                     .padding(.horizontal, 16)
                 
@@ -235,9 +235,8 @@ struct TTSJobCardView: View {
         case "queued": return "Queued"
         case "downloading": return NSLocalizedString("status_downloading_audio", comment: "")
         case "uploading": return NSLocalizedString("status_uploading_audio", comment: "")
-        case "transcribing", "processing":
+        case "generating", "transcribing", "processing":
             if isTTSJob {
-                // For TTS jobs, show segment progress if available
                 if let processed = job.processedParagraphs, let total = job.totalParagraphs {
                     return "Generating audio (paragraph \(processed) of \(total))"
                 } else {
@@ -256,7 +255,7 @@ struct TTSJobCardView: View {
     private func statusColor(for status: String) -> Color {
         switch status {
         case "queued": return .orange
-        case "downloading", "uploading", "transcribing", "processing": return .blue
+        case "downloading", "uploading", "transcribing", "processing", "generating": return .blue
         case "completed": return .green
         case "failed": return .red
         case "paused": return .gray
@@ -270,7 +269,7 @@ struct TTSJobCardView: View {
         case "queued":
             Image(systemName: "clock.fill")
                 .foregroundStyle(.orange)
-        case "downloading", "uploading", "transcribing", "processing":
+        case "downloading", "uploading", "transcribing", "processing", "generating":
             Image(systemName: "waveform")
                 .foregroundStyle(.blue)
         case "completed":
@@ -333,7 +332,7 @@ struct TTSJobStatusBadge: View {
     var statusColor: Color {
         switch status {
         case "queued": return .orange
-        case "downloading", "uploading", "transcribing", "processing": return .blue
+        case "downloading", "uploading", "transcribing", "processing", "generating": return .blue
         case "completed": return .green
         case "failed": return .red
         case "paused": return .gray

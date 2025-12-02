@@ -21,13 +21,6 @@ struct TranscriptViewerSheet: View {
     @State private var scrollTargetSegmentID: String?
     @State private var scrollTargetShouldAnimate = true
     @State private var lastAutoScrolledSegmentID: String?
-    @State private var isRepairMode = false
-    @State private var repairSelection = IndexSet()
-    @State private var autoSelectThresholdPercent: Double = 95
-    @State private var showSelectedOnly = false
-    @State private var hideRepairedSegments = false
-    @State private var repairControlsExpanded = true
-    @State private var lastObservedRepairJobId: String?
 
     init(trackId: String, trackName: String, showTrackSummary: Bool = false) {
         self.trackId = trackId
@@ -71,8 +64,6 @@ struct TranscriptViewerSheet: View {
             if newValue.isEmpty {
                 lastAutoScrolledSegmentID = nil
                 focusOnCurrentPlayback(animated: false)
-            } else if isRepairMode {
-                exitRepairMode()
             }
         }
         .alert(
@@ -91,14 +82,6 @@ struct TranscriptViewerSheet: View {
             }
         } message: {
             Text(playbackAlertMessage ?? "")
-        }
-        .onChange(of: hideRepairedSegments) { newValue in
-            if newValue {
-                pruneSelectionForHiddenSegments()
-            }
-        }
-        .onChange(of: viewModel.segments.count) { _ in
-            pruneSelectionForHiddenSegments()
         }
         .onChange(of: aiGenerationManager.recentJobs) { _ in
             handleRepairJobUpdates()
@@ -219,47 +202,36 @@ struct TranscriptViewerSheet: View {
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.searchText.isEmpty {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 10) {
-                        if displayedSegments.isEmpty && showSelectedOnly {
-                            VStack(spacing: 8) {
-                                Image(systemName: "line.3.horizontal.decrease")
-                                    .font(.system(size: 32))
-                                    .foregroundStyle(.secondary)
-                                Text("No segments match the current selection filter.")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                        } else {
-                            ForEach(displayedSegments, id: \.index) { item in
-                                let index = item.index
-                                let segment = item.segment
-                                TranscriptSegmentRowView(
-                                    segment: segment,
-                                    isSelected: selectedSegment?.id == segment.id,
-                                    isChecked: repairSelection.contains(index),
-                                    showCheckbox: isRepairMode,
-                                    isRepaired: segment.lastRepairModel != nil || segment.lastRepairAt != nil,
-                                    onTap: {
-                                        if isRepairMode {
-                                            toggleRepairSelection(index)
-                                        } else {
-                                            selectedSegment = segment
-                                            jumpToSegment(segment)
-                                        }
-                                    },
-                                    onCheck: {
-                                        toggleRepairSelection(index)
-                                    }
-                                )
-                                .id(segment.id)
-                            }
+                LazyVStack(alignment: .leading, spacing: 4) {
+                    if displayedSegments.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "doc.text.magnifyingglass")
+                                .font(.system(size: 40))
+                                .foregroundStyle(.gray)
+
+                            Text("no_transcript_found")
+                                .font(.headline)
+                        }
+                        .padding()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    } else {
+                        ForEach(displayedSegments, id: \.index) { item in
+                            let index = item.index
+                            let segment = item.segment
+                            TranscriptSegmentRowView(
+                                segment: segment,
+                                isSelected: selectedSegment?.id == segment.id,
+                                onTap: {
+                                    selectedSegment = segment
+                                    jumpToSegment(segment)
+                                }
+                            )
+                            .id(segment.id)
                         }
                     }
-                    .padding()
                 }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
             } else {
                 if viewModel.searchResults.isEmpty {
                     VStack(spacing: 12) {
@@ -277,12 +249,12 @@ struct TranscriptViewerSheet: View {
                     .padding()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    LazyVStack(alignment: .leading, spacing: 10) {
+                    LazyVStack(alignment: .leading, spacing: 4) {
                         SearchSummaryView(
                             query: viewModel.searchText,
                             totalMatches: viewModel.searchResults.count
                         )
-                        .padding(.horizontal)
+                        .padding(.horizontal, 8)
 
                         ForEach(viewModel.searchResults) { result in
                             SearchResultRow(
@@ -297,38 +269,20 @@ struct TranscriptViewerSheet: View {
                             .id(result.segment.id)
                         }
                     }
-                    .padding()
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
                 }
             }
         }
 
     private var headerSection: some View {
         VStack(spacing: 8) {
-            HStack(alignment: .center, spacing: 8) {
-                SearchBar(
-                    text: $viewModel.searchText,
-                    placeholder: "search_in_transcript"
-                )
-
-                if isRepairMode {
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            repairControlsExpanded.toggle()
-                        }
-                    } label: {
-                        Image(systemName: repairControlsExpanded ? "chevron.up.circle" : "slider.horizontal.3")
-                            .font(.title3)
-                    }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel(Text(NSLocalizedString("repair_controls_toggle", comment: "Toggle repair controls")))
-                }
-            }
+            SearchBar(
+                text: $viewModel.searchText,
+                placeholder: "search_in_transcript"
+            )
 
             repairStatusSection()
-
-            if isRepairMode && repairControlsExpanded {
-                repairModeControls()
-            }
         }
     }
 
@@ -359,8 +313,6 @@ struct TranscriptViewerSheet: View {
                 }
             }
         }
-
-        repairToolbarItems()
     }
 
     private var scrollableContent: some View {
@@ -502,310 +454,7 @@ struct TranscriptViewerSheet: View {
 
     private var displayedSegments: [(index: Int, segment: TranscriptSegment)] {
         let indices = Array(viewModel.segments.indices)
-        let filtered: [Int]
-        if isRepairMode {
-            var working = indices
-            if hideRepairedSegments {
-                working = working.filter { idx in
-                    let segment = viewModel.segments[idx]
-                    return segment.lastRepairModel == nil && segment.lastRepairAt == nil
-                }
-            }
-            if showSelectedOnly {
-                working = working.filter { repairSelection.contains($0) }
-            }
-            filtered = working
-        } else {
-            filtered = indices
-        }
-        return filtered.map { ($0, viewModel.segments[$0]) }
-    }
-
-    private func toggleRepairSelection(_ index: Int) {
-        if repairSelection.contains(index) {
-            repairSelection.remove(index)
-            if repairSelection.isEmpty {
-                showSelectedOnly = false
-            }
-        } else {
-            repairSelection.insert(index)
-        }
-    }
-
-    private func exitRepairMode() {
-        isRepairMode = false
-        repairSelection.removeAll()
-        showSelectedOnly = false
-        repairControlsExpanded = true
-    }
-
-    private func startRepairMode() {
-        guard hasAIRepairAccess else {
-            viewModel.repairErrorMessage = NSLocalizedString("ai_repair_missing_key", comment: "AI key missing")
-            return
-        }
-        repairSelection.removeAll()
-        showSelectedOnly = false
-        viewModel.repairErrorMessage = nil
-        viewModel.lastRepairResults = []
-        isRepairMode = true
-        repairControlsExpanded = true
-    }
-
-    private func runRepair() async {
-        guard resolvedAIKey != nil else {
-            viewModel.repairErrorMessage = NSLocalizedString("ai_repair_missing_key", comment: "")
-            return
-        }
-        guard let transcript = viewModel.transcript else {
-            viewModel.repairErrorMessage = "Transcript not loaded."
-            return
-        }
-
-        let indexes = Array(repairSelection).sorted()
-        guard !indexes.isEmpty else {
-            viewModel.repairErrorMessage = "No valid segments selected for repair."
-            return
-        }
-
-        guard let context = resolveTrackContext() else {
-            viewModel.repairErrorMessage = "Track context unavailable."
-            return
-        }
-
-        do {
-            let job = try await aiGenerationManager.enqueueTranscriptRepairJob(
-                transcriptId: transcript.id,
-                trackId: context.track.id.uuidString,
-                trackTitle: trackName,
-                collectionTitle: context.collection.title,
-                collectionDescription: context.collection.description,
-                selectionIndexes: indexes,
-                instructions: nil,
-                modelId: aiGateway.selectedModelID
-            )
-            viewModel.lastRepairResults = []
-            viewModel.repairErrorMessage = nil
-            viewModel.isRepairing = true
-            lastObservedRepairJobId = job.id
-            exitRepairMode()
-        } catch {
-            viewModel.repairErrorMessage = error.localizedDescription
-        }
-    }
-
-    private var hasAIRepairAccess: Bool {
-        resolvedAIKey != nil
-    }
-
-    private var resolvedAIKey: String? {
-        let value = aiGateway.storedKeyValue.trimmingCharacters(in: .whitespacesAndNewlines)
-        return value.isEmpty ? nil : value
-    }
-
-    @ViewBuilder
-    private func repairModeControls() -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Toggle row
-            HStack(alignment: .center, spacing: 10) {
-                Toggle(NSLocalizedString("repair_toggle_selected_only", comment: "Toggle label"), isOn: $showSelectedOnly)
-                    .disabled(repairSelection.isEmpty)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-
-                Toggle(NSLocalizedString("repair_toggle_hide_repaired", comment: "Toggle label"), isOn: $hideRepairedSegments)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-
-                Toggle(NSLocalizedString("repair_toggle_select_all", comment: "Toggle label"), isOn: selectAllBinding)
-                    .disabled(viewModel.segments.isEmpty)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
-            .font(.footnote)
-            .toggleStyle(.switch)
-            .controlSize(.mini)
-
-            // Slider + action row
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Auto-select low confidence segments")
-                            .font(.subheadline)
-                            .bold()
-                        Text(thresholdSummaryText)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Spacer()
-
-                    Button {
-                        toggleLowConfidenceSelection()
-                    } label: {
-                        Label(
-                            isThresholdSelectionActive ? "Unselect" : "Select",
-                            systemImage: isThresholdSelectionActive ? "arrow.uturn.backward.circle" : "line.3.horizontal.decrease.circle"
-                        )
-                        .font(.footnote.weight(.semibold))
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(lowConfidenceCandidateCount == 0)
-                }
-
-                HStack(spacing: 12) {
-                    Slider(
-                        value: $autoSelectThresholdPercent,
-                        in: 50...100,
-                        step: 1
-                    ) {
-                        Text("Confidence threshold")
-                    }
-                    Text("\(Int(autoSelectThresholdPercent))%")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 44, alignment: .trailing)
-                }
-            }
-
-            Text(statsSummaryText)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-
-            if repairSelection.count > 0 {
-                Text("Currently selected: \(repairSelection.count)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(12)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color(.systemGray6))
-        )
-    }
-
-    private var lowConfidenceCandidateCount: Int {
-        lowConfidenceIndexes.count
-    }
-
-    private var repairedSegmentsCount: Int {
-        viewModel.segments.filter { $0.lastRepairModel != nil || $0.lastRepairAt != nil }.count
-    }
-
-    private var selectedCharacterCount: Int {
-        repairSelection.reduce(0) { partialResult, index in
-            guard index < viewModel.segments.count else { return partialResult }
-            return partialResult + viewModel.segments[index].text.count
-        }
-    }
-
-    private var areAllSegmentsSelected: Bool {
-        !viewModel.segments.isEmpty && repairSelection.count == viewModel.segments.count
-    }
-
-    private var thresholdSummaryText: String {
-        let format = NSLocalizedString("repair_threshold_summary", comment: "Threshold summary")
-        return String(format: format, Int(autoSelectThresholdPercent), lowConfidenceCandidateCount)
-    }
-
-    private var totalCharacterCount: Int {
-        viewModel.segments.reduce(0) { $0 + $1.text.count }
-    }
-
-    private var selectAllBinding: Binding<Bool> {
-        Binding(
-            get: { areAllSegmentsSelected },
-            set: { newValue in
-                if newValue {
-                    selectAllRepairableSegments()
-                } else {
-                    repairSelection.removeAll()
-                    showSelectedOnly = false
-                }
-            }
-        )
-    }
-
-    private var lowConfidenceIndexes: IndexSet {
-        var indexes = IndexSet()
-        let threshold = autoSelectThresholdPercent / 100
-        for (index, segment) in viewModel.segments.enumerated() {
-            guard let confidence = segment.confidence else { continue }
-            if confidence < threshold {
-                indexes.insert(index)
-            }
-        }
-        return indexes
-    }
-
-    private var isThresholdSelectionActive: Bool {
-        let indexes = lowConfidenceIndexes
-        guard !indexes.isEmpty else { return false }
-        return indexes.allSatisfy { repairSelection.contains($0) }
-    }
-
-    private func toggleLowConfidenceSelection() {
-        let indexes = lowConfidenceIndexes
-        guard !indexes.isEmpty else { return }
-        if isThresholdSelectionActive {
-            for index in indexes {
-                repairSelection.remove(index)
-            }
-            if repairSelection.isEmpty {
-                showSelectedOnly = false
-            }
-        } else {
-            for index in indexes {
-                repairSelection.insert(index)
-            }
-        }
-    }
-
-    private func selectAllRepairableSegments() {
-        repairSelection = IndexSet(viewModel.segments.indices)
-    }
-
-    private func pruneSelectionForHiddenSegments() {
-        let validUpperBound = viewModel.segments.count
-        var filtered = IndexSet(repairSelection.filter { $0 < validUpperBound })
-
-        if hideRepairedSegments {
-            let allowed = Set(viewModel.segments.enumerated().compactMap { idx, segment in
-                (segment.lastRepairModel == nil && segment.lastRepairAt == nil) ? idx : nil
-            })
-            filtered = IndexSet(filtered.filter { allowed.contains($0) })
-        }
-
-        repairSelection = filtered
-        if repairSelection.isEmpty {
-            showSelectedOnly = false
-        }
-    }
-
-    private var statsSummaryText: String {
-        let matches = formattedCount(lowConfidenceCandidateCount)
-        let selected = formattedCount(repairSelection.count)
-        let totalSegments = formattedCount(viewModel.segments.count)
-        let repaired = formattedCount(repairedSegmentsCount)
-        let selectedChars = formattedCount(selectedCharacterCount)
-        let totalChars = formattedCount(totalCharacterCount)
-
-        let format = NSLocalizedString("repair_stats_summary_format", comment: "Stats summary format")
-        return String(format: format, matches, selected, totalSegments, repaired, selectedChars, totalChars)
-    }
-
-    private func formattedCount(_ count: Int) -> String {
-        numberFormatter.string(from: NSNumber(value: count)) ?? "\(count)"
-    }
-
-    private var numberFormatter: NumberFormatter {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        return formatter
+        return indices.map { ($0, viewModel.segments[$0]) }
     }
 }
 
@@ -814,145 +463,50 @@ struct TranscriptViewerSheet: View {
 struct TranscriptSegmentRowView: View {
     let segment: TranscriptSegment
     let isSelected: Bool
-    let isChecked: Bool
-    let showCheckbox: Bool
-    let isRepaired: Bool
     let onTap: () -> Void
-    let onCheck: () -> Void
-
-    init(
-        segment: TranscriptSegment,
-        isSelected: Bool,
-        isChecked: Bool = false,
-        showCheckbox: Bool = false,
-        isRepaired: Bool = false,
-        onTap: @escaping () -> Void,
-        onCheck: @escaping () -> Void = {}
-    ) {
-        self.segment = segment
-        self.isSelected = isSelected
-        self.isChecked = isChecked
-        self.showCheckbox = showCheckbox
-        self.isRepaired = isRepaired
-        self.onTap = onTap
-        self.onCheck = onCheck
-    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .top, spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(segment.formattedStartTime)
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                    Text(segment.formattedEndTime)
-                        .font(.caption2.monospacedDigit())
-                        .foregroundStyle(.tertiary)
-                }
-                .frame(width: 58, alignment: .leading)
-                .alignmentGuide(.top) { d in d[.top] }
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(segment.formattedStartTime)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(segment.text)
-                        .font(.body)
-                        .lineSpacing(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if let confidence = segment.confidence {
-                        HStack(spacing: 4) {
-                            if isRepaired {
-                                Image(systemName: "sparkles")
-                                    .font(.caption2)
-                                    .foregroundStyle(.green)
-                            }
-                            Text(
-                                String(
-                                    format: NSLocalizedString("transcript_confidence_format", comment: "Transcript confidence percentage"),
-                                    locale: .current,
-                                    confidence * 100
-                                )
-                            )
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        }
-                    }
+                if let confidence = segment.confidence {
+                    Text(
+                        String(
+                            format: NSLocalizedString("transcript_confidence_format", comment: "Transcript confidence percentage"),
+                            locale: .current,
+                            confidence * 100
+                        )
+                    )
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
-                .alignmentGuide(.top) { d in d[.top] }
 
                 Spacer()
-
-                if showCheckbox {
-                    Button(action: onCheck) {
-                        Image(systemName: isChecked ? "checkmark.circle.fill" : "circle")
-                            .font(.title3)
-                            .foregroundStyle(isChecked ? Color.accentColor : Color.secondary)
-                    }
-                    .buttonStyle(.plain)
-                }
             }
-            .contentShape(Rectangle())
-            .onTapGesture(perform: onTap)
+            .frame(height: 16)
+
+            Text(segment.text)
+                .font(.body)
+                .lineSpacing(1)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 6)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(isSelected ? Color.accentColor.opacity(0.12) : Color(.systemBackground))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1)
         )
-    }
-}
-
-// MARK: - Repair Toolbar
-
-private extension TranscriptViewerSheet {
-    @ToolbarContentBuilder
-    func repairToolbarItems() -> some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                if isRepairMode {
-                    exitRepairMode()
-                } else {
-                    startRepairMode()
-                }
-            } label: {
-                if isRepairMode {
-                    Label(NSLocalizedString("ai_repair_cancel", comment: ""), systemImage: "chevron.left")
-                } else {
-                    Label(NSLocalizedString("ai_repair_toggle", comment: ""), systemImage: "wand.and.stars")
-                }
-            }
-            .buttonStyle(.bordered)
-            .disabled(viewModel.isLoading || viewModel.segments.isEmpty || (!isRepairMode && !hasAIRepairAccess))
-        }
-
-        if isRepairMode {
-            ToolbarItem {
-                Button {
-                    Task { await runRepair() }
-                } label: {
-                    if viewModel.isRepairing {
-                        ProgressView()
-                    } else {
-                        Label(
-                            NSLocalizedString("ai_repair_apply", comment: "Apply repairs"),
-                            systemImage: "checkmark.seal"
-                        )
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.isRepairing || repairSelection.isEmpty || !hasAIRepairAccess)
-            }
-        } else if !hasAIRepairAccess {
-            ToolbarItem {
-                Text(NSLocalizedString("ai_repair_missing_key_hint", comment: "Prompt to add AI key"))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
     }
 }
 
@@ -965,16 +519,16 @@ struct SearchResultRow: View {
     let onTap: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 8) {
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(alignment: .center, spacing: 6) {
                 Text(result.segment.formattedStartTime)
-                    .font(.caption2.monospacedDigit())
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
 
                 Text(matchCountText)
                     .font(.caption2.weight(.semibold))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 1)
                     .background(
                         Capsule(style: .continuous)
                             .fill(Color.accentColor.opacity(0.15))
@@ -984,16 +538,17 @@ struct SearchResultRow: View {
 
             HighlightedTranscriptText(attributedString: highlightedText)
                 .font(.body)
+                .lineSpacing(1)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
         .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(isSelected ? Color.accentColor.opacity(0.12) : Color(.systemBackground))
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1)
         )
         .contentShape(Rectangle())
@@ -1029,16 +584,12 @@ private extension TranscriptViewerSheet {
 
         switch job.status {
         case .completed:
-            guard lastObservedRepairJobId != job.id else { return }
-            lastObservedRepairJobId = job.id
             if let metadata = job.decodedMetadata(), let results = metadata.repairResults {
                 viewModel.lastRepairResults = results
             }
             Task { await viewModel.loadTranscript() }
             viewModel.repairErrorMessage = nil
         case .failed:
-            guard lastObservedRepairJobId != job.id else { return }
-            lastObservedRepairJobId = job.id
             viewModel.repairErrorMessage = job.errorMessage
         default:
             break

@@ -42,9 +42,8 @@ struct CollectionDetailView: View {
     @State private var isUpdatingCover = false
     @State private var coverUpdateError: String?
     @State private var showCoverUpdateError = false
-    @State private var collectionListViewportHeight: CGFloat?
-    @State private var summarySectionMinY: CGFloat?
-    @State private var lastTrackFrameMaxY: CGFloat?
+    @State private var isSummaryVisible = true
+    @State private var visibleTrackIndices: Set<Int> = []
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -167,22 +166,13 @@ struct CollectionDetailView: View {
     }
 
     private var showScrollToTopButton: Bool {
-        guard let minY = summarySectionMinY else {
-            return false
-        }
-
-        return minY < 0
+        !isSummaryVisible
     }
 
     private var showScrollToBottomButton: Bool {
-        guard let maxY = lastTrackFrameMaxY,
-              let viewportHeight = collectionListViewportHeight,
-              viewportHeight > 0
-        else {
-            return false
-        }
-
-        return maxY > viewportHeight
+        guard !filteredTracks.isEmpty else { return false }
+        let lastVisible = visibleTrackIndices.max() ?? -1
+        return lastVisible < filteredTracks.count - 1
     }
 
     var body: some View {
@@ -487,15 +477,6 @@ struct CollectionDetailView: View {
                 List {
                     summarySection(collection)
                         .id("summary-section")
-                        .background(
-                            GeometryReader { proxy in
-                                Color.clear
-                                    .preference(
-                                        key: SummaryFramePreferenceKey.self,
-                                        value: proxy.frame(in: .named(CollectionListViewMeta.viewportCoordinateSpace)).minY
-                                    )
-                            }
-                        )
                     tracksSection(collection)
                 }
                 .listStyle(.insetGrouped)
@@ -508,6 +489,7 @@ struct CollectionDetailView: View {
                 }
                 .onChange(of: filteredTracks.map(\.id)) { _ in
                     attemptAutoFocusIfNeeded(using: proxy)
+                    visibleTrackIndices.removeAll()
                 }
                 
                 // Jump to Top/Bottom Buttons (Centered)
@@ -553,24 +535,6 @@ struct CollectionDetailView: View {
                     }
                     .padding(.vertical, 4)
                 }
-            }
-            .coordinateSpace(name: CollectionListViewMeta.viewportCoordinateSpace)
-            .background(
-                GeometryReader { proxy in
-                    Color.clear
-                        .onAppear {
-                            collectionListViewportHeight = proxy.size.height
-                        }
-                        .onChange(of: proxy.size.height) { newHeight in
-                            collectionListViewportHeight = newHeight
-                        }
-                }
-            )
-            .onPreferenceChange(SummaryFramePreferenceKey.self) { minY in
-                summarySectionMinY = minY
-            }
-            .onPreferenceChange(LastTrackFramePreferenceKey.self) { maxY in
-                lastTrackFrameMaxY = maxY
             }
         }
     }
@@ -651,6 +615,12 @@ struct CollectionDetailView: View {
                 }
             }
             .padding(.vertical, 4)
+        }
+        .onAppear {
+            isSummaryVisible = true
+        }
+        .onDisappear {
+            isSummaryVisible = false
         }
     }
     
@@ -817,18 +787,12 @@ struct CollectionDetailView: View {
                             library.toggleFavorite(for: track.id, in: collection.id)
                         }
                     )
-                    .background(
-                        Group {
-                            if index == filteredTracks.count - 1 {
-                                GeometryReader { proxy in
-                                    Color.clear.preference(
-                                        key: LastTrackFramePreferenceKey.self,
-                                        value: proxy.frame(in: .named(CollectionListViewMeta.viewportCoordinateSpace)).maxY
-                                    )
-                                }
-                            }
-                        }
-                    )
+                    .onAppear {
+                        visibleTrackIndices.insert(index)
+                    }
+                    .onDisappear {
+                        visibleTrackIndices.remove(index)
+                    }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
                         favoriteSwipeButton(for: track, in: collection)
                     }
@@ -1407,26 +1371,6 @@ struct CollectionDetailView: View {
         if newIds != ttsGeneratingTrackIds {
             ttsGeneratingTrackIds = newIds
         }
-    }
-}
-
-private enum CollectionListViewMeta {
-    static let viewportCoordinateSpace = "collection-detail-list-viewport"
-}
-
-private struct SummaryFramePreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
-    }
-}
-
-private struct LastTrackFramePreferenceKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = nextValue()
     }
 }
 

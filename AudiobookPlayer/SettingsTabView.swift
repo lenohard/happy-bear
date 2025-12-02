@@ -15,6 +15,7 @@ struct SettingsTabView: View {
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @AppStorage("floatingBubbleOpacity") private var floatingBubbleOpacity: Double = 0.8
     @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
+    @AppStorage("autoGenerateNextEbookAudio") private var autoGenerateNextEbookAudio = true
     @AppStorage("backupIncludeCredentials") private var includeCredentials = false
     @State private var selectedNetdiskEntry: BaiduNetdiskEntry?
     @State private var showingBaiduImport = false
@@ -77,10 +78,10 @@ struct SettingsTabView: View {
                 Toggle(isOn: $autoGenerateTrackSummaries) {
                     Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
                 }
-                Text(NSLocalizedString("settings_auto_summary_description", comment: "Auto summary description"))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                
+                Toggle(isOn: $autoGenerateNextEbookAudio) {
+                    Label("Auto-generate next ebook audio", systemImage: "waveform.badge.plus")
+                }
             } header: {
                 Text(NSLocalizedString("settings_auto_summary_section_title", comment: "Auto summary section title"))
             }
