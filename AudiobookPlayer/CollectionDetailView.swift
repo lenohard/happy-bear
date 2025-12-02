@@ -107,6 +107,13 @@ struct CollectionDetailView: View {
         library.collections.first { $0.id == collectionID }
     }
 
+    private var isEbookCollection: Bool {
+        if let collection, case .ebook = collection.source {
+            return true
+        }
+        return false
+    }
+
     private var sortedTracks: [AudiobookTrack] {
         guard let collection else { return [] }
         
@@ -881,7 +888,7 @@ struct CollectionDetailView: View {
                                 )
                             }
 
-                            if library.canModifyCollection(collectionID) {
+                            if library.canModifyCollection(collectionID) && !isEbookCollection {
                                 Button(role: .destructive) {
                                     confirmDeleteTranscript(track)
                                 } label: {
@@ -1247,6 +1254,7 @@ struct CollectionDetailView: View {
     }
 
     private func confirmDeleteTranscript(_ track: AudiobookTrack) {
+        guard !isEbookCollection else { return }
         trackPendingTranscriptDeletion = track
         showTranscriptDeletionDialog = true
     }

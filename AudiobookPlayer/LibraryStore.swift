@@ -795,22 +795,26 @@ actor CollectionCoverImageStore {
 
     static let shared = CollectionCoverImageStore()
     static let directoryName = "CollectionCovers"
+    nonisolated static let cache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 200
+        return cache
+    }()
 
     nonisolated static var directoryURL: URL {
-        let documents = documentsDirectory()
-        return documents.appendingPathComponent(directoryName, isDirectory: true)
+        return documentsDirectory.appendingPathComponent(directoryName, isDirectory: true)
     }
 
-    nonisolated static func documentsDirectory() -> URL {
+    nonisolated static let documentsDirectory: URL = {
         guard let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
             fatalError("Unable to locate documents directory")
         }
         return url
-    }
+    }()
 
     nonisolated static func fileURL(for relativePath: String) -> URL {
         let trimmed = relativePath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        return documentsDirectory().appendingPathComponent(trimmed)
+        return documentsDirectory.appendingPathComponent(trimmed)
     }
 
     private let fileManager: FileManager

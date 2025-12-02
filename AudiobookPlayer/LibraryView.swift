@@ -427,11 +427,21 @@ struct CollectionCoverArtView: View {
         guard force || cachedRelativePath != relativePath else { return }
         cachedRelativePath = relativePath
 
+        let cacheKey = relativePath as NSString
+        if let cached = CollectionCoverImageStore.cache.object(forKey: cacheKey) {
+            self.localImage = cached
+            return
+        }
+
         Task.detached(priority: .utility) {
             let url = CollectionCoverImageStore.fileURL(for: relativePath)
-            let image = UIImage(contentsOfFile: url.path)
-            await MainActor.run {
-                self.localImage = image
+            if let image = UIImage(contentsOfFile: url.path) {
+                CollectionCoverImageStore.cache.setObject(image, forKey: cacheKey)
+                await MainActor.run {
+                    if self.cachedRelativePath == relativePath {
+                        self.localImage = image
+                    }
+                }
             }
         }
     }
