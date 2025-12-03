@@ -173,26 +173,23 @@ Generates all required iOS app icon sizes from a single source image.
 - [x] Local library management
 - [ ] Metadata display (title, artist, duration)
 - [x] Playlist/collection organization
-- [ ] Speed control (0.75x, 1x, 1.25x, 1.5x, etc.)
+- [x] Speed control (0.75x, 1x, 1.25x, 1.5x, etc.)
 - [x] Seek bar with scrubbing
 
 ### Phase 3: Enhancement
 
-- [ ] Sleep timer
+- [x] Sleep timer
 - [x] Offline download support (cache audio locally)
-- [ ] Search functionality
-- [ ] Custom sorting/filtering
+- [x] Search functionality
+- [x] Custom sorting/filtering
 - [ ] iCloud sync for progress across devices
-- [ ] Dark mode support
 - [x] Lock screen playback controls
 
 ### Phase 4: Polish & Distribution
 
-- [ ] Unit tests
 - [ ] UI/UX refinement
 - [ ] Performance optimization
 - [ ] App Store submission preparation
-- [ ] Beta testing
 
 ---
 
@@ -286,7 +283,6 @@ Generates all required iOS app icon sizes from a single source image.
    - This saves tokens and makes build verification more efficient
 
 4. **⚠️ CRITICAL - Localizable.xcstrings File Corruption Protection**:
-
    - **PROBLEM**: The `AudiobookPlayer/Localizable.xcstrings` file is prone to corruption when edited by multiple agents or tools
    - **Common Issues**:
      - File gets converted to binary plist format (breaks Xcode build)
@@ -301,7 +297,6 @@ Generates all required iOS app icon sizes from a single source image.
      3. If file is binary plist, restore from git: `git checkout HEAD -- AudiobookPlayer/Localizable.xcstrings` then re-run step 1 & 2
 
 5. **Xcode Project File Editing**: Never attempt to programmatically edit `project.pbxproj`. Instead:
-
    - Generate required resource files (`.strings`, `.xcassets`, etc.) using scripts
    - Create necessary directory structure (`*.lproj`, etc.)
    - Ask user to manually add files/folders to Xcode project via UI (Build Phases > Copy Bundle Resources, etc.)
@@ -309,7 +304,6 @@ Generates all required iOS app icon sizes from a single source image.
      This prevents pbxproj corruption and ensures proper project configuration.
 
 6. **UI Localization Best Practices**: When writing UI code, always use localization keys for multi-language support:
-
    - ✅ **DO**: Use `Text("search_files")` with corresponding entries in `Localizable.xcstrings`
    - ✅ **DO**: Use `Label("Current Path", systemImage: "folder")` where system images are universal
    - ❌ **DON'T**: Use hardcoded strings like `Text("Search files")` directly in UI code
@@ -325,7 +319,6 @@ Generates all required iOS app icon sizes from a single source image.
      ```
 
 7. **App Intents & Siri Support - Requires Paid Developer Account**:
-
    - ❌ **FREE accounts cannot use App Intents**: Free and Team provisioning profiles lack `com.apple.developer.appintents` entitlement support
    - ❌ **Paid accounts only**: Only Apple Developer Program members ($99/year) can create App Intents-enabled provisioning profiles
    - ✅ **Workaround**: Save complete implementation in WIP branch, restore when account is upgraded
@@ -333,24 +326,12 @@ Generates all required iOS app icon sizes from a single source image.
    - **Lesson**: Always verify account limitations before implementing platform-specific features. App Intents was fully architected before discovering the blocker.
 
 8. **UI Button Design Pattern - Intuitive Refresh Buttons**:
-
    - ✅ **Use icon-only buttons for intuitive actions**: Refresh buttons (↻), close buttons (✕), etc. don't need text labels
    - ✅ **Design**: `Button { ... } label: { Image(systemName: "arrow.clockwise") }`
    - ✅ **Style**: Use `.buttonStyle(.bordered)` + `.controlSize(.small)` for consistency
    - ✅ **Placement**: Pair with content (e.g., refresh button next to quota display)
    - **Guideline**: Don't add labels to buttons whose function is immediately obvious from the icon
    - **Example**: AI tab refresh buttons for models and credits use icon-only design
-
-9. **STT Simplification - Removed Audio Format Conversion (2025-11-10)**:
-
-   - **Problem**: AudioFormatConverter added unnecessary complexity - Soniox supports all common audio formats natively
-   - **Solution**: Completely removed audio format conversion code
-     - Deleted `AudioFormatConverter.swift` (115 lines)
-     - Removed conversion logic from `TranscriptionManager.swift`
-     - Removed `import AVFoundation` (no longer needed)
-   - **Impact**: Cleaner codebase, faster transcription, no quality loss from re-encoding
-   - **Also Fixed**: Cache completion check - `getCachedAssetURL()` now verifies `metadata.cacheStatus == .complete` before returning URL
-   - **Doc**: `local/stt-integration.md` Session 2025-11-10
 
 10. **Simple Fixes Don't Require Testing**:
 - For obvious, low-risk changes, skip the build/test step to save time and tokens
@@ -368,11 +349,8 @@ Generates all required iOS app icon sizes from a single source image.
 - **Documentation**: See `local/database-reference-debug.md` for full schema, queries, and debug commands
 - **Current State (2025-11-09)**: 1 transcript with 16 segments, 4250+ chars of text, marked as "complete"
 - **Known Issue**: Transcript data is saved in DB but TranscriptViewerSheet shows blank (investigate state refresh)
-
-## Qwen Added Memories
-
 - UI Localization Best Practices: When writing UI code, always use localization keys for multi-language support. Use Text("search_files") with corresponding entries in Localizable.xcstrings, not hardcoded strings like Text("Search files"). Process: 1) Use descriptive localization keys in code, 2) Add entries to Localizable.xcstrings, 3) Generate .strings files via generate_strings.py, 4) User manually adds to Xcode project, 5) Test in both English and Chinese device settings.
 
-1. Leave the localizable.xcstrings for me, you just provide me with the entrys in a local/new_xcstrings.md
-   I will finish it manully in xcode. this file is too large 3000+ lines.
+1. if it's too hard for you to edit xcstrings, you can Leave the localizable.xcstrings for me, you just provide me with the entrys in a local/new_xcstrings.md
+   I will finish it manully in xcode. this file is too large x000+ lines.
 2. Try to avoid to use text labels , when the icon is intuitvie enough.
