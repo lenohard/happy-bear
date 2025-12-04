@@ -87,6 +87,42 @@ actor GRDBDatabaseManager {
 
         print("[GRDB] Starting save for collection: \(collection.title)")
 
+        // Check if this is a lightweight collection (loaded without tracks)
+        // If so, we MUST NOT delete existing tracks/tags/states.
+        // We only update the collection metadata.
+        let isLightweight = collection.tracks.isEmpty && collection.trackCount > 0
+        
+        if isLightweight {
+            print("[GRDB] Detected lightweight collection save. Updating metadata only.")
+            try db.write { db in
+                try db.execute(sql:
+                    """
+                    UPDATE collections SET
+                        title = ?, author = ?, description = ?,
+                        cover_kind = ?, cover_data = ?, cover_dominant_color = ?,
+                        updated_at = ?,
+                        source_type = ?, source_payload = ?,
+                        last_played_track_id = ?
+                    WHERE id = ?
+                    """,
+                    arguments: [
+                        collection.title,
+                        collection.author,
+                        collection.description,
+                        collection.coverAsset.kind.typeString,
+                        collection.coverAsset.kind.dataJSON(),
+                        collection.coverAsset.dominantColorHex,
+                        collection.updatedAt,
+                        collection.source.typeString,
+                        collection.source.payloadJSON(),
+                        collection.lastPlayedTrackId?.uuidString,
+                        collection.id.uuidString
+                    ]
+                )
+            }
+            return
+        }
+
         try db.write { db in
             // Delete existing data in CORRECT DEPENDENCY ORDER
             // (reverse of creation order to respect foreign keys)
@@ -246,73 +282,91 @@ actor GRDBDatabaseManager {
                 collectionRow: collectionRow,
                 trackRows: trackRows,
                 playbackRows: playbackRows,
-                tagRows: tagRows
+                tagRows: tagRows,
+                trackCount: trackRows.count
             )
         }
     }
 
-    /// Load all collections
+    /// Load all collections (Lightweight: No tracks, playback states, or tags)
     func loadAllCollections() throws -> [AudiobookCollection] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
-        print("[GRDB] Starting loadAllCollections")
+        print("[GRDB] Starting loadAllCollections (Lightweight)")
 
         return try db.read { db in
-            print("[GRDB] Fetching all collection rows...")
-            let collectionRows = try Row.fetchAll(db, sql: "SELECT * FROM collections")
-            print("[GRDB] Found \(collectionRows.count) collection rows in database")
+            // Fetch collections with track count
+            let sql = """
+            SELECT c.*, (SELECT COUNT(*) FROM tracks t WHERE t.collection_id = c.id) as track_count
+            FROM collections c
+            """
+            let collectionRows = try Row.fetchAll(db, sql: sql)
+            print("[GRDB] Found \(collectionRows.count) collection rows")
 
             var collections: [AudiobookCollection] = []
 
             for collectionRow in collectionRows {
-                guard let collectionId = collectionRow["id"] as? String,
-                      let _ = UUID(uuidString: collectionId) else {
-                    print("[GRDB] Invalid collection ID: \(collectionRow["id"] as? String ?? "unknown")")
-                    continue
-                }
-
-                print("[GRDB] Loading collection: \(collectionId)")
-
-                let trackRows = try Row.fetchAll(
-                    db,
-                    sql: "SELECT * FROM tracks WHERE collection_id = ? ORDER BY track_number",
-                    arguments: [collectionId]
-                )
-                print("[GRDB] Found \(trackRows.count) tracks for collection \(collectionId)")
-
-                // Debug: Check for favorite status in raw rows
-                let favoriteCount = trackRows.filter { (($0["is_favorite"] as? Int) ?? 0) == 1 }.count
-                if favoriteCount > 0 {
-                    print("[FAVORITES-DB] Found \(favoriteCount) favorite tracks in raw database rows")
-                }
-
-                let playbackRows = try Row.fetchAll(
-                    db,
-                    sql: "SELECT * FROM playback_states WHERE collection_id = ?",
-                    arguments: [collectionId]
-                )
-
-                let tagRows = try Row.fetchAll(
-                    db,
-                    sql: "SELECT tag FROM tags WHERE collection_id = ?",
-                    arguments: [collectionId]
-                )
-
+                // Pass empty arrays for lazy loading
                 if let collection = try reconstructCollection(
                     collectionRow: collectionRow,
-                    trackRows: trackRows,
-                    playbackRows: playbackRows,
-                    tagRows: tagRows
+                    trackRows: [],
+                    playbackRows: [],
+                    tagRows: [],
+                    trackCount: collectionRow["track_count"]
                 ) {
                     collections.append(collection)
-                    print("[GRDB] Successfully reconstructed collection: \(collection.title)")
-                } else {
-                    print("[GRDB] Failed to reconstruct collection from row")
                 }
             }
 
-            print("[GRDB] Returning \(collections.count) collections")
+            print("[GRDB] Returning \(collections.count) lightweight collections")
             return collections
+        }
+    }
+
+    /// Load details for a specific collection (Tracks, Playback States, Tags)
+    func loadCollectionDetails(id: UUID) throws -> (tracks: [AudiobookTrack], playbackStates: [UUID: TrackPlaybackState], tags: [String]) {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+        
+        return try db.read { db in
+            // Load tracks
+            let trackRows = try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM tracks WHERE collection_id = ? ORDER BY track_number",
+                arguments: [id.uuidString]
+            )
+            
+            var tracks: [AudiobookTrack] = []
+            for trackRow in trackRows {
+                if let track = try reconstructTrack(row: trackRow) {
+                    tracks.append(track)
+                }
+            }
+            
+            // Load playback states
+            let playbackRows = try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM playback_states WHERE collection_id = ?",
+                arguments: [id.uuidString]
+            )
+            
+            var playbackStates: [UUID: TrackPlaybackState] = [:]
+            for pbRow in playbackRows {
+                if let trackIdStr = pbRow["track_id"] as? String,
+                   let trackId = UUID(uuidString: trackIdStr),
+                   let state = try reconstructPlaybackState(row: pbRow) {
+                    playbackStates[trackId] = state
+                }
+            }
+            
+            // Load tags
+            let tagRows = try Row.fetchAll(
+                db,
+                sql: "SELECT tag FROM tags WHERE collection_id = ?",
+                arguments: [id.uuidString]
+            )
+            let tags = tagRows.compactMap { $0["tag"] as? String }
+            
+            return (tracks, playbackStates, tags)
         }
     }
 
@@ -372,6 +426,52 @@ actor GRDBDatabaseManager {
                     collectionId.uuidString
                 ]
             )
+        }
+    }
+
+    /// Batch update multiple tracks
+    func updateTracks(_ tracks: [AudiobookTrack], in collectionId: UUID) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            for track in tracks {
+                try db.execute(sql:
+                    """
+                    UPDATE tracks SET
+                        display_name = ?,
+                        filename = ?,
+                        location_type = ?,
+                        location_payload = ?,
+                        file_size = ?,
+                        duration = ?,
+                        track_number = ?,
+                        checksum = ?,
+                        metadata_json = ?,
+                        media_kind = ?,
+                        is_favorite = ?,
+                        favorited_at = ?,
+                        character_count = ?
+                    WHERE id = ? AND collection_id = ?
+                    """,
+                    arguments: [
+                        track.displayName,
+                        track.filename,
+                        track.location.typeString,
+                        track.location.payloadJSON(),
+                        track.fileSize,
+                        track.duration,
+                        track.trackNumber,
+                        track.checksum,
+                        track.metadata.isEmpty ? nil : encodeJSON(track.metadata),
+                        track.mediaKind.rawValue,
+                        track.isFavorite ? 1 : 0,
+                        track.favoritedAt,
+                        track.characterCount,
+                        track.id.uuidString,
+                        collectionId.uuidString
+                    ]
+                )
+            }
         }
     }
 
@@ -645,7 +745,8 @@ actor GRDBDatabaseManager {
         collectionRow: Row,
         trackRows: [Row],
         playbackRows: [Row],
-        tagRows: [Row]
+        tagRows: [Row],
+        trackCount: Int? = nil
     ) throws -> AudiobookCollection? {
         guard let id = collectionRow["id"] as? String,
               let uuid = UUID(uuidString: id),
@@ -730,7 +831,8 @@ actor GRDBDatabaseManager {
             tracks: tracks,
             lastPlayedTrackId: lastPlayedTrackId,
             playbackStates: playbackStates,
-            tags: tags
+            tags: tags,
+            trackCount: trackCount
         )
     }
 

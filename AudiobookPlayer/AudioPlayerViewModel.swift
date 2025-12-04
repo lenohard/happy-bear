@@ -322,7 +322,7 @@ final class AudioPlayerViewModel: ObservableObject {
                 
                 await MainActor.run {
                     statusMessage = "Starting audio generation for \"\(track.displayName)\"..."
-                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
+                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil, userInfo: ["jobId": dbJobId])
                 }
                 
                 // Update to processing
@@ -338,25 +338,30 @@ final class AudioPlayerViewModel: ObservableObject {
                 var processedParagraphsCount = 0
                 var pendingParagraphsCount = 0
 
-                try await GRDBDatabaseManager.shared.updateJobProgress(
-                    jobId: dbJobId,
-                    progress: 0.0,
-                    processedParagraphs: processedParagraphsCount,
-                    totalParagraphs: totalParagraphs,
-                    pendingParagraphs: pendingParagraphsCount
-                )
-                
+                var lastUpdate = Date.distantPast
+                var lastProgress = -1.0
+
                 // 2. Process paragraphs
                 for paragraph in paragraphs {
                     pendingParagraphsCount += 1
+                    
+                    // Throttle initial progress update
                     let currentProgress = totalParagraphs > 0 ? Double(processedParagraphsCount) / Double(totalParagraphs) : 0
-                    try await GRDBDatabaseManager.shared.updateJobProgress(
-                        jobId: dbJobId,
-                        progress: currentProgress,
-                        processedParagraphs: processedParagraphsCount,
-                        totalParagraphs: totalParagraphs,
-                        pendingParagraphs: pendingParagraphsCount
-                    )
+                    let now = Date()
+                    if now.timeIntervalSince(lastUpdate) > 1.0 || abs(currentProgress - lastProgress) >= 0.05 {
+                        try await GRDBDatabaseManager.shared.updateJobProgress(
+                            jobId: dbJobId,
+                            progress: currentProgress,
+                            processedParagraphs: processedParagraphsCount,
+                            totalParagraphs: totalParagraphs,
+                            pendingParagraphs: pendingParagraphsCount
+                        )
+                        await MainActor.run {
+                            NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil, userInfo: ["jobId": dbJobId])
+                        }
+                        lastUpdate = now
+                        lastProgress = currentProgress
+                    }
 
                     do {
                         let audioData = try await generateAudioForParagraph(text: paragraph, voice: voice, rate: rate, pitch: pitch)
@@ -378,16 +383,30 @@ final class AudioPlayerViewModel: ObservableObject {
 
                         pendingParagraphsCount = max(pendingParagraphsCount - 1, 0)
                         processedParagraphsCount += 1
+                        
+                        // Throttle completion progress update
                         let updatedProgress = totalParagraphs > 0 ? Double(processedParagraphsCount) / Double(totalParagraphs) : 0
-                        try await GRDBDatabaseManager.shared.updateJobProgress(
-                            jobId: dbJobId,
-                            progress: updatedProgress,
-                            processedParagraphs: processedParagraphsCount,
-                            totalParagraphs: totalParagraphs,
-                            pendingParagraphs: pendingParagraphsCount
-                        )
+                        let now2 = Date()
+                        if now2.timeIntervalSince(lastUpdate) > 1.0 || abs(updatedProgress - lastProgress) >= 0.05 {
+                            try await GRDBDatabaseManager.shared.updateJobProgress(
+                                jobId: dbJobId,
+                                progress: updatedProgress,
+                                processedParagraphs: processedParagraphsCount,
+                                totalParagraphs: totalParagraphs,
+                                pendingParagraphs: pendingParagraphsCount
+                            )
+                            await MainActor.run {
+                                NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil, userInfo: ["jobId": dbJobId])
+                            }
+                            lastUpdate = now2
+                            lastProgress = updatedProgress
+                        }
                     } catch {
                         pendingParagraphsCount = max(pendingParagraphsCount - 1, 0)
+                        // Try to save progress even on error, but throttle it too? 
+                        // Error state is important, maybe just update DB without notification if throttled, 
+                        // but we are rethrowing so the job will fail anyway.
+                        // Let's just update DB best effort.
                         let fallbackProgress = totalParagraphs > 0 ? Double(processedParagraphsCount) / Double(totalParagraphs) : 0
                         try? await GRDBDatabaseManager.shared.updateJobProgress(
                             jobId: dbJobId,
@@ -449,7 +468,7 @@ final class AudioPlayerViewModel: ObservableObject {
                 await MainActor.run {
                     self.statusMessage = "Audio generation complete for \"\(track.displayName)\"."
                     self.refreshActiveCacheStatus()
-                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
+                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil, userInfo: ["jobId": dbJobId])
                     if autoPlay {
                         self.play(track: track, in: collection, token: nil)
                     }
@@ -459,11 +478,13 @@ final class AudioPlayerViewModel: ObservableObject {
                 // Mark failed
                 if let job = try? await GRDBDatabaseManager.shared.loadTranscriptionJobBySonioxId(sonioxJobId) {
                     try? await GRDBDatabaseManager.shared.markJobFailed(jobId: job.id, errorMessage: error.localizedDescription)
+                    await MainActor.run {
+                        NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil, userInfo: ["jobId": job.id])
+                    }
                 }
                 
                 await MainActor.run {
                     self.statusMessage = "Audio generation failed: \(error.localizedDescription)"
-                    NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
                 }
             }
         }

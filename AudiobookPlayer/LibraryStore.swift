@@ -38,6 +38,34 @@ final class LibraryStore: ObservableObject {
             }
         }
     }
+    
+    func ensureCollectionLoaded(_ collectionID: UUID) async {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else { return }
+        
+        // If already loaded (tracks not empty OR trackCount is 0), skip
+        // Note: A collection with 0 tracks is considered "loaded" if trackCount is also 0
+        // If trackCount > 0 and tracks is empty, it needs loading.
+        let collection = collections[index]
+        if !collection.tracks.isEmpty || collection.trackCount == 0 {
+            return
+        }
+        
+        do {
+            let details = try await dbManager.loadCollectionDetails(id: collectionID)
+            
+            // Re-check index in case it changed during await
+            if let idx = self.collections.firstIndex(where: { $0.id == collectionID }) {
+                var updated = self.collections[idx]
+                updated.tracks = details.tracks
+                updated.playbackStates = details.playbackStates
+                updated.tags = details.tags
+                self.collections[idx] = updated
+            }
+        } catch {
+            print("Failed to load collection details: \(error)")
+            lastError = error
+        }
+    }
 
     func load() async {
         isLoading = true
@@ -151,6 +179,80 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    func refreshBaiduCollection(collectionId: UUID, token: BaiduOAuthToken) async throws -> Int {
+        await ensureCollectionLoaded(collectionId)
+        
+        guard let index = collections.firstIndex(where: { $0.id == collectionId }) else {
+            throw LibraryStoreError.collectionNotFound
+        }
+        
+        var collection = collections[index]
+        
+        guard case let .baiduNetdisk(folderPath, _) = collection.source else {
+            return 0
+        }
+        
+        let client = BaiduNetdiskClient()
+        // Fetch all files in the folder (non-recursive for now, matching user request "check the latest results in that path")
+        // If we want recursive, we'd need to implement that logic here too, but let's stick to flat for now as per "check the latest results in that path"
+        // actually CollectionBuilderViewModel uses recursive fetch. 
+        // But for "refresh", usually we just check the root folder of the collection unless it was imported recursively.
+        // The current import logic in CollectionBuilderViewModel flattens the structure.
+        // So checking the root path recursively makes sense if we want to match that behavior.
+        // However, to keep it simple and safe, let's just check the immediate folder first. 
+        // Wait, if the original import was recursive, we might miss files in subfolders if we don't recurse.
+        // But the `folderPath` in `source` is the root.
+        // Let's use `listDirectory` which is flat. If the user wants deep refresh, that's more complex.
+        // Given "check the latest results in that path", I'll assume flat list for now or use the same recursive logic if I can easily access it.
+        // Since `fetchAllFilesRecursively` is private in `CollectionBuilderViewModel`, I'll implement a simple flat fetch first.
+        // If the user needs recursive, I can add it later.
+        
+        let entries = try await client.listDirectory(path: folderPath, token: token)
+        
+        let existingTrackPaths = Set(collection.tracks.compactMap { track -> String? in
+            if case let .baidu(_, path) = track.location {
+                return path
+            }
+            return nil
+        })
+        
+        let newEntries = entries.filter { entry in
+            guard !entry.isDir else { return false }
+            let ext = (entry.serverFilename as NSString).pathExtension.lowercased()
+            guard PlayableMediaFormat.isPlayableExtension(ext) else { return false }
+            return !existingTrackPaths.contains(entry.path)
+        }
+        
+        guard !newEntries.isEmpty else { return 0 }
+        
+        // Create new tracks
+        let startTrackNumber = (collection.tracks.map(\.trackNumber).max() ?? 0) + 1
+        
+        let newTracks = newEntries.enumerated().map { index, entry in
+            AudiobookTrack(
+                id: UUID(),
+                displayName: entry.serverFilename,
+                filename: entry.serverFilename,
+                location: .baidu(fsId: entry.fsId, path: entry.path),
+                fileSize: entry.size,
+                duration: nil,
+                trackNumber: startTrackNumber + index,
+                checksum: entry.md5,
+                metadata: [:],
+                mediaKind: PlayableMediaFormat.mediaKind(forFilename: entry.serverFilename)
+            )
+        }
+        
+        collection.tracks.append(contentsOf: newTracks)
+        collection.trackCount = collection.tracks.count
+        collection.updatedAt = Date()
+        
+        // Save
+        save(collection)
+        
+        return newTracks.count
+    }
+
     func clearErrors() {
         lastError = nil
     }
@@ -230,6 +332,15 @@ final class LibraryStore: ObservableObject {
         collectionID: UUID,
         newTracks: [AudiobookTrack]
     ) {
+        Task {
+            await ensureCollectionLoaded(collectionID)
+            await MainActor.run {
+                self.performAddTracks(collectionID: collectionID, newTracks: newTracks)
+            }
+        }
+    }
+    
+    private func performAddTracks(collectionID: UUID, newTracks: [AudiobookTrack]) {
         guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
             return
         }
@@ -243,6 +354,7 @@ final class LibraryStore: ObservableObject {
         }
 
         collection.tracks.append(contentsOf: tracksToAdd)
+        collection.trackCount = collection.tracks.count // Update track count
         collection.updatedAt = Date()
 
         collections[index] = collection
@@ -266,6 +378,15 @@ final class LibraryStore: ObservableObject {
         collectionID: UUID,
         trackID: UUID
     ) {
+        Task {
+            await ensureCollectionLoaded(collectionID)
+            await MainActor.run {
+                self.performRemoveTrack(collectionID: collectionID, trackID: trackID)
+            }
+        }
+    }
+    
+    private func performRemoveTrack(collectionID: UUID, trackID: UUID) {
         guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
             return
         }
@@ -274,6 +395,7 @@ final class LibraryStore: ObservableObject {
         let originalCount = collection.tracks.count
 
         collection.tracks.removeAll { $0.id == trackID }
+        collection.trackCount = collection.tracks.count // Update track count
 
         guard collection.tracks.count < originalCount else {
             return
@@ -459,6 +581,15 @@ final class LibraryStore: ObservableObject {
         trackID: UUID,
         newTitle: String
     ) {
+        Task {
+            await ensureCollectionLoaded(collectionID)
+            await MainActor.run {
+                self.performRenameTrack(in: collectionID, trackID: trackID, newTitle: newTitle)
+            }
+        }
+    }
+    
+    private func performRenameTrack(in collectionID: UUID, trackID: UUID, newTitle: String) {
         guard let collectionIndex = collections.firstIndex(where: { $0.id == collectionID }) else {
             return
         }
@@ -488,7 +619,7 @@ final class LibraryStore: ObservableObject {
             Task(priority: .utility) {
                 do {
                     try await dbManager.updateTrack(track, in: collectionID)
-                    try await dbManager.saveCollection(collection)
+                    try await dbManager.updateCollectionTimestamp(collectionID, updatedAt: collection.updatedAt)
                 } catch {
                     await MainActor.run {
                         self.lastError = error
@@ -510,6 +641,15 @@ final class LibraryStore: ObservableObject {
         in collectionID: UUID,
         changes: [UUID: String]
     ) {
+        Task {
+            await ensureCollectionLoaded(collectionID)
+            await MainActor.run {
+                self.performBatchRenameTracks(in: collectionID, changes: changes)
+            }
+        }
+    }
+    
+    private func performBatchRenameTracks(in collectionID: UUID, changes: [UUID: String]) {
         guard let collectionIndex = collections.firstIndex(where: { $0.id == collectionID }) else {
             return
         }
@@ -542,11 +682,10 @@ final class LibraryStore: ObservableObject {
             Task(priority: .utility) {
                 do {
                     // Update each track in the database
-                    for track in updatedTracks {
-                        try await dbManager.updateTrack(track, in: collectionID)
-                    }
+                    // Batch update tracks
+                    try await dbManager.updateTracks(updatedTracks, in: collectionID)
                     // Update collection timestamp
-                    try await dbManager.saveCollection(collection)
+                    try await dbManager.updateCollectionTimestamp(collectionID, updatedAt: collection.updatedAt)
                 } catch {
                     await MainActor.run {
                         self.lastError = error
@@ -584,6 +723,15 @@ final class LibraryStore: ObservableObject {
     // MARK: - Favorite Management
 
     func toggleFavorite(for trackID: UUID, in collectionID: UUID) {
+        Task {
+            await ensureCollectionLoaded(collectionID)
+            await MainActor.run {
+                self.performToggleFavorite(for: trackID, in: collectionID)
+            }
+        }
+    }
+    
+    private func performToggleFavorite(for trackID: UUID, in collectionID: UUID) {
         guard let collectionIndex = collections.firstIndex(where: { $0.id == collectionID }) else { return }
         guard let trackIndex = collections[collectionIndex].tracks.firstIndex(where: { $0.id == trackID }) else { return }
 

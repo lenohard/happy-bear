@@ -49,7 +49,6 @@ struct CollectionDraft {
     }
 }
 
-@MainActor
 final class CollectionBuilderViewModel: ObservableObject {
     enum State {
         case idle
@@ -58,7 +57,7 @@ final class CollectionBuilderViewModel: ObservableObject {
         case failed(CollectionBuildError)
     }
 
-    @Published private(set) var state: State = .idle
+    @MainActor @Published private(set) var state: State = .idle
 
     private let client: BaiduNetdiskClient
     private let maxTracksPerCollection = 500
@@ -71,88 +70,108 @@ final class CollectionBuilderViewModel: ObservableObject {
         from path: String,
         title: String?,
         tokenProvider: @escaping () -> BaiduOAuthToken?
-    ) async {
+    ) {
         guard let token = tokenProvider() else {
-            state = .failed(.expiredToken)
+            Task { @MainActor in
+                state = .failed(.expiredToken)
+            }
             return
         }
 
-        state = .loading(0.0)
-
-        do {
-            // Recursively fetch all files
-            let allEntries = try await fetchAllFilesRecursively(path: path, token: token)
-
-            // Filter playable media files (audio + video)
-            let mediaEntries = allEntries.filter { entry in
-                guard !entry.isDir else { return false }
-                let ext = (entry.serverFilename as NSString).pathExtension.lowercased()
-                return PlayableMediaFormat.isPlayableExtension(ext)
+        Task {
+            await MainActor.run {
+                state = .loading(0.0)
             }
 
-            // Validate
-            guard !mediaEntries.isEmpty else {
-                state = .failed(.noAudioFound)
-                return
-            }
+            do {
+                // Recursively fetch all files (off main thread)
+                let allEntries = try await fetchAllFilesRecursively(path: path, token: token)
 
-            if mediaEntries.count > maxTracksPerCollection {
-                state = .failed(.tooManyTracks(mediaEntries.count))
-                return
-            }
+                // Filter playable media files (audio + video)
+                let mediaEntries = allEntries.filter { entry in
+                    guard !entry.isDir else { return false }
+                    let ext = (entry.serverFilename as NSString).pathExtension.lowercased()
+                    return PlayableMediaFormat.isPlayableExtension(ext)
+                }
 
-            // Sort by path and filename
-            let sortedEntries = mediaEntries.sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+                // Validate
+                guard !mediaEntries.isEmpty else {
+                    await MainActor.run {
+                        state = .failed(.noAudioFound)
+                    }
+                    return
+                }
 
-            // Convert to tracks
-            var tracks: [AudiobookTrack] = []
-            for (index, entry) in sortedEntries.enumerated() {
-                let track = AudiobookTrack(
-                    id: UUID(),
-                    displayName: entry.serverFilename,
-                    filename: entry.serverFilename,
-                    location: .baidu(fsId: entry.fsId, path: entry.path),
-                    fileSize: entry.size,
-                    duration: nil,
-                    trackNumber: index + 1,
-                    checksum: entry.md5,
-                    metadata: [:],
-                    mediaKind: PlayableMediaFormat.mediaKind(forFilename: entry.serverFilename)
+                if mediaEntries.count > maxTracksPerCollection {
+                    await MainActor.run {
+                        state = .failed(.tooManyTracks(mediaEntries.count))
+                    }
+                    return
+                }
+
+                // Sort by path and filename
+                let sortedEntries = mediaEntries.sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+
+                // Convert to tracks
+                var tracks: [AudiobookTrack] = []
+                for (index, entry) in sortedEntries.enumerated() {
+                    let track = AudiobookTrack(
+                        id: UUID(),
+                        displayName: entry.serverFilename,
+                        filename: entry.serverFilename,
+                        location: .baidu(fsId: entry.fsId, path: entry.path),
+                        fileSize: entry.size,
+                        duration: nil,
+                        trackNumber: index + 1,
+                        checksum: entry.md5,
+                        metadata: [:],
+                        mediaKind: PlayableMediaFormat.mediaKind(forFilename: entry.serverFilename)
+                    )
+                    tracks.append(track)
+                }
+
+                // Collect non-playable files for info
+                let nonPlayableFiles = allEntries
+                    .filter { !$0.isDir && !PlayableMediaFormat.isPlayableExtension(($0.serverFilename as NSString).pathExtension.lowercased()) }
+                    .map { $0.serverFilename }
+
+                // Calculate total size
+                let totalSize = mediaEntries.reduce(0) { $0 + $1.size }
+
+                // Generate default title
+                let defaultTitle = title ?? (path as NSString).lastPathComponent
+
+                // Generate cover suggestion (gradient based on title)
+                let coverSuggestion = CollectionCover.generatedCover(for: defaultTitle)
+
+                let draft = CollectionDraft(
+                    title: defaultTitle,
+                    folderPath: path,
+                    tracks: tracks,
+                    selectedTrackIds: Set(tracks.map(\.id)),          // ALL selected by default
+                    nonPlayableFiles: nonPlayableFiles,
+                    totalSize: totalSize,
+                    coverSuggestion: coverSuggestion
                 )
-                tracks.append(track)
-            }
 
-            // Collect non-playable files for info
-            let nonPlayableFiles = allEntries
-                .filter { !$0.isDir && !PlayableMediaFormat.isPlayableExtension(($0.serverFilename as NSString).pathExtension.lowercased()) }
-                .map { $0.serverFilename }
+                await MainActor.run {
+                    state = .ready(draft)
+                }
 
-            // Calculate total size
-            let totalSize = mediaEntries.reduce(0) { $0 + $1.size }
-
-            // Generate default title
-            let defaultTitle = title ?? (path as NSString).lastPathComponent
-
-            // Generate cover suggestion (gradient based on title)
-            let coverSuggestion = generateCoverGradient(for: defaultTitle)
-
-            let draft = CollectionDraft(
-                title: defaultTitle,
-                folderPath: path,
-                tracks: tracks,
-                selectedTrackIds: Set(tracks.map(\.id)),          // ALL selected by default
-                nonPlayableFiles: nonPlayableFiles,
-                totalSize: totalSize,
-                coverSuggestion: coverSuggestion
-            )
-
-            state = .ready(draft)
-
-        } catch {
-            if let netdiskError = error as? NetdiskError, case .expiredToken = netdiskError {
-                state = .failed(.expiredToken)
-            } else {
-                state = .failed(.networkFailure(error))
+            } catch let error as CollectionBuildError {
+                await MainActor.run {
+                    state = .failed(error)
+                }
+            } catch {
+                if let netdiskError = error as? NetdiskError, case .expiredToken = netdiskError {
+                    await MainActor.run {
+                        state = .failed(.expiredToken)
+                    }
+                } else {
+                    await MainActor.run {
+                        state = .failed(.networkFailure(error))
+                    }
+                }
             }
         }
     }
@@ -204,10 +223,6 @@ final class CollectionBuilderViewModel: ObservableObject {
 
         return allEntries
     }
-
-    private func generateCoverGradient(for title: String) -> CollectionCover {
-        CollectionCover.generatedCover(for: title)
-    }
 }
 
 // Extension to BaiduNetdiskClient
@@ -218,3 +233,5 @@ extension BaiduNetdiskClient {
         return try await listDirectory(path: path, token: token)
     }
 }
+
+

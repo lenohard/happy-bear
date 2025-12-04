@@ -44,6 +44,8 @@ struct CollectionDetailView: View {
     @State private var showCoverUpdateError = false
     @State private var isSummaryVisible = true
     @State private var visibleTrackIndices: Set<Int> = []
+    @State private var refreshResult: String?
+    @State private var showRefreshResult = false
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -201,6 +203,12 @@ struct CollectionDetailView: View {
                                 )
                             }
                             
+                            if let source = collection?.source, case .baiduNetdisk = source {
+                                Button(action: refreshCollectionAction) {
+                                    Label(NSLocalizedString("refresh_collection_button", value: "Refresh Collection", comment: "Refresh collection button"), systemImage: "arrow.clockwise")
+                                }
+                            }
+                            
                             Button(action: { showBatchRename = true }) {
                                 Label("Batch Rename", systemImage: "pencil.and.list.clipboard")
                             }
@@ -286,6 +294,15 @@ struct CollectionDetailView: View {
                 if let track = audioPlayer.trackToGenerateAudio {
                     Text("Audio has not been generated for \"\(track.displayName)\". Would you like to generate it now?")
                 }
+            }
+            .alert(
+                "Collection Refresh",
+                isPresented: $showRefreshResult,
+                presenting: refreshResult
+            ) { _ in
+                Button("OK", role: .cancel) { }
+            } message: { result in
+                Text(result)
             }
 
         let viewWithSheets = viewWithAlerts
@@ -431,6 +448,11 @@ struct CollectionDetailView: View {
                 loadTranscriptStatus()
                 prepareAutoFocusTargetIfNeeded(for: self.collection)
                 refreshTrackSummaryIndicators(for: self.collection)
+                
+                // Trigger lazy load
+                Task {
+                    await library.ensureCollectionLoaded(collectionID)
+                }
             }
             .onReceive(transcriptionManager.$activeJobs) { jobs in
                 refreshSttTranscribingTrackIds(from: jobs)
@@ -589,12 +611,12 @@ struct CollectionDetailView: View {
                     }
 
                     if case .ebook = collection.source, let charCount = collection.totalCharacterCount {
-                         Text("\(collection.tracks.count) tracks • \(formatNumber(charCount)) chars")
+                         Text("\(collection.trackCount) tracks • \(formatNumber(charCount)) chars")
                              .font(.caption)
                              .foregroundStyle(.secondary)
                     } else {
                         let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
-                        Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.tracks.count, formatBytes(totalSize)))
+                        Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.trackCount, formatBytes(totalSize)))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -766,10 +788,19 @@ struct CollectionDetailView: View {
     private func tracksSection(_ collection: AudiobookCollection) -> some View {
         Section(header: tracksHeader) {
             if filteredTracks.isEmpty {
-                Text(searchText.isEmpty ? NSLocalizedString("no_audio_tracks", comment: "No audio tracks") : String(format: NSLocalizedString("no_search_results", comment: "No search results"), searchText))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, 4)
+                if collection.tracks.isEmpty && collection.trackCount > 0 {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .padding()
+                        Spacer()
+                    }
+                } else {
+                    Text(searchText.isEmpty ? NSLocalizedString("no_audio_tracks", comment: "No audio tracks") : String(format: NSLocalizedString("no_search_results", comment: "No search results"), searchText))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.vertical, 4)
+                }
             } else {
                 ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
                     let trackIsActive = isCurrentTrack(track: track)
@@ -1352,6 +1383,24 @@ struct CollectionDetailView: View {
             await library.resetCollectionCover(collectionID: collectionID)
             await MainActor.run {
                 isUpdatingCover = false
+            }
+        }
+    }
+
+    private func refreshCollectionAction() {
+        guard let token = authViewModel.token else {
+            missingAuthAlert = true
+            return
+        }
+        
+        Task {
+            do {
+                let count = try await library.refreshBaiduCollection(collectionId: collectionID, token: token)
+                refreshResult = String(format: NSLocalizedString("refresh_success_message", value: "Found %d new tracks.", comment: "Refresh success message"), count)
+                showRefreshResult = true
+            } catch {
+                refreshResult = String(format: NSLocalizedString("refresh_failed_message", value: "Refresh failed: %@", comment: "Refresh failed message"), error.localizedDescription)
+                showRefreshResult = true
             }
         }
     }

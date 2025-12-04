@@ -104,10 +104,14 @@ class TranscriptionManager: NSObject, ObservableObject {
             forName: NSNotification.Name("TranscriptionJobUpdated"),
             object: nil,
             queue: .main
-        ) { [weak self] _ in
+        ) { [weak self] notification in
             Task {
-                await self?.refreshActiveJobsFromDatabase()
-                await self?.refreshAllRecentJobs()
+                if let jobId = notification.userInfo?["jobId"] as? String {
+                    await self?.refreshJob(jobId)
+                } else {
+                    await self?.refreshActiveJobsFromDatabase()
+                    await self?.refreshAllRecentJobs()
+                }
             }
         }
     }
@@ -838,6 +842,21 @@ class TranscriptionManager: NSObject, ObservableObject {
             }
         } catch {
             logger.error("[TranscriptionManager] Failed to refresh active jobs: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func refreshJob(_ jobId: String) async {
+        do {
+            if let job = try await dbManager.loadTranscriptionJob(jobId: jobId) {
+                await MainActor.run {
+                    self.upsertActiveJob(job)
+                    if let index = self.allRecentJobs.firstIndex(where: { $0.id == jobId }) {
+                        self.allRecentJobs[index] = job
+                    }
+                }
+            }
+        } catch {
+            logger.error("[TranscriptionManager] Failed to refresh job \(jobId): \(error.localizedDescription, privacy: .public)")
         }
     }
 
