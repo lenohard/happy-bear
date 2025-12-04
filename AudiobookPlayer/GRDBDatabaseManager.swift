@@ -758,22 +758,21 @@ actor GRDBDatabaseManager {
         }
 
         // Parse DATETIME fields - GRDB returns them as String
-        let createdAtValue = collectionRow["created_at"]
+        // Parse DATETIME fields - GRDB returns them as String or Date (Double)
         let createdAt: Date
-        if let date = createdAtValue as? Date {
+        if let date = collectionRow["created_at"] as Date? {
             createdAt = date
-        } else if let dateString = createdAtValue as? String,
+        } else if let dateString = collectionRow["created_at"] as String?,
                   let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
             createdAt = parsedDate
         } else {
             return nil
         }
 
-        let updatedAtValue = collectionRow["updated_at"]
         let updatedAt: Date
-        if let date = updatedAtValue as? Date {
+        if let date = collectionRow["updated_at"] as Date? {
             updatedAt = date
-        } else if let dateString = updatedAtValue as? String,
+        } else if let dateString = collectionRow["updated_at"] as String?,
                   let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
             updatedAt = parsedDate
         } else {
@@ -861,11 +860,11 @@ actor GRDBDatabaseManager {
         let isFavorite = (isFavoriteValue ?? 0) == 1
 
         // Handle favoritedAt - GRDB returns DATETIME as String, not Date
-        let favoritedAtValue = row["favorited_at"]
+        // Handle favoritedAt
         let favoritedAt: Date?
-        if let date = favoritedAtValue as? Date {
+        if let date = row["favorited_at"] as Date? {
             favoritedAt = date
-        } else if let dateString = favoritedAtValue as? String {
+        } else if let dateString = row["favorited_at"] as String? {
             favoritedAt = Self.sqliteDateFormatter.date(from: dateString)
         } else {
             favoritedAt = nil
@@ -910,11 +909,11 @@ actor GRDBDatabaseManager {
         }
 
         // Handle updatedAt - GRDB returns DATETIME as String, not Date
-        let updatedAtValue = row["updated_at"]
+        // Handle updatedAt
         let updatedAt: Date
-        if let date = updatedAtValue as? Date {
+        if let date = row["updated_at"] as Date? {
             updatedAt = date
-        } else if let dateString = updatedAtValue as? String {
+        } else if let dateString = row["updated_at"] as String? {
             guard let parsedDate = Self.sqliteDateFormatter.date(from: dateString) else {
                 return nil
             }
@@ -1546,22 +1545,21 @@ actor GRDBDatabaseManager {
         let errorMessage = row["error_message"] as? String
 
         // Parse dates
-        let createdAtValue = row["created_at"]
+        // Parse dates
         let createdAt: Date
-        if let date = createdAtValue as? Date {
+        if let date = row["created_at"] as Date? {
             createdAt = date
-        } else if let dateString = createdAtValue as? String,
+        } else if let dateString = row["created_at"] as String?,
                   let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
             createdAt = parsedDate
         } else {
             return nil
         }
 
-        let updatedAtValue = row["updated_at"]
         let updatedAt: Date
-        if let date = updatedAtValue as? Date {
+        if let date = row["updated_at"] as Date? {
             updatedAt = date
-        } else if let dateString = updatedAtValue as? String,
+        } else if let dateString = row["updated_at"] as String?,
                   let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
             updatedAt = parsedDate
         } else {

@@ -802,11 +802,11 @@ struct CollectionDetailView: View {
                         .padding(.vertical, 4)
                 }
             } else {
-                ForEach(Array(filteredTracks.enumerated()), id: \.element.id) { index, track in
+                ForEach(filteredTracks.indices, id: \.self) { index in
+                    let track = filteredTracks[index]
                     let trackIsActive = isCurrentTrack(track: track)
                     let hasTranscript = transcriptStatusCache[track.id] ?? false
-                    // Optimized O(1) lookup
-                let isTranscribingTrack = sttTranscribingTrackIds.contains(track.id)
+                    let isTranscribingTrack = sttTranscribingTrackIds.contains(track.id)
 
                     TrackDetailRow(
                         index: index,
@@ -825,11 +825,12 @@ struct CollectionDetailView: View {
                             library.toggleFavorite(for: track.id, in: collection.id)
                         }
                     )
+                    .id(track.id)
                     .onAppear {
-                        visibleTrackIndices.insert(index)
+                        updateVisibleRange(index: index, isVisible: true)
                     }
                     .onDisappear {
-                        visibleTrackIndices.remove(index)
+                        updateVisibleRange(index: index, isVisible: false)
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
                         favoriteSwipeButton(for: track, in: collection)
@@ -939,7 +940,6 @@ struct CollectionDetailView: View {
                             .frame(maxWidth: 340)
                             .fixedSize(horizontal: false, vertical: true)
                     }
-                    .id(track.id)
                 }
             }
         }
@@ -1428,6 +1428,22 @@ struct CollectionDetailView: View {
         if newIds != ttsGeneratingTrackIds {
             ttsGeneratingTrackIds = newIds
         }
+    }
+
+    // Debounced visibility tracking to reduce state updates during scroll
+    @State private var visibilityUpdateTask: Task<Void, Never>?
+    
+    private func updateVisibleRange(index: Int, isVisible: Bool) {
+        // Update immediately for accurate tracking
+        if isVisible {
+            visibleTrackIndices.insert(index)
+        } else {
+            visibleTrackIndices.remove(index)
+        }
+        
+        // Debounce any downstream expensive operations if needed
+        // For now, this is just a direct update since Set operations are O(1)
+        // and the scroll buttons only check min/max which is also fast
     }
 }
 
