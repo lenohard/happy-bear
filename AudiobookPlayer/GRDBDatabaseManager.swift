@@ -989,29 +989,13 @@ actor GRDBDatabaseManager {
             return .external(description: description)
 
         case "ebook":
-            guard let dateStr = dict["importedDate"] as? String else {
-                // Try decoding as timestamp if string fails (though Codable usually encodes Date as float)
-                if let timestamp = dict["importedDate"] as? Double {
-                    return .ebook(importedDate: Date(timeIntervalSinceReferenceDate: timestamp))
-                }
-                throw DatabaseError.inconsistentData("Missing ebook importedDate")
-            }
-            // Codable default date encoding might be ISO8601 or reference date.
-            // Let's try to parse it if it's a string, or assume it's a timestamp if double.
-            // Actually, Codable for Date defaults to reference date (Double) unless configured otherwise.
-            // But here we are decoding JSON manually.
-            // Let's see how it was encoded.
-            // LibraryModels.swift uses default Codable.
-            // Default JSONEncoder encodes Date as float (timeIntervalSinceReferenceDate).
-            // So dict["importedDate"] should be a Double.
             if let timestamp = dict["importedDate"] as? Double {
                 return .ebook(importedDate: Date(timeIntervalSinceReferenceDate: timestamp))
+            } else if let dateStr = dict["importedDate"] as? String,
+                      let date = Self.sqliteDateFormatter.date(from: dateStr) {
+                return .ebook(importedDate: date)
             }
-            // Fallback for ISO8601 if that was used
-            if let date = Self.sqliteDateFormatter.date(from: dateStr) {
-                 return .ebook(importedDate: date)
-            }
-             throw DatabaseError.inconsistentData("Invalid ebook importedDate")
+            throw DatabaseError.inconsistentData("Invalid ebook importedDate")
 
         default:
             throw DatabaseError.inconsistentData("Unknown source type: \(type)")
@@ -2027,7 +2011,7 @@ extension AudiobookCollection.Source {
             payload = ["ephemeralPath": path]
 
         case let .ebook(importedDate):
-            payload = ["importedDate": importedDate.timeIntervalSince1970]
+            payload = ["importedDate": importedDate.timeIntervalSinceReferenceDate]
         }
 
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
