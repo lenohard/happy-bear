@@ -43,7 +43,7 @@ struct CollectionDetailView: View {
     @State private var coverUpdateError: String?
     @State private var showCoverUpdateError = false
     @State private var isSummaryVisible = true
-    @State private var visibleTrackIndices: Set<Int> = []
+    @State private var isLastTrackVisible = false
     @State private var refreshResult: String?
     @State private var showRefreshResult = false
 
@@ -180,8 +180,7 @@ struct CollectionDetailView: View {
 
     private var showScrollToBottomButton: Bool {
         guard !filteredTracks.isEmpty else { return false }
-        let lastVisible = visibleTrackIndices.max() ?? -1
-        return lastVisible < filteredTracks.count - 1
+        return !isLastTrackVisible
     }
 
     var body: some View {
@@ -518,7 +517,7 @@ struct CollectionDetailView: View {
                 }
                 .onChange(of: filteredTracks.map(\.id)) { _ in
                     attemptAutoFocusIfNeeded(using: proxy)
-                    visibleTrackIndices.removeAll()
+                    isLastTrackVisible = false
                 }
                 
                 // Jump to Top/Bottom Buttons (Centered)
@@ -786,8 +785,9 @@ struct CollectionDetailView: View {
 
     @ViewBuilder
     private func tracksSection(_ collection: AudiobookCollection) -> some View {
+        let tracks = filteredTracks
         Section(header: tracksHeader) {
-            if filteredTracks.isEmpty {
+            if tracks.isEmpty {
                 if collection.tracks.isEmpty && collection.trackCount > 0 {
                     HStack {
                         Spacer()
@@ -802,8 +802,8 @@ struct CollectionDetailView: View {
                         .padding(.vertical, 4)
                 }
             } else {
-                ForEach(filteredTracks.indices, id: \.self) { index in
-                    let track = filteredTracks[index]
+                ForEach(tracks.indices, id: \.self) { index in
+                    let track = tracks[index]
                     let trackIsActive = isCurrentTrack(track: track)
                     let hasTranscript = transcriptStatusCache[track.id] ?? false
                     let isTranscribingTrack = sttTranscribingTrackIds.contains(track.id)
@@ -827,10 +827,14 @@ struct CollectionDetailView: View {
                     )
                     .id(track.id)
                     .onAppear {
-                        updateVisibleRange(index: index, isVisible: true)
+                        if index == tracks.count - 1 {
+                            isLastTrackVisible = true
+                        }
                     }
                     .onDisappear {
-                        updateVisibleRange(index: index, isVisible: false)
+                        if index == tracks.count - 1 {
+                            isLastTrackVisible = false
+                        }
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
                         favoriteSwipeButton(for: track, in: collection)
@@ -1430,21 +1434,6 @@ struct CollectionDetailView: View {
         }
     }
 
-    // Debounced visibility tracking to reduce state updates during scroll
-    @State private var visibilityUpdateTask: Task<Void, Never>?
-    
-    private func updateVisibleRange(index: Int, isVisible: Bool) {
-        // Update immediately for accurate tracking
-        if isVisible {
-            visibleTrackIndices.insert(index)
-        } else {
-            visibleTrackIndices.remove(index)
-        }
-        
-        // Debounce any downstream expensive operations if needed
-        // For now, this is just a direct update since Set operations are O(1)
-        // and the scroll buttons only check min/max which is also fast
-    }
 }
 
 private struct CollectionInfoEditorView: View {

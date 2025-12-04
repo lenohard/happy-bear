@@ -757,7 +757,6 @@ actor GRDBDatabaseManager {
             return nil
         }
 
-        // Parse DATETIME fields - GRDB returns them as String
         // Parse DATETIME fields - GRDB returns them as String or Date (Double)
         let createdAt: Date
         if let date = collectionRow["created_at"] as Date? {
@@ -859,7 +858,6 @@ actor GRDBDatabaseManager {
         let isFavoriteValue: Int? = row["is_favorite"]
         let isFavorite = (isFavoriteValue ?? 0) == 1
 
-        // Handle favoritedAt - GRDB returns DATETIME as String, not Date
         // Handle favoritedAt
         let favoritedAt: Date?
         if let date = row["favorited_at"] as Date? {
@@ -908,7 +906,6 @@ actor GRDBDatabaseManager {
             return nil
         }
 
-        // Handle updatedAt - GRDB returns DATETIME as String, not Date
         // Handle updatedAt
         let updatedAt: Date
         if let date = row["updated_at"] as Date? {
@@ -1544,7 +1541,6 @@ actor GRDBDatabaseManager {
         let jobId = row["job_id"] as? String
         let errorMessage = row["error_message"] as? String
 
-        // Parse dates
         // Parse dates
         let createdAt: Date
         if let date = row["created_at"] as Date? {
