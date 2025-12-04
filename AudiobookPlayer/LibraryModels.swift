@@ -92,6 +92,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
     var lastPlayedTrackId: UUID?
     var playbackStates: [UUID: TrackPlaybackState]
     var tags: [String]
+    var trackCount: Int
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -107,6 +108,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case playbackStates
         case legacyLastPlaybackPosition = "lastPlaybackPosition"
         case tags
+        case trackCount
     }
 
     init(
@@ -121,7 +123,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         tracks: [AudiobookTrack],
         lastPlayedTrackId: UUID?,
         playbackStates: [UUID: TrackPlaybackState],
-        tags: [String]
+        tags: [String],
+        trackCount: Int? = nil // Optional for backward compatibility in init, defaults to tracks.count
     ) {
         self.id = id
         self.title = title
@@ -135,6 +138,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         self.lastPlayedTrackId = lastPlayedTrackId
         self.playbackStates = playbackStates
         self.tags = tags
+        self.trackCount = trackCount ?? tracks.count
     }
 
     init(from decoder: Decoder) throws {
@@ -151,6 +155,13 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         tracks = try container.decode([AudiobookTrack].self, forKey: .tracks)
         lastPlayedTrackId = try container.decodeIfPresent(UUID.self, forKey: .lastPlayedTrackId)
         tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
+        
+        // For backward compatibility, if trackCount is missing, use tracks.count
+        if let count = try container.decodeIfPresent(Int.self, forKey: .trackCount) {
+            trackCount = count
+        } else {
+            trackCount = tracks.count
+        }
 
         let decodedStates = try container.decodeIfPresent([UUID: TrackPlaybackState].self, forKey: .playbackStates) ?? [:]
         if decodedStates.isEmpty,
@@ -182,6 +193,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         try container.encodeIfPresent(lastPlayedTrackId, forKey: .lastPlayedTrackId)
         try container.encode(playbackStates, forKey: .playbackStates)
         try container.encode(tags, forKey: .tags)
+        try container.encode(trackCount, forKey: .trackCount)
     }
 
     func playbackState(for trackId: UUID) -> TrackPlaybackState? {
@@ -415,7 +427,8 @@ extension AudiobookCollection {
             tracks: [],
             lastPlayedTrackId: nil,
             playbackStates: [:],
-            tags: []
+            tags: [],
+            trackCount: 0
         )
     }
 }

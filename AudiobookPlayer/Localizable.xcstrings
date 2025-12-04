@@ -2025,6 +2025,9 @@
         }
       }
     },
+    "Collection Refresh" : {
+
+    },
     "collection_cover_choose_photo" : {
       "comment" : "Choose cover from photos",
       "localizations" : {
@@ -2357,10 +2360,24 @@
 
     },
     "Delete Storage" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除"
+          }
+        }
+      }
     },
     "Delete Storage for Collection" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除合集存储"
+          }
+        }
+      }
     },
     "delete_cache_confirm" : {
       "comment" : "Delete cached track button",
@@ -3618,7 +3635,14 @@
       "comment" : "Accessibility label for pause track button"
     },
     "Per-Collection Storage" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集存储"
+          }
+        }
+      }
     },
     "Personal" : {
       "localizations" : {
@@ -3787,6 +3811,42 @@
     },
     "Refresh Models" : {
 
+    },
+    "refresh_collection_button" : {
+      "comment" : "Refresh collection button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Refresh Collection"
+          }
+        }
+      }
+    },
+    "refresh_failed_message" : {
+      "comment" : "Refresh failed message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Refresh failed: %@"
+          }
+        }
+      }
+    },
+    "refresh_success_message" : {
+      "comment" : "Refresh success message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Found %d new tracks."
+          }
+        }
+      }
     },
     "reload_button" : {
       "comment" : "Reload button",
@@ -4438,6 +4498,12 @@
             "state" : "new",
             "value" : "Storage Management"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "存储管理"
+          }
         }
       }
     },
@@ -4449,6 +4515,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Storage Management"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "存储管理"
           }
         }
       }
@@ -4490,7 +4562,14 @@
       }
     },
     "Test Voice" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "测试"
+          }
+        }
+      }
     },
     "Test with sample audio" : {
       "localizations" : {
@@ -4523,7 +4602,14 @@
       }
     },
     "These settings will be applied when playing Ebook text tracks." : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这些配置会自动应用在电子书播放中"
+          }
+        }
+      }
     },
     "This folder is empty." : {
       "localizations" : {
@@ -6003,10 +6089,24 @@
       }
     },
     "Voice" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声音"
+          }
+        }
+      }
     },
     "Voice Settings" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "声音设置"
+          }
+        }
+      }
     },
     "Your AI generation tasks will appear here." : {
 

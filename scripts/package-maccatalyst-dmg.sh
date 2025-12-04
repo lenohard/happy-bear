@@ -12,6 +12,7 @@ BUILD_ROOT="${BUILD_ROOT:-$PWD/build/maccatalyst}"
 DERIVED="$BUILD_ROOT/DerivedData"
 STAGE="$BUILD_ROOT/stage"
 OUT_DMG="${OUT_DMG:-$PWD/${APP_NAME}-macOS.dmg}"
+CLEAN="${CLEAN:-0}"  # 设置 CLEAN=1 来清理旧的构建文件（默认保留用于快速增量构建）
 
 # 检查 xcodebuild
 if ! command -v xcodebuild >/dev/null 2>&1; then
@@ -35,7 +36,12 @@ else
 fi
 
 # 准备目录
-rm -rf "$BUILD_ROOT"
+if [[ $CLEAN -eq 1 ]]; then
+  echo "🧹 清理旧的构建文件..."
+  rm -rf "$BUILD_ROOT"
+else
+  echo "📝 使用增量构建（设置 CLEAN=1 ./script.sh 来执行干净构建）"
+fi
 mkdir -p "$DERIVED" "$STAGE"
 
 echo "🔨 构建 Mac Catalyst 应用（${CONFIG}）..."

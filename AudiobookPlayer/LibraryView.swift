@@ -212,9 +212,18 @@ struct LibraryView: View {
     }
 
     private func resumeCollectionPlayback(_ collection: AudiobookCollection) {
-        guard !collection.tracks.isEmpty else { return }
-        guard let track = collection.resumeTrack() else { return }
-        playTrack(track, in: collection)
+        Task {
+            // Ensure collection is loaded before attempting to resume
+            await library.ensureCollectionLoaded(collection.id)
+            
+            await MainActor.run {
+                // Get the updated collection from the store
+                guard let updatedCollection = library.collections.first(where: { $0.id == collection.id }) else { return }
+                guard !updatedCollection.tracks.isEmpty else { return }
+                guard let track = updatedCollection.resumeTrack() else { return }
+                playTrack(track, in: updatedCollection)
+            }
+        }
     }
 
     private func delete(at offsets: IndexSet) {
@@ -288,7 +297,7 @@ private struct LibraryCollectionRow: View {
     }()
 
     private var subtitle: String {
-        let trackCount = collection.tracks.count
+        let trackCount = collection.trackCount
         let updated = Self.dateFormatter.string(from: collection.updatedAt)
 
         if trackCount == 1 {
