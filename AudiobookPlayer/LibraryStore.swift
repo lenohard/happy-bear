@@ -121,6 +121,8 @@ final class LibraryStore: ObservableObject {
                 lastError = error
             }
         }
+
+        await preloadCollectionsForListeningHistoryIfNeeded()
     }
 
     func save(_ collection: AudiobookCollection) {
@@ -324,6 +326,23 @@ final class LibraryStore: ObservableObject {
                 try? await syncEngine.saveRemoteCollection(collection)
             }
         }
+    }
+
+    // MARK: - Listening History Support
+
+    private func preloadCollectionsForListeningHistoryIfNeeded(limit: Int = 12) async {
+        let candidates = collections
+            .filter { !$0.playbackStates.isEmpty && $0.tracks.isEmpty && $0.trackCount > 0 }
+            .sorted { latestPlaybackDate(for: $0) ?? .distantPast > latestPlaybackDate(for: $1) ?? .distantPast }
+            .prefix(limit)
+
+        for collection in candidates {
+            await ensureCollectionLoaded(collection.id)
+        }
+    }
+
+    private func latestPlaybackDate(for collection: AudiobookCollection) -> Date? {
+        collection.playbackStates.values.map(\.updatedAt).max()
     }
 
     // MARK: - Track Management (Phase 2)
