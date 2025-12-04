@@ -69,6 +69,22 @@ actor GRDBDatabaseManager {
             try db.execute(sql: AIGenerationDatabaseSchema.createTableSQL)
             print("[GRDB] AI generation tables created")
 
+            // Create listening statistics table
+            print("[GRDB] Creating listening statistics table...")
+            try db.execute(sql: """
+                CREATE TABLE IF NOT EXISTS listening_statistics (
+                    id TEXT PRIMARY KEY,
+                    track_id TEXT NOT NULL,
+                    collection_id TEXT NOT NULL,
+                    start_time DATETIME NOT NULL,
+                    end_time DATETIME NOT NULL,
+                    created_at DATETIME NOT NULL
+                )
+            """)
+            try db.execute(sql: "CREATE INDEX IF NOT EXISTS index_listening_statistics_start_time ON listening_statistics(start_time)")
+            try db.execute(sql: "CREATE INDEX IF NOT EXISTS index_listening_statistics_collection_id ON listening_statistics(collection_id)")
+            print("[GRDB] Listening statistics table created")
+
             // Insert schema version if not exists
             print("[GRDB] Inserting schema version...")
             try db.execute(sql: """
@@ -303,14 +319,24 @@ actor GRDBDatabaseManager {
             let collectionRows = try Row.fetchAll(db, sql: sql)
             print("[GRDB] Found \(collectionRows.count) collection rows")
 
+            // Load all playback states to populate progress
+            let playbackRows = try Row.fetchAll(db, sql: "SELECT * FROM playback_states")
+            // Group playback rows by collection_id for faster lookup
+            let playbackRowsByCollection = Dictionary(grouping: playbackRows) { row -> String in
+                row["collection_id"]
+            }
+
             var collections: [AudiobookCollection] = []
 
             for collectionRow in collectionRows {
-                // Pass empty arrays for lazy loading
+                let collectionId = collectionRow["id"] as? String ?? ""
+                let collectionPlaybackRows = playbackRowsByCollection[collectionId] ?? []
+                
+                // Pass empty arrays for tracks and tags (lazy loading), but provide playback states
                 if let collection = try reconstructCollection(
                     collectionRow: collectionRow,
                     trackRows: [],
-                    playbackRows: [],
+                    playbackRows: collectionPlaybackRows,
                     tagRows: [],
                     trackCount: collectionRow["track_count"]
                 ) {
