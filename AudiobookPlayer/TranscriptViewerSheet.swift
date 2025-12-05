@@ -375,8 +375,8 @@ struct TranscriptViewerSheet: View {
                         lastAutoScrolledSegmentID = nil
                         focusOnCurrentPlayback(animated: true)
                     } label: {
-                        Image(systemName: "arrow.down.to.line.compact")
-                            .font(.system(size: 16, weight: .semibold))
+                        Image(systemName: "location.fill")
+                            .font(.system(size: 18, weight: .medium))
                             .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
                             .background(Circle().fill(Color.accentColor))
