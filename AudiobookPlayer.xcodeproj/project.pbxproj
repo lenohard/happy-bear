@@ -606,7 +606,7 @@
 				CODE_SIGN_ENTITLEMENTS = AudiobookPlayer/AudiobookPlayer.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = 285P3M6846;
 				ENABLE_PREVIEWS = YES;
@@ -623,7 +623,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.2;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.happyBear;
 				PRODUCT_NAME = HappyBear;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -642,7 +642,7 @@
 				CODE_SIGN_ENTITLEMENTS = AudiobookPlayer/AudiobookPlayer.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = 285P3M6846;
 				ENABLE_PREVIEWS = YES;
@@ -659,7 +659,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.2;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.happyBear;
 				PRODUCT_NAME = HappyBear;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

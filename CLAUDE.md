@@ -134,6 +134,13 @@ Generates all required iOS app icon sizes from a single source image.
 - `CacheManagementView` (linked from Settings tab) lets users inspect cache path/size, tweak TTL (1–30 days, default 10), clear everything, or nuke the currently playing track.
 - `TranscriptionProgressOverlay`, `TranscriptionSheet`, and `TranscriptViewerSheet` surface Soniox job state, retry actions, and finished transcripts without leaving the current screen.
 - `SplashScreenView` briefly shows the AppLogo while `AudiobookPlayerApp` wires up all environment objects (player, library, Baidu auth, tab manager, AI gateway, transcription manager).
+- `FloatingPlaybackBubbleView` + `FloatingPlaybackBubbleViewModel` provide an iOS AssistiveTouch-style floating bubble for quick playback control from any tab:
+  - **Gestures**: Single tap toggles play/pause (debounced 0.35s to avoid double-tap conflicts); double tap opens Playing tab; long press shows context menu (hide for session, settings); drag repositions and snaps to nearest edge.
+  - **Visuals**: 60×60pt circle with dark background, circular progress ring showing track position, play/pause icon, 1.15× scale animation on interaction, configurable opacity (Settings slider).
+  - **Position persistence**: Normalized X/Y stored in `AppStorage` and restored on launch; clamped within safe area bounds.
+  - **Visibility**: Shown when a track is loaded and `isEnabled` is true (Settings toggle); can be hidden per-session via long-press menu.
+  - **Files**: `FloatingPlaybackBubbleView.swift`, `FloatingPlaybackBubbleViewModel.swift`
+  - **Implementation note**: Uses `.position()` modifier (not `.offset()`) applied *after* gestures to ensure hit-testing works correctly across the entire bubble area. Uses `DragGesture(coordinateSpace: .global)` to prevent jitter during drag.
 ---
 
 ## Architecture Snapshot (2025-11)

@@ -52,7 +52,14 @@
 
     },
     "%lld corrections" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld修改"
+          }
+        }
+      }
     },
     "%lld corrections • %lld applied" : {
       "localizations" : {
@@ -60,6 +67,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$lld corrections • %2$lld applied"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld修改，%2$lld已应用"
           }
         }
       }
@@ -264,7 +277,14 @@
 
     },
     "Add Correction" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增修改"
+          }
+        }
+      }
     },
     "Add corrections to fix recurring transcript errors" : {
 
@@ -273,7 +293,14 @@
 
     },
     "Add New Correction" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增修改"
+          }
+        }
+      }
     },
     "Add to Library" : {
       "localizations" : {
@@ -2357,7 +2384,14 @@
 
     },
     "Delete %lld corrections?" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除 %lld修改"
+          }
+        }
+      }
     },
     "Delete Storage" : {
       "localizations" : {
@@ -3433,7 +3467,14 @@
 
     },
     "No Corrections" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无修正"
+          }
+        }
+      }
     },
     "No matches found" : {
 

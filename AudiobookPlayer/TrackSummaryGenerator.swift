@@ -101,13 +101,13 @@ final class TrackSummaryGenerator {
         let schema = """
         {
           "summary": {
+            "suggested_corrections": {
+              "incorrect spelling": "correct spelling"
+            }
             "title": "optional short title",
             "overview": "2-3 sentences summarizing the overall track",
             "keywords": ["keyword1", "keyword2"],
             "mentioned_items": ["《Book Title》(Author)", "《Movie Name》(Director, year)"],
-            "suggested_corrections": {
-              "incorrect spelling": "correct spelling"
-            }
           },
           "sections": [
             {
@@ -137,7 +137,7 @@ final class TrackSummaryGenerator {
         - Extract any books or movies mentioned in the transcript into `mentioned_items`. Format: "Title (Author/Director, Year)" if author/director and year are mentioned in the transcript; otherwise just "Title".
         - Identify frequent obvious typos in important terms (movie titles, book titles, people names) that appear repeatedly in the transcript.
         - IMPORTANT: Only suggest corrections where the incorrect and correct spellings are DIFFERENT. Do NOT include entries where both sides are identical (e.g., "王家卫": "王家卫" is invalid).
-        - Return corrections in `suggested_corrections` as a dictionary where key is the incorrect spelling found in transcript and value is the correct spelling.
+        - Return `suggested_corrections` as a dictionary: keys are incorrect spellings found in the transcript, values are their correct spellings. For common errors with variations (e.g., '错误1', '错误2', '错误h'), consolidate them into a single canonical correction entry (e.g., '错误': '正确').
         - Only include important repeated errors that need fixing, not minor one-off typos.
         - Use the corrected spellings in your summary and section texts.
         - Output ONLY JSON, no prose, matching this schema exactly:
