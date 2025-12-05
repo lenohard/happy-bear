@@ -149,24 +149,19 @@ final class TranscriptCorrectionViewModel: ObservableObject {
         let unappliedCorrections = corrections.filter { !$0.isApplied }
         guard !unappliedCorrections.isEmpty else { return }
 
+        isLoading = true
         errorMessage = nil
 
         for correction in unappliedCorrections {
-            do {
-                try await applyCorrection(
-                    trackId: currentTrackId ?? "",
-                    incorrectText: correction.incorrectText,
-                    correctText: correction.correctText
-                )
+            await applyCorrection(correctionId: correction.id)
 
-                try await dbManager.updateTranscriptCorrectionStatus(id: correction.id, isApplied: true)
-            } catch {
-                errorMessage = "Failed to apply correction '\(correction.incorrectText)': \(error.localizedDescription)"
+            // Break if there was an error
+            if errorMessage != nil {
                 break
             }
         }
 
-        await loadCorrections(showLoading: false)
+        isLoading = false
     }
     
     /// Clear the add form
