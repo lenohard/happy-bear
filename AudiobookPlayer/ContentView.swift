@@ -51,7 +51,6 @@ final class TabSelectionManager: ObservableObject {
 
 struct ContentView: View {
     @StateObject private var tabSelection = TabSelectionManager()
-    @StateObject private var bubbleViewModel = FloatingPlaybackBubbleViewModel()
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
@@ -88,16 +87,12 @@ struct ContentView: View {
                         .tag(TabSelectionManager.Tab.personal)
                 }
             }
-            .overlay(alignment: .topLeading) {
-                // Floating Playback Bubble
-                FloatingPlaybackBubbleView(viewModel: bubbleViewModel)
             }
             .environmentObject(tabSelection)
             .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
                 handleResumeShortcut()
             }
         }
-    }
 
     private func handleResumeShortcut() {
         if let activeCollection = audioPlayer.activeCollection,

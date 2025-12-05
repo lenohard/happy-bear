@@ -550,6 +550,8 @@ class TranscriptionManager: NSObject, ObservableObject {
 
     private func groupTokensIntoSegments(_ tokens: [SonioxToken], transcriptId: String) -> [TranscriptSegment] {
         let maxSegmentDurationMs = 20_000  // Hard cap of 20 seconds per segment
+        let minSegmentDurationMs = 1_500   // Soft minimum: don't split on punctuation if segment is too short
+        let maxSilenceGapMs = 600          // If gap to next token is > 0.6s, allow split (respect silence)
         let preferredBreakCharacters: Set<Character> = [",", "，", ".", "。", "!", "！", "?", "？", ";", "；", "、"]
 
         struct SegmentToken {
@@ -684,7 +686,7 @@ class TranscriptionManager: NSObject, ObservableObject {
             return nil
         }
 
-        for token in tokens {
+        for (index, token) in tokens.enumerated() {
             let startMs = token.start_ms ?? 0
             let endMs = token.end_ms ?? startMs
             let text = token.text
@@ -733,7 +735,73 @@ class TranscriptionManager: NSObject, ObservableObject {
             }
 
             appendToken(segmentToken)
-            if endsWithSentencePunctuation(text) {
+            
+            var shouldSplit = endsWithSentencePunctuation(text)
+            
+            // Logic: Protect decimal numbers like "7.5" or "7." followed by "5"
+            // Only applies if punctuation is a period
+            if shouldSplit && (text == "." || text.hasSuffix(".")) {
+                // Look ahead for digit
+                if index + 1 < tokens.count {
+                    let nextTokenText = tokens[index + 1].text.trimmingCharacters(in: .whitespaces)
+                    // Check if next token starts with digit
+                    if let firstNext = nextTokenText.first, firstNext.isNumber {
+                        // Look behind for digit
+                        var isPrecededByNumber = false
+                        
+                        if text == "." {
+                            // Case: ["7", ".", "5"] -> text is "."
+                            // Check token before this "."
+                            // Since we just appended `segmentToken`, it is the last one in `currentSegment`.
+                            // We need the one before it.
+                            let count = currentSegment?.tokens.count ?? 0
+                            if count >= 2 {
+                                let prevTokenText = currentSegment!.tokens[count - 2].text.trimmingCharacters(in: .whitespaces)
+                                if let lastPrev = prevTokenText.last, lastPrev.isNumber {
+                                    isPrecededByNumber = true
+                                }
+                            }
+                        } else {
+                            // Case: ["7.", "5"] -> text is "7."
+                            let prefix = text.dropLast()
+                            if let lastPrefix = prefix.last, lastPrefix.isNumber {
+                                isPrecededByNumber = true
+                            }
+                        }
+                        
+                        if isPrecededByNumber {
+                            shouldSplit = false
+                        }
+                    }
+                }
+            }
+            
+            // Logic: Min Duration Threshold
+            // Don't split if the segment is too short, UNLESS there is a large silence gap.
+            if shouldSplit {
+                if let start = currentSegment?.tokens.first?.startMs,
+                   let end = currentSegment?.tokens.last?.endMs {
+                    let duration = end - start
+                    
+                    var gapToNext = 0
+                    if index + 1 < tokens.count {
+                        let nextStart = tokens[index + 1].start_ms ?? endMs
+                        // Ensure positive gap
+                        if nextStart > endMs {
+                            gapToNext = nextStart - endMs
+                        }
+                    }
+                    
+                    // Only enforce min duration if the gap to the next token is small.
+                    // If there's a large silence (e.g. > 600ms), we should respect the split
+                    // even if the current segment is short.
+                    if duration < minSegmentDurationMs && gapToNext < maxSilenceGapMs {
+                        shouldSplit = false
+                    }
+                }
+            }
+
+            if shouldSplit {
                 finalizeCurrentSegment()
             }
         }
