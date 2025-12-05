@@ -228,7 +228,6 @@ final class AIGatewayViewModel: ObservableObject {
             )
             lastChatJobId = job.id
             chatTesterError = nil
-            chatPrompt = ""
         } catch {
             chatTesterError = error.localizedDescription
         }
