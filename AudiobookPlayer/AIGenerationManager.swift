@@ -78,6 +78,17 @@ final class AIGenerationManager: ObservableObject {
         }
     }
 
+    func retryJob(_ job: AIGenerationJob) async {
+        do {
+            try await dbManager.initializeDatabase()
+            try await dbManager.resetAIGenerationJob(jobId: job.id)
+            await executor.scheduleProcessing()
+            await refreshJobs()
+        } catch {
+            logger.error("Failed to retry AI job: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     func enqueueTrackSummaryJob(
         trackId: String,
         targetSectionCount: Int? = nil,

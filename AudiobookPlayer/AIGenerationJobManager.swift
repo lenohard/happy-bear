@@ -299,6 +299,31 @@ extension GRDBDatabaseManager {
         }
     }
 
+    func resetAIGenerationJob(jobId: String) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { database in
+            try database.execute(
+                sql: """
+                UPDATE ai_generation_jobs
+                SET status = 'queued',
+                    error_message = NULL,
+                    streamed_output = NULL,
+                    final_output = NULL,
+                    usage_json = NULL,
+                    progress = NULL,
+                    completed_at = NULL,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                arguments: [
+                    Self.sqliteDateFormatter.string(from: Date()),
+                    jobId
+                ]
+            )
+        }
+    }
+
     func failInterruptedAIGenerationJobs(
         interruptionReason: String,
         staleBefore: Date? = nil

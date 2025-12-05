@@ -16,6 +16,16 @@ struct AIJobsListView: View {
                             .onTapGesture {
                                 selectedJobForDetail = job
                             }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if job.status == .queued {
+                                    Button {
+                                        Task { await aiGenerationManager.cancelJob(job) }
+                                    } label: {
+                                        Label("Cancel", systemImage: "xmark.circle")
+                                    }
+                                    .tint(.gray)
+                                }
+                            }
                     }
                 }
             }
@@ -37,6 +47,15 @@ struct AIJobsListView: View {
                                     }
                                 } label: {
                                     Label("Delete", systemImage: "trash")
+                                }
+                                
+                                if job.status == .failed || job.status == .canceled {
+                                    Button {
+                                        Task { await aiGenerationManager.retryJob(job) }
+                                    } label: {
+                                        Label("Restart", systemImage: "arrow.clockwise")
+                                    }
+                                    .tint(.blue)
                                 }
                             }
                     }

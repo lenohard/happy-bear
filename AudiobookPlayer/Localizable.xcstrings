@@ -4134,6 +4134,9 @@
         }
       }
     },
+    "Restart" : {
+
+    },
     "resume_listening" : {
       "comment" : "Resume listening label",
       "localizations" : {

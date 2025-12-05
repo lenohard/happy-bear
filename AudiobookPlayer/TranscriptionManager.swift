@@ -299,6 +299,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 try await dbManager.markJobCompleted(jobId: jobId)
                 removeActiveJob(jobId: jobId)
                 downloadProgressMilestones[jobId] = nil
+                await refreshAllRecentJobs()
                 logger.info("[TranscriptionManager] Job \(jobId, privacy: .public) completed successfully for track \(trackIdStr, privacy: .public)")
             }
 
@@ -321,6 +322,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 try? await dbManager.markJobFailed(jobId: jobId, errorMessage: error.localizedDescription)
                 removeActiveJob(jobId: jobId)
                 downloadProgressMilestones[jobId] = nil
+                await refreshAllRecentJobs()
                 logger.error("[TranscriptionManager] Job \(jobId, privacy: .public) failed for track \(trackIdStr, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
             throw error
@@ -918,10 +920,19 @@ class TranscriptionManager: NSObject, ObservableObject {
         do {
             if let job = try await dbManager.loadTranscriptionJob(jobId: jobId) {
                 await MainActor.run {
-                    self.upsertActiveJob(job)
+                    if job.status == "completed" || job.status == "failed" || job.status == "canceled" {
+                        self.removeActiveJob(jobId: jobId)
+                    } else {
+                        self.upsertActiveJob(job)
+                    }
+                    
                     if let index = self.allRecentJobs.firstIndex(where: { $0.id == jobId }) {
                         self.allRecentJobs[index] = job
                     }
+                }
+                
+                if job.status == "completed" || job.status == "failed" || job.status == "canceled" {
+                    await self.refreshAllRecentJobs()
                 }
             }
         } catch {
@@ -1052,6 +1063,7 @@ class TranscriptionManager: NSObject, ObservableObject {
 
                 try await dbManager.markJobCompleted(jobId: job.id)
                 removeActiveJob(jobId: job.id)
+                await refreshAllRecentJobs()
 
                 // Cleanup Soniox resources
                 try? await sonioxAPI.deleteTranscription(transcriptionId: job.sonioxJobId)
@@ -1060,6 +1072,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 logger.error("[TranscriptionManager] Job \(job.id, privacy: .public) failed: \(status.error_message ?? "unknown", privacy: .public)")
                 try await dbManager.markJobFailed(jobId: job.id, errorMessage: status.error_message ?? "Unknown error")
                 removeActiveJob(jobId: job.id)
+                await refreshAllRecentJobs()
 
             case "processing", "queued":
                 // Still processing - resume polling
