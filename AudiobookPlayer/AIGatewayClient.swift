@@ -32,6 +32,11 @@ final class AIGatewayClient {
         return try await request(endpoint: "generation", method: "GET", apiKey: apiKey, queryItems: [query])
     }
 
+    enum StreamDelta {
+        case content(String)
+        case reasoning(String)
+    }
+
     func sendChat(
         apiKey: String,
         model: String,
@@ -39,7 +44,7 @@ final class AIGatewayClient {
         userPrompt: String,
         temperature: Double = 0.7,
         reasoning: AIGatewayReasoningConfig? = nil,
-        onStreamDelta: ((String) -> Void)? = nil,
+        onStreamDelta: ((StreamDelta) -> Void)? = nil,
         onStreamFallback: (() -> Void)? = nil
     ) async throws -> ChatCompletionsResponse {
         var payload: [String: Any] = [
@@ -69,7 +74,7 @@ final class AIGatewayClient {
                     jsonBody: payload
                 )
                 if let final = fallback.choices.first?.message.content, !final.isEmpty {
-                    onStreamDelta?(final)
+                    onStreamDelta?(.content(final))
                 }
                 return fallback
             }
@@ -99,7 +104,7 @@ final class AIGatewayClient {
     private func streamChatCompletion(
         apiKey: String,
         payload: [String: Any],
-        onDelta: ((String) -> Void)? = nil
+        onDelta: ((StreamDelta) -> Void)? = nil
     ) async throws -> ChatCompletionsResponse {
         let url = baseURL.appendingPathComponent("chat/completions")
 
@@ -154,10 +159,11 @@ final class AIGatewayClient {
                 }
                 if let content = choice.delta?.content {
                     accumulatedText.append(content)
-                    onDelta?(content)
+                    onDelta?(.content(content))
                 }
                 if let reasoning = choice.delta?.reasoning {
                     accumulatedReasoning.append(reasoning)
+                    onDelta?(.reasoning(reasoning))
                 }
                 if let details = choice.delta?.reasoningDetails {
                     accumulatedReasoningDetails.append(contentsOf: details)

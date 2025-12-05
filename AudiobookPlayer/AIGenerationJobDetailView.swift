@@ -105,8 +105,20 @@ struct AIGenerationJobDetailView: View {
 
     @ViewBuilder
     private func outputSection(for job: AIGenerationJob) -> some View {
-        GroupBox(label: Label(NSLocalizedString("ai_job_detail_output_header", comment: ""), systemImage: "text.justify")) {
-            if let output = job.streamedOutput ?? job.finalOutput, !output.isEmpty {
+        let output = job.streamedOutput ?? job.finalOutput ?? ""
+        let reasoning = job.streamedReasoning ?? job.decodedMetadata()?.reasoning?.text ?? ""
+        let count = output.count + reasoning.count
+        
+        GroupBox(label: HStack {
+            Label(NSLocalizedString("ai_job_detail_output_header", comment: ""), systemImage: "text.justify")
+            Spacer()
+            if count > 0 {
+                Text("\(count) chars")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }) {
+            if !output.isEmpty {
                 Text(output)
                     .font(.system(.body, design: .monospaced))
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -121,17 +133,15 @@ struct AIGenerationJobDetailView: View {
 
     @ViewBuilder
     private func reasoningSection(for job: AIGenerationJob) -> some View {
-        if
-            let reasoning = job.decodedMetadata()?.reasoning,
-            let text = reasoning.text?.trimmingCharacters(in: .whitespacesAndNewlines),
-            !text.isEmpty
+        let streamedReasoning = job.streamedReasoning ?? ""
+        if let reasoning = job.decodedMetadata()?.reasoning,
+           (reasoning.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false) ||
+           !(reasoning.details?.isEmpty ?? true)
         {
-            reasoningDetailsSection(reasoning: reasoning, hasText: true)
-        } else if let reasoning = job.decodedMetadata()?.reasoning,
-                  let details = reasoning.details,
-                  !details.isEmpty
-        {
-            reasoningDetailsSection(reasoning: reasoning, hasText: false)
+            reasoningDetailsSection(reasoning: reasoning, hasText: reasoning.text?.isEmpty == false)
+        } else if !streamedReasoning.isEmpty {
+            let snapshot = AIGenerationReasoningSnapshot(text: streamedReasoning, details: nil)
+            reasoningDetailsSection(reasoning: snapshot, hasText: true)
         } else {
             EmptyView()
         }

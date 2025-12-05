@@ -9,7 +9,13 @@ actor AIGenerationJobExecutor {
     private let trackSummaryGenerator: TrackSummaryGenerator
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGenerationExecutor")
     private var isProcessing = false
-    private var streamBuffers: [String: String] = [:]
+    
+    private struct StreamBuffer {
+        var content: String
+        var reasoning: String
+    }
+    private var streamBuffers: [String: StreamBuffer] = [:]
+    
     private var runningJobs: Set<String> = []
     private let maxConcurrentJobs: Int
 
@@ -108,7 +114,7 @@ actor AIGenerationJobExecutor {
         let payload = job.decodedPayload(ChatTesterJobPayload.self)
         let temperature = payload?.temperature ?? 0.7
         let reasoningConfig = payload?.reasoning
-        setInitialStreamBuffer(job.streamedOutput ?? "", for: job.id)
+        setInitialStreamBuffer(job.streamedOutput ?? "", reasoning: job.streamedReasoning ?? "", for: job.id)
         defer { clearStreamBuffer(for: job.id) }
         var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
 
@@ -138,7 +144,7 @@ actor AIGenerationJobExecutor {
             }
         )
 
-        let content = response.choices.first?.message.content ?? currentStreamBuffer(for: job.id)
+        let content = response.choices.first?.message.content ?? currentContentBuffer(for: job.id)
         clearStreamBuffer(for: job.id)
         if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
             metadata = metadata.updatingReasoning(snapshot)
@@ -231,7 +237,7 @@ actor AIGenerationJobExecutor {
         try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .running, progress: 0.05)
 
         var loadedTranscript: Transcript?
-        setInitialStreamBuffer(job.streamedOutput ?? "", for: job.id)
+        setInitialStreamBuffer(job.streamedOutput ?? "", reasoning: job.streamedReasoning ?? "", for: job.id)
         defer { clearStreamBuffer(for: job.id) }
 
         do {
@@ -294,7 +300,7 @@ actor AIGenerationJobExecutor {
                 }
             )
 
-            let rawText = response.choices.first?.message.content ?? currentStreamBuffer(for: job.id)
+            let rawText = response.choices.first?.message.content ?? currentContentBuffer(for: job.id)
             try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
 
             if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
@@ -383,25 +389,36 @@ actor AIGenerationJobExecutor {
         return String(data: data, encoding: .utf8)
     }
 
-    private func setInitialStreamBuffer(_ initial: String, for jobId: String) {
-        streamBuffers[jobId] = initial
+    private func setInitialStreamBuffer(_ initialContent: String, reasoning: String, for jobId: String) {
+        streamBuffers[jobId] = StreamBuffer(content: initialContent, reasoning: reasoning)
     }
 
-    private func currentStreamBuffer(for jobId: String) -> String {
-        streamBuffers[jobId] ?? ""
+    private func currentContentBuffer(for jobId: String) -> String {
+        streamBuffers[jobId]?.content ?? ""
     }
 
     private func clearStreamBuffer(for jobId: String) {
         streamBuffers[jobId] = nil
     }
 
-    private func persistStreamDelta(_ delta: String, for jobId: String) async {
-        guard !delta.isEmpty else { return }
-        var buffer = streamBuffers[jobId] ?? ""
-        buffer.append(delta)
+    private func persistStreamDelta(_ delta: AIGatewayClient.StreamDelta, for jobId: String) async {
+        var buffer = streamBuffers[jobId] ?? StreamBuffer(content: "", reasoning: "")
+        
+        switch delta {
+        case .content(let text):
+            buffer.content.append(text)
+        case .reasoning(let text):
+            buffer.reasoning.append(text)
+        }
+        
         streamBuffers[jobId] = buffer
+        
         do {
-            try await dbManager.updateAIGenerationJobStream(jobId: jobId, streamedOutput: buffer)
+            try await dbManager.updateAIGenerationJobStream(
+                jobId: jobId,
+                streamedOutput: buffer.content,
+                streamedReasoning: buffer.reasoning
+            )
         } catch {
             logger.error("Failed updating stream buffer for job \(jobId, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }

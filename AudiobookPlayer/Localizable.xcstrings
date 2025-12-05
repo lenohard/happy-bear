@@ -51,6 +51,9 @@
     "%lld characters" : {
 
     },
+    "%lld chars" : {
+
+    },
     "%lld corrections" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1470,6 +1473,9 @@
           }
         }
       }
+    },
+    "Apply All" : {
+
     },
     "Are you sure you want to delete all downloaded/cached audio for '%@'? This action cannot be undone." : {
       "localizations" : {
@@ -4679,6 +4685,9 @@
           }
         }
       }
+    },
+    "Thinking..." : {
+
     },
     "This folder is empty." : {
       "localizations" : {

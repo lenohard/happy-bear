@@ -19,6 +19,7 @@ enum AIGenerationDatabaseSchema {
         payload_json TEXT,
         metadata_json TEXT,
         streamed_output TEXT,
+        streamed_reasoning TEXT,
         final_output TEXT,
         usage_json TEXT,
         progress REAL,

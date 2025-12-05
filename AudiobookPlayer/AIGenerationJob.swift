@@ -30,6 +30,7 @@ struct AIGenerationJob: Identifiable, Codable, Equatable {
     var payloadJSON: String?
     var metadataJSON: String?
     var streamedOutput: String?
+    var streamedReasoning: String?
     var finalOutput: String?
     var usageJSON: String?
     var progress: Double?
@@ -54,6 +55,7 @@ struct AIGenerationJob: Identifiable, Codable, Equatable {
         payloadJSON: String? = nil,
         metadataJSON: String? = nil,
         streamedOutput: String? = nil,
+        streamedReasoning: String? = nil,
         finalOutput: String? = nil,
         usageJSON: String? = nil,
         progress: Double? = nil,
@@ -77,6 +79,7 @@ struct AIGenerationJob: Identifiable, Codable, Equatable {
         self.payloadJSON = payloadJSON
         self.metadataJSON = metadataJSON
         self.streamedOutput = streamedOutput
+        self.streamedReasoning = streamedReasoning
         self.finalOutput = finalOutput
         self.usageJSON = usageJSON
         self.progress = progress
@@ -110,6 +113,7 @@ struct AIGenerationJob: Identifiable, Codable, Equatable {
         status: Status? = nil,
         metadataJSON: String? = nil,
         streamedOutput: String? = nil,
+        streamedReasoning: String? = nil,
         finalOutput: String? = nil,
         usageJSON: String? = nil,
         progress: Double? = nil,
@@ -131,6 +135,7 @@ struct AIGenerationJob: Identifiable, Codable, Equatable {
             payloadJSON: payloadJSON,
             metadataJSON: metadataJSON ?? self.metadataJSON,
             streamedOutput: streamedOutput ?? self.streamedOutput,
+            streamedReasoning: streamedReasoning ?? self.streamedReasoning,
             finalOutput: finalOutput ?? self.finalOutput,
             usageJSON: usageJSON ?? self.usageJSON,
             progress: progress ?? self.progress,

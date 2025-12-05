@@ -67,6 +67,7 @@ actor GRDBDatabaseManager {
 
             print("[GRDB] Executing AI generation schema...")
             try db.execute(sql: AIGenerationDatabaseSchema.createTableSQL)
+            try addStreamedReasoningColumnIfNeeded(in: db)
             print("[GRDB] AI generation tables created")
 
             // Create listening statistics table
@@ -1671,6 +1672,15 @@ actor GRDBDatabaseManager {
         if !existingColumns.contains("character_count") {
             try database.execute(sql: "ALTER TABLE tracks ADD COLUMN character_count INTEGER")
         }
+    }
+    
+    private func addStreamedReasoningColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(ai_generation_jobs)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        guard !existingColumns.contains("streamed_reasoning") else { return }
+
+        try database.execute(sql: "ALTER TABLE ai_generation_jobs ADD COLUMN streamed_reasoning TEXT")
     }
     
     // MARK: - Listening Statistics Operations

@@ -211,6 +211,18 @@ struct TrackSummaryCard: View {
                     .font(.subheadline)
                     .bold()
             }
+            
+            if let streamedReasoning = job.streamedReasoning, !streamedReasoning.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Thinking...", systemImage: "brain")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(streamedReasoning)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(4)
+                }
+            }
 
             if let streamed = job.streamedOutput, !streamed.isEmpty {
                 Text(streamed)

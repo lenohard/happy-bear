@@ -44,10 +44,10 @@ extension GRDBDatabaseManager {
                 INSERT INTO ai_generation_jobs (
                     id, job_type, status, model_id, track_id, transcript_id,
                     source_context, display_name, system_prompt, user_prompt,
-                    payload_json, metadata_json, streamed_output, final_output, usage_json,
+                    payload_json, metadata_json, streamed_output, streamed_reasoning, final_output, usage_json,
                     progress, error_message, created_at, updated_at,
                     completed_at, retry_count, last_attempt_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     job.id,
@@ -63,6 +63,7 @@ extension GRDBDatabaseManager {
                     job.payloadJSON,
                     job.metadataJSON,
                     job.streamedOutput,
+                    job.streamedReasoning,
                     job.finalOutput,
                     job.usageJSON,
                     job.progress,
@@ -192,18 +193,23 @@ extension GRDBDatabaseManager {
         }
     }
 
-    func updateAIGenerationJobStream(jobId: String, streamedOutput: String) throws {
+    func updateAIGenerationJobStream(
+        jobId: String,
+        streamedOutput: String,
+        streamedReasoning: String? = nil
+    ) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
         try db.write { database in
             try database.execute(
                 sql: """
                 UPDATE ai_generation_jobs
-                SET streamed_output = ?, updated_at = ?
+                SET streamed_output = ?, streamed_reasoning = ?, updated_at = ?
                 WHERE id = ?
                 """,
                 arguments: [
                     streamedOutput,
+                    streamedReasoning,
                     Self.sqliteDateFormatter.string(from: Date()),
                     jobId
                 ]
@@ -309,6 +315,7 @@ extension GRDBDatabaseManager {
                 SET status = 'queued',
                     error_message = NULL,
                     streamed_output = NULL,
+                    streamed_reasoning = NULL,
                     final_output = NULL,
                     usage_json = NULL,
                     progress = NULL,
@@ -407,6 +414,7 @@ extension GRDBDatabaseManager {
         let payloadJSON = row["payload_json"] as? String
         let metadataJSON = row["metadata_json"] as? String
         let streamedOutput = row["streamed_output"] as? String
+        let streamedReasoning = row["streamed_reasoning"] as? String
         let finalOutput = row["final_output"] as? String
         let usageJSON = row["usage_json"] as? String
         let progress = row["progress"] as? Double
@@ -432,6 +440,7 @@ extension GRDBDatabaseManager {
             payloadJSON: payloadJSON,
             metadataJSON: metadataJSON,
             streamedOutput: streamedOutput,
+            streamedReasoning: streamedReasoning,
             finalOutput: finalOutput,
             usageJSON: usageJSON,
             progress: progress,
