@@ -135,13 +135,38 @@ final class TranscriptCorrectionViewModel: ObservableObject {
     /// Delete a correction
     func deleteCorrection(correctionId: String) async {
         errorMessage = nil
-        
+
         do {
             try await dbManager.deleteTranscriptCorrection(id: correctionId)
             await loadCorrections(showLoading: false)
         } catch {
             errorMessage = "Failed to delete correction: \(error.localizedDescription)"
         }
+    }
+
+    /// Apply all unapplied corrections
+    func applyAllCorrections() async {
+        let unappliedCorrections = corrections.filter { !$0.isApplied }
+        guard !unappliedCorrections.isEmpty else { return }
+
+        errorMessage = nil
+
+        for correction in unappliedCorrections {
+            do {
+                try await applyCorrection(
+                    trackId: currentTrackId ?? "",
+                    incorrectText: correction.incorrectText,
+                    correctText: correction.correctText
+                )
+
+                try await dbManager.updateTranscriptCorrectionStatus(id: correction.id, isApplied: true)
+            } catch {
+                errorMessage = "Failed to apply correction '\(correction.incorrectText)': \(error.localizedDescription)"
+                break
+            }
+        }
+
+        await loadCorrections(showLoading: false)
     }
     
     /// Clear the add form

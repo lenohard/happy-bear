@@ -90,7 +90,21 @@ struct TranscriptCorrectionsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 if !viewModel.corrections.isEmpty {
-                    EditButton()
+                    HStack(spacing: 8) {
+                        // Apply All button - only show if there are unapplied corrections
+                        if viewModel.corrections.contains(where: { !$0.isApplied }) {
+                            Button {
+                                Task { await viewModel.applyAllCorrections() }
+                            } label: {
+                                Label("Apply All", systemImage: "checkmark.circle.fill")
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .tint(.green)
+                        }
+
+                        EditButton()
+                    }
                 }
             }
 
