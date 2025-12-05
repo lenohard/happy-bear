@@ -834,7 +834,8 @@ class TranscriptionManager: NSObject, ObservableObject {
         try? FileManager.default.removeItem(at: fileURL)
     }
 
-    private func refreshActiveJobsFromDatabase() async {
+    /// Refresh active jobs from database (public for UI to call)
+    func refreshActiveJobsFromDatabase() async {
         do {
             let jobs = try await dbManager.loadActiveTranscriptionJobs()
             await MainActor.run {
@@ -912,6 +913,102 @@ class TranscriptionManager: NSObject, ObservableObject {
     func reloadJobsAfterImport() async {
         await refreshActiveJobsFromDatabase()
         await refreshAllRecentJobs()
+    }
+
+    /// Check for pending STT jobs that were interrupted when app went to background
+    /// and resume them. Called when app becomes active.
+    func checkAndResumePendingJobs() async {
+        await refreshActiveJobsFromDatabase()
+        await refreshAllRecentJobs()
+
+        // Find STT jobs (not TTS jobs) that were in a processing state
+        // TTS jobs use prefix "tts-", STT jobs use real Soniox IDs or "pending-download-"
+        let sttJobs = activeJobs.filter { job in
+            !job.sonioxJobId.hasPrefix("tts-") &&
+            job.status != "paused" &&
+            job.status != "completed" &&
+            job.status != "failed"
+        }
+
+        guard !sttJobs.isEmpty else {
+            logger.debug("[TranscriptionManager] No interrupted STT jobs to resume")
+            return
+        }
+
+        logger.info("[TranscriptionManager] Found \(sttJobs.count) interrupted STT job(s) to check")
+
+        for job in sttJobs {
+            // Check if job has a valid Soniox job ID (meaning upload completed)
+            if !job.sonioxJobId.hasPrefix("pending-download-") {
+                // Job has a real Soniox ID - poll for status
+                logger.info("[TranscriptionManager] Checking Soniox status for job \(job.id, privacy: .public) sonioxId=\(job.sonioxJobId, privacy: .public)")
+                await checkSonioxJobStatus(job: job)
+            } else {
+                // Job was still in download/upload phase - needs restart
+                logger.info("[TranscriptionManager] Job \(job.id, privacy: .public) was interrupted during download - marking as needs resume")
+                // Don't auto-restart downloads - let user manually retry
+                // Just refresh the UI state
+            }
+        }
+
+        // Refresh UI after checking
+        await refreshActiveJobsFromDatabase()
+        await refreshAllRecentJobs()
+    }
+
+    /// Check the status of a Soniox job and update local state accordingly
+    private func checkSonioxJobStatus(job: TranscriptionJob) async {
+        guard let sonioxAPI = sonioxAPI else {
+            logger.warning("[TranscriptionManager] Cannot check Soniox status - no API key")
+            return
+        }
+
+        do {
+            let status = try await sonioxAPI.checkTranscriptionStatus(transcriptionId: job.sonioxJobId)
+            logger.info("[TranscriptionManager] Soniox job \(job.sonioxJobId, privacy: .public) status=\(status.status, privacy: .public)")
+
+            switch status.status {
+            case "completed":
+                // Job completed while we were in background - fetch results
+                logger.info("[TranscriptionManager] Job \(job.id, privacy: .public) completed in background - fetching transcript")
+                let transcript = try await sonioxAPI.getTranscript(transcriptionId: job.sonioxJobId)
+
+                // Find the transcript record to get the transcriptId
+                if let existingTranscript = try await dbManager.loadTranscript(forTrackId: job.trackId) {
+                    try await saveTranscriptData(
+                        transcript: transcript,
+                        trackId: job.trackId,
+                        transcriptId: existingTranscript.id
+                    )
+                }
+
+                try await dbManager.markJobCompleted(jobId: job.id)
+                removeActiveJob(jobId: job.id)
+
+                // Cleanup Soniox resources
+                try? await sonioxAPI.deleteTranscription(transcriptionId: job.sonioxJobId)
+
+            case "error":
+                logger.error("[TranscriptionManager] Job \(job.id, privacy: .public) failed: \(status.error_message ?? "unknown", privacy: .public)")
+                try await dbManager.markJobFailed(jobId: job.id, errorMessage: status.error_message ?? "Unknown error")
+                removeActiveJob(jobId: job.id)
+
+            case "processing", "queued":
+                // Still processing - resume polling
+                logger.info("[TranscriptionManager] Job \(job.id, privacy: .public) still processing - resuming poll")
+                // Note: We don't restart the full pipeline, just update status
+                // The user can manually trigger a resume if needed
+                try await dbManager.updateJobStatus(jobId: job.id, status: status.status, progress: job.progress)
+                updateActiveJob(jobId: job.id) { current in
+                    current.updating(status: status.status, lastAttemptAt: Date())
+                }
+
+            default:
+                logger.warning("[TranscriptionManager] Unknown Soniox status: \(status.status, privacy: .public)")
+            }
+        } catch {
+            logger.error("[TranscriptionManager] Failed to check Soniox status for job \(job.id, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     func upsertActiveJob(_ job: TranscriptionJob) {

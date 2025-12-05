@@ -35,8 +35,18 @@ struct AudiobookPlayerApp: App {
                 }
             }
             .onChange(of: scenePhase) { newPhase in
-                if newPhase == .background || newPhase == .inactive {
+                switch newPhase {
+                case .active:
+                    // App became active - check for pending jobs that may have been interrupted
+                    Task {
+                        await transcriptionManager.checkAndResumePendingJobs()
+                        await aiGenerationManager.refreshJobs()
+                    }
+                case .background, .inactive:
+                    // App going to background - checkpoint listening session
                     audioPlayer.checkpointListeningSession()
+                @unknown default:
+                    break
                 }
             }
             .onOpenURL { url in

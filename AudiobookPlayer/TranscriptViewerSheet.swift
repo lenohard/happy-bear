@@ -21,6 +21,8 @@ struct TranscriptViewerSheet: View {
     @State private var scrollTargetSegmentID: String?
     @State private var scrollTargetShouldAnimate = true
     @State private var lastAutoScrolledSegmentID: String?
+    @State private var isAutoFocusEnabled = true
+    @State private var showJumpToCurrentButton = false
 
     init(trackId: String, trackName: String, showTrackSummary: Bool = false) {
         self.trackId = trackId
@@ -317,41 +319,72 @@ struct TranscriptViewerSheet: View {
 
     private var scrollableContent: some View {
         ScrollViewReader { proxy in
-            ScrollView {
-                VStack(spacing: 0) {
-                    if showTrackSummary, let context = resolveTrackContext() {
-                        TrackSummaryCard(
-                            track: context.track,
-                            isTranscriptAvailable: viewModel.transcript != nil,
-                            viewModel: trackSummaryViewModel,
-                            seekAndPlayAction: { time in seekAndPlay(to: time) }
-                        )
-                        .padding(.horizontal)
-                        .padding(.top, 8)
-                        .padding(.bottom, 4)
+            ZStack(alignment: .bottomTrailing) {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        if showTrackSummary, let context = resolveTrackContext() {
+                            TrackSummaryCard(
+                                track: context.track,
+                                isTranscriptAvailable: viewModel.transcript != nil,
+                                viewModel: trackSummaryViewModel,
+                                seekAndPlayAction: { time in seekAndPlay(to: time) }
+                            )
+                            .padding(.horizontal)
+                            .padding(.top, 8)
+                            .padding(.bottom, 4)
+                        }
+
+                        headerSection
+                            .padding(.horizontal)
+                            .padding(.bottom, 8)
+
+                        transcriptContent()
+                            .padding(.horizontal)
+                            .padding(.bottom, 16)
+                    }
+                }
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { _ in
+                            if isAutoFocusEnabled {
+                                isAutoFocusEnabled = false
+                                showJumpToCurrentButton = true
+                            }
+                        }
+                )
+                .onChange(of: scrollTargetSegmentID) { target in
+                    guard let target else { return }
+                    let scrollAction = {
+                        proxy.scrollTo(target, anchor: .center)
                     }
 
-                    headerSection
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
-
-                    transcriptContent()
-                        .padding(.horizontal)
-                        .padding(.bottom, 16)
-                }
-            }
-            .onChange(of: scrollTargetSegmentID) { target in
-                guard let target else { return }
-                let scrollAction = {
-                    proxy.scrollTo(target, anchor: .center)
-                }
-
-                if scrollTargetShouldAnimate {
-                    withAnimation(.easeInOut) {
+                    if scrollTargetShouldAnimate {
+                        withAnimation(.easeInOut) {
+                            scrollAction()
+                        }
+                    } else {
                         scrollAction()
                     }
-                } else {
-                    scrollAction()
+                }
+
+                // Floating button to jump to current segment and re-enable auto-focus
+                if showJumpToCurrentButton && isViewingCurrentTrack && !viewModel.segments.isEmpty {
+                    Button {
+                        isAutoFocusEnabled = true
+                        showJumpToCurrentButton = false
+                        lastAutoScrolledSegmentID = nil
+                        focusOnCurrentPlayback(animated: true)
+                    } label: {
+                        Image(systemName: "arrow.down.to.line.compact")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(Color.accentColor))
+                            .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                    }
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 16)
+                    .transition(.scale.combined(with: .opacity))
                 }
             }
         }
@@ -439,6 +472,7 @@ struct TranscriptViewerSheet: View {
     }
 
     private var shouldAutoFollowPlayback: Bool {
+        guard isAutoFocusEnabled else { return false }
         guard isViewingCurrentTrack else { return false }
         guard viewModel.searchText.isEmpty else { return false }
         return !viewModel.segments.isEmpty

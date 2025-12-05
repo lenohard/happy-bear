@@ -3,16 +3,23 @@ import SwiftUI
 struct TTSJobsListView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var library: LibraryStore
+    @EnvironmentObject private var playerViewModel: AudioPlayerViewModel
     @State private var selectedJobForTranscript: TranscriptionJob?
 
     // Filter to show only TTS jobs (not STT jobs)
+    // Active jobs: non-terminal states (not completed, not failed)
     private var ttsActiveJobs: [TranscriptionJob] {
         transcriptionManager.activeJobs.filter { $0.sonioxJobId.hasPrefix("tts-") }
     }
-    
+
+    // History jobs: terminal states only (completed or failed)
+    // Exclude jobs that are already in activeJobs to prevent duplicates
     private var ttsHistoryJobs: [TranscriptionJob] {
-        transcriptionManager.allRecentJobs.filter { 
-            $0.sonioxJobId.hasPrefix("tts-") && ($0.status == "completed" || $0.status == "failed")
+        let activeJobIds = Set(ttsActiveJobs.map(\.id))
+        return transcriptionManager.allRecentJobs.filter {
+            $0.sonioxJobId.hasPrefix("tts-") &&
+            ($0.status == "completed" || $0.status == "failed") &&
+            !activeJobIds.contains($0.id)
         }
     }
 
@@ -115,28 +122,54 @@ struct TTSJobsListView: View {
         }
         return trackId
     }
-    
+
     private func pauseJob(_ job: TranscriptionJob) {
         Task {
+            // For TTS jobs, pause means mark as paused in DB
+            // The running Task in AudioPlayerViewModel will continue but the job won't be resumed automatically
             try? await transcriptionManager.pauseJob(jobId: job.id)
+            // pauseJob already calls refreshActiveJobsFromDatabase + refreshAllRecentJobs
         }
     }
 
     private func resumeJob(_ job: TranscriptionJob) {
         Task {
-            try? await transcriptionManager.resumeJob(jobId: job.id)
+            // Use AudioPlayerViewModel's resumeTTSJob for TTS jobs
+            do {
+                try await playerViewModel.resumeTTSJob(jobId: job.id)
+                // Refresh to show updated status
+                await transcriptionManager.refreshActiveJobsFromDatabase()
+                await transcriptionManager.refreshAllRecentJobs()
+            } catch {
+                print("[TTS] Failed to resume job: \(error.localizedDescription)")
+                // Refresh even on error to show current state
+                await transcriptionManager.refreshActiveJobsFromDatabase()
+                await transcriptionManager.refreshAllRecentJobs()
+            }
         }
     }
 
     private func retryJob(_ job: TranscriptionJob) {
         Task {
-            try? await transcriptionManager.retryJob(jobId: job.id)
+            // Use AudioPlayerViewModel's resumeTTSJob for TTS jobs (retry is same as resume)
+            do {
+                try await playerViewModel.resumeTTSJob(jobId: job.id)
+                // Refresh to show updated status
+                await transcriptionManager.refreshActiveJobsFromDatabase()
+                await transcriptionManager.refreshAllRecentJobs()
+            } catch {
+                print("[TTS] Failed to retry job: \(error.localizedDescription)")
+                // Refresh even on error to show current state
+                await transcriptionManager.refreshActiveJobsFromDatabase()
+                await transcriptionManager.refreshAllRecentJobs()
+            }
         }
     }
 
     private func deleteJob(_ job: TranscriptionJob) {
         Task {
             try? await transcriptionManager.deleteJob(jobId: job.id)
+            // deleteJob already calls refresh internally
         }
     }
 }

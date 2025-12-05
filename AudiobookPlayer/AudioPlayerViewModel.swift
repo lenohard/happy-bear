@@ -271,7 +271,7 @@ final class AudioPlayerViewModel: ObservableObject {
     func generateAudio(for track: AudiobookTrack, in collection: AudiobookCollection, autoPlay: Bool = false) {
         let trackId = track.id.uuidString
         let baiduFileId = "tts"
-        
+
         // Check if already exists
         if cacheManager.isCached(trackId: trackId, baiduFileId: baiduFileId, filename: "tts.mp3") {
             statusMessage = "Audio already exists for \"\(track.displayName)\"."
@@ -280,7 +280,7 @@ final class AudioPlayerViewModel: ObservableObject {
             }
             return
         }
-        
+
         switch track.location {
         case .text(let content):
             generateAudio(for: track, content: content, in: collection, autoPlay: autoPlay)
@@ -296,55 +296,271 @@ final class AudioPlayerViewModel: ObservableObject {
         }
     }
 
+    /// Resume or retry a TTS job by job ID
+    /// Used for paused or failed TTS jobs
+    func resumeTTSJob(jobId: String) async throws {
+        guard let job = try await GRDBDatabaseManager.shared.loadTranscriptionJob(jobId: jobId) else {
+            throw NSError(domain: "AudiobookPlayer", code: 404, userInfo: [NSLocalizedDescriptionKey: "Job not found"])
+        }
+
+        guard job.sonioxJobId.hasPrefix("tts-") else {
+            throw NSError(domain: "AudiobookPlayer", code: 400, userInfo: [NSLocalizedDescriptionKey: "Not a TTS job"])
+        }
+
+        guard let trackUUID = UUID(uuidString: job.trackId),
+              let (track, collectionId) = try await GRDBDatabaseManager.shared.loadTrack(id: trackUUID) else {
+            throw NSError(domain: "AudiobookPlayer", code: 404, userInfo: [NSLocalizedDescriptionKey: "Track not found"])
+        }
+
+        // Load the collection
+        guard let collection = try await GRDBDatabaseManager.shared.loadCollection(id: collectionId) else {
+            throw NSError(domain: "AudiobookPlayer", code: 404, userInfo: [NSLocalizedDescriptionKey: "Collection not found"])
+        }
+
+        // Delete the old job so we can create a new one
+        try await GRDBDatabaseManager.shared.deleteTranscriptionJob(jobId: jobId)
+
+        // Re-run generation (it will resume from temp files)
+        await MainActor.run {
+            generateAudio(for: track, in: collection, autoPlay: false)
+        }
+
+        // Post notification to refresh UI
+        NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil)
+    }
+
+    // MARK: - TTS Generation with Resume Support
+
+    /// Get the temporary directory for TTS generation progress
+    private func ttsTempDirectory(for trackId: String) -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tts_generation")
+            .appendingPathComponent(trackId)
+        return tempDir
+    }
+
+    /// Check how many paragraphs have been completed (for resume)
+    private func getResumeIndex(tempDir: URL, totalParagraphs: Int) -> Int {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: tempDir.path) else { return 0 }
+
+        var resumeIndex = 0
+        for i in 0..<totalParagraphs {
+            let fileURL = tempDir.appendingPathComponent("\(i).mp3")
+            if fm.fileExists(atPath: fileURL.path),
+               let attrs = try? fm.attributesOfItem(atPath: fileURL.path),
+               let size = attrs[.size] as? Int,
+               size > 0 {
+                resumeIndex = i + 1
+            } else {
+                break
+            }
+        }
+        return resumeIndex
+    }
+
+    /// Minimum character count for a paragraph to be processed individually
+    /// Paragraphs shorter than this will be merged with adjacent ones
+    private static let minParagraphLength = 500
+
+    /// Maximum character count per TTS request (Edge TTS limit is around 5000)
+    private static let maxParagraphLength = 3000
+
+    /// Preprocess paragraphs: merge short ones, split long ones
+    private func preprocessParagraphs(_ rawParagraphs: [String]) -> [String] {
+        var result: [String] = []
+        var buffer = ""
+
+        for paragraph in rawParagraphs {
+            let trimmed = paragraph.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+
+            // If buffer + current is still short, keep accumulating
+            if buffer.isEmpty {
+                buffer = trimmed
+            } else {
+                buffer += "\n\n" + trimmed
+            }
+
+            // If buffer reached minimum length, flush it
+            if buffer.count >= Self.minParagraphLength {
+                // Check if we need to split long text
+                if buffer.count > Self.maxParagraphLength {
+                    // Split by sentences for long text
+                    let chunks = splitLongText(buffer)
+                    result.append(contentsOf: chunks)
+                } else {
+                    result.append(buffer)
+                }
+                buffer = ""
+            }
+        }
+
+        // Don't forget remaining buffer
+        if !buffer.isEmpty {
+            if buffer.count > Self.maxParagraphLength {
+                let chunks = splitLongText(buffer)
+                result.append(contentsOf: chunks)
+            } else {
+                result.append(buffer)
+            }
+        }
+
+        return result
+    }
+
+    /// Split long text into chunks at sentence boundaries
+    private func splitLongText(_ text: String) -> [String] {
+        var chunks: [String] = []
+        var current = ""
+
+        // Try to split at sentence endings
+        let sentenceEnders: [Character] = [".", "。", "!", "！", "?", "？", "\n"]
+
+        for char in text {
+            current.append(char)
+
+            if sentenceEnders.contains(char) && current.count >= Self.minParagraphLength {
+                if current.count >= Self.maxParagraphLength {
+                    // Force split if still too long
+                    chunks.append(current.trimmingCharacters(in: .whitespacesAndNewlines))
+                    current = ""
+                } else if current.count >= Self.maxParagraphLength / 2 {
+                    // Good enough size, split here
+                    chunks.append(current.trimmingCharacters(in: .whitespacesAndNewlines))
+                    current = ""
+                }
+            }
+        }
+
+        if !current.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            chunks.append(current.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+
+        return chunks
+    }
+
+    /// Generate audio for a paragraph with retry logic
+    private func generateAudioForParagraphWithRetry(
+        text: String,
+        voice: String,
+        rate: String,
+        pitch: String,
+        maxRetries: Int = 3
+    ) async throws -> Data {
+        var lastError: Error?
+
+        for attempt in 1...maxRetries {
+            do {
+                return try await generateAudioForParagraph(text: text, voice: voice, rate: rate, pitch: pitch)
+            } catch {
+                lastError = error
+                print("[TTS] Attempt \(attempt)/\(maxRetries) failed: \(error.localizedDescription)")
+
+                if attempt < maxRetries {
+                    // Exponential backoff: 2s, 4s (base 2s, doubles each attempt)
+                    let delaySeconds = UInt64(2 * (1 << (attempt - 1)))
+                    print("[TTS] Waiting \(delaySeconds)s before retry...")
+                    try await Task.sleep(nanoseconds: delaySeconds * 1_000_000_000)
+                }
+            }
+        }
+
+        throw lastError ?? EdgeTTSError.connectionFailed
+    }
+
+    /// Merge all paragraph MP3 files into final audio
+    private func mergeAudioFiles(tempDir: URL, count: Int) throws -> Data {
+        var combinedData = Data()
+        for i in 0..<count {
+            let fileURL = tempDir.appendingPathComponent("\(i).mp3")
+            let data = try Data(contentsOf: fileURL)
+            combinedData.append(data)
+        }
+        return combinedData
+    }
+
+    /// Clean up temporary TTS generation files
+    private func cleanupTTSTempDirectory(for trackId: String) {
+        let tempDir = ttsTempDirectory(for: trackId)
+        try? FileManager.default.removeItem(at: tempDir)
+    }
+
     private func generateAudio(for track: AudiobookTrack, content: String, in collection: AudiobookCollection, autoPlay: Bool) {
         let trackId = track.id.uuidString
         let sonioxJobId = "tts-\(UUID().uuidString)"
-        
+
         Task {
             do {
-                // 1. Split content into paragraphs
-                let paragraphs = content.components(separatedBy: .newlines)
+                // Check for existing active TTS job for this track
+                if let existingJob = try? await GRDBDatabaseManager.shared.loadActiveTTSJob(forTrackId: trackId) {
+                    print("[TTS] Found existing active job \(existingJob.id) for track \(trackId) with status \(existingJob.status)")
+                    await MainActor.run {
+                        statusMessage = "Audio generation already in progress for \"\(track.displayName)\"."
+                    }
+                    return
+                }
+
+                // 1. Split content into paragraphs and preprocess (merge short, split long)
+                let rawParagraphs = content.components(separatedBy: .newlines)
                     .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                     .filter { !$0.isEmpty }
-                
+
+                let paragraphs = preprocessParagraphs(rawParagraphs)
                 let totalParagraphs = paragraphs.count
-                
+
+                print("[TTS] Preprocessed \(rawParagraphs.count) raw paragraphs into \(totalParagraphs) chunks")
+
+                // 2. Setup temp directory for incremental saves
+                let tempDir = ttsTempDirectory(for: trackId)
+                try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+                // 3. Check for resume point
+                let resumeIndex = getResumeIndex(tempDir: tempDir, totalParagraphs: totalParagraphs)
+                let isResuming = resumeIndex > 0
+
+                if isResuming {
+                    print("[TTS] Resuming from paragraph \(resumeIndex) of \(totalParagraphs)")
+                }
+
                 // Create Job
                 let job = try await GRDBDatabaseManager.shared.createTranscriptionJob(
                     trackId: trackId,
                     sonioxJobId: sonioxJobId,
                     status: "queued",
-                    progress: 0.0,
+                    progress: Double(resumeIndex) / Double(totalParagraphs),
                     totalParagraphs: totalParagraphs,
-                    processedParagraphs: 0
+                    processedParagraphs: resumeIndex
                 )
                 let dbJobId = job.id
-                
+
                 await MainActor.run {
-                    statusMessage = "Starting audio generation for \"\(track.displayName)\"..."
+                    if isResuming {
+                        statusMessage = "Resuming audio generation for \"\(track.displayName)\" from paragraph \(resumeIndex)..."
+                    } else {
+                        statusMessage = "Starting audio generation for \"\(track.displayName)\"..."
+                    }
                     NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil, userInfo: ["jobId": dbJobId])
                 }
-                
+
                 // Update to processing
-                try await GRDBDatabaseManager.shared.updateJobStatus(jobId: dbJobId, status: "processing", progress: 0.0)
-                
+                try await GRDBDatabaseManager.shared.updateJobStatus(jobId: dbJobId, status: "processing", progress: Double(resumeIndex) / Double(totalParagraphs))
+
                 let voice = defaults.string(forKey: "edge_tts_voice") ?? "en-US-AriaNeural"
                 let rate = defaults.string(forKey: "edge_tts_rate") ?? "+0%"
                 let pitch = defaults.string(forKey: "edge_tts_pitch") ?? "+0Hz"
-                
-                var combinedAudioData = Data()
-                var transcriptSegments: [TranscriptSegment] = []
-                var currentStartTimeMs = 0
-                var processedParagraphsCount = 0
+
+                var processedParagraphsCount = resumeIndex
                 var pendingParagraphsCount = 0
 
                 var lastUpdate = Date.distantPast
                 var lastProgress = -1.0
 
-                // 2. Process paragraphs
-                for paragraph in paragraphs {
+                // 4. Process paragraphs (starting from resume point)
+                for i in resumeIndex..<totalParagraphs {
+                    let paragraph = paragraphs[i]
                     pendingParagraphsCount += 1
-                    
+
                     // Throttle initial progress update
                     let currentProgress = totalParagraphs > 0 ? Double(processedParagraphsCount) / Double(totalParagraphs) : 0
                     let now = Date()
@@ -364,26 +580,22 @@ final class AudioPlayerViewModel: ObservableObject {
                     }
 
                     do {
-                        let audioData = try await generateAudioForParagraph(text: paragraph, voice: voice, rate: rate, pitch: pitch)
-                        
-                        let durationMs = try getDurationMs(for: audioData)
-                        
-                        let segment = TranscriptSegment(
-                            transcriptId: "",
+                        // Generate with retry
+                        let audioData = try await generateAudioForParagraphWithRetry(
                             text: paragraph,
-                            startTimeMs: currentStartTimeMs,
-                            endTimeMs: currentStartTimeMs + durationMs,
-                            confidence: 1.0,
-                            speaker: "TTS",
-                            language: "en"
+                            voice: voice,
+                            rate: rate,
+                            pitch: pitch,
+                            maxRetries: 3
                         )
-                        transcriptSegments.append(segment)
-                        currentStartTimeMs += durationMs
-                        combinedAudioData.append(audioData)
+
+                        // Save immediately to temp file
+                        let paragraphFile = tempDir.appendingPathComponent("\(i).mp3")
+                        try audioData.write(to: paragraphFile)
 
                         pendingParagraphsCount = max(pendingParagraphsCount - 1, 0)
                         processedParagraphsCount += 1
-                        
+
                         // Throttle completion progress update
                         let updatedProgress = totalParagraphs > 0 ? Double(processedParagraphsCount) / Double(totalParagraphs) : 0
                         let now2 = Date()
@@ -403,10 +615,6 @@ final class AudioPlayerViewModel: ObservableObject {
                         }
                     } catch {
                         pendingParagraphsCount = max(pendingParagraphsCount - 1, 0)
-                        // Try to save progress even on error, but throttle it too? 
-                        // Error state is important, maybe just update DB without notification if throttled, 
-                        // but we are rethrowing so the job will fail anyway.
-                        // Let's just update DB best effort.
                         let fallbackProgress = totalParagraphs > 0 ? Double(processedParagraphsCount) / Double(totalParagraphs) : 0
                         try? await GRDBDatabaseManager.shared.updateJobProgress(
                             jobId: dbJobId,
@@ -418,10 +626,36 @@ final class AudioPlayerViewModel: ObservableObject {
                         throw error
                     }
 
-                    try await Task.sleep(nanoseconds: 50_000_000) // 0.05s
+                    // Delay between paragraphs (1 second to avoid rate limiting)
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
                 }
-                
-                // 3. Save final audio
+
+                // 5. Merge all paragraph files into final audio
+                let combinedAudioData = try mergeAudioFiles(tempDir: tempDir, count: totalParagraphs)
+
+                // Calculate durations for transcript segments
+                var transcriptSegments: [TranscriptSegment] = []
+                var currentStartTimeMs = 0
+
+                for i in 0..<totalParagraphs {
+                    let paragraphFile = tempDir.appendingPathComponent("\(i).mp3")
+                    let audioData = try Data(contentsOf: paragraphFile)
+                    let durationMs = try getDurationMs(for: audioData)
+
+                    let segment = TranscriptSegment(
+                        transcriptId: "",
+                        text: paragraphs[i],
+                        startTimeMs: currentStartTimeMs,
+                        endTimeMs: currentStartTimeMs + durationMs,
+                        confidence: 1.0,
+                        speaker: "TTS",
+                        language: "en"
+                    )
+                    transcriptSegments.append(segment)
+                    currentStartTimeMs += durationMs
+                }
+
+                // 6. Save final audio to cache
                 let baiduFileId = "tts"
                 let filename = "tts.mp3"
                 let cacheURL = self.cacheManager.createCacheFile(
@@ -431,11 +665,11 @@ final class AudioPlayerViewModel: ObservableObject {
                     durationMs: nil,
                     fileSizeBytes: combinedAudioData.count
                 )
-                
+
                 try combinedAudioData.write(to: cacheURL)
                 self.cacheManager.markCacheAsComplete(trackId: trackId, baiduFileId: baiduFileId)
-                
-                // 4. Save Transcript
+
+                // 7. Save Transcript
                 let transcriptId = UUID().uuidString
                 let finalSegments = transcriptSegments.map { segment in
                     TranscriptSegment(
@@ -449,7 +683,7 @@ final class AudioPlayerViewModel: ObservableObject {
                         language: segment.language
                     )
                 }
-                
+
                 let transcript = Transcript(
                     id: transcriptId,
                     trackId: trackId,
@@ -459,12 +693,15 @@ final class AudioPlayerViewModel: ObservableObject {
                     jobStatus: "complete",
                     jobId: sonioxJobId
                 )
-                
+
                 try await GRDBDatabaseManager.shared.saveTranscript(transcript, segments: finalSegments)
-                
+
                 // Mark job complete
                 try await GRDBDatabaseManager.shared.markJobCompleted(jobId: dbJobId)
-                
+
+                // 8. Clean up temp directory
+                cleanupTTSTempDirectory(for: trackId)
+
                 await MainActor.run {
                     self.statusMessage = "Audio generation complete for \"\(track.displayName)\"."
                     self.refreshActiveCacheStatus()
@@ -473,16 +710,16 @@ final class AudioPlayerViewModel: ObservableObject {
                         self.play(track: track, in: collection, token: nil)
                     }
                 }
-                
+
             } catch {
-                // Mark failed
+                // Mark failed - but leave temp files for resume
                 if let job = try? await GRDBDatabaseManager.shared.loadTranscriptionJobBySonioxId(sonioxJobId) {
                     try? await GRDBDatabaseManager.shared.markJobFailed(jobId: job.id, errorMessage: error.localizedDescription)
                     await MainActor.run {
                         NotificationCenter.default.post(name: NSNotification.Name("TranscriptionJobUpdated"), object: nil, userInfo: ["jobId": job.id])
                     }
                 }
-                
+
                 await MainActor.run {
                     self.statusMessage = "Audio generation failed: \(error.localizedDescription)"
                 }

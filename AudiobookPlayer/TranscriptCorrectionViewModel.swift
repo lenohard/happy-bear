@@ -24,13 +24,15 @@ final class TranscriptCorrectionViewModel: ObservableObject {
         Task { await loadCorrections() }
     }
     
-    func loadCorrections() async {
+    func loadCorrections(showLoading: Bool = true) async {
         guard let trackId = currentTrackId else {
             corrections = []
             return
         }
         
-        isLoading = true
+        if showLoading {
+            isLoading = true
+        }
         errorMessage = nil
         
         do {
@@ -40,7 +42,9 @@ final class TranscriptCorrectionViewModel: ObservableObject {
             corrections = []
         }
         
-        isLoading = false
+        if showLoading {
+            isLoading = false
+        }
     }
     
     /// Apply a correction to all transcript segments
@@ -65,7 +69,7 @@ final class TranscriptCorrectionViewModel: ObservableObject {
             try await dbManager.updateTranscriptCorrectionStatus(id: correctionId, isApplied: true)
             
             // Reload corrections to update UI
-            await loadCorrections()
+            await loadCorrections(showLoading: false)
             
         } catch {
             errorMessage = "Failed to apply correction: \(error.localizedDescription)"
@@ -94,7 +98,7 @@ final class TranscriptCorrectionViewModel: ObservableObject {
             try await dbManager.updateTranscriptCorrectionStatus(id: correctionId, isApplied: false)
             
             // Reload corrections to update UI
-            await loadCorrections()
+            await loadCorrections(showLoading: false)
             
         } catch {
             errorMessage = "Failed to unapply correction: \(error.localizedDescription)"
@@ -122,7 +126,7 @@ final class TranscriptCorrectionViewModel: ObservableObject {
                 correctText: trimmedCorrect
             )
             
-            await loadCorrections()
+            await loadCorrections(showLoading: false)
         } catch {
             errorMessage = "Failed to add correction: \(error.localizedDescription)"
         }
@@ -134,7 +138,7 @@ final class TranscriptCorrectionViewModel: ObservableObject {
         
         do {
             try await dbManager.deleteTranscriptCorrection(id: correctionId)
-            await loadCorrections()
+            await loadCorrections(showLoading: false)
         } catch {
             errorMessage = "Failed to delete correction: \(error.localizedDescription)"
         }

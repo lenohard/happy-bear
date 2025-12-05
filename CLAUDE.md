@@ -15,6 +15,13 @@ local/PROD.md:
 
 - Background audio + enhanced playback controls completed 2025-11-03
 
+## Recent Progress (2025-11-28 – 2025-12-05)
+- **Listening history & resume stability**: Playback collections now preload when the player starts so the Listening History surface can show context instantly, and a regression that dropped playback progress snapshots after relaunch is fixed (commits `65bd540`, `c5f982c`).
+- **Collection refresh pipeline**: A dedicated collection import/refresh service coordinates Netdisk diffs, allowing the new "Refresh Collection" action (documented in `local/collection-refresh-implementation.md`) to reuse the same logic instead of duplicating folder traversal (commit `ae039f6`).
+- **CollectionDetailView performance**: Removed the `visibleTrackIndices` tracker and redundant view work so long track lists scroll smoothly even after filter changes (commit `d4d0d9c`).
+- **Date parsing reliability**: Ebook metadata now converts timestamps via `timeIntervalSinceReferenceDate`, and GRDB fetches correctly decode Date columns returned as native `Date` instances to prevent crashes when importing existing libraries (commits `6d08d73`, `9be5b34`).
+- **Background DB/worker efficiency**: Consolidated playback/progress writes and throttled background processing queues to reduce redundant GRDB writes during cache downloads or transcription prep (commit `0f4f516`).
+
 ## Project Overview
 
 An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云盘), with seamless integration for importing, managing, and playing audio files.
@@ -27,6 +34,9 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 
 ## Recent Lessons
 
+- **2025-12-05 – SwiftPM package product missing after DerivedData corruption**: If Xcode reports “Missing package product 'GRDB'” or fails to clone GRDB’s SQLiteCustom submodule, delete the entire `~/Library/Developer/Xcode/DerivedData/AudiobookPlayer-*` directory (including `SourcePackages`) and rerun `xcodebuild -resolvePackageDependencies -project AudiobookPlayer.xcodeproj`. This forces a clean SwiftPM checkout and fixes the broken submodule checkout.
+- **2025-12-05 – iOS Background Job Limitations**: iOS suspends most operations when apps go to background. Polling loops (`Task.sleep`), WebSocket connections, and streaming all stop. Solutions: (1) For STT jobs with server-side processing: check status when app returns to foreground via `scenePhase` observer rather than continuous polling; (2) For TTS/AI: save partial results before backgrounding, show "interrupted" state on resume; (3) Soniox supports webhooks but requires a public endpoint - foreground-resume-check is simpler for mobile-only apps.
+- **2025-12-05 – Job List Filtering Pattern**: When showing active vs history job lists, history should exclude jobs that appear in active list to prevent duplicates. Pattern: `let activeJobIds = Set(activeJobs.map(\.id)); historyJobs.filter { !activeJobIds.contains($0.id) }`.
 - **2025-11-26 – Build Error: Duplicate var body declarations**: When fixing build errors, always check for duplicate `var body: some View {` declarations in SwiftUI View files. This is a common error pattern that causes "declaration is only valid at file scope" and "expected '}' in struct" errors. The fix is simple: remove the duplicate line. Related: also check for duplicate closing braces `}` that need to be removed after fixing the duplicate property. Quick fix workflow: `grep -n "var body: some View" filename.swift` to find all occurrences.
 - **2025-11-26 – Xcode Build Lock**: If you get "database is locked" error during build, wait 2-3 seconds and retry. This happens when multiple build processes are running against the same derived data path. A simple `sleep 2 && xcodebuild...` resolves it.
 - **2025-11-26 – Filter Build Output Efficiently**: Use `xcodebuild ... | grep -E "error:|warning:|BUILD"` to quickly see only the important lines instead of thousands of build steps. For quick error checks: `xcodebuild ... | grep "error:" | head -10` to get just the first 10 errors. For build status: `xcodebuild ... | tail -2` to see the final result. This saves significant time and tokens when diagnosing builds.
@@ -124,7 +134,6 @@ Generates all required iOS app icon sizes from a single source image.
 - `CacheManagementView` (linked from Settings tab) lets users inspect cache path/size, tweak TTL (1–30 days, default 10), clear everything, or nuke the currently playing track.
 - `TranscriptionProgressOverlay`, `TranscriptionSheet`, and `TranscriptViewerSheet` surface Soniox job state, retry actions, and finished transcripts without leaving the current screen.
 - `SplashScreenView` briefly shows the AppLogo while `AudiobookPlayerApp` wires up all environment objects (player, library, Baidu auth, tab manager, AI gateway, transcription manager).
-
 ---
 
 ## Architecture Snapshot (2025-11)
@@ -184,12 +193,6 @@ Generates all required iOS app icon sizes from a single source image.
 - [x] Custom sorting/filtering
 - [ ] iCloud sync for progress across devices
 - [x] Lock screen playback controls
-
-### Phase 4: Polish & Distribution
-
-- [ ] UI/UX refinement
-- [ ] Performance optimization
-- [ ] App Store submission preparation
 
 ---
 
@@ -254,14 +257,6 @@ Generates all required iOS app icon sizes from a single source image.
 - [x] Surfaced saved track progress with progress bars, timestamps, and percent labels derived from `playbackStates`.
 - [x] Removed collection-level "Play All" in favor of per-track controls and new library quick-play buttons that resume from stored positions.
 - [x] Added dedicated Playing tab that restores the active or last-played collection with persisted playback state and shared transport controls.
-
-### Session: 2025-11-02
-
-- [x] Project directory created
-- [x] PROD.md initialized with architecture & planning
-- [x] Integrated Baidu OAuth sign-in UI backed by `ASWebAuthenticationSession` and token exchange service
-- [x] Added Info.plist placeholders for Baidu credentials and custom URL scheme registration
-- [x] Verified simulator build locally via `xcodebuild -project AudiobookPlayer.xcodeproj -scheme AudiobookPlayer -destination 'generic/platform=iOS Simulator' build`
 
 ### Session: 2025-02-11
 

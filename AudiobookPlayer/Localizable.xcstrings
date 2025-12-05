@@ -3810,7 +3810,14 @@
       }
     },
     "Refresh Models" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "获取最新模型"
+          }
+        }
+      }
     },
     "refresh_collection_button" : {
       "comment" : "Refresh collection button",
@@ -3820,6 +3827,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Refresh Collection"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步最新"
           }
         }
       }
@@ -3833,6 +3846,12 @@
             "state" : "new",
             "value" : "Refresh failed: %@"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刷新失败 %@"
+          }
         }
       }
     },
@@ -3844,6 +3863,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Found %d new tracks."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "找到 %d 新音频"
           }
         }
       }

@@ -109,6 +109,31 @@ extension GRDBDatabaseManager {
         }
     }
 
+    /// Load active TTS job for a specific track (if any)
+    /// Returns the most recent non-completed/non-failed TTS job for the track
+    func loadActiveTTSJob(forTrackId trackId: String) throws -> TranscriptionJob? {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            guard let row = try Row.fetchOne(
+                db,
+                sql: """
+                    SELECT * FROM transcription_jobs
+                    WHERE track_id = ?
+                    AND soniox_job_id LIKE 'tts-%'
+                    AND status NOT IN ('completed', 'failed')
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                    """,
+                arguments: [trackId]
+            ) else {
+                return nil
+            }
+
+            return try reconstructTranscriptionJob(row: row)
+        }
+    }
+
     /// Load all recent transcription jobs (including completed and failed), limited to last N jobs
     func loadAllRecentTranscriptionJobs(limit: Int = 50) throws -> [TranscriptionJob] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
