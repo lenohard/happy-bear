@@ -10,6 +10,7 @@ struct AudiobookPlayerApp: App {
     @StateObject private var aiGateway = AIGatewayViewModel()
     @StateObject private var transcriptionManager = TranscriptionManager()
     @StateObject private var aiGenerationManager = AIGenerationManager()
+    @StateObject private var bubbleWindowManager = FloatingBubbleWindowManager(viewModel: FloatingPlaybackBubbleViewModel())
     @State private var showSplash = true
     @State private var pendingEbookURL: URL?
 
@@ -51,6 +52,9 @@ struct AudiobookPlayerApp: App {
             }
             .onOpenURL { url in
                 handleIncomingURL(url)
+            }
+            .onAppear {
+                bubbleWindowManager.show(audioPlayer: audioPlayer, tabSelection: tabSelection)
             }
             .sheet(item: Binding(
                 get: { pendingEbookURL.map { PendingEbookImport(url: $0) } },

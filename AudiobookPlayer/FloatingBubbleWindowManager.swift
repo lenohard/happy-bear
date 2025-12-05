@@ -3,19 +3,29 @@ import UIKit
 
 /// A UIWindow subclass that only intercepts touches on its subviews, passing through elsewhere
 private class PassThroughWindow: UIWindow {
+    var shouldHandleTouch: ((CGPoint) -> Bool)?
+
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         // Get the hit view from the normal hit test
         guard let hitView = super.hitTest(point, with: event) else {
             return nil
         }
         
-        // If the hit view is the root view (the hosting controller's view),
-        // it means the touch is on the transparent background, so pass through
-        if hitView == rootViewController?.view {
-            return nil
+        // If we have a custom handler, check if we should handle this touch
+        if let shouldHandle = shouldHandleTouch {
+            if !shouldHandle(point) {
+                return nil
+            }
+        } else {
+            // Fallback: If the hit view is the root view (the hosting controller's view),
+            // it means the touch is on the transparent background, so pass through.
+            // Note: This fallback might be too aggressive if UIHostingController collapses hierarchy,
+            // but the closure-based approach above is preferred.
+            if hitView == rootViewController?.view {
+                return nil
+            }
         }
         
-        // Otherwise, the touch is on an actual subview (the bubble), so handle it
         return hitView
     }
 }
@@ -49,10 +59,30 @@ class FloatingBubbleWindowManager: ObservableObject {
         window.backgroundColor = .clear
         window.isUserInteractionEnabled = true
         
+        // Define hit test logic: only capture touches within the bubble's frame
+        window.shouldHandleTouch = { [weak self] point in
+            guard let self = self else { return false }
+            // Bubble geometry
+            let position = self.viewModel.position
+            let size: CGFloat = 60
+            // Add some padding for easier touch
+            let touchPadding: CGFloat = 10
+            
+            let bubbleRect = CGRect(
+                x: position.x - size/2 - touchPadding,
+                y: position.y - size/2 - touchPadding,
+                width: size + touchPadding*2,
+                height: size + touchPadding*2
+            )
+            
+            return bubbleRect.contains(point)
+        }
+        
         // Create the hosting controller with the bubble view
         let bubbleView = FloatingPlaybackBubbleView(viewModel: self.viewModel)
             .environmentObject(audioPlayer)
             .environmentObject(tabSelection)
+            .ignoresSafeArea()
         
         let hostingController = UIHostingController(rootView: bubbleView)
         hostingController.view.backgroundColor = .clear
