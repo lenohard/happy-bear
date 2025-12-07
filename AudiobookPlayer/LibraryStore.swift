@@ -181,34 +181,20 @@ final class LibraryStore: ObservableObject {
         }
     }
 
-    func refreshBaiduCollection(collectionId: UUID, token: BaiduOAuthToken) async throws -> Int {
+    func scanNewTracksForBaiduCollection(collectionId: UUID, token: BaiduOAuthToken) async throws -> [AudiobookTrack] {
         await ensureCollectionLoaded(collectionId)
         
         guard let index = collections.firstIndex(where: { $0.id == collectionId }) else {
             throw LibraryStoreError.collectionNotFound
         }
         
-        var collection = collections[index]
+        let collection = collections[index]
         
         guard case let .baiduNetdisk(folderPath, _) = collection.source else {
-            return 0
+            return []
         }
         
         let client = BaiduNetdiskClient()
-        // Fetch all files in the folder (non-recursive for now, matching user request "check the latest results in that path")
-        // If we want recursive, we'd need to implement that logic here too, but let's stick to flat for now as per "check the latest results in that path"
-        // actually CollectionBuilderViewModel uses recursive fetch. 
-        // But for "refresh", usually we just check the root folder of the collection unless it was imported recursively.
-        // The current import logic in CollectionBuilderViewModel flattens the structure.
-        // So checking the root path recursively makes sense if we want to match that behavior.
-        // However, to keep it simple and safe, let's just check the immediate folder first. 
-        // Wait, if the original import was recursive, we might miss files in subfolders if we don't recurse.
-        // But the `folderPath` in `source` is the root.
-        // Let's use `listDirectory` which is flat. If the user wants deep refresh, that's more complex.
-        // Given "check the latest results in that path", I'll assume flat list for now or use the same recursive logic if I can easily access it.
-        // Since `fetchAllFilesRecursively` is private in `CollectionBuilderViewModel`, I'll implement a simple flat fetch first.
-        // If the user needs recursive, I can add it later.
-        
         let entries = try await client.listDirectory(path: folderPath, token: token)
         
         let existingTrackPaths = Set(collection.tracks.compactMap { track -> String? in
@@ -225,12 +211,11 @@ final class LibraryStore: ObservableObject {
             return !existingTrackPaths.contains(entry.path)
         }
         
-        guard !newEntries.isEmpty else { return 0 }
+        guard !newEntries.isEmpty else { return [] }
         
-        // Create new tracks
         let startTrackNumber = (collection.tracks.map(\.trackNumber).max() ?? 0) + 1
         
-        let newTracks = newEntries.enumerated().map { index, entry in
+        return newEntries.enumerated().map { index, entry in
             AudiobookTrack(
                 id: UUID(),
                 displayName: entry.serverFilename,
@@ -244,14 +229,92 @@ final class LibraryStore: ObservableObject {
                 mediaKind: PlayableMediaFormat.mediaKind(forFilename: entry.serverFilename)
             )
         }
+    }
+
+    func addTracks(to collectionId: UUID, tracks: [AudiobookTrack]) {
+        guard !tracks.isEmpty else { return }
+        guard let index = collections.firstIndex(where: { $0.id == collectionId }) else { return }
         
-        collection.tracks.append(contentsOf: newTracks)
+        var collection = collections[index]
+        collection.tracks.append(contentsOf: tracks)
         collection.trackCount = collection.tracks.count
         collection.updatedAt = Date()
         
-        // Save
         save(collection)
-        
+    }
+
+    func refreshBaiduCollection(collectionId: UUID, token: BaiduOAuthToken) async throws -> Int {
+        let newTracks = try await scanNewTracksForBaiduCollection(collectionId: collectionId, token: token)
+        addTracks(to: collectionId, tracks: newTracks)
+        return newTracks.count
+    }
+    
+    func scanNewTracksForRSSCollection(collectionId: UUID) async throws -> [AudiobookTrack] {
+        await ensureCollectionLoaded(collectionId)
+
+        guard let index = collections.firstIndex(where: { $0.id == collectionId }) else {
+            throw LibraryStoreError.collectionNotFound
+        }
+
+        let collection = collections[index]
+
+        guard case let .rss(feedUrl) = collection.source else {
+            return []
+        }
+
+        let parser = RSSParser()
+        let feed = try await parser.parse(url: feedUrl)
+
+        let existingURLs = Set(collection.tracks.compactMap { track -> String? in
+            if case let .external(url) = track.location {
+                return url.absoluteString
+            }
+            return nil
+        })
+
+        let newItems = feed.items.filter { item in
+            guard let enclosureURL = item.enclosureURL else { return false }
+            return !existingURLs.contains(enclosureURL.absoluteString)
+        }
+
+        guard !newItems.isEmpty else { return [] }
+
+        let startTrackNumber = (collection.tracks.map(\.trackNumber).max() ?? 0) + 1
+        let isoFormatter = ISO8601DateFormatter()
+
+        return newItems.enumerated().compactMap { offset, item in
+            guard let enclosureURL = item.enclosureURL else { return nil }
+
+            var metadata: [String: String] = [:]
+            if let pubDate = item.pubDate {
+                metadata["pubDate"] = isoFormatter.string(from: pubDate)
+            }
+            if let description = item.description, !description.isEmpty {
+                metadata["description"] = description
+            }
+
+            let filename = enclosureURL.lastPathComponent.isEmpty
+                ? "episode-\(startTrackNumber + offset)"
+                : enclosureURL.lastPathComponent
+
+            return AudiobookTrack(
+                id: UUID(),
+                displayName: item.title,
+                filename: filename,
+                location: .external(url: enclosureURL),
+                fileSize: item.enclosureLength,
+                duration: nil,
+                trackNumber: startTrackNumber + offset,
+                checksum: item.guid,
+                metadata: metadata,
+                mediaKind: .audio
+            )
+        }
+    }
+
+    func refreshRSSCollection(collectionId: UUID) async throws -> Int {
+        let newTracks = try await scanNewTracksForRSSCollection(collectionId: collectionId)
+        addTracks(to: collectionId, tracks: newTracks)
         return newTracks.count
     }
 
@@ -728,11 +791,7 @@ final class LibraryStore: ObservableObject {
         }
 
         switch collection.source {
-        case .local:
-            return true
-        case .baiduNetdisk:
-            return true
-        case .ebook:
+        case .local, .baiduNetdisk, .ebook, .rss:
             return true
         case .external, .ephemeralBaidu:
             return false

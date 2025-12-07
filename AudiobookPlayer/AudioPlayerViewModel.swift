@@ -1,6 +1,7 @@
 import AVFoundation
 import Combine
 import Foundation
+import CryptoKit
 #if os(iOS)
 import MediaPlayer
 #endif
@@ -964,8 +965,9 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func removeCache(for track: AudiobookTrack) {
-        guard case let .baidu(fsId, _) = track.location else { return }
-        cacheManager.removeCacheFile(trackId: track.id.uuidString, baiduFileId: String(fsId), filename: track.filename)
+        guard let identifiers = cacheIdentifiers(for: track) else { return }
+        downloadManager.cancelDownloads(for: [track.id.uuidString])
+        cacheManager.removeCacheFile(trackId: identifiers.trackKey, baiduFileId: identifiers.baiduFileId, filename: track.filename)
         progressTracker.clearProgress(for: track.id.uuidString)
         progressTracker.stopTracking(for: track.id.uuidString)
         refreshActiveCacheStatus()
@@ -999,30 +1001,15 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func cacheTrackIfNeeded(_ track: AudiobookTrack) {
-        let baiduFileId: String
+        guard let identifiers = cacheIdentifiers(for: track) else { return }
         
-        switch track.location {
-        case let .baidu(fsId, _):
-            guard currentToken != nil else {
-                statusMessage = "Connect Baidu Netdisk to cache audio offline."
-                return
-            }
-            baiduFileId = String(fsId)
-            
-        case let .external(url):
-            if let checksum = track.checksum, !checksum.isEmpty {
-                baiduFileId = checksum
-            } else {
-                // Use a stable hash of the URL if no checksum
-                baiduFileId = String(format: "%016X", url.absoluteString.hash)
-            }
-            
-        default:
+        if case .baidu = track.location, currentToken == nil {
+            statusMessage = "Connect Baidu Netdisk to cache audio offline."
             return
         }
-
+        
         Task { [weak self] in
-            await self?.startBackgroundCaching(track: track, baiduFileId: baiduFileId, fileSize: track.fileSize)
+            await self?.startBackgroundCaching(track: track, baiduFileId: identifiers.baiduFileId, fileSize: track.fileSize)
         }
     }
 
@@ -1082,6 +1069,33 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     // MARK: - Private helpers
+    
+    private func stableHashHex(_ string: String) -> String {
+        let data = Data(string.utf8)
+        let digest = SHA256.hash(data: data)
+        return digest.compactMap { String(format: "%02x", $0) }.joined()
+    }
+    
+    private func cacheIdentifiers(for track: AudiobookTrack) -> (trackKey: String, baiduFileId: String)? {
+        let trackKey = track.id.uuidString
+        
+        switch track.location {
+        case let .baidu(fsId, _):
+            return (trackKey, String(fsId))
+        case let .external(url):
+            if let checksum = track.checksum, !checksum.isEmpty {
+                return (trackKey, checksum)
+            }
+            let hash = stableHashHex(url.absoluteString)
+            // Shorten to keep filenames manageable
+            let shortHash = String(hash.prefix(16))
+            return (trackKey, shortHash)
+        case .local:
+            return nil
+        case .text, .cachedText:
+            return nil
+        }
+    }
 
     func observeCacheProgress() {
         progressTracker.$cachedRanges
@@ -1109,78 +1123,7 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func computeCacheStatus(for track: AudiobookTrack) -> CacheStatusSnapshot? {
-        switch track.location {
-        case let .baidu(fsId, _):
-            let trackId = track.id
-            let trackKey = trackId.uuidString
-            let totalBytesFromTrack = track.fileSize > 0 ? Int(clamping: track.fileSize) : nil
-            let trackerProgress = progressTracker.progress(for: trackKey)
-
-            guard let metadata = cacheManager.metadata(for: trackKey, baiduFileId: String(fsId)) else {
-                if trackerProgress > 0, let total = totalBytesFromTrack {
-                    let cachedBytes = Int(Double(total) * trackerProgress)
-                    return CacheStatusSnapshot(
-                        trackId: trackId,
-                        state: trackerProgress >= 0.999 ? .fullyCached : .partiallyCached,
-                        percentage: min(1.0, trackerProgress),
-                        cachedBytes: cachedBytes,
-                        totalBytes: total,
-                        cachedRanges: [AudioCacheManager.CacheMetadata.ByteRange(start: 0, end: cachedBytes)],
-                        retentionDays: cacheManager.currentCacheRetentionDays()
-                    )
-                }
-
-                return CacheStatusSnapshot(
-                    trackId: trackId,
-                    state: .notCached,
-                    percentage: 0,
-                    cachedBytes: 0,
-                    totalBytes: totalBytesFromTrack,
-                    cachedRanges: [],
-                    retentionDays: cacheManager.currentCacheRetentionDays()
-                )
-            }
-
-            let cachedBytes = metadata.cachedRanges.reduce(0) { sum, range in
-                sum + max(0, range.end - range.start)
-            }
-            var totalBytes = metadata.fileSizeBytes ?? totalBytesFromTrack
-            var effectiveCachedBytes = cachedBytes
-
-            if let total = totalBytes, total > 0 {
-                let trackerBytes = Int(Double(total) * trackerProgress)
-                effectiveCachedBytes = max(effectiveCachedBytes, trackerBytes)
-            } else if cachedBytes == 0, trackerProgress > 0, let total = totalBytesFromTrack {
-                totalBytes = total
-                effectiveCachedBytes = Int(Double(total) * trackerProgress)
-            }
-
-            let percentage: Double
-            if let totalBytes, totalBytes > 0 {
-                percentage = min(1.0, Double(effectiveCachedBytes) / Double(totalBytes))
-            } else {
-                percentage = metadata.cacheStatus == .complete || trackerProgress >= 0.999 ? 1.0 : max(0.0, trackerProgress)
-            }
-
-            let state: CacheStatusSnapshot.State
-            if metadata.cacheStatus == .complete || percentage >= 0.999 {
-                state = .fullyCached
-            } else if effectiveCachedBytes > 0 || trackerProgress > 0 {
-                state = .partiallyCached
-            } else {
-                state = .notCached
-            }
-
-            return CacheStatusSnapshot(
-                trackId: trackId,
-                state: state,
-                percentage: percentage,
-                cachedBytes: effectiveCachedBytes,
-                totalBytes: totalBytes,
-                cachedRanges: metadata.cachedRanges,
-                retentionDays: cacheManager.currentCacheRetentionDays()
-            )
-        case .local:
+        if case .local = track.location {
             let fileSize = Int(clamping: track.fileSize)
             let range = AudioCacheManager.CacheMetadata.ByteRange(start: 0, end: fileSize)
             return CacheStatusSnapshot(
@@ -1192,12 +1135,83 @@ final class AudioPlayerViewModel: ObservableObject {
                 cachedRanges: [range],
                 retentionDays: cacheManager.currentCacheRetentionDays()
             )
-        case .external:
-            return nil
-        case .text, .cachedText:
-            // Text-based tracks (ebooks) don't have cache status
+        }
+        
+        guard let identifiers = cacheIdentifiers(for: track) else {
+            // Text-based tracks or unsupported locations
             return nil
         }
+        
+        let trackId = track.id
+        let trackKey = identifiers.trackKey
+        let baiduFileId = identifiers.baiduFileId
+        let totalBytesFromTrack = track.fileSize > 0 ? Int(clamping: track.fileSize) : nil
+        let trackerProgress = progressTracker.progress(for: trackKey)
+        
+        guard let metadata = cacheManager.metadata(for: trackKey, baiduFileId: baiduFileId) else {
+            if trackerProgress > 0, let total = totalBytesFromTrack {
+                let cachedBytes = Int(Double(total) * trackerProgress)
+                return CacheStatusSnapshot(
+                    trackId: trackId,
+                    state: trackerProgress >= 0.999 ? .fullyCached : .partiallyCached,
+                    percentage: min(1.0, trackerProgress),
+                    cachedBytes: cachedBytes,
+                    totalBytes: total,
+                    cachedRanges: [AudioCacheManager.CacheMetadata.ByteRange(start: 0, end: cachedBytes)],
+                    retentionDays: cacheManager.currentCacheRetentionDays()
+                )
+            }
+            
+            return CacheStatusSnapshot(
+                trackId: trackId,
+                state: .notCached,
+                percentage: 0,
+                cachedBytes: 0,
+                totalBytes: totalBytesFromTrack,
+                cachedRanges: [],
+                retentionDays: cacheManager.currentCacheRetentionDays()
+            )
+        }
+        
+        let cachedBytes = metadata.cachedRanges.reduce(0) { sum, range in
+            sum + max(0, range.end - range.start)
+        }
+        var totalBytes = metadata.fileSizeBytes ?? totalBytesFromTrack
+        var effectiveCachedBytes = cachedBytes
+        
+        if let total = totalBytes, total > 0 {
+            let trackerBytes = Int(Double(total) * trackerProgress)
+            effectiveCachedBytes = max(effectiveCachedBytes, trackerBytes)
+        } else if cachedBytes == 0, trackerProgress > 0, let total = totalBytesFromTrack {
+            totalBytes = total
+            effectiveCachedBytes = Int(Double(total) * trackerProgress)
+        }
+        
+        let percentage: Double
+        if let totalBytes, totalBytes > 0 {
+            percentage = min(1.0, Double(effectiveCachedBytes) / Double(totalBytes))
+        } else {
+            percentage = metadata.cacheStatus == .complete || trackerProgress >= 0.999 ? 1.0 : max(0.0, trackerProgress)
+        }
+        
+        let state: CacheStatusSnapshot.State
+        if metadata.cacheStatus == .complete || percentage >= 0.999 {
+            state = .fullyCached
+        } else if effectiveCachedBytes > 0 || trackerProgress > 0 {
+            state = .partiallyCached
+        } else {
+            state = .notCached
+        }
+        
+        return CacheStatusSnapshot(
+            trackId: trackId,
+            state: state,
+            percentage: percentage,
+            cachedBytes: effectiveCachedBytes,
+            totalBytes: totalBytes,
+            cachedRanges: metadata.cachedRanges,
+            retentionDays: cacheManager.currentCacheRetentionDays()
+        )
     }
 
     func configureAudioSession() {
@@ -1464,28 +1478,27 @@ final class AudioPlayerViewModel: ObservableObject {
 
     func streamURL(for track: AudiobookTrack, token: BaiduOAuthToken?) throws -> URL {
         switch track.location {
-        case .text:
-             // This should not be called directly if playTextTrack handles it, 
-             // but for completeness or if called elsewhere:
-             throw CacheResolutionError.missingStreamingURL
-        case .cachedText:
-             throw CacheResolutionError.missingStreamingURL
-        case let .baidu(fsId, path):
-            let baiduFileId = String(fsId)
-
-            if let cachedURL = cacheManager.getCachedAssetURL(for: track.id.uuidString, baiduFileId: baiduFileId, filename: track.filename) {
-                progressTracker.markAsComplete(for: track.id.uuidString, fileSizeBytes: Int(clamping: track.fileSize))
-                refreshActiveCacheStatus()
-                return cachedURL
+        case .text, .cachedText:
+            throw CacheResolutionError.missingStreamingURL
+        default:
+            break
+        }
+        
+        if let identifiers = cacheIdentifiers(for: track),
+           let cachedURL = cacheManager.getCachedAssetURL(for: identifiers.trackKey, baiduFileId: identifiers.baiduFileId, filename: track.filename) {
+            if track.fileSize > 0 {
+                progressTracker.markAsComplete(for: identifiers.trackKey, fileSizeBytes: Int(clamping: track.fileSize))
             }
-
+            refreshActiveCacheStatus()
+            return cachedURL
+        }
+        
+        switch track.location {
+        case let .baidu(_, path):
             guard let token else {
                 throw NSError(domain: "AudiobookPlayer", code: 2, userInfo: [NSLocalizedDescriptionKey: "Missing Baidu token for streaming."])
             }
-
-            let streamingURL = try netdiskClient.downloadURL(forPath: path, token: token)
-
-            return streamingURL
+            return try netdiskClient.downloadURL(forPath: path, token: token)
         case let .local(bookmark):
             var isStale = false
             let url = try URL(
@@ -1499,6 +1512,9 @@ final class AudioPlayerViewModel: ObservableObject {
             return url
         case let .external(url):
             return url
+        case .text, .cachedText:
+            // Handled above
+            throw CacheResolutionError.missingStreamingURL
         }
     }
 

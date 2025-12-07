@@ -46,6 +46,11 @@ struct CollectionDetailView: View {
     @State private var isLastTrackVisible = false
     @State private var refreshResult: String?
     @State private var showRefreshResult = false
+    @State private var candidateTracks: [AudiobookTrack] = []
+    @State private var selectedCandidateIds: Set<UUID> = []
+    @State private var showRefreshReview = false
+    @State private var refreshReviewTitle = ""
+    @State private var refreshReviewDescription = ""
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -114,6 +119,16 @@ struct CollectionDetailView: View {
             return true
         }
         return false
+    }
+
+    private var canRefreshCurrentCollection: Bool {
+        guard let source = collection?.source else { return false }
+        switch source {
+        case .baiduNetdisk, .rss:
+            return true
+        default:
+            return false
+        }
     }
 
     private var sortedTracks: [AudiobookTrack] {
@@ -202,7 +217,7 @@ struct CollectionDetailView: View {
                                 )
                             }
                             
-                            if let source = collection?.source, case .baiduNetdisk = source {
+                            if canRefreshCurrentCollection {
                                 Button(action: refreshCollectionAction) {
                                     Label(NSLocalizedString("refresh_collection_button", value: "Refresh Collection", comment: "Refresh collection button"), systemImage: "arrow.clockwise")
                                 }
@@ -378,6 +393,60 @@ struct CollectionDetailView: View {
             .photosPicker(isPresented: $showCoverPhotosPicker, selection: $coverPhotoItem, matching: .images)
             .fileImporter(isPresented: $showCoverFileImporter, allowedContentTypes: [.image]) { result in
                 handleCoverFileImport(result)
+            }
+            .sheet(isPresented: $showRefreshReview) {
+                NavigationStack {
+                    CollectionReviewView(
+                        title: $refreshReviewTitle,
+                        description: $refreshReviewDescription,
+                        tracks: candidateTracks,
+                        selectedTrackIds: $selectedCandidateIds,
+                        totalSize: candidateTracks.reduce(0) { $0 + $1.fileSize },
+                        nonPlayableFiles: [],
+                        saveButtonTitle: NSLocalizedString("add_tracks_button", comment: "Add Tracks"),
+                        onSave: {
+                            let selected = candidateTracks.filter { selectedCandidateIds.contains($0.id) }
+                            library.addTracks(to: collectionID, tracks: selected)
+                            
+                            if let collection = collection, (refreshReviewTitle != collection.title || refreshReviewDescription != (collection.description ?? "")) {
+                                library.updateCollectionDetails(
+                                    collectionID: collectionID,
+                                    newTitle: refreshReviewTitle,
+                                    newDescription: refreshReviewDescription.isEmpty ? nil : refreshReviewDescription,
+                                    shouldUpdateDescription: true
+                                )
+                            }
+                            
+                            showRefreshReview = false
+                            refreshResult = String(format: NSLocalizedString("refresh_success_message", value: "Added %d tracks.", comment: "Refresh success"), selected.count)
+                            showRefreshResult = true
+                        }
+                    ) { track in
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(track.displayName)
+                                    .font(.body)
+                                    .lineLimit(2)
+
+                                Text(formatBytes(track.fileSize))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            Text("\(track.trackNumber)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .navigationTitle(NSLocalizedString("review_new_tracks_title", value: "New Tracks", comment: "Review new tracks title"))
+                    .toolbar {
+                         ToolbarItem(placement: .cancellationAction) {
+                             Button(NSLocalizedString("cancel_button", comment: "Cancel")) { showRefreshReview = false }
+                         }
+                    }
+                }
             }
 
         let viewWithPlaybackEvents = viewWithSheets
@@ -583,6 +652,11 @@ struct CollectionDetailView: View {
                                 .font(.title3)
                                 .foregroundStyle(.blue)
                                 .accessibilityLabel(NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection"))
+                        } else if case .rss = collection.source {
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                                .font(.title3)
+                                .foregroundStyle(.orange)
+                                .accessibilityLabel(NSLocalizedString("rss_collection_indicator_accessibility", value: "RSS collection", comment: "Indicator for RSS collection"))
                         }
                     }
 
@@ -621,24 +695,23 @@ struct CollectionDetailView: View {
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .overlay(alignment: .topTrailing) {
-                    if library.canModifyCollection(collectionID) {
-                        Menu {
-                            Button {
-                                beginEditingCollectionDetails(collection)
-                            } label: {
-                                Label(
-                                    NSLocalizedString("edit_collection_details_action", comment: "Edit collection details action"),
-                                    systemImage: "pencil"
-                                )
-                            }
+                
+                if library.canModifyCollection(collectionID) {
+                    Menu {
+                        Button {
+                            beginEditingCollectionDetails(collection)
                         } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .imageScale(.large)
-                                .padding(.leading, 8)
-                                .padding(.top, 2)
-                                .accessibilityLabel(NSLocalizedString("more_options_accessibility", comment: "More options accessibility label"))
+                            Label(
+                                NSLocalizedString("edit_collection_details_action", comment: "Edit collection details action"),
+                                systemImage: "pencil"
+                            )
                         }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .imageScale(.large)
+                            .padding(.leading, 8)
+                            .padding(.top, 2)
+                            .accessibilityLabel(NSLocalizedString("more_options_accessibility", comment: "More options accessibility label"))
                     }
                 }
             }
@@ -735,7 +808,7 @@ struct CollectionDetailView: View {
                     .tint(.white)
                     .padding(8)
                     .background(Color.black.opacity(0.35), in: Circle())
-                    .padding(6)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
 
             if library.canModifyCollection(collectionID) {
@@ -811,6 +884,7 @@ struct CollectionDetailView: View {
                     TrackDetailRow(
                         index: index,
                         track: track,
+                        collection: collection,
                         isActive: trackIsActive,
                         isPlaying: trackIsActive && audioPlayer.isPlaying,
                         playbackState: collection.playbackState(for: track.id),
@@ -1392,19 +1466,45 @@ struct CollectionDetailView: View {
     }
 
     private func refreshCollectionAction() {
-        guard let token = authViewModel.token else {
-            missingAuthAlert = true
-            return
-        }
+        guard let collection = self.collection else { return }
         
         Task {
             do {
-                let count = try await library.refreshBaiduCollection(collectionId: collectionID, token: token)
-                refreshResult = String(format: NSLocalizedString("refresh_success_message", value: "Found %d new tracks.", comment: "Refresh success message"), count)
-                showRefreshResult = true
+                let candidates: [AudiobookTrack]
+                switch collection.source {
+                case .baiduNetdisk:
+                    guard let token = authViewModel.token else {
+                        await MainActor.run {
+                            missingAuthAlert = true
+                        }
+                        return
+                    }
+                    candidates = try await library.scanNewTracksForBaiduCollection(collectionId: collectionID, token: token)
+                case .rss:
+                    candidates = try await library.scanNewTracksForRSSCollection(collectionId: collectionID)
+                default:
+                    return
+                }
+                
+                if !candidates.isEmpty {
+                    await MainActor.run {
+                        candidateTracks = candidates
+                        selectedCandidateIds = Set(candidates.map(\.id))
+                        refreshReviewTitle = collection.title
+                        refreshReviewDescription = collection.description ?? ""
+                        showRefreshReview = true
+                    }
+                } else {
+                    await MainActor.run {
+                        refreshResult = NSLocalizedString("refresh_no_updates", value: "No new tracks found.", comment: "Refresh result: no updates")
+                        showRefreshResult = true
+                    }
+                }
             } catch {
-                refreshResult = String(format: NSLocalizedString("refresh_failed_message", value: "Refresh failed: %@", comment: "Refresh failed message"), error.localizedDescription)
-                showRefreshResult = true
+                await MainActor.run {
+                    refreshResult = String(format: NSLocalizedString("refresh_failed_message", value: "Refresh failed: %@", comment: "Refresh failed message"), error.localizedDescription)
+                    showRefreshResult = true
+                }
             }
         }
     }
@@ -1574,6 +1674,7 @@ private struct RenameEntryView: View {
 private struct TrackDetailRow: View, Equatable {
     let index: Int
     let track: AudiobookTrack
+    let collection: AudiobookCollection
     let isActive: Bool
     let isPlaying: Bool
     let playbackState: TrackPlaybackState?
@@ -1587,6 +1688,7 @@ private struct TrackDetailRow: View, Equatable {
     static func == (lhs: TrackDetailRow, rhs: TrackDetailRow) -> Bool {
         lhs.index == rhs.index &&
         lhs.track.id == rhs.track.id &&
+        lhs.collection.id == rhs.collection.id &&
         lhs.track.displayName == rhs.track.displayName &&
         lhs.track.fileSize == rhs.track.fileSize &&
         lhs.isActive == rhs.isActive &&
@@ -1617,6 +1719,8 @@ private struct TrackDetailRow: View, Equatable {
                 metadataRow
             }
             .layoutPriority(1)
+            
+            DownloadButton(track: track, collection: collection)
 
             FavoriteToggleButton(isFavorite: isFavorite) {
                 onToggleFavorite()

@@ -15,7 +15,8 @@ local/PROD.md:
 
 - Background audio + enhanced playback controls completed 2025-11-03
 
-## Recent Progress (2025-11-28 – 2025-12-05)
+## Recent Progress (2025-11-28 – 2025-12-07)
+- **RSS podcast collections (2025-12-07)**: Added `.rss` source support so users can import podcast feeds via a dedicated sheet, persist feed metadata/tracks, tag collections as podcast/rss, show antenna indicators in the Library + detail views, and refresh RSS collections to pull new episodes on demand. Parser errors/localization captured; see `local/rss-collection-support.md` + `local/new_xcstrings.md`.
 - **Listening history & resume stability**: Playback collections now preload when the player starts so the Listening History surface can show context instantly, and a regression that dropped playback progress snapshots after relaunch is fixed (commits `65bd540`, `c5f982c`).
 - **Collection refresh pipeline**: A dedicated collection import/refresh service coordinates Netdisk diffs, allowing the new "Refresh Collection" action (documented in `local/collection-refresh-implementation.md`) to reuse the same logic instead of duplicating folder traversal (commit `ae039f6`).
 - **CollectionDetailView performance**: Removed the `visibleTrackIndices` tracker and redundant view work so long track lists scroll smoothly even after filter changes (commit `d4d0d9c`).

@@ -640,6 +640,8 @@ struct PlayingView: View {
 
             if case .baidu = track.location {
                 DownloadButton(track: track, collection: collection)
+            } else if case .external = track.location {
+                DownloadButton(track: track, collection: collection)
             }
         }
         .padding(.horizontal, 4)

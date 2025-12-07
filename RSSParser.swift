@@ -54,7 +54,8 @@ final class RSSParser: NSObject {
     
     private var feedTitle = ""
     private var feedDescription = ""
-    private var feedImageURL: URL?
+    private var itunesImageURL: URL?
+    private var regularImageURL: URL?
     private var items: [RSSItem] = []
     
     private var isInItem = false
@@ -88,7 +89,8 @@ final class RSSParser: NSObject {
         items = []
         feedTitle = ""
         feedDescription = ""
-        feedImageURL = nil
+        itunesImageURL = nil
+        regularImageURL = nil
         isInItem = false
         isInImage = false
         parsingError = nil
@@ -114,7 +116,7 @@ final class RSSParser: NSObject {
         return RSSFeed(
             title: feedTitle.isEmpty ? "Untitled Feed" : feedTitle,
             description: feedDescription.isEmpty ? nil : feedDescription,
-            imageURL: feedImageURL,
+            imageURL: itunesImageURL ?? regularImageURL,
             items: items
         )
     }
@@ -158,10 +160,10 @@ extension RSSParser: XMLParserDelegate {
             }
             
         case "itunes:image":
-            if !isInItem, feedImageURL == nil,
+            if !isInItem,
                let href = attributeDict["href"],
                let url = URL(string: href) {
-                feedImageURL = url
+                itunesImageURL = url
             }
             
         default:
@@ -232,7 +234,7 @@ extension RSSParser: XMLParserDelegate {
         } else if elementName == "image" {
             if isInImage {
                 if let url = URL(string: currentImageURLString) {
-                    feedImageURL = url
+                    regularImageURL = url
                 }
                 isInImage = false
             }

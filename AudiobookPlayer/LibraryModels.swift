@@ -13,6 +13,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case external(description: String)
         case ephemeralBaidu(path: String)
         case ebook(importedDate: Date)
+        case rss(feedUrl: URL)
 
         private enum CodingKeys: String, CodingKey {
             case type
@@ -22,6 +23,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case description
             case ephemeralPath
             case importedDate
+            case feedUrl
         }
 
         private enum SourceType: String, Codable {
@@ -30,6 +32,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case external
             case ephemeralBaidu
             case ebook
+            case rss
         }
 
         init(from decoder: Decoder) throws {
@@ -53,6 +56,9 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case .ebook:
                 let date = try container.decode(Date.self, forKey: .importedDate)
                 self = .ebook(importedDate: date)
+            case .rss:
+                let feedUrl = try container.decode(URL.self, forKey: .feedUrl)
+                self = .rss(feedUrl: feedUrl)
             }
         }
 
@@ -76,6 +82,9 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case let .ebook(importedDate):
                 try container.encode(SourceType.ebook, forKey: .type)
                 try container.encode(importedDate, forKey: .importedDate)
+            case let .rss(feedUrl):
+                try container.encode(SourceType.rss, forKey: .type)
+                try container.encode(feedUrl, forKey: .feedUrl)
             }
         }
     }

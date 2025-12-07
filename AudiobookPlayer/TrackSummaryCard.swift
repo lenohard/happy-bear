@@ -129,7 +129,7 @@ struct TrackSummaryCard: View {
             idleView
         }
 
-        if let description = track.metadata["description"], !description.isEmpty {
+        if let description = sanitizedDescription, !description.isEmpty {
             Divider()
             VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("track_description_header", value: "Description", comment: "Track description header"))
@@ -354,6 +354,49 @@ struct TrackSummaryCard: View {
             segmentCount,
             characterCount
         )
+    }
+    
+    private var sanitizedDescription: String? {
+        guard let raw = track.metadata["description"], !raw.isEmpty else { return nil }
+        
+        if let data = raw.data(using: .utf8),
+           let attributed = try? NSAttributedString(
+               data: data,
+               options: [
+                   .documentType: NSAttributedString.DocumentType.html,
+                   .characterEncoding: String.Encoding.utf8.rawValue
+               ],
+               documentAttributes: nil
+           ) {
+            let text = attributed.string.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !text.isEmpty { return text }
+        }
+        
+        // Fallback: strip tags manually and preserve paragraph breaks
+        var intermediate = raw
+        intermediate = intermediate.replacingOccurrences(
+            of: "(?i)<br ?/?>",
+            with: "\n",
+            options: .regularExpression
+        )
+        intermediate = intermediate.replacingOccurrences(
+            of: "(?i)</p>",
+            with: "\n\n",
+            options: .regularExpression
+        )
+        let stripped = intermediate.replacingOccurrences(
+            of: "<[^>]+>",
+            with: "",
+            options: .regularExpression
+        )
+        
+        let collapsed = stripped
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+        
+        return collapsed.isEmpty ? nil : collapsed
     }
 
     private func collapsedPreviewText() -> String? {

@@ -1,5 +1,6 @@
 import SwiftUI
 import OSLog
+import CryptoKit
 
 /// Sheet for transcribing a single track
 struct TranscriptionSheet: View {
@@ -379,13 +380,14 @@ struct TranscriptionSheet: View {
         token: BaiduOAuthToken?,
         progressHandler: @escaping (Int64, Int64) async -> Void = { _,_ in }
     ) async throws -> URL {
+        let cacheManager = AudioCacheManager()
+
         switch track.location {
         case let .baidu(fsId, path):
             guard let token else {
                 throw TranscriptionManager.TranscriptionError.missingBaiduToken
             }
 
-            let cacheManager = AudioCacheManager()
             let baiduFileId = String(fsId)
 
             if let cachedURL = cacheManager.getCachedAssetURL(
@@ -412,6 +414,25 @@ struct TranscriptionSheet: View {
             if url.isFileURL {
                 return url
             }
+            
+            // Check cache for external track
+            let trackKey = track.id.uuidString
+            let baiduFileId: String
+            if let checksum = track.checksum, !checksum.isEmpty {
+                baiduFileId = checksum
+            } else {
+                baiduFileId = String(stableHashHex(url.absoluteString).prefix(16))
+            }
+            
+            if let cachedURL = cacheManager.getCachedAssetURL(
+                for: trackKey,
+                baiduFileId: baiduFileId,
+                filename: track.filename
+            ) {
+                print("[Transcription] Cache hit for external track \(track.id) -> \(cachedURL.lastPathComponent)")
+                return cachedURL
+            }
+            
             let (url, _) = try await downloadExternalAsset(track: track, url: url, progressHandler: progressHandler)
             return url
 
@@ -487,11 +508,17 @@ struct TranscriptionSheet: View {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .nonEmpty ?? NSLocalizedString("transcription_context_no_description", comment: "")
 
-        return [
+        var context = [
             "Collection: \(collectionTitle)",
             "Description: \(descriptionText)",
             "Track: \(track.displayName)"
-        ].joined(separator: "\n")
+        ]
+        
+        if let trackDescription = track.metadata["description"]?.trimmingCharacters(in: .whitespacesAndNewlines), !trackDescription.isEmpty {
+            context.append("Track Description: \(trackDescription)")
+        }
+        
+        return context.joined(separator: "\n")
     }
 
     private func downloadBaiduAsset(
@@ -566,78 +593,59 @@ struct TranscriptionSheet: View {
         url: URL,
         progressHandler: @escaping (Int64, Int64) async -> Void
     ) async throws -> (URL, Int64) {
-        return try await downloadFile(
-            from: url,
-            destinationURL: nil,
-            suggestedFilename: track.id.uuidString + "_remote_\(track.filename)",
-            fallbackTotalBytes: track.fileSize,
-            progressHandler: progressHandler
-        )
-    }
-
-    private func downloadFile(
-        from url: URL,
-        destinationURL: URL?,
-        suggestedFilename: String,
-        fallbackTotalBytes: Int64,
-        progressHandler: @escaping (Int64, Int64) async -> Void
-    ) async throws -> (URL, Int64) {
-        let tempFile: URL
-        if let destinationURL {
-            tempFile = destinationURL
-            try? FileManager.default.removeItem(at: tempFile)
-            FileManager.default.createFile(atPath: tempFile.path, contents: nil)
+        let cacheManager = AudioCacheManager()
+        
+        let baiduFileId: String
+        if let checksum = track.checksum, !checksum.isEmpty {
+            baiduFileId = checksum
         } else {
-            let tempDir = FileManager.default.temporaryDirectory
-            tempFile = tempDir.appendingPathComponent(suggestedFilename)
-            try? FileManager.default.removeItem(at: tempFile)
-            FileManager.default.createFile(atPath: tempFile.path, contents: nil)
+            baiduFileId = String(stableHashHex(url.absoluteString).prefix(16))
         }
 
-        let handle = try FileHandle(forWritingTo: tempFile)
-        defer { try? handle.close() }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        let (bytes, response) = try await URLSession.shared.bytes(for: request)
-        let resolvedTotal = response.expectedContentLength > 0 ? response.expectedContentLength : (fallbackTotalBytes > 0 ? fallbackTotalBytes : 0)
-
-        var received: Int64 = 0
-        var buffer = Data()
-        let chunkSize = 64 * 1024
-        buffer.reserveCapacity(chunkSize)
-        var lastReported: Int64 = 0
-        var lastReportTime = Date()
-
-        for try await byte in bytes {
-            buffer.append(byte)
-            received += 1
-
-            if buffer.count >= chunkSize {
-                try handle.write(contentsOf: buffer)
-                buffer.removeAll(keepingCapacity: true)
-            }
-
-            let bytesDelta = received - lastReported
-            let timeDelta = Date().timeIntervalSince(lastReportTime)
-            if bytesDelta >= Int64(chunkSize) || timeDelta >= 0.2 {
-                lastReported = received
-                lastReportTime = Date()
-                let totalForProgress = resolvedTotal > 0 ? resolvedTotal : max(fallbackTotalBytes, received)
-                await progressHandler(received, totalForProgress)
-            }
+        // Check if already cached (double check)
+        if let cached = cacheManager.getCachedAssetURL(
+            for: track.id.uuidString,
+            baiduFileId: baiduFileId,
+            filename: track.filename
+        ) {
+            print("[Transcription] Cache hit for external track \(track.id) -> \(cached.lastPathComponent)")
+            return (cached, track.fileSize)
         }
-
-        if !buffer.isEmpty {
-            try handle.write(contentsOf: buffer)
+        
+        print("[Transcription] Cache miss for external track \(track.id); starting cache download")
+        
+        // Prepare cache file
+        let _ = cacheManager.createCacheFile(
+            trackId: track.id.uuidString,
+            baiduFileId: baiduFileId,
+            filename: track.filename,
+            fileSizeBytes: Int(track.fileSize)
+        )
+        
+        let downloadManager = AudioCacheDownloadManager(cacheManager: cacheManager)
+        let downloadedURL = try await downloadManager.downloadOnce(
+            trackId: track.id.uuidString,
+            baiduFileId: baiduFileId,
+            filename: track.filename,
+            streamingURL: url,
+            cacheSizeBytes: Int(track.fileSize)
+        ) { progress in
+            let received = Int64(progress.downloadedRange.end)
+            let total = Int64(progress.totalBytes)
+            Task { await progressHandler(received, total) }
         }
-
-        if received != lastReported {
-            let totalForProgress = resolvedTotal > 0 ? resolvedTotal : max(fallbackTotalBytes, received)
-            await progressHandler(received, totalForProgress)
-        }
-
-        return (tempFile, resolvedTotal)
+        
+        print("[Transcription] Cache download complete for external track \(track.id) -> \(downloadedURL.lastPathComponent)")
+        
+        cacheManager.markCacheAsComplete(trackId: track.id.uuidString, baiduFileId: baiduFileId)
+        
+        return (downloadedURL, track.fileSize)
+    }
+    
+    private func stableHashHex(_ string: String) -> String {
+        let data = Data(string.utf8)
+        let digest = SHA256.hash(data: data)
+        return digest.compactMap { String(format: "%02x", $0) }.joined()
     }
 }
 

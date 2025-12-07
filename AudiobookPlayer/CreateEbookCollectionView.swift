@@ -10,35 +10,27 @@ struct CreateEbookCollectionView: View {
     @State private var editedTitle: String = ""
     @State private var editedAuthor: String = ""
     @State private var editedDescription: String = ""
-    @State private var selectedChapterIndices: Set<Int> = []
+    @State private var selectedTrackIds: Set<UUID> = []
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var showingError = false
     @State private var errorMessage: String = ""
-    @State private var previewingChapterIndex: Int?
+    @State private var previewingTrack: AudiobookTrack?
     
     // Parsed ebook data
     @State private var bookTitle: String = ""
     @State private var bookAuthor: String?
-    @State private var chapters: [EpubChapter] = []
+    @State private var previewTracks: [AudiobookTrack] = []
     
     var body: some View {
         NavigationView {
-            ZStack(alignment: .bottom) {
-                Group {
-                    if isLoading {
-                        loadingView
-                    } else if let error = loadError {
-                        errorView(error: error)
-                    } else {
-                        readyView
-                            .padding(.bottom, 80) // Space for sticky footer
-                    }
-                }
-                
-                // Sticky footer - only show when ready
-                if !isLoading && loadError == nil {
-                    stickyFooter
+            Group {
+                if isLoading {
+                    loadingView
+                } else if let error = loadError {
+                    errorView(error: error)
+                } else {
+                    readyView
                 }
             }
             .ignoresSafeArea(edges: .bottom)
@@ -65,22 +57,21 @@ struct CreateEbookCollectionView: View {
         } message: {
             Text(errorMessage)
         }
-        .sheet(item: Binding(
-            get: { previewingChapterIndex.map { PreviewChapter(index: $0, chapter: chapters[$0]) } },
-            set: { previewingChapterIndex = $0?.index }
-        )) { preview in
+        .sheet(item: $previewingTrack) { track in
             NavigationView {
                 ScrollView {
-                    Text(preview.chapter.content)
-                        .padding()
-                        .textSelection(.enabled)
+                    if case .text(let content) = track.location {
+                        Text(content)
+                            .padding()
+                            .textSelection(.enabled)
+                    }
                 }
-                .navigationTitle(preview.chapter.title)
+                .navigationTitle(track.displayName)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button("Close") {
-                            previewingChapterIndex = nil
+                            previewingTrack = nil
                         }
                     }
                 }
@@ -123,145 +114,65 @@ struct CreateEbookCollectionView: View {
     }
     
     private var readyView: some View {
-        Form {
-            Section("Book Details") {
-                TextField("Title", text: $editedTitle)
-                    .onAppear {
-                        if editedTitle.isEmpty {
-                            editedTitle = bookTitle
-                        }
-                        if editedAuthor.isEmpty {
-                            editedAuthor = bookAuthor ?? ""
-                        }
-                        // Auto-select all chapters by default
-                        if selectedChapterIndices.isEmpty {
-                            selectedChapterIndices = Set(chapters.indices)
-                        }
-                    }
-                
-                TextField("Author (optional)", text: $editedAuthor)
-                
-                TextField("Description (optional)", text: $editedDescription, axis: .vertical)
-                    .lineLimit(3...6)
+        CollectionReviewView(
+            title: $editedTitle,
+            description: $editedDescription,
+            tracks: previewTracks,
+            selectedTrackIds: $selectedTrackIds,
+            totalSize: previewTracks.reduce(0) { $0 + $1.fileSize },
+            nonPlayableFiles: [],
+            onSave: saveCollection,
+            headerContent: {
+                AnyView(
+                    TextField("Author (optional)", text: $editedAuthor)
+                )
             }
-            
-            Section("Content") {
-                LabeledContent("Chapters", value: "\(chapters.count)")
-                
-                if let author = bookAuthor, !author.isEmpty {
-                    LabeledContent("Author", value: author)
-                }
-            }
-            
-            Section("Select Chapters") {
-                VStack(spacing: 12) {
-                    HStack(spacing: 8) {
-                        Button(action: {
-                            selectedChapterIndices = Set(chapters.indices)
-                        }) {
-                            Text("Select All")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Spacer()
-                        
-                        Button(action: {
-                            selectedChapterIndices.removeAll()
-                        }) {
-                            Text("Deselect All")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.bordered)
-                        
-                        Spacer()
-                        
-                        Text("\(selectedChapterIndices.count) of \(chapters.count)")
+        ) { track in
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(track.displayName)
+                        .font(.body)
+                        .lineLimit(2)
+                    
+                    if let count = track.characterCount {
+                        Text("\(count) characters")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                         Text(formatBytes(track.fileSize))
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
-                    .padding(.bottom, 8)
-                    
-                    List {
-                        ForEach(Array(chapters.enumerated()), id: \.offset) { index, chapter in
-                            HStack(spacing: 12) {
-                                Button(action: {
-                                    if selectedChapterIndices.contains(index) {
-                                        selectedChapterIndices.remove(index)
-                                    } else {
-                                        selectedChapterIndices.insert(index)
-                                    }
-                                }) {
-                                    Image(systemName: selectedChapterIndices.contains(index) ? "checkmark.square.fill" : "square")
-                                        .foregroundColor(selectedChapterIndices.contains(index) ? .blue : .gray)
-                                }
-                                .buttonStyle(.plain)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(chapter.title)
-                                        .font(.body)
-                                        .lineLimit(2)
-                                    
-                                    Text("\(chapter.content.count) characters")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                Button(action: {
-                                    previewingChapterIndex = index
-                                }) {
-                                    Image(systemName: "eye.circle")
-                                        .font(.title3)
-                                        .foregroundColor(.blue)
-                                }
-                                .buttonStyle(.plain)
-                                
-                                Text("\(index + 1)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    .frame(maxHeight: 300)
-                }
-            }
-        }
-    }
-    
-    private var stickyFooter: some View {
-        VStack(spacing: 0) {
-            Divider()
-            
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Selected Chapters")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    
-                    Text("\(selectedChapterIndices.count) of \(chapters.count)")
-                        .font(.headline)
                 }
                 
                 Spacer()
                 
-                Button {
-                    saveCollection()
-                } label: {
-                    Text("Add to Library")
-                        .fontWeight(.semibold)
+                Button(action: {
+                    previewingTrack = track
+                }) {
+                    Image(systemName: "eye.circle")
+                        .font(.title3)
+                        .foregroundColor(.blue)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedChapterIndices.isEmpty)
+                .buttonStyle(.plain)
+                
+                Text("\(track.trackNumber)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
-            .padding(.horizontal)
-            .padding(.vertical, 16)
         }
-        .background(
-            Color(uiColor: .systemBackground)
-                .shadow(color: Color.black.opacity(0.1), radius: 8, y: -2)
-        )
+        .onAppear {
+            if editedTitle.isEmpty {
+                editedTitle = bookTitle
+            }
+            if editedAuthor.isEmpty {
+                editedAuthor = bookAuthor ?? ""
+            }
+            // Auto-select all tracks by default
+            if selectedTrackIds.isEmpty {
+                selectedTrackIds = Set(previewTracks.map(\.id))
+            }
+        }
     }
     
     private func parseEbook() async {
@@ -280,10 +191,28 @@ struct CreateEbookCollectionView: View {
             let parser = EpubParser()
             let (title, author, parsedChapters) = try parser.parse(epubURL: epubURL)
             
+            // Convert to tracks immediately
+            let tracks = parsedChapters.enumerated().map { index, chapter in
+                AudiobookTrack(
+                    id: UUID(),
+                    displayName: chapter.title,
+                    filename: chapter.filename,
+                    location: .text(content: chapter.content),
+                    fileSize: Int64(chapter.content.utf8.count),
+                    duration: nil,
+                    trackNumber: index + 1,
+                    checksum: nil,
+                    metadata: [:],
+                    isFavorite: false,
+                    favoritedAt: nil,
+                    characterCount: chapter.content.count
+                )
+            }
+            
             await MainActor.run {
                 self.bookTitle = title
                 self.bookAuthor = author
-                self.chapters = parsedChapters
+                self.previewTracks = tracks
                 self.isLoading = false
             }
         } catch {
@@ -295,13 +224,15 @@ struct CreateEbookCollectionView: View {
     }
     
     private func saveCollection() {
-        guard !chapters.isEmpty else {
+        guard !previewTracks.isEmpty else {
             errorMessage = "No chapters found in ebook"
             showingError = true
             return
         }
         
-        guard !selectedChapterIndices.isEmpty else {
+        let selectedTracks = previewTracks.filter { selectedTrackIds.contains($0.id) }
+        
+        guard !selectedTracks.isEmpty else {
             errorMessage = "Please select at least one chapter"
             showingError = true
             return
@@ -309,26 +240,6 @@ struct CreateEbookCollectionView: View {
         
         let collectionId = UUID()
         let now = Date()
-        
-        // Filter selected chapters and create tracks
-        let sortedIndices = selectedChapterIndices.sorted()
-        let tracks = sortedIndices.map { index in
-            let chapter = chapters[index]
-            return AudiobookTrack(
-                id: UUID(),
-                displayName: chapter.title,
-                filename: chapter.filename,
-                location: .text(content: chapter.content),
-                fileSize: Int64(chapter.content.utf8.count),
-                duration: nil,
-                trackNumber: index + 1,
-                checksum: nil,
-                metadata: [:],
-                isFavorite: false,
-                favoritedAt: nil,
-                characterCount: chapter.content.count
-            )
-        }
         
         let finalTitle = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalAuthor = editedAuthor.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -343,7 +254,7 @@ struct CreateEbookCollectionView: View {
             createdAt: now,
             updatedAt: now,
             source: .ebook(importedDate: now),
-            tracks: tracks,
+            tracks: selectedTracks,
             lastPlayedTrackId: nil,
             playbackStates: [:],
             tags: []
@@ -353,12 +264,13 @@ struct CreateEbookCollectionView: View {
         onComplete(collection)
         dismiss()
     }
-}
-
-private struct PreviewChapter: Identifiable {
-    let index: Int
-    let chapter: EpubChapter
-    var id: Int { index }
+    
+    private func formatBytes(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: bytes)
+    }
 }
 
 #Preview {

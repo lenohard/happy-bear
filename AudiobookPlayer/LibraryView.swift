@@ -90,8 +90,12 @@ struct LibraryView: View {
                             activeSource = .baidu
                         }
                         
-                        Button("Import Ebook") {
+                        Button(NSLocalizedString("import_ebook_button", value: "Import Ebook", comment: "Import ebook file")) {
                             activeSource = .ebook
+                        }
+                        
+                        Button(NSLocalizedString("import_rss_feed_button", value: "Import RSS Feed", comment: "Import RSS feed button")) {
+                            activeSource = .rss
                         }
                     } label: {
                         Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "plus.circle.fill")
@@ -164,8 +168,8 @@ struct LibraryView: View {
                         }
                     )
                 }
-            case .ebook:
-                EmptyView() // This case should never be reached
+            case .ebook, .rss:
+                EmptyView() // These cases are handled by fileImporter and sheet below
             }
         }
         .fileImporter(
@@ -185,6 +189,14 @@ struct LibraryView: View {
                 print("File picker failed: \(error)")
             }
             activeSource = nil
+        }
+        .sheet(
+            isPresented: Binding(
+                get: { activeSource == .rss },
+                set: { if !$0 { activeSource = nil } }
+            )
+        ) {
+            AddRSSCollectionView()
         }
         .sheet(item: $pendingImport) { importSelection in
             CreateCollectionView(
@@ -321,6 +333,11 @@ private struct LibraryCollectionRow: View {
                             .font(.subheadline)
                             .foregroundStyle(.blue)
                             .accessibilityLabel(NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection"))
+                    } else if case .rss = collection.source {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .font(.subheadline)
+                            .foregroundStyle(.orange)
+                            .accessibilityLabel(NSLocalizedString("rss_collection_indicator_accessibility", value: "RSS collection", comment: "Indicator for RSS collection"))
                     }
                     
                 }
@@ -382,8 +399,27 @@ struct CollectionCoverArtView: View {
                     .overlay(initialsOverlay)
             case .image:
                 imageOverlay
-            case .remote:
-                placeholder(symbol: "icloud.and.arrow.down", tint: Color.blue.opacity(0.3))
+            case .remote(let url):
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        placeholder(symbol: "icloud.and.arrow.down", tint: Color.blue.opacity(0.3))
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: size, height: size)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                    .strokeBorder(Color.black.opacity(0.1))
+                            )
+                    case .failure:
+                        placeholder(symbol: "exclamationmark.triangle", tint: Color.red.opacity(0.3))
+                    @unknown default:
+                        placeholder(symbol: "questionmark", tint: Color.gray.opacity(0.3))
+                    }
+                }
             }
         }
         .frame(width: size, height: size)
@@ -491,6 +527,7 @@ struct CollectionCoverArtView: View {
 private enum ImportSource: Identifiable {
     case baidu
     case ebook
+    case rss
 
     var id: String {
         switch self {
@@ -498,6 +535,8 @@ private enum ImportSource: Identifiable {
             return "baidu"
         case .ebook:
             return "ebook"
+        case .rss:
+            return "rss"
         }
     }
 }

@@ -28,22 +28,14 @@ struct CreateCollectionView: View {
 
     var body: some View {
         NavigationView {
-            ZStack(alignment: .bottom) {
-                Group {
-                    switch viewModel.state {
-                    case .idle, .loading:
-                        loadingView
-                    case .ready(let draft):
-                        readyView(draft: draft)
-                            .padding(.bottom, 80) // Space for sticky footer
-                    case .failed(let error):
-                        errorView(error: error)
-                    }
-                }
-
-                // Sticky footer - only show when ready
-                if case .ready(let draft) = viewModel.state {
-                    stickyFooter(draft: draft)
+            Group {
+                switch viewModel.state {
+                case .idle, .loading:
+                    loadingView
+                case .ready(let draft):
+                    readyView(draft: draft)
+                case .failed(let error):
+                    errorView(error: error)
                 }
             }
             .ignoresSafeArea(edges: .bottom)
@@ -100,108 +92,40 @@ struct CreateCollectionView: View {
     }
 
     private func readyView(draft: CollectionDraft) -> some View {
-        Form {
-            Section("Collection Details") {
-                TextField("Title", text: $editedTitle)
-                    .onAppear {
-                        if editedTitle.isEmpty {
-                            editedTitle = draft.title
-                        }
-                        // Auto-select all tracks by default
-                        if selectedTrackIds.isEmpty {
-                            selectedTrackIds = Set(draft.tracks.map(\.id))
-                        }
-                    }
+        CollectionReviewView(
+            title: $editedTitle,
+            description: $editedDescription,
+            tracks: draft.tracks,
+            selectedTrackIds: $selectedTrackIds,
+            totalSize: draft.totalSize,
+            nonPlayableFiles: draft.nonPlayableFiles,
+            onSave: saveCollection
+        ) { track in
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(track.displayName)
+                        .font(.body)
+                        .lineLimit(2)
 
-                TextField("Description (optional)", text: $editedDescription, axis: .vertical)
-                    .lineLimit(3...6)
-            }
-
-            Section("Content") {
-                LabeledContent("Tracks", value: "\(draft.totalTrackCount)")
-                LabeledContent("Total Size", value: formatBytes(draft.totalSize))
-
-                if !draft.nonPlayableFiles.isEmpty {
-                    DisclosureGroup("\(draft.nonPlayableFiles.count) non-media files") {
-                        ForEach(draft.nonPlayableFiles.prefix(10), id: \.self) { filename in
-                            Text(filename)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        if draft.nonPlayableFiles.count > 10 {
-                            Text("... and \(draft.nonPlayableFiles.count - 10) more")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
+                    Text(formatBytes(track.fileSize))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
+
+                Spacer()
+
+                Text("\(track.trackNumber)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
-
-            Section("Select Tracks") {
-                if case .ready(let draft) = viewModel.state {
-                    VStack(spacing: 12) {
-                        HStack(spacing: 8) {
-                            Button(action: {
-                                selectedTrackIds = Set(draft.tracks.map(\.id))
-                            }) {
-                                Text("Select All")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.bordered)
-
-                            Spacer()
-
-                            Button(action: {
-                                selectedTrackIds.removeAll()
-                            }) {
-                                Text("Deselect All")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.bordered)
-
-                            Spacer()
-
-                            Text("\(selectedTrackIds.count) of \(draft.totalTrackCount)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.bottom, 8)
-
-                        List {
-                            ForEach(draft.tracks) { track in
-                                HStack(spacing: 12) {
-                                    Image(systemName: selectedTrackIds.contains(track.id) ? "checkmark.square.fill" : "square")
-                                        .foregroundColor(selectedTrackIds.contains(track.id) ? .blue : .gray)
-
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(track.displayName)
-                                            .font(.body)
-                                            .lineLimit(2)
-
-                                        Text(formatBytes(track.fileSize))
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-
-                                    Spacer()
-
-                                    Text("\(track.trackNumber)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    if selectedTrackIds.contains(track.id) {
-                                        selectedTrackIds.remove(track.id)
-                                    } else {
-                                        selectedTrackIds.insert(track.id)
-                                    }
-                                }
-                            }
-                        }
-                        .frame(maxHeight: 300)
-                    }
-                }
+        }
+        .onAppear {
+            if editedTitle.isEmpty {
+                editedTitle = draft.title
+            }
+            // Auto-select all tracks by default
+            if selectedTrackIds.isEmpty {
+                selectedTrackIds = Set(draft.tracks.map(\.id))
             }
         }
     }
@@ -238,39 +162,6 @@ struct CreateCollectionView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    private func stickyFooter(draft: CollectionDraft) -> some View {
-        VStack(spacing: 0) {
-            Divider()
-
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Selected Tracks")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    Text("\(selectedTrackIds.count) of \(draft.totalTrackCount)")
-                        .font(.headline)
-                }
-
-                Spacer()
-
-                Button {
-                    saveCollection()
-                } label: {
-                    Text("Add to Library")
-                        .fontWeight(.semibold)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedTrackIds.isEmpty)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 16)
-        }
-        .background(
-            Color(uiColor: .systemBackground)
-                .shadow(color: Color.black.opacity(0.1), radius: 8, y: -2)
-        )
-    }
 
     private func saveCollection() {
         guard case .ready(let draft) = viewModel.state else { return }

@@ -2536,11 +2536,24 @@
       }
     },
     "Deselect All" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消全选"
+          }
+        }
+      }
+    },
+    "deselect_all_button" : {
+      "comment" : "Deselect all items",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Deselect All"
           }
         }
       }
@@ -3152,6 +3165,30 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "导入"
+          }
+        }
+      }
+    },
+    "import_ebook_button" : {
+      "comment" : "Import ebook file",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Import Ebook"
+          }
+        }
+      }
+    },
+    "import_rss_feed_button" : {
+      "comment" : "Import RSS feed button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Import RSS Feed"
           }
         }
       }
@@ -4170,6 +4207,174 @@
         }
       }
     },
+    "rss_add_to_library_button" : {
+      "comment" : "Add RSS feed to library button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Add to Library"
+          }
+        }
+      }
+    },
+    "rss_collection_description_field" : {
+      "comment" : "RSS collection description field",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Description (optional)"
+          }
+        }
+      }
+    },
+    "rss_collection_indicator_accessibility" : {
+      "comment" : "Indicator for RSS collection",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "RSS collection"
+          }
+        }
+      }
+    },
+    "rss_collection_title_field" : {
+      "comment" : "RSS collection title field",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Collection Title"
+          }
+        }
+      }
+    },
+    "rss_episode_count_label" : {
+      "comment" : "RSS episode count label",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Total Episodes"
+          }
+        }
+      }
+    },
+    "rss_error_invalid_url" : {
+      "comment" : "Invalid RSS URL message\nInvalid RSS feed URL",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Invalid RSS feed URL"
+          }
+        }
+      }
+    },
+    "rss_error_network" : {
+      "comment" : "RSS network error format",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Network error: %@"
+          }
+        }
+      }
+    },
+    "rss_error_no_enclosure" : {
+      "comment" : "No playable enclosures found",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No audio enclosures found in RSS feed"
+          }
+        }
+      }
+    },
+    "rss_error_parsing" : {
+      "comment" : "RSS parsing error format",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Failed to parse RSS feed: %@"
+          }
+        }
+      }
+    },
+    "rss_feed_preview_section_title" : {
+      "comment" : "RSS feed preview section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Feed Preview"
+          }
+        }
+      }
+    },
+    "rss_feed_url_placeholder" : {
+      "comment" : "RSS feed URL placeholder",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "https://example.com/podcast/feed.xml"
+          }
+        }
+      }
+    },
+    "rss_feed_url_section_title" : {
+      "comment" : "RSS feed URL section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "RSS Feed URL"
+          }
+        }
+      }
+    },
+    "rss_fetch_button" : {
+      "comment" : "Fetch RSS feed button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Fetch Feed"
+          }
+        }
+      }
+    },
+    "rss_import_navigation_title" : {
+      "comment" : "RSS import sheet title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Import RSS Feed"
+          }
+        }
+      }
+    },
     "save_to_library_button" : {
       "comment" : "Save to library button",
       "localizations" : {
@@ -4280,6 +4485,7 @@
       }
     },
     "Select All" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -4298,6 +4504,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "选择音频"
+          }
+        }
+      }
+    },
+    "select_all_button" : {
+      "comment" : "Select all items",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Select All"
           }
         }
       }
@@ -4793,6 +5011,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d 首曲目 • %@"
+          }
+        }
+      }
+    },
+    "track_description_header" : {
+      "comment" : "Track description header",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Description"
           }
         }
       }

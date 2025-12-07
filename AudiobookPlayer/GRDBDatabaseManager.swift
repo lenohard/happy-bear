@@ -1015,6 +1015,12 @@ actor GRDBDatabaseManager {
             }
             return .external(description: description)
 
+        case "ephemeralBaidu":
+            guard let path = dict["ephemeralPath"] as? String else {
+                throw DatabaseError.inconsistentData("Missing ephemeral Baidu path")
+            }
+            return .ephemeralBaidu(path: path)
+
         case "ebook":
             if let timestamp = dict["importedDate"] as? Double {
                 return .ebook(importedDate: Date(timeIntervalSinceReferenceDate: timestamp))
@@ -1023,6 +1029,13 @@ actor GRDBDatabaseManager {
                 return .ebook(importedDate: date)
             }
             throw DatabaseError.inconsistentData("Invalid ebook importedDate")
+
+        case "rss":
+            guard let urlString = dict["feedUrl"] as? String,
+                  let url = URL(string: urlString) else {
+                throw DatabaseError.inconsistentData("Invalid RSS feed URL")
+            }
+            return .rss(feedUrl: url)
 
         default:
             throw DatabaseError.inconsistentData("Unknown source type: \(type)")
@@ -2027,6 +2040,7 @@ extension AudiobookCollection.Source {
         case .external: return "external"
         case .ephemeralBaidu: return "ephemeralBaidu"
         case .ebook: return "ebook"
+        case .rss: return "rss"
         }
     }
 
@@ -2048,6 +2062,9 @@ extension AudiobookCollection.Source {
 
         case let .ebook(importedDate):
             payload = ["importedDate": importedDate.timeIntervalSinceReferenceDate]
+            
+        case let .rss(feedUrl):
+            payload = ["feedUrl": feedUrl.absoluteString]
         }
 
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
