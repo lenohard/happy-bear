@@ -129,6 +129,19 @@ struct TrackSummaryCard: View {
             idleView
         }
 
+        if let description = track.metadata["description"], !description.isEmpty {
+            Divider()
+            VStack(alignment: .leading, spacing: 4) {
+                Text(NSLocalizedString("track_description_header", value: "Description", comment: "Track description header"))
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.secondary)
+                Text(description)
+                    .font(.footnote)
+                    .foregroundStyle(.primary)
+            }
+        }
+
         if let actionError {
             Text(actionError)
                 .font(.footnote)

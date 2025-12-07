@@ -999,15 +999,30 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func cacheTrackIfNeeded(_ track: AudiobookTrack) {
-        guard case let .baidu(fsId, _) = track.location else { return }
-
-        guard currentToken != nil else {
-            statusMessage = "Connect Baidu Netdisk to cache audio offline."
+        let baiduFileId: String
+        
+        switch track.location {
+        case let .baidu(fsId, _):
+            guard currentToken != nil else {
+                statusMessage = "Connect Baidu Netdisk to cache audio offline."
+                return
+            }
+            baiduFileId = String(fsId)
+            
+        case let .external(url):
+            if let checksum = track.checksum, !checksum.isEmpty {
+                baiduFileId = checksum
+            } else {
+                // Use a stable hash of the URL if no checksum
+                baiduFileId = String(format: "%016X", url.absoluteString.hash)
+            }
+            
+        default:
             return
         }
 
         Task { [weak self] in
-            await self?.startBackgroundCaching(track: track, baiduFileId: String(fsId), fileSize: track.fileSize)
+            await self?.startBackgroundCaching(track: track, baiduFileId: baiduFileId, fileSize: track.fileSize)
         }
     }
 
@@ -1512,8 +1527,6 @@ final class AudioPlayerViewModel: ObservableObject {
             }
         }
 
-        guard let token = currentToken else { return }
-
         do {
             // Reset cache metadata only when starting a new download
             if existingMetadata == nil {
@@ -1534,12 +1547,15 @@ final class AudioPlayerViewModel: ObservableObject {
                 )
             }
 
-            let streamingURL = try netdiskClient.downloadURL(forPath: {
-                if case let .baidu(_, path) = track.location {
-                    return path
-                }
-                return ""
-            }(), token: token)
+            let streamingURL: URL
+            if case let .baidu(_, path) = track.location {
+                guard let token = currentToken else { return }
+                streamingURL = try netdiskClient.downloadURL(forPath: path, token: token)
+            } else if case let .external(url) = track.location {
+                streamingURL = url
+            } else {
+                return
+            }
 
             await downloadManager.startCaching(
                 trackId: trackId,
