@@ -7,9 +7,6 @@
     "--" : {
 
     },
-    "... and %lld more" : {
-
-    },
     "%@ / %@" : {
       "localizations" : {
         "en" : {
@@ -84,9 +81,6 @@
 
     },
     "%lld models" : {
-
-    },
-    "%lld non-media files" : {
 
     },
     "%lld of %lld" : {
@@ -306,6 +300,7 @@
       }
     },
     "Add to Library" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -344,7 +339,7 @@
       }
     },
     "add_tracks_button" : {
-      "comment" : "Add tracks button\nTrack picker title",
+      "comment" : "Add Tracks\nAdd tracks button\nTrack picker title",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1454,6 +1449,18 @@
         }
       }
     },
+    "and_more_files" : {
+      "comment" : "More files count",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "... and %d more"
+          }
+        }
+      }
+    },
     "Applied" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1496,9 +1503,6 @@
           }
         }
       }
-    },
-    "Author" : {
-
     },
     "Author (optional)" : {
 
@@ -1774,9 +1778,6 @@
         }
       }
     },
-    "Book Details" : {
-
-    },
     "browse_baidu_netdisk" : {
       "comment" : "Browse Baidu netdisk",
       "localizations" : {
@@ -2008,9 +2009,6 @@
         }
       }
     },
-    "Chapters" : {
-
-    },
     "Close" : {
 
     },
@@ -2049,6 +2047,7 @@
       }
     },
     "Collection Details" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2147,6 +2146,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "填写合集的介绍"
+          }
+        }
+      }
+    },
+    "collection_details_section" : {
+      "comment" : "Section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Collection Details"
           }
         }
       }
@@ -2293,11 +2304,24 @@
       }
     },
     "Content" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "内容"
+          }
+        }
+      }
+    },
+    "content_section" : {
+      "comment" : "Section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Content"
           }
         }
       }
@@ -2526,6 +2550,7 @@
       }
     },
     "Description (optional)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -3621,6 +3646,18 @@
         }
       }
     },
+    "non_playable_files_count" : {
+      "comment" : "Count of non-playable files",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%d non-media files"
+          }
+        }
+      }
+    },
     "Not applied" : {
 
     },
@@ -3939,19 +3976,31 @@
         }
       }
     },
-    "refresh_success_message" : {
-      "comment" : "Refresh success message",
+    "refresh_no_updates" : {
+      "comment" : "Refresh result: no updates",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Found %d new tracks."
+            "value" : "No new tracks found."
+          }
+        }
+      }
+    },
+    "refresh_success_message" : {
+      "comment" : "Refresh success",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Added %d tracks."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "找到 %d 新音频"
           }
         }
@@ -4207,8 +4256,20 @@
         }
       }
     },
+    "review_new_tracks_title" : {
+      "comment" : "Review new tracks title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "New Tracks"
+          }
+        }
+      }
+    },
     "rss_add_to_library_button" : {
-      "comment" : "Add RSS feed to library button",
+      "comment" : "Add to library button",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -4220,7 +4281,7 @@
       }
     },
     "rss_collection_description_field" : {
-      "comment" : "RSS collection description field",
+      "comment" : "Description field",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -4244,25 +4305,13 @@
       }
     },
     "rss_collection_title_field" : {
-      "comment" : "RSS collection title field",
+      "comment" : "Title field",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Collection Title"
-          }
-        }
-      }
-    },
-    "rss_episode_count_label" : {
-      "comment" : "RSS episode count label",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Total Episodes"
+            "value" : "Title"
           }
         }
       }
@@ -4311,18 +4360,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Failed to parse RSS feed: %@"
-          }
-        }
-      }
-    },
-    "rss_feed_preview_section_title" : {
-      "comment" : "RSS feed preview section title",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Feed Preview"
           }
         }
       }
@@ -4495,10 +4532,8 @@
         }
       }
     },
-    "Select Chapters" : {
-
-    },
     "Select Tracks" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -4520,11 +4555,41 @@
         }
       }
     },
-    "Selected Chapters" : {
-
+    "select_tracks_section" : {
+      "comment" : "Select tracks section",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Select Tracks"
+          }
+        }
+      }
     },
-    "Selected Tracks" : {
-
+    "selected_tracks_count" : {
+      "comment" : "Selected tracks count",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$d of %2$d"
+          }
+        }
+      }
+    },
+    "selected_tracks_label" : {
+      "comment" : "Selected tracks label",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Selected Tracks"
+          }
+        }
+      }
     },
     "settings_auto_summary_description" : {
       "comment" : "Auto summary description",
@@ -4979,6 +5044,7 @@
       }
     },
     "Title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -4989,11 +5055,24 @@
       }
     },
     "Total Size" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "总大小"
+          }
+        }
+      }
+    },
+    "total_size_label" : {
+      "comment" : "Total size label",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Total Size"
           }
         }
       }
@@ -5419,6 +5498,7 @@
       }
     },
     "Tracks" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5442,6 +5522,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "音频"
+          }
+        }
+      }
+    },
+    "tracks_label" : {
+      "comment" : "Tracks label",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Tracks"
           }
         }
       }

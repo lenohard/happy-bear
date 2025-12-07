@@ -273,7 +273,7 @@ final class LibraryStore: ObservableObject {
         })
 
         let newItems = feed.items.filter { item in
-            guard let enclosureURL = item.enclosureURL else { return false }
+            let enclosureURL = item.enclosureURL
             return !existingURLs.contains(enclosureURL.absoluteString)
         }
 
@@ -283,7 +283,7 @@ final class LibraryStore: ObservableObject {
         let isoFormatter = ISO8601DateFormatter()
 
         return newItems.enumerated().compactMap { offset, item in
-            guard let enclosureURL = item.enclosureURL else { return nil }
+            let enclosureURL = item.enclosureURL
 
             var metadata: [String: String] = [:]
             if let pubDate = item.pubDate {

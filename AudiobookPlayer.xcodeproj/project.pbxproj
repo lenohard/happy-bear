@@ -59,6 +59,7 @@
 		862956FF2EE58AA9006ABE75 /* CollectionImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862956FD2EE58AA9006ABE75 /* CollectionImportService.swift */; };
 		862957002EE58AA9006ABE75 /* AddRSSCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862956FC2EE58AA9006ABE75 /* AddRSSCollectionView.swift */; };
 		862957012EE58AA9006ABE75 /* RSSParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862956FE2EE58AA9006ABE75 /* RSSParser.swift */; };
+		862957032EE5FC7A006ABE75 /* CollectionReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862957022EE5FC7A006ABE75 /* CollectionReviewView.swift */; };
 		8637370F2EBCF7120002CD46 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8637370E2EBCF7120002CD46 /* GRDB */; };
 		8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */; };
 		8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */; };
@@ -105,9 +106,9 @@
 		86FE175D2EC20F6500027E93 /* DownloadButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FE175A2EC20F6400027E93 /* DownloadButton.swift */; };
 		86FE175E2EC20F6500027E93 /* CacheManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FE17592EC20F6400027E93 /* CacheManagementView.swift */; };
 		86FE17602EC2531500027E93 /* ProviderIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86FE175F2EC2531500027E93 /* ProviderIconView.swift */; };
+		8C82E0B6952141999D8C4DC4 /* Views/SelectionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFADB082A384DC9ACA621D5 /* Views/SelectionListView.swift */; };
 		A1B2C3D52FEB123400000001 /* FavoriteToggleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */; };
 		A1B2C3D72FEB123400000002 /* FavoriteTracksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */; };
-		8C82E0B6952141999D8C4DC4 /* SelectionListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAFADB082A384DC9ACA621D5 /* SelectionListView.swift */; };
 		B1C5E0A22F12300000AAA001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1C5E09F2F12300000AAA001 /* InfoPlist.strings */; };
 		B6E1C0032F10B4B900C2ABF1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = B6E1C0022F10B4B900C2ABF1 /* ZIPFoundation */; };
 		C5E631AC2F1B000100AA0001 /* AIGenerationDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E631A42F1B000100AA0001 /* AIGenerationDatabaseSchema.swift */; };
@@ -121,7 +122,6 @@
 
 /* Begin PBXFileReference section */
 		2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateCollectionView.swift; sourceTree = "<group>"; };
-		DAFADB082A384DC9ACA621D5 /* SelectionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/SelectionListView.swift"; sourceTree = "<group>"; };
 		6F6E7F6E2C4A9B0500AA00AA /* AudiobookPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayerApp.swift; sourceTree = "<group>"; };
 		6F6E7F6E2C4A9B0500AA00AB /* BaiduOAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaiduOAuth.swift; sourceTree = "<group>"; };
 		6F6E7F702C4A9B0500AA00AA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -175,6 +175,7 @@
 		862956FC2EE58AA9006ABE75 /* AddRSSCollectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddRSSCollectionView.swift; sourceTree = "<group>"; };
 		862956FD2EE58AA9006ABE75 /* CollectionImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionImportService.swift; sourceTree = "<group>"; };
 		862956FE2EE58AA9006ABE75 /* RSSParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSSParser.swift; sourceTree = "<group>"; };
+		862957022EE5FC7A006ABE75 /* CollectionReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionReviewView.swift; sourceTree = "<group>"; };
 		8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeychainStore.swift; sourceTree = "<group>"; };
 		8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeyViewModel.swift; sourceTree = "<group>"; };
 		8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryPlaybackContext.swift; sourceTree = "<group>"; };
@@ -231,6 +232,7 @@
 		C5E631D42F1B000100AA0001 /* AIGenerationJobExecutor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationJobExecutor.swift; sourceTree = "<group>"; };
 		C5E631E42F1B000100AA0001 /* AIGenerationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationManager.swift; sourceTree = "<group>"; };
 		C5E632032F1B000100AA0001 /* AIGenerationJobDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationJobDetailView.swift; sourceTree = "<group>"; };
+		DAFADB082A384DC9ACA621D5 /* Views/SelectionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/SelectionListView.swift; sourceTree = "<group>"; };
 		F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionBuilderViewModel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -252,6 +254,7 @@
 			isa = PBXGroup;
 			children = (
 				862956FC2EE58AA9006ABE75 /* AddRSSCollectionView.swift */,
+				862957022EE5FC7A006ABE75 /* CollectionReviewView.swift */,
 				862956FD2EE58AA9006ABE75 /* CollectionImportService.swift */,
 				862956FE2EE58AA9006ABE75 /* RSSParser.swift */,
 				6F6E7F672C4A9B0500AA00AA /* AudiobookPlayer */,
@@ -361,7 +364,7 @@
 				6FC0100A2C5B0C0000AA00AA /* TrackPickerView.swift */,
 				A1B2C3D42FEB123400000001 /* FavoriteToggleButton.swift */,
 				A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */,
-				DAFADB082A384DC9ACA621D5 /* SelectionListView.swift */,
+				DAFADB082A384DC9ACA621D5 /* Views/SelectionListView.swift */,
 				2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */,
 				F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */,
 				6FC010062C5B0C0000AA00AA /* SourcesView.swift */,
@@ -501,7 +504,7 @@
 				6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */,
 				A1B2C3D52FEB123400000001 /* FavoriteToggleButton.swift in Sources */,
 				A1B2C3D72FEB123400000002 /* FavoriteTracksView.swift in Sources */,
-				8C82E0B6952141999D8C4DC4 /* SelectionListView.swift in Sources */,
+				8C82E0B6952141999D8C4DC4 /* Views/SelectionListView.swift in Sources */,
 				6FC010052C5B0C0000AA00AA /* LibraryView.swift in Sources */,
 				E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */,
 				8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */,
@@ -544,6 +547,7 @@
 				8617DDEE2EBE0A26006E7CA7 /* SonioxAPI.swift in Sources */,
 				8617DDF02EBE0A26006E7CA7 /* TranscriptionSheet.swift in Sources */,
 				8603AC142EDCA72000889565 /* VideoPlayerSheet.swift in Sources */,
+				862957032EE5FC7A006ABE75 /* CollectionReviewView.swift in Sources */,
 				8617DDF12EBE0A26006E7CA7 /* TranscriptModels.swift in Sources */,
 				86E5CFFD2ED0458600CE62A1 /* AIJobsListView.swift in Sources */,
 				86E5CFFE2ED0458600CE62A1 /* AIModelsListView.swift in Sources */,

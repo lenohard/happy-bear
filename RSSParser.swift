@@ -12,7 +12,7 @@ struct RSSFeed {
 struct RSSItem {
     let title: String
     let description: String?
-    let enclosureURL: URL?
+    let enclosureURL: URL
     let enclosureLength: Int64
     let pubDate: Date?
     let guid: String?

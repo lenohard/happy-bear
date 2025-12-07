@@ -11,6 +11,10 @@ struct AddRSSCollectionView: View {
     @State private var parsedFeed: RSSFeed?
     @State private var previewTracks: [AudiobookTrack] = []
     
+    @State private var collectionTitle: String = ""
+    @State private var collectionDescription: String = ""
+    @State private var selectedTrackIds: Set<UUID> = []
+    
     var body: some View {
         NavigationStack {
             Group {
