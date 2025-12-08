@@ -164,7 +164,6 @@ struct AddRSSCollectionView: View {
         let trimmedURLString = feedURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let feedURL = URL(string: trimmedURLString) else { return }
         
-        // Filter to only selected tracks
         let selectedTracks = previewTracks.filter { selectedTrackIds.contains($0.id) }
         guard !selectedTracks.isEmpty else { return }
         
@@ -172,38 +171,60 @@ struct AddRSSCollectionView: View {
         let finalTitle = resolvedTitle.isEmpty ? feed.title : resolvedTitle
         
         let resolvedDescription = collectionDescription.trimmingCharacters(in: .whitespacesAndNewlines)
-        let finalDescription: String?
-        if !resolvedDescription.isEmpty {
-            finalDescription = resolvedDescription
-        } else {
-            finalDescription = feed.description
+        let finalDescription = resolvedDescription.isEmpty ? nil : resolvedDescription
+        
+        let collectionID = UUID()
+        
+        Task {
+            let cover = await resolveCoverAsset(for: feed, title: finalTitle, collectionID: collectionID)
+            let collection = AudiobookCollection(
+                id: collectionID,
+                title: finalTitle,
+                author: nil,
+                description: finalDescription,
+                coverAsset: cover,
+                createdAt: Date(),
+                updatedAt: Date(),
+                source: .rss(feedUrl: feedURL),
+                tracks: selectedTracks,
+                lastPlayedTrackId: nil,
+                playbackStates: [:],
+                tags: ["podcast", "rss"]
+            )
+            
+            await MainActor.run {
+                library.save(collection)
+                dismiss()
+            }
         }
-        
-        let cover: CollectionCover
-        if let imageURL = feed.imageURL {
-            cover = CollectionCover(kind: .remote(url: imageURL), dominantColorHex: nil)
-        } else {
-            cover = CollectionCover.generatedCover(for: finalTitle)
-        }
-        
-        let collection = AudiobookCollection(
-            id: UUID(),
-            title: finalTitle,
-            author: nil,
-            description: finalDescription,
-            coverAsset: cover,
-            createdAt: Date(),
-            updatedAt: Date(),
-            source: .rss(feedUrl: feedURL),
-            tracks: selectedTracks,
-            lastPlayedTrackId: nil,
-            playbackStates: [:],
-            tags: ["podcast", "rss"]
-        )
-        
-        library.save(collection)
-        dismiss()
     }
+    private func resolveCoverAsset(for feed: RSSFeed, title: String, collectionID: UUID) async -> CollectionCover {
+        guard let imageURL = feed.imageURL else {
+            return CollectionCover.generatedCover(for: title)
+        }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: imageURL)
+            guard !data.isEmpty else {
+                return CollectionCover(kind: .remote(url: imageURL), dominantColorHex: nil)
+            }
+            
+            let relativePath = try await CollectionCoverImageStore.shared.saveImageData(
+                data,
+                for: collectionID,
+                replacing: nil
+            )
+            
+            return CollectionCover(
+                kind: .image(relativePath: relativePath),
+                dominantColorHex: nil
+            )
+        } catch {
+            print("[AddRSSCollectionView] Failed to download RSS cover: \(error.localizedDescription)")
+            return CollectionCover(kind: .remote(url: imageURL), dominantColorHex: nil)
+        }
+    }
+    
     private func formatBytes(_ bytes: Int64) -> String {
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
