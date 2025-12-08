@@ -253,10 +253,6 @@
 		6F6E7F662C4A9B0500AA00AA = {
 			isa = PBXGroup;
 			children = (
-				862956FC2EE58AA9006ABE75 /* AddRSSCollectionView.swift */,
-				862957022EE5FC7A006ABE75 /* CollectionReviewView.swift */,
-				862956FD2EE58AA9006ABE75 /* CollectionImportService.swift */,
-				862956FE2EE58AA9006ABE75 /* RSSParser.swift */,
 				6F6E7F672C4A9B0500AA00AA /* AudiobookPlayer */,
 				6F6E7F7C2C4A9B0500AA00AA /* Products */,
 				6F6E7F7D2C4A9B0500AA00AA /* Frameworks */,
@@ -374,6 +370,10 @@
 				6F6E7F752C4A9B0500AA00AA /* Preview Content */,
 				6F6E7F772C4A9B0500AA00AA /* Info.plist */,
 				86FE17552EBFC7F200027E93 /* test-1min.mp3 */,
+				862956FC2EE58AA9006ABE75 /* AddRSSCollectionView.swift */,
+				862957022EE5FC7A006ABE75 /* CollectionReviewView.swift */,
+				862956FD2EE58AA9006ABE75 /* CollectionImportService.swift */,
+				862956FE2EE58AA9006ABE75 /* RSSParser.swift */,
 			);
 			path = AudiobookPlayer;
 			sourceTree = "<group>";
@@ -626,7 +626,7 @@
 				CODE_SIGN_ENTITLEMENTS = AudiobookPlayer/AudiobookPlayer.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = 285P3M6846;
 				ENABLE_PREVIEWS = YES;
@@ -643,7 +643,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.happyBear;
 				PRODUCT_NAME = HappyBear;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -662,7 +662,7 @@
 				CODE_SIGN_ENTITLEMENTS = AudiobookPlayer/AudiobookPlayer.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = 285P3M6846;
 				ENABLE_PREVIEWS = YES;
@@ -679,7 +679,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.2.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.happyBear;
 				PRODUCT_NAME = HappyBear;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

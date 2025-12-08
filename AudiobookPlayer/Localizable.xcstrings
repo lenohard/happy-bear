@@ -2134,7 +2134,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "描述为空"
+            "value" : "暂无介绍"
           }
         }
       }
@@ -2146,6 +2146,54 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "填写合集的介绍"
+          }
+        }
+      }
+    },
+    "collection_description_show_less" : {
+      "comment" : "Collapse collection description button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Show less"
+          }
+        }
+      }
+    },
+    "collection_description_show_less_accessibility" : {
+      "comment" : "Accessibility label for collapsing collection description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Show less description"
+          }
+        }
+      }
+    },
+    "collection_description_show_more" : {
+      "comment" : "Expand collection description button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Show more"
+          }
+        }
+      }
+    },
+    "collection_description_show_more_accessibility" : {
+      "comment" : "Accessibility label for expanding collection description",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Show full description"
           }
         }
       }
@@ -2545,17 +2593,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确认删除"
-          }
-        }
-      }
-    },
-    "Description (optional)" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "描述（可选）"
           }
         }
       }
@@ -3214,6 +3251,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Import RSS Feed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入RSS"
           }
         }
       }
@@ -4277,6 +4320,12 @@
             "state" : "new",
             "value" : "Add to Library"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增"
+          }
         }
       }
     },
@@ -4288,6 +4337,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Description (optional)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "描述"
           }
         }
       }
@@ -4301,6 +4356,12 @@
             "state" : "new",
             "value" : "RSS collection"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RSS合集"
+          }
         }
       }
     },
@@ -4313,6 +4374,12 @@
             "state" : "new",
             "value" : "Title"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题"
+          }
         }
       }
     },
@@ -4324,6 +4391,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Invalid RSS feed URL"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无效rss"
           }
         }
       }
@@ -4385,6 +4458,12 @@
             "state" : "new",
             "value" : "RSS Feed URL"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RSS URL"
+          }
         }
       }
     },
@@ -4397,6 +4476,12 @@
             "state" : "new",
             "value" : "Fetch Feed"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同步"
+          }
         }
       }
     },
@@ -4408,6 +4493,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Import RSS Feed"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入RSS"
           }
         }
       }
