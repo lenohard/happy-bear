@@ -21,6 +21,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var sleepTimerRemaining: TimeInterval?
     @Published var showGenerateAudioConfirmation = false
     @Published var trackToGenerateAudio: AudiobookTrack?
+    @Published var isShuffleEnabled: Bool
 
     enum SleepTimerMode: Equatable {
         case off
@@ -57,6 +58,7 @@ final class AudioPlayerViewModel: ObservableObject {
     private let sessionDurationThreshold: TimeInterval = 2.0
 
     private static let playbackRateDefaultsKey = "audio_player_playback_rate"
+    private static let shuffleDefaultsKey = "audio_player_shuffle_enabled"
     static let minPlaybackRate: Double = 0.5
     static let maxPlaybackRate: Double = 3.0
     static let presetPlaybackRates: [Double] = [0.5, 0.8, 1.0, 1.25, 1.5, 2.0, 3.0]
@@ -101,6 +103,8 @@ final class AudioPlayerViewModel: ObservableObject {
         self.defaults = defaults
         let savedRate = defaults.object(forKey: Self.playbackRateDefaultsKey) as? Double
         playbackRate = Self.clampPlaybackRate(savedRate ?? 1.0)
+        let savedShuffle = defaults.object(forKey: Self.shuffleDefaultsKey) as? Bool ?? false
+        isShuffleEnabled = savedShuffle
         configureAudioSession()
         observeCacheProgress()
 #if os(iOS)
@@ -127,17 +131,16 @@ final class AudioPlayerViewModel: ObservableObject {
         refreshActiveCacheStatus()
     }
 
-    func prepareCollection(_ collection: AudiobookCollection) {
+    func prepareCollection(
+        _ collection: AudiobookCollection,
+        targetedTrack: AudiobookTrack? = nil,
+        preserveQueue: Bool = false
+    ) {
         if !collection.isEphemeral {
             ephemeralContext = nil
         }
 
-        let sortedTracks = collection.tracks.sorted { lhs, rhs in
-            lhs.filename.localizedCaseInsensitiveCompare(rhs.filename) == .orderedAscending
-        }
-
-        playlist = sortedTracks
-        activeCollection = collection
+        let sortedTracks = collection.tracksSortedByFilename
 
         let selectedTrack: AudiobookTrack?
         if let currentTrack,
@@ -150,6 +153,19 @@ final class AudioPlayerViewModel: ObservableObject {
             selectedTrack = sortedTracks.first
         }
 
+        let anchorTrack: AudiobookTrack?
+        if let targetedTrack,
+           let match = sortedTracks.first(where: { $0.id == targetedTrack.id }) {
+            anchorTrack = match
+        } else {
+            anchorTrack = selectedTrack
+        }
+
+        if !preserveQueue || activeCollection?.id != collection.id || playlist.isEmpty {
+            playlist = makePlaylist(from: sortedTracks, startingWith: anchorTrack)
+        }
+
+        activeCollection = collection
         currentTrack = selectedTrack
         refreshActiveCacheStatus()
 
@@ -187,8 +203,14 @@ final class AudioPlayerViewModel: ObservableObject {
 
     private let edgeTTSClient = EdgeTTSClient()
 
-    func play(track: AudiobookTrack, in collection: AudiobookCollection, token: BaiduOAuthToken?) {
-        prepareCollection(collection)
+    func play(
+        track: AudiobookTrack,
+        in collection: AudiobookCollection,
+        token: BaiduOAuthToken?,
+        preserveQueue: Bool = false
+    ) {
+        let targetedTrack = preserveQueue ? nil : track
+        prepareCollection(collection, targetedTrack: targetedTrack, preserveQueue: preserveQueue)
         currentToken = token
 
         if let existingTrack = currentTrack, existingTrack.id != track.id {
@@ -820,7 +842,7 @@ final class AudioPlayerViewModel: ObservableObject {
         }
 
         let nextTrack = playlist[nextIndex]
-        play(track: nextTrack, in: collection, token: currentToken)
+        play(track: nextTrack, in: collection, token: currentToken, preserveQueue: true)
     }
 
     func playPreviousTrack() {
@@ -836,7 +858,7 @@ final class AudioPlayerViewModel: ObservableObject {
         guard playlist.indices.contains(previousIndex) else { return }
 
         let previousTrack = playlist[previousIndex]
-        play(track: previousTrack, in: collection, token: currentToken)
+        play(track: previousTrack, in: collection, token: currentToken, preserveQueue: true)
     }
 
     func togglePlayback() {
@@ -871,6 +893,13 @@ final class AudioPlayerViewModel: ObservableObject {
         playbackRate = clamped
         defaults.set(clamped, forKey: Self.playbackRateDefaultsKey)
         applyPlaybackRateToPlayer()
+    }
+
+    func setShuffleEnabled(_ enabled: Bool) {
+        guard isShuffleEnabled != enabled else { return }
+        isShuffleEnabled = enabled
+        defaults.set(enabled, forKey: Self.shuffleDefaultsKey)
+        rebuildPlaylistPreservingCurrentTrack()
     }
 
     func setSleepTimer(_ mode: SleepTimerMode) {
@@ -1027,6 +1056,29 @@ final class AudioPlayerViewModel: ObservableObject {
         statusMessage = nil
         activeCollection = nil
         playlist = []
+    }
+
+    private func rebuildPlaylistPreservingCurrentTrack() {
+        guard let collection = activeCollection else { return }
+        let sortedTracks = collection.tracksSortedByFilename
+        let anchor: AudiobookTrack?
+        if let currentTrack,
+           let match = sortedTracks.first(where: { $0.id == currentTrack.id }) {
+            anchor = match
+        } else {
+            anchor = sortedTracks.first
+        }
+
+        playlist = makePlaylist(from: sortedTracks, startingWith: anchor)
+    }
+
+    private func makePlaylist(from tracks: [AudiobookTrack], startingWith anchor: AudiobookTrack?) -> [AudiobookTrack] {
+        guard !tracks.isEmpty else { return [] }
+        guard isShuffleEnabled else { return tracks }
+        guard let anchor else { return tracks.shuffled() }
+        var remaining = tracks.filter { $0.id != anchor.id }
+        remaining.shuffle()
+        return [anchor] + remaining
     }
     
     private func autoGenerateNextTrackIfNeeded(currentTrack: AudiobookTrack, collection: AudiobookCollection) {
@@ -1380,7 +1432,7 @@ final class AudioPlayerViewModel: ObservableObject {
         // We call this with nextTrack so it will generate audio for the track AFTER the next one
         autoGenerateNextTrackIfNeeded(currentTrack: nextTrack, collection: collection)
         
-        play(track: nextTrack, in: collection, token: currentToken)
+        play(track: nextTrack, in: collection, token: currentToken, preserveQueue: true)
     }
 
     func addPeriodicTimeObserver() {

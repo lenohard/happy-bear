@@ -643,6 +643,25 @@ struct PlayingView: View {
             } else if case .external = track.location {
                 DownloadButton(track: track, collection: collection)
             }
+
+            Button {
+                audioPlayer.setShuffleEnabled(!audioPlayer.isShuffleEnabled)
+            } label: {
+                Image(systemName: audioPlayer.isShuffleEnabled ? "shuffle.circle.fill" : "shuffle.circle")
+                    .font(.title3)
+                    .foregroundStyle(audioPlayer.isShuffleEnabled ? Color.accentColor : .secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(
+                Text(
+                    audioPlayer.isShuffleEnabled
+                    ? NSLocalizedString("shuffle_turn_off", comment: "Turn shuffle off")
+                    : NSLocalizedString("shuffle_turn_on", comment: "Turn shuffle on")
+                )
+            )
+            .accessibilityHint(
+                Text(NSLocalizedString("shuffle_toggle_hint", comment: "Shuffle toggle hint"))
+            )
         }
         .padding(.horizontal, 4)
     }
