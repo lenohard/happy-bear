@@ -5,8 +5,8 @@ Resolve Package Graph
 
 
 Resolved source packages:
-  ZIPFoundation: https://github.com/weichsel/ZIPFoundation.git @ 0.9.20
   GRDB: https://github.com/groue/GRDB.swift.git @ 7.8.0
+  ZIPFoundation: https://github.com/weichsel/ZIPFoundation.git @ 0.9.20
 
 ComputePackagePrebuildTargetDependencyGraph
 
@@ -45,11 +45,11 @@ CreateBuildDescription
 
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -x c -c /dev/null
 
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/senaca/projects/audiobook-player/AudiobookPlayer/Assets.xcassets /Users/senaca/projects/audiobook-player/AudiobookPlayer/Preview Content/Preview Assets.xcassets
+
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
 
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/xcstringstool compile --dry-run --output-directory /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build /Users/senaca/projects/audiobook-player/AudiobookPlayer/Localizable.xcstrings
-
-ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/senaca/projects/audiobook-player/AudiobookPlayer/Assets.xcassets /Users/senaca/projects/audiobook-player/AudiobookPlayer/Preview Content/Preview Assets.xcassets
 
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
 
@@ -57,209 +57,36 @@ ReadFileContents /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefa
 
 ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
 
-Build description signature: 2d86a68cf5d8ff397b625b79f4331561
-Build description path: /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/XCBuildData/2d86a68cf5d8ff397b625b79f4331561.xcbuilddata
+Build description signature: 2a4382ac6e3f63dbf2613b5e1e5c57f0
+Build description path: /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/XCBuildData/2a4382ac6e3f63dbf2613b5e1e5c57f0.xcbuilddata
 ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk /Users/senaca/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache
     cd /Users/senaca/projects/audiobook-player/AudiobookPlayer.xcodeproj
     /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -o /Users/senaca/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache
 
-ProcessInfoPlistFile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/ZIPFoundation_ZIPFoundation.bundle/Info.plist /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation_ZIPFoundation.build/empty-ZIPFoundation_ZIPFoundation.plist (in target 'ZIPFoundation_ZIPFoundation' from project 'ZIPFoundation')
-    cd /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/ZIPFoundation
-    builtin-infoPlistUtility /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation_ZIPFoundation.build/empty-ZIPFoundation_ZIPFoundation.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/ZIPFoundation_ZIPFoundation.bundle/Info.plist
-
-ProcessInfoPlistFile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/GRDB_GRDB.bundle/Info.plist /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB_GRDB.build/empty-GRDB_GRDB.plist (in target 'GRDB_GRDB' from project 'GRDB')
-    cd /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/GRDB.swift
-    builtin-infoPlistUtility /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB_GRDB.build/empty-GRDB_GRDB.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphonesimulator -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/GRDB_GRDB.bundle/Info.plist
-
-Ld /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/ZIPFoundation.o normal (in target 'ZIPFoundation' from project 'ZIPFoundation')
-    cd /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/ZIPFoundation
-    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios12.0-simulator -r -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -w -L/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -L/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/Developer/Library/Frameworks -filelist /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/Objects-normal/arm64/ZIPFoundation.LinkFileList -nostdlib -Xlinker -object_path_lto -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/Objects-normal/arm64/ZIPFoundation_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/Objects-normal/arm64/ZIPFoundation_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/Objects-normal/arm64/ZIPFoundation.swiftmodule @/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/Objects-normal/arm64/ZIPFoundation-linker-args.resp -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/ZIPFoundation.o
-
-Ld /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/GRDB.o normal (in target 'GRDB' from project 'GRDB')
-    cd /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/GRDB.swift
-    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios13.0-simulator -r -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -w -L/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -L/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/Developer/Library/Frameworks -filelist /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/Objects-normal/arm64/GRDB.LinkFileList -nostdlib -Xlinker -object_path_lto -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/Objects-normal/arm64/GRDB_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/Objects-normal/arm64/GRDB_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/Objects-normal/arm64/GRDB.swiftmodule @/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/Objects-normal/arm64/GRDB-linker-args.resp -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/GRDB.o
-
-ProcessProductPackaging /Users/senaca/projects/audiobook-player/AudiobookPlayer/AudiobookPlayer.entitlements /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app.xcent (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+CompileXCStrings /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/ /Users/senaca/projects/audiobook-player/AudiobookPlayer/Localizable.xcstrings (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    
-    Entitlements:
-    
-    {
-}
-    
-    builtin-productPackagingUtility /Users/senaca/projects/audiobook-player/AudiobookPlayer/AudiobookPlayer.entitlements -entitlements -format xml -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app.xcent
-
-ProcessProductPackaging /Users/senaca/projects/audiobook-player/AudiobookPlayer/AudiobookPlayer.entitlements /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-    Entitlements:
-    
-    {
-    "application-identifier" = "285P3M6846.com.wdh.happyBear";
-    "keychain-access-groups" =     (
-    );
-}
-    
-    builtin-productPackagingUtility /Users/senaca/projects/audiobook-player/AudiobookPlayer/AudiobookPlayer.entitlements -entitlements -format xml -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent
-
-ProcessProductPackagingDER /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app.xcent /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app.xcent.der (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    /usr/bin/derq query -f xml -i /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app.xcent -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app.xcent.der --raw
-
-ProcessProductPackagingDER /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent.der (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    /usr/bin/derq query -f xml -i /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent.der --raw
-
-GenerateAssetSymbols /Users/senaca/projects/audiobook-player/AudiobookPlayer/Assets.xcassets /Users/senaca/projects/audiobook-player/AudiobookPlayer/Preview\ Content/Preview\ Assets.xcassets (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/senaca/projects/audiobook-player/AudiobookPlayer/Assets.xcassets /Users/senaca/projects/audiobook-player/AudiobookPlayer/Preview\ Content/Preview\ Assets.xcassets --compile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app --output-format human-readable-text --notices --warnings --export-dependency-info /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_dependencies --output-partial-info-plist /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_generated_info.plist --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --development-region zh-Hans --target-device iphone --target-device ipad --minimum-deployment-target 17.6 --platform iphonesimulator --bundle-identifier com.wdh.happyBear --generate-swift-asset-symbol-extensions NO --generate-swift-asset-symbols /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/GeneratedAssetSymbols-Index.plist
-/* com.apple.actool.compilation-results */
-/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/GeneratedAssetSymbols-Index.plist
-/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/GeneratedAssetSymbols.h
-/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/GeneratedAssetSymbols.swift
-
-
-CompileAssetCatalogVariant thinned /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app /Users/senaca/projects/audiobook-player/AudiobookPlayer/Assets.xcassets /Users/senaca/projects/audiobook-player/AudiobookPlayer/Preview\ Content/Preview\ Assets.xcassets (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/senaca/projects/audiobook-player/AudiobookPlayer/Assets.xcassets /Users/senaca/projects/audiobook-player/AudiobookPlayer/Preview\ Content/Preview\ Assets.xcassets --compile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --filter-for-thinning-device-configuration iPhone18,1 --filter-for-device-os-version 26.0.1 --development-region zh-Hans --target-device iphone --target-device ipad --minimum-deployment-target 17.6 --platform iphonesimulator
-objc[41109]: Class _NoAnimationDelegate is implemented in both /Library/Developer/CoreSimulator/Volumes/iOS_23A8464/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.0.simruntime/Contents/Resources/RuntimeRoot/System/Library/Frameworks/SwiftUICore.framework/SwiftUICore (0x14166c130) and /Library/Developer/CoreSimulator/Volumes/iOS_23A8464/Library/Developer/CoreSimulator/Profiles/Runtimes/iOS 26.0.simruntime/Contents/Resources/RuntimeRoot/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore (0x13e7d5198). This may cause spurious casting failures and mysterious crashes. One of the duplicates must be removed or renamed.
-/* com.apple.actool.compilation-results */
-/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_generated_info.plist_thinned
-/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_output/thinned/AppIcon60x60@2x.png
-/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_output/thinned/AppIcon76x76@2x~ipad.png
-/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_output/thinned/Assets.car
-
-
-ExtractAppIntentsMetadata (in target 'ZIPFoundation' from project 'ZIPFoundation')
-    cd /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/ZIPFoundation
-    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name ZIPFoundation --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk --xcode-version 17A400 --platform-family iOS --deployment-target 12.0 --bundle-identifier zipfoundation.ZIPFoundation --output /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/ZIPFoundation.appintents --target-triple arm64-apple-ios12.0-simulator --binary-file /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/ZIPFoundation.o --dependency-file /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/Objects-normal/arm64/ZIPFoundation_dependency_info.dat --stringsdata-file /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/Objects-normal/arm64/ZIPFoundation.SwiftFileList --metadata-file-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/ZIPFoundation.DependencyMetadataFileList --static-metadata-file-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/ZIPFoundation.DependencyStaticMetadataFileList --swift-const-vals-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/ZIPFoundation.build/Debug-iphonesimulator/ZIPFoundation.build/Objects-normal/arm64/ZIPFoundation.SwiftConstValuesFileList --force --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2025-12-07 18:32:33.659 appintentsmetadataprocessor[41074:20162834] Starting appintentsmetadataprocessor export
-2025-12-07 18:32:33.793 appintentsmetadataprocessor[41074:20162834] Extracted no relevant App Intents symbols, skipping writing output
-
-ExtractAppIntentsMetadata (in target 'GRDB' from project 'GRDB')
-    cd /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/GRDB.swift
-    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name GRDB --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk --xcode-version 17A400 --platform-family iOS --deployment-target 13.0 --bundle-identifier grdb.swift.GRDB --output /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/GRDB.appintents --target-triple arm64-apple-ios13.0-simulator --binary-file /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/GRDB.o --dependency-file /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/Objects-normal/arm64/GRDB_dependency_info.dat --stringsdata-file /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/Objects-normal/arm64/GRDB.SwiftFileList --metadata-file-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/GRDB.DependencyMetadataFileList --static-metadata-file-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/GRDB.DependencyStaticMetadataFileList --swift-const-vals-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/GRDB.build/Debug-iphonesimulator/GRDB.build/Objects-normal/arm64/GRDB.SwiftConstValuesFileList --force --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2025-12-07 18:32:33.679 appintentsmetadataprocessor[41099:20162869] Starting appintentsmetadataprocessor export
-2025-12-07 18:32:33.816 appintentsmetadataprocessor[41099:20162869] Extracted no relevant App Intents symbols, skipping writing output
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcstringstool compile --output-directory /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build /Users/senaca/projects/audiobook-player/AudiobookPlayer/Localizable.xcstrings
 
 SwiftDriver AudiobookPlayer normal arm64 com.apple.xcode.tools.swift.compiler (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
     builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name HappyBear -Onone -enforce-exclusivity\=checked @/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.SwiftFileList -DDEBUG -Xcc -fmodule-map-file\=/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/GRDB.swift/Sources/GRDBSQLite/module.modulemap -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios17.6-simulator -g -module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -F /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/AudiobookPlayer-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/AudiobookPlayer_const_extract_protocols.json -Xcc -iquote -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-generated-files.hmap -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-own-target-headers.hmap -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer-3becd422f5afba93f909cc0a8699f441-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-project-headers.hmap -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources-normal/arm64 -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/arm64 -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear-Swift.h -working-directory /Users/senaca/projects/audiobook-player -experimental-emit-module-separately -disable-cmo
 
-RegisterExecutionPolicyException /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/ZIPFoundation.o (in target 'ZIPFoundation' from project 'ZIPFoundation')
-    cd /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/ZIPFoundation
-    builtin-RegisterExecutionPolicyException /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/ZIPFoundation.o
-
-RegisterExecutionPolicyException /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/GRDB.o (in target 'GRDB' from project 'GRDB')
-    cd /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/GRDB.swift
-    builtin-RegisterExecutionPolicyException /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/GRDB.o
-
-Ld /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/__preview.dylib normal (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+ProcessInfoPlistFile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/Info.plist /Users/senaca/projects/audiobook-player/AudiobookPlayer/Info.plist (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.6-simulator -dynamiclib -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -L/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -install_name @rpath/HappyBear.debug.dylib -dead_strip -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear_dependency_info.dat -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent.der -Xlinker -no_adhoc_codesign -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/__preview.dylib
+    builtin-infoPlistUtility /Users/senaca/projects/audiobook-player/AudiobookPlayer/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_generated_info.plist -scanforprivacyfile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/GRDB_GRDB.bundle -scanforprivacyfile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/ZIPFoundation_ZIPFoundation.bundle -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/Info.plist
+warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftCompile normal arm64 Compiling\ CollectionDetailView.swift,\ FavoriteToggleButton.swift,\ FavoriteTracksView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteToggleButton.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+CopyStringsFile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/en.lproj/Localizable.strings /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/en.lproj/Localizable.strings (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:394:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: audioPlayer.currentTrack?.id) { _ in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:408:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: audioPlayer.currentTime) { newValue in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:423:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: trackToRename) { newValue in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:428:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: showCollectionInfoSheet) { newValue in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:434:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: collectionID) { _ in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:440:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: collection?.tracks.map(\.id) ?? []) { _ in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:444:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: audioPlayer.activeCollection?.id) { _ in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:447:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: coverPhotoItem) { newItem in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:470:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: aiGenerationManager.activeJobs) { jobs in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:474:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: aiGenerationManager.recentJobs) { jobs in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:525:18: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-                .onChange(of: pendingAutoFocusTrackId) { _ in
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:528:18: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-                .onChange(of: filteredTracks.map(\.id)) { _ in
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:897:41: warning: no 'async' operations occur within 'await' expression
-                                        await audioPlayer.generateAudio(for: track, in: collection)
-                                        ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:1000:39: warning: reference to captured var 'readyTrackIds' in concurrently-executing code; this is an error in the Swift 6 language mode
-                tracksWithSummaries = readyTrackIds
-                                      ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:1493:26: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-                        .onChange(of: name) { newValue in
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:1503:26: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-                        .onChange(of: description) { newValue in
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CollectionDetailView.swift:1562:26: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-                        .onChange(of: text) { newValue in
-                         ^
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/en.lproj -- /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/en.lproj/Localizable.strings
+/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/en.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteToggleButton.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+CopyStringsFile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/zh-Hans.lproj/Localizable.strings /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/zh-Hans.lproj/Localizable.strings (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    
+    builtin-copyStrings --validate --outputencoding binary --outfilename Localizable.strings --outdir /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/zh-Hans.lproj -- /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/zh-Hans.lproj/Localizable.strings
+/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/zh-Hans.lproj/Localizable.strings:1:1: note: detected encoding of input file as Unicode (UTF-8) (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:181:13: warning: variable 'sciFi' was never mutated; consider changing to 'let' constant
-        var sciFi = makeTrack(
-        ~~~ ^
-        let
-
-SwiftCompile normal arm64 Compiling\ LibraryView.swift,\ CreateCollectionView.swift,\ TranscriptCorrectionsView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateCollectionView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptCorrectionsView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryView.swift:38:37: warning: 'init(isActive:destination:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
-                                    NavigationLink(
-                                    ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryView.swift:409:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-        .onChange(of: cover) { _ in refreshImageIfNeeded(force: true) }
-         ^
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateCollectionView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateCollectionView.swift:66:13: warning: no 'async' operations occur within 'await' expression
-            await viewModel.buildCollection(
-            ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateCollectionView.swift:229:21: warning: no 'async' operations occur within 'await' expression
-                    await viewModel.buildCollection(
-                    ^
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptCorrectionsView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftCompile normal arm64 Compiling\ AddRSSCollectionView.swift,\ RSSParser.swift,\ GRDBDatabaseManager.swift /Users/senaca/projects/audiobook-player/AddRSSCollectionView.swift /Users/senaca/projects/audiobook-player/RSSParser.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/GRDBDatabaseManager.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 Compiling\ AddRSSCollectionView.swift /Users/senaca/projects/audiobook-player/AddRSSCollectionView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
 SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AddRSSCollectionView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
@@ -267,19 +94,12 @@ SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AddRSSCollecti
 /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
     .previewLayout(.sizeThatFits)
      ^
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/RSSParser.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/GRDBDatabaseManager.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/GRDBDatabaseManager.swift:189:21: warning: initialization of immutable value 'isFavStr' was never used; consider replacing with assignment to '_' or removing it
-                let isFavStr = track.isFavorite ? "✓" : "✗"
+/Users/senaca/projects/audiobook-player/AddRSSCollectionView.swift:21:24: warning: value 'feed' was defined but never used; consider replacing with boolean test
+                if let feed = parsedFeed {
+                   ~~~~^~~~~~~
+                                         != nil
 
 SwiftEmitModule normal arm64 Emitting\ module\ for\ HappyBear (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
 EmitSwiftModule normal arm64 (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
     
@@ -300,324 +120,31 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 UIKit.UIApplicationDelegate.application:3:28: note: requirement 'application(_:handleEventsForBackgroundURLSession:completionHandler:)' declared here
   @MainActor optional func application(_ application: UIApplication, handleEventsForBackgroundURLSession identifier: String, completionHandler: @escaping () -> Void)}
                            ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryStore.swift:1037:5: warning: 'nonisolated' can not be applied to variable with non-'Sendable' type 'NSCache<NSString, UIImage>'; this is an error in the Swift 6 language mode
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryStore.swift:1098:5: warning: 'nonisolated' can not be applied to variable with non-'Sendable' type 'NSCache<NSString, UIImage>'; this is an error in the Swift 6 language mode
     nonisolated static let cache: NSCache<NSString, UIImage> = {
     ^
 /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/System/Library/Frameworks/Foundation.framework/Headers/NSCache.h:13:12: note: generic class 'NSCache' does not conform to the 'Sendable' protocol
 @interface NSCache <KeyType, ObjectType> : NSObject
            ^
 
-SwiftCompile normal arm64 Compiling\ TTSJobsListView.swift,\ TemporaryPlaybackContext.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TTSJobsListView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TemporaryPlaybackContext.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftDriverJobDiscovery normal arm64 Compiling AddRSSCollectionView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TTSJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TemporaryPlaybackContext.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftCompile normal arm64 Compiling\ ListeningStatisticsView.swift,\ GeneratedAssetSymbols.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/ListeningStatisticsView.swift /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/ListeningStatisticsView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/ListeningStatisticsView.swift:233:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-        .onChange(of: scenePhase) { newPhase in
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/ListeningStatisticsView.swift:240:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-        .onChange(of: selectedPeriod) { newPeriod in
-         ^
-
-SwiftCompile normal arm64 /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftCompile normal arm64 Compiling\ AudioPlayerViewModel.swift,\ CloudKitLibrarySync.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/CloudKitLibrarySync.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:887:23: warning: call to main actor-isolated instance method 'handleSleepTimerTick()' in a synchronous nonisolated context
-                self?.handleSleepTimerTick()
-                      ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:894:18: note: calls to instance method 'handleSleepTimerTick()' from outside of its actor context are implicitly asynchronous
-    private func handleSleepTimerTick() {
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:909:18: warning: main actor-isolated property 'currentTime' can not be mutated from a Sendable closure
-            self.currentTime = time
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:11:20: note: mutation of this property is only permitted within the actor
-    @Published var currentTime: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:911:18: warning: call to main actor-isolated instance method 'updateNowPlayingElapsedTime()' in a synchronous nonisolated context
-            self.updateNowPlayingElapsedTime()
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1811:10: note: calls to instance method 'updateNowPlayingElapsedTime()' from outside of its actor context are implicitly asynchronous
-    func updateNowPlayingElapsedTime() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1236:22: warning: main actor-isolated property 'currentTime' can not be mutated from a Sendable closure
-                self.currentTime = initialPosition
-                     ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:11:20: note: mutation of this property is only permitted within the actor
-    @Published var currentTime: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1238:26: warning: call to main actor-isolated instance method 'startPlaybackImmediately()' in a synchronous nonisolated context
-                    self.startPlaybackImmediately()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1402:10: note: calls to instance method 'startPlaybackImmediately()' from outside of its actor context are implicitly asynchronous
-    func startPlaybackImmediately() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1239:26: warning: main actor-isolated property 'isPlaying' can not be mutated from a Sendable closure
-                    self.isPlaying = true
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: mutation of this property is only permitted within the actor
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1240:26: warning: call to main actor-isolated instance method 'applyPlaybackRateToPlayer()' in a synchronous nonisolated context
-                    self.applyPlaybackRateToPlayer()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:988:18: note: calls to instance method 'applyPlaybackRateToPlayer()' from outside of its actor context are implicitly asynchronous
-    private func applyPlaybackRateToPlayer() {
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1241:26: warning: call to main actor-isolated instance method 'startListeningSession()' in a synchronous nonisolated context
-                    self.startListeningSession()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1851:18: note: calls to instance method 'startListeningSession()' from outside of its actor context are implicitly asynchronous
-    private func startListeningSession() {
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1312:19: warning: call to main actor-isolated instance method 'handlePlaybackFinished()' in a synchronous nonisolated context
-            self?.handlePlaybackFinished()
-                  ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1316:10: note: calls to instance method 'handlePlaybackFinished()' from outside of its actor context are implicitly asynchronous
-    func handlePlaybackFinished() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1365:18: warning: main actor-isolated property 'currentTime' can not be mutated from a Sendable closure
-            self.currentTime = time.seconds.isFinite ? time.seconds : 0
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:11:20: note: mutation of this property is only permitted within the actor
-    @Published var currentTime: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1366:40: warning: main actor-isolated property 'player' can not be referenced from a Sendable closure
-            if let itemDuration = self.player?.currentItem?.duration.seconds, itemDuration.isFinite {
-                                       ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:41:17: note: property declared here
-    private var player: AVPlayer?
-                ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1367:22: warning: main actor-isolated property 'duration' can not be mutated from a Sendable closure
-                self.duration = max(self.duration, itemDuration)
-                     ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:12:20: note: mutation of this property is only permitted within the actor
-    @Published var duration: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1367:42: warning: main actor-isolated property 'duration' can not be referenced from a Sendable closure
-                self.duration = max(self.duration, itemDuration)
-                                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:12:20: note: property declared here
-    @Published var duration: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1674:13: warning: initialization of immutable value 'commandCenter' was never used; consider replacing with assignment to '_' or removing it
-        let commandCenter = MPRemoteCommandCenter.shared()
-        ~~~~^~~~~~~~~~~~~
-        _
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1741:18: warning: main actor-isolated property 'currentTime' can not be mutated from a Sendable closure
-            self.currentTime = clampedTime
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:11:20: note: mutation of this property is only permitted within the actor
-    @Published var currentTime: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1743:18: warning: call to main actor-isolated instance method 'updateNowPlayingElapsedTime()' in a synchronous nonisolated context
-            self.updateNowPlayingElapsedTime()
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1811:10: note: calls to instance method 'updateNowPlayingElapsedTime()' from outside of its actor context are implicitly asynchronous
-    func updateNowPlayingElapsedTime() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1899:25: warning: main actor-isolated property 'isPlaying' can not be referenced from a Sendable closure
-                if self.isPlaying {
-                        ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: property declared here
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1901:26: warning: main actor-isolated property 'isPlaying' can not be mutated from a Sendable closure
-                    self.isPlaying = false
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: mutation of this property is only permitted within the actor
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1902:26: warning: call to main actor-isolated instance method 'flushListeningSession()' in a synchronous nonisolated context
-                    self.flushListeningSession()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1855:10: note: calls to instance method 'flushListeningSession()' from outside of its actor context are implicitly asynchronous
-    func flushListeningSession() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1907:26: warning: main actor-isolated property 'isPlaying' can not be referenced from a Sendable closure
-                if !self.isPlaying {
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: property declared here
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1909:26: warning: main actor-isolated property 'isPlaying' can not be mutated from a Sendable closure
-                    self.isPlaying = true
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: mutation of this property is only permitted within the actor
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1910:26: warning: call to main actor-isolated instance method 'startListeningSession()' in a synchronous nonisolated context
-                    self.startListeningSession()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1851:18: note: calls to instance method 'startListeningSession()' from outside of its actor context are implicitly asynchronous
-    private func startListeningSession() {
-                 ^
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/CloudKitLibrarySync.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:887:23: warning: call to main actor-isolated instance method 'handleSleepTimerTick()' in a synchronous nonisolated context
-                self?.handleSleepTimerTick()
-                      ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:894:18: note: calls to instance method 'handleSleepTimerTick()' from outside of its actor context are implicitly asynchronous
-    private func handleSleepTimerTick() {
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:909:18: warning: main actor-isolated property 'currentTime' can not be mutated from a Sendable closure
-            self.currentTime = time
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:11:20: note: mutation of this property is only permitted within the actor
-    @Published var currentTime: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:911:18: warning: call to main actor-isolated instance method 'updateNowPlayingElapsedTime()' in a synchronous nonisolated context
-            self.updateNowPlayingElapsedTime()
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1811:10: note: calls to instance method 'updateNowPlayingElapsedTime()' from outside of its actor context are implicitly asynchronous
-    func updateNowPlayingElapsedTime() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1236:22: warning: main actor-isolated property 'currentTime' can not be mutated from a Sendable closure
-                self.currentTime = initialPosition
-                     ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:11:20: note: mutation of this property is only permitted within the actor
-    @Published var currentTime: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1238:26: warning: call to main actor-isolated instance method 'startPlaybackImmediately()' in a synchronous nonisolated context
-                    self.startPlaybackImmediately()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1402:10: note: calls to instance method 'startPlaybackImmediately()' from outside of its actor context are implicitly asynchronous
-    func startPlaybackImmediately() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1239:26: warning: main actor-isolated property 'isPlaying' can not be mutated from a Sendable closure
-                    self.isPlaying = true
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: mutation of this property is only permitted within the actor
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1240:26: warning: call to main actor-isolated instance method 'applyPlaybackRateToPlayer()' in a synchronous nonisolated context
-                    self.applyPlaybackRateToPlayer()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:988:18: note: calls to instance method 'applyPlaybackRateToPlayer()' from outside of its actor context are implicitly asynchronous
-    private func applyPlaybackRateToPlayer() {
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1241:26: warning: call to main actor-isolated instance method 'startListeningSession()' in a synchronous nonisolated context
-                    self.startListeningSession()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1851:18: note: calls to instance method 'startListeningSession()' from outside of its actor context are implicitly asynchronous
-    private func startListeningSession() {
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1312:19: warning: call to main actor-isolated instance method 'handlePlaybackFinished()' in a synchronous nonisolated context
-            self?.handlePlaybackFinished()
-                  ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1316:10: note: calls to instance method 'handlePlaybackFinished()' from outside of its actor context are implicitly asynchronous
-    func handlePlaybackFinished() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1365:18: warning: main actor-isolated property 'currentTime' can not be mutated from a Sendable closure
-            self.currentTime = time.seconds.isFinite ? time.seconds : 0
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:11:20: note: mutation of this property is only permitted within the actor
-    @Published var currentTime: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1366:40: warning: main actor-isolated property 'player' can not be referenced from a Sendable closure
-            if let itemDuration = self.player?.currentItem?.duration.seconds, itemDuration.isFinite {
-                                       ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:41:17: note: property declared here
-    private var player: AVPlayer?
-                ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1367:22: warning: main actor-isolated property 'duration' can not be mutated from a Sendable closure
-                self.duration = max(self.duration, itemDuration)
-                     ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:12:20: note: mutation of this property is only permitted within the actor
-    @Published var duration: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1367:42: warning: main actor-isolated property 'duration' can not be referenced from a Sendable closure
-                self.duration = max(self.duration, itemDuration)
-                                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:12:20: note: property declared here
-    @Published var duration: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1674:13: warning: initialization of immutable value 'commandCenter' was never used; consider replacing with assignment to '_' or removing it
-        let commandCenter = MPRemoteCommandCenter.shared()
-        ~~~~^~~~~~~~~~~~~
-        _
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1741:18: warning: main actor-isolated property 'currentTime' can not be mutated from a Sendable closure
-            self.currentTime = clampedTime
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:11:20: note: mutation of this property is only permitted within the actor
-    @Published var currentTime: Double = 0
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1743:18: warning: call to main actor-isolated instance method 'updateNowPlayingElapsedTime()' in a synchronous nonisolated context
-            self.updateNowPlayingElapsedTime()
-                 ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1811:10: note: calls to instance method 'updateNowPlayingElapsedTime()' from outside of its actor context are implicitly asynchronous
-    func updateNowPlayingElapsedTime() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1899:25: warning: main actor-isolated property 'isPlaying' can not be referenced from a Sendable closure
-                if self.isPlaying {
-                        ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: property declared here
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1901:26: warning: main actor-isolated property 'isPlaying' can not be mutated from a Sendable closure
-                    self.isPlaying = false
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: mutation of this property is only permitted within the actor
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1902:26: warning: call to main actor-isolated instance method 'flushListeningSession()' in a synchronous nonisolated context
-                    self.flushListeningSession()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1855:10: note: calls to instance method 'flushListeningSession()' from outside of its actor context are implicitly asynchronous
-    func flushListeningSession() {
-         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1907:26: warning: main actor-isolated property 'isPlaying' can not be referenced from a Sendable closure
-                if !self.isPlaying {
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: property declared here
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1909:26: warning: main actor-isolated property 'isPlaying' can not be mutated from a Sendable closure
-                    self.isPlaying = true
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:10:20: note: mutation of this property is only permitted within the actor
-    @Published var isPlaying = false
-                   ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1910:26: warning: call to main actor-isolated instance method 'startListeningSession()' in a synchronous nonisolated context
-                    self.startListeningSession()
-                         ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AudioPlayerViewModel.swift:1851:18: note: calls to instance method 'startListeningSession()' from outside of its actor context are implicitly asynchronous
-    private func startListeningSession() {
-                 ^
-
-SwiftCompile normal arm64 Compiling\ STTJobsListView.swift,\ CreateEbookCollectionView.swift,\ SonioxSTTView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/STTJobsListView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateEbookCollectionView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/SonioxSTTView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/STTJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
-
+SwiftCompile normal arm64 Compiling\ CreateEbookCollectionView.swift,\ SonioxSTTView.swift,\ ContentView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateEbookCollectionView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/SonioxSTTView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateEbookCollectionView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
     
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
+    .previewLayout(.sizeThatFits)
+     ^
+@__swiftmacro_9HappyBear0022ContentViewswift_tiAIefMX1055_0_33_91841E46B9DA47AFFC48E99536288275Ll7PreviewfMf_.swift:107:33: warning: result of 'try?' is unused
+                                try? await dbManager.persistTrackSummaryResult(
+                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1056:1: note: in expansion of macro 'Preview' here
+#Preview {
+^~~~~~~~~~
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1056:1: note: in expansion of macro 'Preview' here
+#Preview {
+^~~~~~~~~~
 
 SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/SonioxSTTView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
@@ -631,36 +158,22 @@ SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlaye
 /Users/senaca/projects/audiobook-player/AudiobookPlayer/SonioxSTTView.swift:117:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
         .onChange(of: isKeyFieldFocused) { isFocused in
          ^
-
-SwiftDriverJobDiscovery normal arm64 Compiling ListeningStatisticsView.swift, GeneratedAssetSymbols.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 Compiling\ LibraryStore.swift,\ ContentView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryStore.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryStore.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryStore.swift:1037:5: warning: 'nonisolated' can not be applied to variable with non-'Sendable' type 'NSCache<NSString, UIImage>'; this is an error in the Swift 6 language mode
-    nonisolated static let cache: NSCache<NSString, UIImage> = {
-    ^
-/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/System/Library/Frameworks/Foundation.framework/Headers/NSCache.h:13:12: note: generic class 'NSCache' does not conform to the 'Sendable' protocol
-@interface NSCache <KeyType, ObjectType> : NSObject
-           ^
-@__swiftmacro_9HappyBear0022ContentViewswift_tiAIefMX1053_0_33_91841E46B9DA47AFFC48E99536288275Ll7PreviewfMf_.swift:107:33: warning: result of 'try?' is unused
+@__swiftmacro_9HappyBear0022ContentViewswift_tiAIefMX1055_0_33_91841E46B9DA47AFFC48E99536288275Ll7PreviewfMf_.swift:107:33: warning: result of 'try?' is unused
                                 try? await dbManager.persistTrackSummaryResult(
                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1054:1: note: in expansion of macro 'Preview' here
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1056:1: note: in expansion of macro 'Preview' here
 #Preview {
 ^~~~~~~~~~
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1054:1: note: in expansion of macro 'Preview' here
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1056:1: note: in expansion of macro 'Preview' here
 #Preview {
 ^~~~~~~~~~
 
 SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
     
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1145:21: warning: result of 'try?' is unused
+                    try? await dbManager.persistTrackSummaryResult(
+                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 /Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:264:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
          ^
@@ -676,30 +189,77 @@ SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlaye
 /Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:284:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
         .onChange(of: aiGenerationManager.recentJobs) { jobs in
          ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1143:21: warning: result of 'try?' is unused
-                    try? await dbManager.persistTrackSummaryResult(
-                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@__swiftmacro_9HappyBear0022ContentViewswift_tiAIefMX1053_0_33_91841E46B9DA47AFFC48E99536288275Ll7PreviewfMf_.swift:107:33: warning: result of 'try?' is unused
+@__swiftmacro_9HappyBear0022ContentViewswift_tiAIefMX1055_0_33_91841E46B9DA47AFFC48E99536288275Ll7PreviewfMf_.swift:107:33: warning: result of 'try?' is unused
                                 try? await dbManager.persistTrackSummaryResult(
                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1054:1: note: in expansion of macro 'Preview' here
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1056:1: note: in expansion of macro 'Preview' here
 #Preview {
 ^~~~~~~~~~
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1054:1: note: in expansion of macro 'Preview' here
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/ContentView.swift:1056:1: note: in expansion of macro 'Preview' here
 #Preview {
 ^~~~~~~~~~
 
-SwiftDriverJobDiscovery normal arm64 Compiling TTSJobsListView.swift, TemporaryPlaybackContext.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 Compiling\ TrackSummaryCard.swift,\ TranscriptionSheet.swift,\ AIJobsListView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionSheet.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/AIJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftDriverJobDiscovery normal arm64 Emitting module for HappyBear (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriver\ Compilation\ Requirements AudiobookPlayer normal arm64 com.apple.xcode.tools.swift.compiler (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name HappyBear -Onone -enforce-exclusivity\=checked @/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.SwiftFileList -DDEBUG -Xcc -fmodule-map-file\=/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/GRDB.swift/Sources/GRDBSQLite/module.modulemap -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios17.6-simulator -g -module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -F /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/AudiobookPlayer-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/AudiobookPlayer_const_extract_protocols.json -Xcc -iquote -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-generated-files.hmap -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-own-target-headers.hmap -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer-3becd422f5afba93f909cc0a8699f441-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-project-headers.hmap -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources-normal/arm64 -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/arm64 -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear-Swift.h -working-directory /Users/senaca/projects/audiobook-player -experimental-emit-module-separately -disable-cmo
+    
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
+    .previewLayout(.sizeThatFits)
+     ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:38:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+        .onChange(of: viewModel.activeJob?.status) { _ in
+         ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:41:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+        .onChange(of: viewModel.summary?.id) { _ in
+         ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:540:17: warning: result of 'try?' is unused
+                try? await dbManager.persistTrackSummaryResult(
+                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+@__swiftmacro_9HappyBear0027TrackSummaryCardswift_ovFAhfMX488_0_33_1FABA55B4023C2ACB1E0006EAB3E5E70Ll7PreviewfMf_.swift:70:29: warning: result of 'try?' is unused
+                            try? await dbManager.persistTrackSummaryResult(
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:489:1: note: in expansion of macro 'Preview' here
+#Preview {
+^~~~~~~~~~
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:489:1: note: in expansion of macro 'Preview' here
+#Preview {
+^~~~~~~~~~
 
-SwiftDriverJobDiscovery normal arm64 Compiling AddRSSCollectionView.swift, RSSParser.swift, GRDBDatabaseManager.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionSheet.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+@__swiftmacro_9HappyBear0027TrackSummaryCardswift_ovFAhfMX488_0_33_1FABA55B4023C2ACB1E0006EAB3E5E70Ll7PreviewfMf_.swift:70:29: warning: result of 'try?' is unused
+                            try? await dbManager.persistTrackSummaryResult(
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:489:1: note: in expansion of macro 'Preview' here
+#Preview {
+^~~~~~~~~~
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:489:1: note: in expansion of macro 'Preview' here
+#Preview {
+^~~~~~~~~~
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionSheet.swift:281:17: warning: no 'async' operations occur within 'await' expression
+                await setStage(.uploading, reason: "Cache resolved; starting Soniox upload")
+                ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionSheet.swift:549:13: warning: initialization of immutable value 'cacheURL' was never used; consider replacing with assignment to '_' or removing it
+        let cacheURL = cacheManager.createCacheFile(
+        ~~~~^~~~~~~~
+        _
 
-SwiftCompile normal arm64 Compiling\ AudiobookPlayerApp.swift,\ SourcesView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/AudiobookPlayerApp.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/SourcesView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/AIJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+@__swiftmacro_9HappyBear0027TrackSummaryCardswift_ovFAhfMX488_0_33_1FABA55B4023C2ACB1E0006EAB3E5E70Ll7PreviewfMf_.swift:70:29: warning: result of 'try?' is unused
+                            try? await dbManager.persistTrackSummaryResult(
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:489:1: note: in expansion of macro 'Preview' here
+#Preview {
+^~~~~~~~~~
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:489:1: note: in expansion of macro 'Preview' here
+#Preview {
+^~~~~~~~~~
+
+SwiftCompile normal arm64 Compiling\ AudiobookPlayerApp.swift,\ SourcesView.swift,\ ProviderIconView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/AudiobookPlayerApp.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/SourcesView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/ProviderIconView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
 SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/AudiobookPlayerApp.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
@@ -729,61 +289,124 @@ SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlaye
     cd /Users/senaca/projects/audiobook-player
     
 
-SwiftCompile normal arm64 Compiling\ ProviderIconView.swift,\ TrackSummaryCard.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/ProviderIconView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
 SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/ProviderIconView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+
+SwiftCompile normal arm64 Compiling\ PlaybackSpeedControl.swift,\ BatchRenameView.swift,\ STTJobsListView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/PlaybackSpeedControl.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/STTJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/PlaybackSpeedControl.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
     
 /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
     .previewLayout(.sizeThatFits)
      ^
-@__swiftmacro_9HappyBear0027TrackSummaryCardswift_ovFAhfMX432_0_33_1FABA55B4023C2ACB1E0006EAB3E5E70Ll7PreviewfMf_.swift:70:29: warning: result of 'try?' is unused
-                            try? await dbManager.persistTrackSummaryResult(
-                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:433:1: note: in expansion of macro 'Preview' here
-#Preview {
-^~~~~~~~~~
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:433:1: note: in expansion of macro 'Preview' here
-#Preview {
-^~~~~~~~~~
 
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
     
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:484:17: warning: result of 'try?' is unused
-                try? await dbManager.persistTrackSummaryResult(
-                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:38:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-        .onChange(of: viewModel.activeJob?.status) { _ in
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift:90:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+            .onChange(of: searchText) { _ in updatePreview() }
+             ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift:91:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+            .onChange(of: replacementText) { _ in updatePreview() }
+             ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift:92:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+            .onChange(of: selectedMode) { _ in updatePreview() }
+             ^
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/STTJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+
+SwiftCompile normal arm64 Compiling\ CacheManagementView.swift,\ FavoriteToggleButton.swift,\ FavoriteTracksView.swift,\ LibraryView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/CacheManagementView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteToggleButton.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/CacheManagementView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/CacheManagementView.swift:30:18: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+                .onChange(of: retentionDays) { newValue in
+                 ^
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteToggleButton.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
+    .previewLayout(.sizeThatFits)
+     ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:181:13: warning: variable 'sciFi' was never mutated; consider changing to 'let' constant
+        var sciFi = makeTrack(
+        ~~~ ^
+        let
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryView.swift:38:37: warning: 'init(isActive:destination:label:)' was deprecated in iOS 16.0: use NavigationLink(value:label:), or navigationDestination(isPresented:destination:), inside a NavigationStack or NavigationSplitView
+                                    NavigationLink(
+                                    ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/LibraryView.swift:428:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+        .onChange(of: cover) { _ in refreshImageIfNeeded(force: true) }
          ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:41:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-        .onChange(of: viewModel.summary?.id) { _ in
-         ^
-@__swiftmacro_9HappyBear0027TrackSummaryCardswift_ovFAhfMX432_0_33_1FABA55B4023C2ACB1E0006EAB3E5E70Ll7PreviewfMf_.swift:70:29: warning: result of 'try?' is unused
-                            try? await dbManager.persistTrackSummaryResult(
-                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:433:1: note: in expansion of macro 'Preview' here
-#Preview {
-^~~~~~~~~~
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackSummaryCard.swift:433:1: note: in expansion of macro 'Preview' here
-#Preview {
-^~~~~~~~~~
 
-Copy /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftmodule (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 Compiling\ CreateCollectionView.swift,\ TranscriptCorrectionsView.swift,\ AITabView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateCollectionView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptCorrectionsView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateCollectionView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftmodule /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+    
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
+    .previewLayout(.sizeThatFits)
+     ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateCollectionView.swift:58:13: warning: no 'async' operations occur within 'await' expression
+            await viewModel.buildCollection(
+            ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/CreateCollectionView.swift:153:21: warning: no 'async' operations occur within 'await' expression
+                    await viewModel.buildCollection(
+                    ^
 
-SwiftDriverJobDiscovery normal arm64 Compiling AudioPlayerViewModel.swift, CloudKitLibrarySync.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-Copy /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.abi.json (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptCorrectionsView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.abi.json /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/arm64-apple-ios-simulator.abi.json
+    
 
-Copy /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftsourceinfo (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftsourceinfo /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+    
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift:51:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+            .onChange(of: gateway.keyState) { state in
+             ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift:54:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+            .onChange(of: focusedField) { newValue in
+             ^
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift:224:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
+            .onChange(of: gateway.apiKey) { newValue in
+             ^
 
-SwiftCompile normal arm64 Compiling\ TranscriptionProgressOverlay.swift,\ TranscriptViewerSheet.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionProgressOverlay.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptViewerSheet.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 Compiling\ AboutView.swift,\ TrackPickerView.swift,\ SettingsTabView.swift,\ DownloadButton.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/AboutView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackPickerView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/SettingsTabView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/DownloadButton.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/AboutView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
+    .previewLayout(.sizeThatFits)
+     ^
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackPickerView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/SettingsTabView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/DownloadButton.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+    cd /Users/senaca/projects/audiobook-player
+    
+
+SwiftCompile normal arm64 Compiling\ TranscriptionProgressOverlay.swift,\ TranscriptViewerSheet.swift,\ TTSJobsListView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionProgressOverlay.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptViewerSheet.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TTSJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
 SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionProgressOverlay.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
@@ -824,201 +447,43 @@ SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlaye
             if let converted = try? AttributedString(attributedString) {
                                ^
 
-SwiftDriverJobDiscovery normal arm64 Compiling LibraryView.swift, CreateCollectionView.swift, TranscriptCorrectionsView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 Compiling\ PlaybackSpeedControl.swift,\ BatchRenameView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/PlaybackSpeedControl.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/PlaybackSpeedControl.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift:90:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: searchText) { _ in updatePreview() }
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift:91:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: replacementText) { _ in updatePreview() }
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/BatchRenameView.swift:92:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: selectedMode) { _ in updatePreview() }
-             ^
-
-SwiftCompile normal arm64 Compiling\ SettingsTabView.swift,\ DownloadButton.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/SettingsTabView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/DownloadButton.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/SettingsTabView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/DownloadButton.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TTSJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
     
 
-SwiftDriverJobDiscovery normal arm64 Compiling AudiobookPlayerApp.swift, SourcesView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftDriverJobDiscovery normal arm64 Emitting module for HappyBear (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftCompile normal arm64 Compiling\ AboutView.swift,\ TrackPickerView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/AboutView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackPickerView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/AboutView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftDriver\ Compilation\ Requirements AudiobookPlayer normal arm64 com.apple.xcode.tools.swift.compiler (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name HappyBear -Onone -enforce-exclusivity\=checked @/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.SwiftFileList -DDEBUG -Xcc -fmodule-map-file\=/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/SourcePackages/checkouts/GRDB.swift/Sources/GRDBSQLite/module.modulemap -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -target arm64-apple-ios17.6-simulator -g -module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -F /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphonesimulator26.0-23A339-26257891a6c027eb51374368541b8346.sdkstatcache -output-file-map /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/AudiobookPlayer-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/senaca/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/AudiobookPlayer_const_extract_protocols.json -Xcc -iquote -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-generated-files.hmap -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-own-target-headers.hmap -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer-3becd422f5afba93f909cc0a8699f441-VFS-iphonesimulator/all-product-headers.yaml -Xcc -iquote -Xcc /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-project-headers.hmap -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources-normal/arm64 -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources/arm64 -Xcc -I/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear-Swift.h -working-directory /Users/senaca/projects/audiobook-player -experimental-emit-module-separately -disable-cmo
 
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TrackPickerView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftDriverJobDiscovery normal arm64 Compiling AudiobookPlayerApp.swift, SourcesView.swift, ProviderIconView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+
+Copy /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftmodule (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftmodule /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/arm64-apple-ios-simulator.swiftmodule
 
-SwiftDriverJobDiscovery normal arm64 Compiling ProviderIconView.swift, TrackSummaryCard.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 Compiling\ CacheManagementView.swift,\ AITabView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/CacheManagementView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/CacheManagementView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+Copy /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.abi.json (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/CacheManagementView.swift:30:18: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-                .onChange(of: retentionDays) { newValue in
-                 ^
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.abi.json /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/arm64-apple-ios-simulator.abi.json
 
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+Copy /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftsourceinfo (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift:51:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: gateway.keyState) { state in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift:54:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: focusedField) { newValue in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/AITabView.swift:224:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: gateway.apiKey) { newValue in
-             ^
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.swiftsourceinfo /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
 
-SwiftDriverJobDiscovery normal arm64 Compiling STTJobsListView.swift, CreateEbookCollectionView.swift, SonioxSTTView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftDriverJobDiscovery normal arm64 Compiling PlaybackSpeedControl.swift, BatchRenameView.swift, STTJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftCompile normal arm64 Compiling\ TranscriptionSheet.swift,\ AIJobsListView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionSheet.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/AIJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftDriverJobDiscovery normal arm64 Compiling CacheManagementView.swift, FavoriteToggleButton.swift, FavoriteTracksView.swift, LibraryView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionSheet.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/FavoriteTracksView.swift:304:6: warning: previewLayout is ignored in a #Preview macro. Use the `traits` argument of the macro to provide the desired layout, e.g. `.sizeThatFitsLayout. (from macro 'Preview')
-    .previewLayout(.sizeThatFits)
-     ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionSheet.swift:280:17: warning: no 'async' operations occur within 'await' expression
-                await setStage(.uploading, reason: "Cache resolved; starting Soniox upload")
-                ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/TranscriptionSheet.swift:522:13: warning: initialization of immutable value 'cacheURL' was never used; consider replacing with assignment to '_' or removing it
-        let cacheURL = cacheManager.createCacheFile(
-        ~~~~^~~~~~~~
-        _
+SwiftDriverJobDiscovery normal arm64 Compiling AboutView.swift, TrackPickerView.swift, SettingsTabView.swift, DownloadButton.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/AIJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
+SwiftDriverJobDiscovery normal arm64 Compiling CreateCollectionView.swift, TranscriptCorrectionsView.swift, AITabView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftDriverJobDiscovery normal arm64 Compiling PlaybackSpeedControl.swift, BatchRenameView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftDriverJobDiscovery normal arm64 Compiling TrackSummaryCard.swift, TranscriptionSheet.swift, AIJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftDriverJobDiscovery normal arm64 Compiling TranscriptionProgressOverlay.swift, TranscriptViewerSheet.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftDriverJobDiscovery normal arm64 Compiling TranscriptionProgressOverlay.swift, TranscriptViewerSheet.swift, TTSJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
-SwiftDriverJobDiscovery normal arm64 Compiling AboutView.swift, TrackPickerView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling CollectionDetailView.swift, FavoriteToggleButton.swift, FavoriteTracksView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling SettingsTabView.swift, DownloadButton.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling CacheManagementView.swift, AITabView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling LibraryStore.swift, ContentView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 Compiling\ SmartView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/SmartView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/SmartView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftCompile normal arm64 Compiling\ StorageManagementView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/StorageManagementView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/StorageManagementView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/StorageManagementView.swift:74:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead.
-            .onChange(of: retentionDays) { newValue in
-             ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/StorageManagementView.swift:156:40: warning: reference to captured var 'sizes' in concurrently-executing code; this is an error in the Swift 6 language mode
-                self.collectionSizes = sizes
-                                       ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/StorageManagementView.swift:165:13: warning: no 'async' operations occur within 'await' expression
-            await audioPlayer.removeCollectionCache(trackIds: trackIds)
-            ^
-
-SwiftCompile normal arm64 Compiling\ ListeningHistory.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/ListeningHistory.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/ListeningHistory.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftCompile normal arm64 Compiling\ UserDataBackupManager.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/UserDataBackupManager.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/UserDataBackupManager.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/UserDataBackupManager.swift:428:29: warning: 'init(url:accessMode:preferredEncoding:)' is deprecated: Please use the throwing initializer.
-        guard let archive = Archive(url: destinationURL, accessMode: .create) else {
-                            ^
-/Users/senaca/projects/audiobook-player/AudiobookPlayer/UserDataBackupManager.swift:462:29: warning: 'init(url:accessMode:preferredEncoding:)' is deprecated: Please use the throwing initializer.
-        guard let archive = Archive(url: sourceURL, accessMode: .read) else {
-                            ^
-
-SwiftCompile normal arm64 Compiling\ PersonalView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/PersonalView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/PersonalView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftCompile normal arm64 Compiling\ PreviewData.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/PreviewData.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/PreviewData.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftCompile normal arm64 Compiling\ EdgeTTSView.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/EdgeTTSView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/EdgeTTSView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftDriverJobDiscovery normal arm64 Compiling ListeningHistory.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 Compiling\ TTSJobProgressSheet.swift /Users/senaca/projects/audiobook-player/AudiobookPlayer/TTSJobProgressSheet.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftCompile normal arm64 /Users/senaca/projects/audiobook-player/AudiobookPlayer/TTSJobProgressSheet.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    
-
-SwiftDriverJobDiscovery normal arm64 Compiling PreviewData.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling SmartView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling StorageManagementView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling PersonalView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling UserDataBackupManager.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling EdgeTTSView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling TTSJobProgressSheet.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-SwiftDriverJobDiscovery normal arm64 Compiling TranscriptionSheet.swift, AIJobsListView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
+SwiftDriverJobDiscovery normal arm64 Compiling CreateEbookCollectionView.swift, SonioxSTTView.swift, ContentView.swift (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
 
 SwiftDriver\ Compilation AudiobookPlayer normal arm64 com.apple.xcode.tools.swift.compiler (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
@@ -1037,18 +502,6 @@ Ld /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklel
     cd /Users/senaca/projects/audiobook-player
     /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.6-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk -O0 -L/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -F/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/PackageFrameworks -Xlinker -rpath -Xlinker @executable_path/Frameworks -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-DebugDylibPath-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-DebugDylibInstallName-normal-arm64.txt -Xlinker -filelist -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear-ExecutorLinkFileList-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __entitlements -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __ents_der -Xlinker /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.app-Simulated.xcent.der /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/HappyBear.debug.dylib -Xlinker -no_adhoc_codesign -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/HappyBear
 
-LinkAssetCatalog /Users/senaca/projects/audiobook-player/AudiobookPlayer/Assets.xcassets /Users/senaca/projects/audiobook-player/AudiobookPlayer/Preview\ Content/Preview\ Assets.xcassets (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    builtin-linkAssetCatalog --thinned /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_output/thinned --thinned-dependencies /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_generated_info.plist_unthinned --output /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app --plist-output /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_generated_info.plist
-note: Emplaced /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/Assets.car (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-note: Emplaced /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/AppIcon60x60@2x.png (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-note: Emplaced /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/AppIcon76x76@2x~ipad.png (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
-ProcessInfoPlistFile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/Info.plist /Users/senaca/projects/audiobook-player/AudiobookPlayer/Info.plist (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-    cd /Users/senaca/projects/audiobook-player
-    builtin-infoPlistUtility /Users/senaca/projects/audiobook-player/AudiobookPlayer/Info.plist -producttype com.apple.product-type.application -genpkginfo /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/assetcatalog_generated_info.plist -scanforprivacyfile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/GRDB_GRDB.bundle -scanforprivacyfile /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/ZIPFoundation_ZIPFoundation.bundle -o /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/Info.plist
-warning: The application supports opening files, but doesn't declare whether it supports opening them in place. You can add an LSSupportsOpeningDocumentsInPlace entry or an UISupportsDocumentBrowser entry to your Info.plist to declare support. (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
-
 CopySwiftLibs /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
     builtin-swiftStdLibTool --copy --verbose --sign - --scan-executable /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/HappyBear.debug.dylib --scan-folder /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/Frameworks --scan-folder /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/PlugIns --scan-folder /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/SystemExtensions --scan-folder /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/Extensions --scan-folder /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk/System/Library/Frameworks/AVFoundation.framework --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
@@ -1056,8 +509,8 @@ CopySwiftLibs /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-
 ExtractAppIntentsMetadata (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
     /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name HappyBear --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.0.sdk --xcode-version 17A400 --platform-family iOS --deployment-target 17.6 --bundle-identifier com.wdh.happyBear --output /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app --target-triple arm64-apple-ios17.6-simulator --binary-file /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/HappyBear --dependency-file /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear_dependency_info.dat --stringsdata-file /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.SwiftFileList --metadata-file-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.DependencyMetadataFileList --static-metadata-file-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/HappyBear.DependencyStaticMetadataFileList --swift-const-vals-list /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Intermediates.noindex/AudiobookPlayer.build/Debug-iphonesimulator/AudiobookPlayer.build/Objects-normal/arm64/HappyBear.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
-2025-12-07 18:32:45.725 appintentsmetadataprocessor[41245:20163510] Starting appintentsmetadataprocessor export
-2025-12-07 18:32:45.726 appintentsmetadataprocessor[41245:20163510] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+2025-12-08 15:00:31.607 appintentsmetadataprocessor[92504:22530374] Starting appintentsmetadataprocessor export
+2025-12-08 15:00:31.610 appintentsmetadataprocessor[92504:22530374] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
 
 CodeSign /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/HappyBear.debug.dylib (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
@@ -1072,6 +525,7 @@ CodeSign /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aquto
     Signing Identity:     "Sign to Run Locally"
     
     /usr/bin/codesign --force --sign - --timestamp\=none --generate-entitlement-der /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/__preview.dylib
+/Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app/__preview.dylib: replacing existing signature
 
 CodeSign /Users/senaca/Library/Developer/Xcode/DerivedData/AudiobookPlayer-aqutoaiklelvyvayxmjgbonardxy/Build/Products/Debug-iphonesimulator/HappyBear.app (in target 'AudiobookPlayer' from project 'AudiobookPlayer')
     cd /Users/senaca/projects/audiobook-player
