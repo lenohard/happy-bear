@@ -33,48 +33,35 @@ struct LibraryView: View {
                     List {
                         Section(NSLocalizedString("collections_section", comment: "Collections section title")) {
                             ForEach(library.collections) { collection in
-                                ZStack {
-                                    // Hidden NavigationLink for isActive binding
-                                    NavigationLink(
-                                        isActive: Binding(
-                                            get: { selectedCollectionID.wrappedValue == collection.id },
-                                            set: { isActive in
-                                                if isActive {
-                                                    selectedCollectionID.wrappedValue = collection.id
-                                                } else {
-                                                    selectedCollectionID.wrappedValue = nil
-                                                }
-                                            }
-                                        )
-                                    ) {
-                                        CollectionDetailView(collectionID: collection.id)
-                                    } label: {
-                                        EmptyView()
-                                    }
-                                    .hidden()
-
-                                    HStack(spacing: 12) {
-                                        LibraryCollectionRow(collection: collection)
-                                            .contentShape(Rectangle())
-                                            .onTapGesture {
-                                                selectedCollectionID.wrappedValue = collection.id
-                                            }
-
-                                        Button {
-                                            resumeCollectionPlayback(collection)
-                                        } label: {
-                                            Image(systemName: "play.circle.fill")
-                                                .font(.title3)
+                                HStack(spacing: 12) {
+                                    LibraryCollectionRow(collection: collection)
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            selectedCollectionID.wrappedValue = collection.id
                                         }
-                                        .buttonStyle(.plain)
-                                        .accessibilityLabel(String(format: NSLocalizedString("play_collection_accessibility", comment: "Play collection accessibility label"), collection.title))
+
+                                    Button {
+                                        resumeCollectionPlayback(collection)
+                                    } label: {
+                                        Image(systemName: "play.circle.fill")
+                                            .font(.title3)
                                     }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel(String(format: NSLocalizedString("play_collection_accessibility", comment: "Play collection accessibility label"), collection.title))
                                 }
                             }
                             .onDelete(perform: delete)
                         }
                     }
                     .listStyle(.insetGrouped)
+                    .navigationDestination(isPresented: Binding(
+                        get: { selectedCollectionID.wrappedValue != nil },
+                        set: { if !$0 { selectedCollectionID.wrappedValue = nil } }
+                    )) {
+                        if let collectionID = selectedCollectionID.wrappedValue {
+                            CollectionDetailView(collectionID: collectionID)
+                        }
+                    }
                 }
             }
             .navigationTitle(NSLocalizedString("library_title", comment: "Library view title"))
@@ -424,7 +411,7 @@ struct CollectionCoverArtView: View {
         }
         .frame(width: size, height: size)
         .clipped()
-        .onAppear { refreshImageIfNeeded(force: true) }
+        .onAppear { refreshImageIfNeeded(force: false) }
         .onChange(of: cover) { _ in refreshImageIfNeeded(force: true) }
     }
 
@@ -469,15 +456,21 @@ struct CollectionCoverArtView: View {
             return
         }
 
-        guard force || cachedRelativePath != relativePath else { return }
-        cachedRelativePath = relativePath
-
+        // If we already have this image loaded, skip
+        guard force || cachedRelativePath != relativePath || localImage == nil else { return }
+        
         let cacheKey = relativePath as NSString
+        
+        // Check cache first - this is synchronous and fast
         if let cached = CollectionCoverImageStore.cache.object(forKey: cacheKey) {
-            self.localImage = cached
+            cachedRelativePath = relativePath
+            localImage = cached
             return
         }
 
+        // Only spawn background task if not in cache
+        cachedRelativePath = relativePath
+        
         Task.detached(priority: .utility) {
             let url = CollectionCoverImageStore.fileURL(for: relativePath)
             if let image = UIImage(contentsOfFile: url.path) {
