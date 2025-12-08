@@ -81,8 +81,8 @@ class StatisticsViewModel: ObservableObject {
                 return (collection: collection, duration: duration)
             }.sorted { $0.duration > $1.duration }
             
-            self.topCollectionsTotal = Array(total.prefix(5))
-            self.topCollectionsRecentPeriod = Array(recent.prefix(5))
+            self.topCollectionsTotal = Array(total.prefix(10))
+            self.topCollectionsRecentPeriod = Array(recent.prefix(10))
         } catch {
             print("Error loading collections for stats: \(error)")
         }

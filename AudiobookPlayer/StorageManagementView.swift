@@ -36,16 +36,19 @@ struct StorageManagementView: View {
         } message: {
             Text(NSLocalizedString("cache_clear_all_message", comment: "Clear all cached audio confirmation message"))
         }
-        .confirmationDialog(
+        .alert(
             "Delete Storage for Collection",
             isPresented: $showDeleteConfirmation,
             presenting: collectionToDelete
         ) { collection in
             Button("Delete Storage", role: .destructive) {
                 deleteStorage(for: collection)
+                collectionToDelete = nil
+                showDeleteConfirmation = false
             }
             Button("Cancel", role: .cancel) {
                 collectionToDelete = nil
+                showDeleteConfirmation = false
             }
         } message: { collection in
             Text("Are you sure you want to delete all downloaded/cached audio for '\(collection.title)'? This action cannot be undone.")
@@ -120,7 +123,7 @@ struct StorageManagementView: View {
                             collectionToDelete = collection
                             showDeleteConfirmation = true
                         } label: {
-                            Label("Delete Storage", systemImage: "trash")
+                            Image(systemName: "trash")
                         }
                     }
                 }

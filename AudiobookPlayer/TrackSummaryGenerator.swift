@@ -141,6 +141,8 @@ final class TrackSummaryGenerator {
         - Only include important repeated errors that need fixing, not minor one-off typos.
         - Use the corrected spellings in your summary and section texts.
         - Output ONLY JSON, no prose, matching this schema exactly:
+        - Always use Chinese for the result no matter what the input language is.
+
         \(schema)
 
         Transcript segments (format: [HH:MM:SS | start_ms=NNN] text):
