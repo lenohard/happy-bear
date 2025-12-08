@@ -51,6 +51,7 @@ struct CollectionDetailView: View {
     @State private var showRefreshReview = false
     @State private var refreshReviewTitle = ""
     @State private var refreshReviewDescription = ""
+    @State private var isDescriptionExpanded = false
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -639,83 +640,96 @@ struct CollectionDetailView: View {
     @ViewBuilder
     private func summarySection(_ collection: AudiobookCollection) -> some View {
         Section {
-            HStack(alignment: .top, spacing: 16) {
-                coverEditor(for: collection)
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 16) {
+                    coverEditor(for: collection)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(spacing: 6) {
-                        Text(collection.title)
-                            .font(.title3)
-                            .bold()
-                        if case .ebook = collection.source {
-                            Image(systemName: "book")
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 6) {
+                            Text(collection.title)
                                 .font(.title3)
-                                .foregroundStyle(.blue)
-                                .accessibilityLabel(NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection"))
-                        } else if case .rss = collection.source {
-                            Image(systemName: "antenna.radiowaves.left.and.right")
-                                .font(.title3)
-                                .foregroundStyle(.orange)
-                                .accessibilityLabel(NSLocalizedString("rss_collection_indicator_accessibility", value: "RSS collection", comment: "Indicator for RSS collection"))
+                                .bold()
+                                .multilineTextAlignment(.leading)
+                            if case .ebook = collection.source {
+                                Image(systemName: "book")
+                                    .font(.title3)
+                                    .foregroundStyle(.blue)
+                                    .accessibilityLabel(NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection"))
+                            } else if case .rss = collection.source {
+                                Image(systemName: "antenna.radiowaves.left.and.right")
+                                    .font(.title3)
+                                    .foregroundStyle(.orange)
+                                    .accessibilityLabel(NSLocalizedString("rss_collection_indicator_accessibility", value: "RSS collection", comment: "Indicator for RSS collection"))
+                            }
+                        }
+
+                        if case .ebook = collection.source, let charCount = collection.totalCharacterCount {
+                            Text("\(collection.trackCount) tracks • \(formatNumber(charCount)) chars")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
+                            Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.trackCount, formatBytes(totalSize)))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if collection.description?.isEmpty != false, library.canModifyCollection(collectionID) {
+                            Button {
+                                beginEditingCollectionDetails(collection)
+                            } label: {
+                                Label(
+                                    NSLocalizedString("add_description_button", comment: "Add description button"),
+                                    systemImage: "plus.circle"
+                                )
+                                .labelStyle(.titleAndIcon)
+                                .font(.subheadline)
+                            }
+                            .buttonStyle(.borderless)
+                            .foregroundStyle(.secondary)
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(1)
 
-                    if let description = collection.description, !description.isEmpty {
-                        Text(description)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    } else if library.canModifyCollection(collectionID) {
-                        Button {
-                            beginEditingCollectionDetails(collection)
+                    if library.canModifyCollection(collectionID) {
+                        Menu {
+                            Button {
+                                beginEditingCollectionDetails(collection)
+                            } label: {
+                                Label(
+                                    NSLocalizedString("edit_collection_details_action", comment: "Edit collection details action"),
+                                    systemImage: "pencil"
+                                )
+                            }
                         } label: {
-                            Label(
-                                NSLocalizedString("add_description_button", comment: "Add description button"),
-                                systemImage: "plus.circle"
-                            )
-                            .labelStyle(.titleAndIcon)
-                            .font(.subheadline)
+                            Image(systemName: "ellipsis.circle")
+                                .imageScale(.large)
+                                .padding(.leading, 8)
+                                .padding(.top, 2)
+                                .accessibilityLabel(NSLocalizedString("more_options_accessibility", comment: "More options accessibility label"))
                         }
-                        .buttonStyle(.borderless)
-                        .foregroundStyle(.secondary)
-                    } else {
-                        Text(NSLocalizedString("collection_description_empty", comment: "Collection description empty placeholder"))
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    if case .ebook = collection.source, let charCount = collection.totalCharacterCount {
-                         Text("\(collection.trackCount) tracks • \(formatNumber(charCount)) chars")
-                             .font(.caption)
-                             .foregroundStyle(.secondary)
-                    } else {
-                        let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
-                        Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.trackCount, formatBytes(totalSize)))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                
-                if library.canModifyCollection(collectionID) {
-                    Menu {
-                        Button {
-                            beginEditingCollectionDetails(collection)
-                        } label: {
-                            Label(
-                                NSLocalizedString("edit_collection_details_action", comment: "Edit collection details action"),
-                                systemImage: "pencil"
-                            )
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .imageScale(.large)
-                            .padding(.leading, 8)
-                            .padding(.top, 2)
-                            .accessibilityLabel(NSLocalizedString("more_options_accessibility", comment: "More options accessibility label"))
-                    }
+
+                if let description = collection.description, !description.isEmpty {
+                    CollectionDescriptionView(
+                        description: description,
+                        isExpanded: $isDescriptionExpanded
+                    )
+                } else {
+                    Text(NSLocalizedString("collection_description_empty", comment: "Collection description empty placeholder"))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
                 }
             }
             .padding(.vertical, 4)
+        }
+        .onChange(of: collection.id) { _ in
+            isDescriptionExpanded = false
+        }
+        .onChange(of: collection.description ?? "") { _ in
+            isDescriptionExpanded = false
         }
         .onAppear {
             isSummaryVisible = true
@@ -1120,15 +1134,14 @@ struct CollectionDetailView: View {
     }
 
     private func startPlayback(_ track: AudiobookTrack, in collection: AudiobookCollection) {
-        guard let token = authViewModel.token else {
-            missingAuthAlert = true
-            return
-        }
-
+        // Don't modify 'missingAuthAlert' here. AudioPlayerViewModel will handle missing token errors if needed.
+        // We pass the optional token. If it's nil and the track requires streaming, AudioPlayer will fail gracefully.
+        // If the track is cached or local, it will play successfully.
+        
         if audioPlayer.currentTrack?.id == track.id, audioPlayer.isPlaying {
             audioPlayer.togglePlayback()
         } else {
-            audioPlayer.play(track: track, in: collection, token: token)
+            audioPlayer.play(track: track, in: collection, token: authViewModel.token)
             recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
         }
     }
@@ -1609,6 +1622,73 @@ private struct CollectionInfoEditorView: View {
                 }
             }
         }
+    }
+}
+
+private struct CollectionDescriptionView: View {
+    let description: String
+    @Binding var isExpanded: Bool
+
+    private let collapsedLineLimit = 6
+    private let toggleThreshold = 220
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(description)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineSpacing(4)
+                .lineLimit(isExpanded ? nil : collapsedLineLimit)
+                .textSelection(.enabled)
+                .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                .overlay(alignment: .bottom) {
+                    if shouldShowToggle && !isExpanded {
+                        LinearGradient(
+                            gradient: Gradient(
+                                colors: [
+                                    Color(.systemBackground).opacity(0),
+                                    Color(.systemBackground)
+                                ]
+                            ),
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: 30)
+                        .allowsHitTesting(false)
+                    }
+                }
+
+            if shouldShowToggle {
+                Button {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.82, blendDuration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(
+                            isExpanded ?
+                            NSLocalizedString("collection_description_show_less", value: "Show less", comment: "Collapse collection description button") :
+                            NSLocalizedString("collection_description_show_more", value: "Show more", comment: "Expand collection description button")
+                        )
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                            .font(.caption)
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    isExpanded ?
+                    NSLocalizedString("collection_description_show_less_accessibility", value: "Show less description", comment: "Accessibility label for collapsing collection description") :
+                    NSLocalizedString("collection_description_show_more_accessibility", value: "Show full description", comment: "Accessibility label for expanding collection description")
+                )
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var shouldShowToggle: Bool {
+        description.count > toggleThreshold
     }
 }
 

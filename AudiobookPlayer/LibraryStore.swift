@@ -20,6 +20,7 @@ final class LibraryStore: ObservableObject {
     private let schemaVersion = 3
 
     private var useFallbackJSON = false
+    private var remoteCoverPrefetches: [UUID: Task<Void, Never>] = [:]
 
     init(
         dbManager: GRDBDatabaseManager = .shared,
@@ -123,6 +124,7 @@ final class LibraryStore: ObservableObject {
         }
 
         await preloadCollectionsForListeningHistoryIfNeeded()
+        prefetchRemoteCovers()
     }
 
     func save(_ collection: AudiobookCollection) {
@@ -134,6 +136,7 @@ final class LibraryStore: ObservableObject {
         }
 
         collections = updated.sorted { $0.updatedAt > $1.updatedAt }
+        ensureRemoteCoverCached(for: collection)
 
         // Persist to database
         if !useFallbackJSON {
@@ -150,6 +153,8 @@ final class LibraryStore: ObservableObject {
     }
 
     func delete(_ collection: AudiobookCollection) {
+        remoteCoverPrefetches[collection.id]?.cancel()
+        remoteCoverPrefetches[collection.id] = nil
         collections.removeAll { $0.id == collection.id }
 
         if case let .image(relativePath) = collection.coverAsset.kind {
@@ -589,6 +594,9 @@ final class LibraryStore: ObservableObject {
             throw LibraryStoreError.collectionNotFound
         }
 
+        remoteCoverPrefetches[collectionID]?.cancel()
+        remoteCoverPrefetches[collectionID] = nil
+
         let existingPath: String?
         switch collections[index].coverAsset.kind {
         case let .image(relativePath):
@@ -630,6 +638,9 @@ final class LibraryStore: ObservableObject {
         guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
             return
         }
+
+        remoteCoverPrefetches[collectionID]?.cancel()
+        remoteCoverPrefetches[collectionID] = nil
 
         var collection = collections[index]
         if case let .image(relativePath) = collection.coverAsset.kind {
@@ -945,6 +956,69 @@ extension LibraryStore {
         }
     }
 
+    private func prefetchRemoteCovers() {
+        for collection in collections {
+            ensureRemoteCoverCached(for: collection)
+        }
+    }
+
+    private func ensureRemoteCoverCached(for collection: AudiobookCollection) {
+        guard case let .remote(url) = collection.coverAsset.kind else { return }
+        guard remoteCoverPrefetches[collection.id] == nil else { return }
+
+        let task = Task(priority: .utility) { [weak self] in
+            guard let self else { return }
+            defer {
+                Task { @MainActor in
+                    self.remoteCoverPrefetches[collection.id] = nil
+                }
+            }
+
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                guard !Task.isCancelled else { return }
+                guard !data.isEmpty else { return }
+
+                let relativePath = try await self.coverImageStore.saveImageData(
+                    data,
+                    for: collection.id,
+                    replacing: nil
+                )
+
+                guard !Task.isCancelled else { return }
+                await self.applyCachedCover(
+                    relativePath: relativePath,
+                    for: collection.id,
+                    expectedRemoteURL: url
+                )
+            } catch {
+                print("[LibraryStore] Remote cover download failed for \(collection.title): \(error.localizedDescription)")
+            }
+        }
+
+        remoteCoverPrefetches[collection.id] = task
+    }
+
+    @MainActor
+    private func applyCachedCover(relativePath: String, for collectionID: UUID, expectedRemoteURL: URL) {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else { return }
+        guard case let .remote(currentURL) = collections[index].coverAsset.kind,
+              currentURL == expectedRemoteURL else { return }
+
+        var updated = collections[index]
+        updated.coverAsset = CollectionCover(
+            kind: .image(relativePath: relativePath),
+            dominantColorHex: updated.coverAsset.dominantColorHex
+        )
+        collections[index] = updated
+
+        if !useFallbackJSON {
+            persistToDatabase(updated)
+        } else {
+            persistCurrentSnapshot()
+        }
+    }
+
     private func persistCurrentSnapshot() {
         let snapshot = LibraryFile(schemaVersion: schemaVersion, collections: collections)
         Task(priority: .utility) {
@@ -1158,6 +1232,7 @@ private extension LibraryStore {
 
                 collections = merged
                 persistCurrentSnapshot()
+                prefetchRemoteCovers()
             } else {
                 print("[FAVORITES-SYNC] No changes after merge")
             }
