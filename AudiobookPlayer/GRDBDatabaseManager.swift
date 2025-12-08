@@ -55,6 +55,8 @@ actor GRDBDatabaseManager {
             print("[GRDB] Transcript repair columns ensured")
             try addTranscriptionJobParagraphColumnsIfNeeded(in: db)
             print("[GRDB] Transcription job paragraph columns ensured")
+            try addTranscriptionJobFileIdColumnIfNeeded(in: db)
+            print("[GRDB] Transcription job file_id column ensured")
 
             // Ensure new optional columns exist
             try addTrackCharacterCountColumnIfNeeded(in: db)
@@ -1676,6 +1678,15 @@ actor GRDBDatabaseManager {
 
         if !existingColumns.contains("pending_paragraphs") {
             try database.execute(sql: "ALTER TABLE transcription_jobs ADD COLUMN pending_paragraphs INTEGER")
+        }
+    }
+
+    private func addTranscriptionJobFileIdColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(transcription_jobs)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("soniox_file_id") {
+            try database.execute(sql: "ALTER TABLE transcription_jobs ADD COLUMN soniox_file_id TEXT")
         }
     }
 

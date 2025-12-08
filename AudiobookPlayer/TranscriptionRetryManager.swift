@@ -1,4 +1,5 @@
 import Foundation
+import CryptoKit
 
 // MARK: - Transcription Manager Retry & Backoff Extension
 
@@ -158,12 +159,52 @@ extension TranscriptionManager {
             if url.isFileURL {
                 return url
             }
-            return try await downloadFileForRetry(
-                from: url,
-                jobId: jobId,
-                suggestedFilename: track.id.uuidString + "_retry_remote_" + track.filename,
-                fallbackTotalBytes: track.fileSize
-            ).0
+            
+            // Check cache for external track to avoid re-downloading
+            let cacheManager = AudioCacheManager()
+            let trackKey = track.id.uuidString
+            let baiduFileId: String
+            if let checksum = track.checksum, !checksum.isEmpty {
+                baiduFileId = checksum
+            } else {
+                baiduFileId = String(stableHashHex(url.absoluteString).prefix(16))
+            }
+            
+            if let cachedURL = cacheManager.getCachedAssetURL(
+                for: trackKey,
+                baiduFileId: baiduFileId,
+                filename: track.filename
+            ) {
+                print("[TranscriptionRetry] Cache hit for external track \(track.id) -> \(cachedURL.lastPathComponent)")
+                return cachedURL
+            }
+            
+            print("[TranscriptionRetry] Cache miss for external track \(track.id); starting cache download")
+            
+            // Prepare cache file
+            let _ = cacheManager.createCacheFile(
+                trackId: track.id.uuidString,
+                baiduFileId: baiduFileId,
+                filename: track.filename,
+                fileSizeBytes: Int(track.fileSize)
+            )
+            
+            let downloadManager = AudioCacheDownloadManager(cacheManager: cacheManager)
+            let downloadedURL = try await downloadManager.downloadOnce(
+                trackId: track.id.uuidString,
+                baiduFileId: baiduFileId,
+                filename: track.filename,
+                streamingURL: url,
+                cacheSizeBytes: Int(track.fileSize)
+            ) { progress in
+                let received = Int64(progress.downloadedRange.end)
+                let total = Int64(progress.totalBytes)
+                Task { await self.updateDownloadProgress(jobId: jobId, receivedBytes: received, totalBytes: total) }
+            }
+            
+            print("[TranscriptionRetry] Cache download complete for external track \(track.id) -> \(downloadedURL.lastPathComponent)")
+            cacheManager.markCacheAsComplete(trackId: track.id.uuidString, baiduFileId: baiduFileId)
+            return downloadedURL
 
         case .text, .cachedText:
             // Text-based tracks (ebooks) cannot be transcribed as audio
@@ -248,5 +289,11 @@ extension TranscriptionManager {
         }
 
         return url
+    }
+    
+    private func stableHashHex(_ string: String) -> String {
+        let data = Data(string.utf8)
+        let digest = SHA256.hash(data: data)
+        return digest.compactMap { String(format: "%02x", $0) }.joined()
     }
 }

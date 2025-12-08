@@ -12,6 +12,7 @@ extension GRDBDatabaseManager {
     func createTranscriptionJob(
         trackId: String,
         sonioxJobId: String,
+        sonioxFileId: String? = nil,
         status: String = "queued",
         progress: Double? = nil,
         totalParagraphs: Int? = nil,
@@ -23,6 +24,7 @@ extension GRDBDatabaseManager {
         let job = TranscriptionJob(
             trackId: trackId,
             sonioxJobId: sonioxJobId,
+            sonioxFileId: sonioxFileId,
             status: status,
             progress: progress,
             totalParagraphs: totalParagraphs,
@@ -33,15 +35,16 @@ extension GRDBDatabaseManager {
         try db.write { db in
             try db.execute(sql: """
                 INSERT INTO transcription_jobs (
-                    id, track_id, soniox_job_id, status,
+                    id, track_id, soniox_job_id, soniox_file_id, status,
                     progress, created_at, retry_count, last_attempt_at,
                     total_paragraphs, processed_paragraphs, pending_paragraphs
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     job.id,
                     job.trackId,
                     job.sonioxJobId,
+                    job.sonioxFileId,
                     job.status,
                     job.progress,
                     Self.sqliteDateFormatter.string(from: job.createdAt),
@@ -218,6 +221,24 @@ extension GRDBDatabaseManager {
         }
     }
 
+    /// Update the Soniox file identifier (used for resuming uploads)
+    func updateJobSonioxFileId(jobId: String, sonioxFileId: String) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(sql: """
+                UPDATE transcription_jobs
+                SET soniox_file_id = ?
+                WHERE id = ?
+                """,
+                arguments: [
+                    sonioxFileId,
+                    jobId
+                ]
+            )
+        }
+    }
+
     /// Mark job as completed and record completion time
     func markJobCompleted(jobId: String) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
@@ -371,6 +392,7 @@ extension GRDBDatabaseManager {
             return nil
         }
 
+        let sonioxFileId = row["soniox_file_id"] as? String
         let progress = row["progress"] as? Double
         let errorMessage = row["error_message"] as? String
         let retryCount = (row["retry_count"] as? Int) ?? 0
@@ -411,6 +433,7 @@ extension GRDBDatabaseManager {
             id: id,
             trackId: trackId,
             sonioxJobId: sonioxJobId,
+            sonioxFileId: sonioxFileId,
             status: status,
             progress: progress,
             createdAt: createdAt,

@@ -156,7 +156,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         // Reload API key in case it was saved after app launch
         reloadSonioxAPIKey()
 
-        guard let sonioxAPI = sonioxAPI else {
+        guard let api = sonioxAPI else {
             throw TranscriptionError.noAPIKey
         }
 
@@ -204,65 +204,95 @@ class TranscriptionManager: NSObject, ObservableObject {
             } else if let jobId = currentJobId {
                 logger.debug("[TranscriptionManager] Reusing existing job \(jobId, privacy: .public) for track \(trackIdStr, privacy: .public)")
             }
+            
+            // Check for existing file ID to skip upload
+            var fileId: String?
+            if let jobId = currentJobId, let job = try await dbManager.loadTranscriptionJob(jobId: jobId) {
+                fileId = job.sonioxFileId
+                if let existing = fileId {
+                    logger.info("[TranscriptionManager] Found existing file ID \(existing, privacy: .public) for job \(jobId, privacy: .public). Skipping upload.")
+                }
+            }
 
             DispatchQueue.main.async { self.transcriptionProgress = 0.1 }
 
             if let jobId = currentJobId {
-                try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.1)
+                // If skipping upload, jump straight to processing/uploading end state
+                let status = fileId != nil ? "uploading" : "uploading"
+                let progress = fileId != nil ? 0.2 : 0.1
+                
+                try await dbManager.updateJobStatus(jobId: jobId, status: status, progress: progress)
                 updateActiveJob(jobId: jobId) { existing in
-                    existing.updating(status: "uploading", progress: 0.1, lastAttemptAt: Date())
+                    existing.updating(status: status, progress: progress, lastAttemptAt: Date())
                 }
             }
+            
+            // Step 1: Upload file to Soniox (if not already uploaded)
+            if fileId == nil {
+                var uploadFileURL = audioFileURL
+                var extractedAudioURL: URL?
 
-            var uploadFileURL = audioFileURL
-            var extractedAudioURL: URL?
-
-            // Check if track is video and extract audio if needed
-            if let (track, _) = try? await dbManager.loadTrack(id: trackId), track.mediaKind == .video {
-                 logger.info("[TranscriptionManager] Track is video, extracting audio...")
-                 
-                 if let jobId = currentJobId {
-                     try await dbManager.updateJobStatus(jobId: jobId, status: "extracting", progress: 0.1)
-                     updateActiveJob(jobId: jobId) { existing in
-                        existing.updating(status: "extracting", progress: 0.1, lastAttemptAt: Date())
+                // Check if track is video and extract audio if needed
+                if let (track, _) = try? await dbManager.loadTrack(id: trackId), track.mediaKind == .video {
+                     logger.info("[TranscriptionManager] Track is video, extracting audio...")
+                     
+                     if let jobId = currentJobId {
+                         try await dbManager.updateJobStatus(jobId: jobId, status: "extracting", progress: 0.1)
+                         updateActiveJob(jobId: jobId) { existing in
+                            existing.updating(status: "extracting", progress: 0.1, lastAttemptAt: Date())
+                         }
                      }
-                 }
-                 
-                 extractedAudioURL = try await extractAudioFromVideo(videoURL: audioFileURL)
-                 uploadFileURL = extractedAudioURL!
-                 logger.info("[TranscriptionManager] Audio extracted to \(uploadFileURL.path)")
-                 
-                 // Update status back to uploading
-                 if let jobId = currentJobId {
-                     try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.15)
-                     updateActiveJob(jobId: jobId) { existing in
-                        existing.updating(status: "uploading", progress: 0.15, lastAttemptAt: Date())
+                     
+                     extractedAudioURL = try await extractAudioFromVideo(videoURL: audioFileURL)
+                     uploadFileURL = extractedAudioURL!
+                     logger.info("[TranscriptionManager] Audio extracted to \(uploadFileURL.path)")
+                     
+                     // Update status back to uploading
+                     if let jobId = currentJobId {
+                         try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.15)
+                         updateActiveJob(jobId: jobId) { existing in
+                            existing.updating(status: "uploading", progress: 0.15, lastAttemptAt: Date())
+                         }
                      }
-                 }
-            }
-
-            // Step 1: Upload file to Soniox
-            let fileId = try await sonioxAPI.uploadFile(fileURL: uploadFileURL)
-            logger.info("[TranscriptionManager] Upload complete for track \(trackIdStr, privacy: .public); fileId=\(fileId, privacy: .public) size=\(fileSizeBytes, privacy: .public)")
-
-            if let jobId = currentJobId {
-                try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.2)
-                updateActiveJob(jobId: jobId) { existing in
-                    existing.updating(status: "uploading", progress: 0.2, lastAttemptAt: Date())
                 }
-            }
 
-            // Cleanup temporary file if needed
-            if let extracted = extractedAudioURL {
-                try? FileManager.default.removeItem(at: extracted)
+                let newFileId = try await api.uploadFile(fileURL: uploadFileURL)
+                logger.info("[TranscriptionManager] Upload complete for track \(trackIdStr, privacy: .public); fileId=\(newFileId, privacy: .public) size=\(fileSizeBytes, privacy: .public)")
+                
+                // Save file ID for potential retries
+                if let jobId = currentJobId {
+                    try await dbManager.updateJobSonioxFileId(jobId: jobId, sonioxFileId: newFileId)
+                    // Update local object immediately to reflect the change if needed
+                    updateActiveJob(jobId: jobId) { existing in
+                        existing.updating(sonioxFileId: newFileId)
+                    }
+                }
+                
+                fileId = newFileId
+
+                if let jobId = currentJobId {
+                    try await dbManager.updateJobStatus(jobId: jobId, status: "uploading", progress: 0.2)
+                    updateActiveJob(jobId: jobId) { existing in
+                        existing.updating(status: "uploading", progress: 0.2, lastAttemptAt: Date())
+                    }
+                }
+
+                // Cleanup temporary file if needed
+                if let extracted = extractedAudioURL {
+                    try? FileManager.default.removeItem(at: extracted)
+                }
+                cleanupTemporaryFileIfNeeded(audioFileURL)
             }
-            cleanupTemporaryFileIfNeeded(audioFileURL)
+            
+            guard let validFileId = fileId else {
+                throw TranscriptionError.transcriptionFailed("Failed to resolve file ID")
+            }
 
             DispatchQueue.main.async { self.transcriptionProgress = 0.2 }
 
             // Step 2: Create transcription job
-            let transcriptionId = try await sonioxAPI.createTranscription(
-                fileId: fileId,
+            let transcriptionId = try await api.createTranscription(
+                fileId: validFileId,
                 languageHints: languageHints,
                 enableSpeakerDiarization: true,
                 context: context
@@ -286,14 +316,14 @@ class TranscriptionManager: NSObject, ObservableObject {
                 transcriptionId: transcriptionId,
                 trackId: trackIdStr,
                 transcriptId: transcriptId,
-                fileId: fileId,
-                sonioxAPI: sonioxAPI,
+                fileId: validFileId,
+                sonioxAPI: api,
                 jobId: currentJobId
             )
 
             // Cleanup succeeded
-            try? await sonioxAPI.deleteTranscription(transcriptionId: transcriptionId)
-            try? await sonioxAPI.deleteFile(fileId: fileId)
+            try? await api.deleteTranscription(transcriptionId: transcriptionId)
+            try? await api.deleteFile(fileId: validFileId)
 
             if let jobId = currentJobId {
                 try await dbManager.markJobCompleted(jobId: jobId)

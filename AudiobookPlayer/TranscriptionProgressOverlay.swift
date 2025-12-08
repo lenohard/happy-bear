@@ -63,24 +63,36 @@ struct TranscriptionProgressSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Section(header: Text("active_transcriptions")) {
+                Section {
                     if transcriptionManager.activeJobs.isEmpty {
                         Text("no_active_transcriptions")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                     } else {
                         ForEach(transcriptionManager.activeJobs) { job in
                             let trackName = lookupTrackName(for: job.trackId, in: library) ?? job.trackId
                             TranscriptionJobRowView(job: job, trackName: trackName)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         }
                     }
+                } header: {
+                    Text("active_transcriptions")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .padding(.vertical, 4)
                 }
+                .listSectionSeparator(.hidden)
 
                 if let errorMessage = transcriptionManager.errorMessage, !errorMessage.isEmpty {
-                    Section(header: Text("recent_errors")) {
+                    Section {
                         HStack(spacing: 12) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundStyle(.orange)
+                                .font(.title3)
 
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("transcription_error_occurred")
@@ -90,40 +102,56 @@ struct TranscriptionProgressSheet: View {
                                 Text(errorMessage)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
-                                    .lineLimit(2)
                             }
 
                             Spacer()
                         }
-                        .padding(.vertical, 8)
+                        .padding(16)
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(12)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                    } header: {
+                        Text("recent_errors")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
                     }
                 }
 
-                Section(header: Text("tips")) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .top, spacing: 8) {
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(alignment: .top, spacing: 12) {
                             Image(systemName: "info.circle.fill")
                                 .foregroundStyle(.blue)
-                                .font(.caption)
+                                .font(.subheadline)
 
                             Text("transcription_tip_background")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
 
-                        HStack(alignment: .top, spacing: 8) {
+                        HStack(alignment: .top, spacing: 12) {
                             Image(systemName: "info.circle.fill")
                                 .foregroundStyle(.blue)
-                                .font(.caption)
+                                .font(.subheadline)
 
                             Text("transcription_tip_view")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
                     }
-                    .padding(.vertical, 8)
+                    .padding(16)
+                    .background(Color.gray.opacity(0.1))
+                    .cornerRadius(12)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                } header: {
+                    Text("tips")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
                 }
             }
+            .listStyle(.plain)
             .navigationTitle("transcription_progress_title")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -170,7 +198,7 @@ struct StatusBadge: View {
         case "extracting":
             return .orange
         case "generating", "transcribing", "processing":
-            return .blue
+            return .purple
         case "completed":
             return .green
         case "failed":
@@ -205,12 +233,11 @@ struct StatusBadge: View {
 
     var body: some View {
         Text(NSLocalizedString(statusLabel, comment: ""))
-            .font(.caption2)
-            .fontWeight(.semibold)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(statusColor.opacity(0.2))
-            .cornerRadius(6)
+            .font(.system(size: 11, weight: .bold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(statusColor.opacity(0.15))
+            .cornerRadius(8)
             .foregroundStyle(statusColor)
     }
 }
@@ -295,39 +322,73 @@ struct TranscriptionJobRowView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(trackName)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .lineLimit(2)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                // Icon Container
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color.blue.opacity(0.1))
+                        .frame(width: 42, height: 42)
+                    
+                    Image(systemName: isTTSJob ? "text.bubble.fill" : "waveform")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(.blue)
+                }
 
-                    Text(job.sonioxJobId)
-                        .font(.caption2.monospaced())
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(trackName)
+                            .font(.headline)
+                            .lineLimit(1)
+                            .foregroundStyle(.primary)
+                        
+                        Spacer()
+                        
+                        StatusBadge(status: job.status)
+                    }
+                    
+                    Text("ID: " + job.sonioxJobId)
+                        .font(.caption)
+                        .fontDesign(.monospaced)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-
-                Spacer()
-
-                StatusBadge(status: job.status)
             }
 
-            ProgressView(value: progressValue, total: 1.0)
-                .progressViewStyle(.linear)
-
-            HStack {
-                Text(String(format: "%.0f%%", progressValue * 100))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(detailStatusText)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            VStack(spacing: 6) {
+                HStack {
+                    Text(detailStatusText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    
+                    Spacer()
+                    
+                    Text(String(format: "%.0f%%", progressValue * 100))
+                        .font(.caption.bold())
+                        .foregroundStyle(.primary)
+                }
+                
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.secondary.opacity(0.15))
+                            .frame(height: 6)
+                        
+                        Capsule()
+                            .fill(Color.blue)
+                            .frame(width: max(geo.size.width * CGFloat(progressValue), 6), height: 6)
+                            .animation(.spring(response: 0.5, dampingFraction: 0.7), value: progressValue)
+                    }
+                }
+                .frame(height: 6)
             }
         }
-        .padding(.vertical, 6)
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.gray.opacity(0.1))
+                .shadow(color: Color.black.opacity(0.04), radius: 3, x: 0, y: 1)
+        )
     }
 }
 

@@ -43,6 +43,7 @@ enum TranscriptionDatabaseSchema {
         id TEXT PRIMARY KEY,
         track_id TEXT NOT NULL,
         soniox_job_id TEXT NOT NULL,
+        soniox_file_id TEXT,
         status TEXT NOT NULL DEFAULT 'queued',
         progress REAL,
         created_at DATETIME NOT NULL,

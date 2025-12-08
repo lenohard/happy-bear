@@ -135,6 +135,7 @@ struct TranscriptionJob: Identifiable, Codable {
     let id: String  // UUID string
     let trackId: String  // FK to AudiobookTrack.id
     let sonioxJobId: String  // Soniox job ID
+    let sonioxFileId: String? // Soniox file ID (for skipping upload)
     let status: String  // "queued", "downloading", "uploading", "transcribing", "processing", "completed", "failed"
     let progress: Double?  // 0.0 - 1.0 (estimated)
     let createdAt: Date
@@ -150,6 +151,7 @@ struct TranscriptionJob: Identifiable, Codable {
         case id
         case trackId = "track_id"
         case sonioxJobId = "soniox_job_id"
+        case sonioxFileId = "soniox_file_id"
         case status
         case progress
         case createdAt = "created_at"
@@ -166,6 +168,7 @@ struct TranscriptionJob: Identifiable, Codable {
         id: String = UUID().uuidString,
         trackId: String,
         sonioxJobId: String,
+        sonioxFileId: String? = nil,
         status: String = "queued",
         progress: Double? = nil,
         createdAt: Date = Date(),
@@ -180,6 +183,7 @@ struct TranscriptionJob: Identifiable, Codable {
         self.id = id
         self.trackId = trackId
         self.sonioxJobId = sonioxJobId
+        self.sonioxFileId = sonioxFileId
         self.status = status
         self.progress = progress
         self.createdAt = createdAt
@@ -214,6 +218,7 @@ extension TranscriptionJob {
         progress: Double? = nil,
         errorMessage: String? = nil,
         sonioxJobId: String? = nil,
+        sonioxFileId: String? = nil,
         lastAttemptAt: Date? = nil,
         totalParagraphs: Int? = nil,
         processedParagraphs: Int? = nil
@@ -222,6 +227,7 @@ extension TranscriptionJob {
             id: id,
             trackId: trackId,
             sonioxJobId: sonioxJobId ?? self.sonioxJobId,
+            sonioxFileId: sonioxFileId ?? self.sonioxFileId,
             status: status ?? self.status,
             progress: progress ?? self.progress,
             createdAt: createdAt,
@@ -350,6 +356,7 @@ struct TranscriptionJobRow: Codable {
     let id: String
     let trackId: String
     let sonioxJobId: String
+    let sonioxFileId: String?
     let status: String
     let progress: Double?
     let createdAt: Date
@@ -365,6 +372,7 @@ struct TranscriptionJobRow: Codable {
         case id
         case trackId = "track_id"
         case sonioxJobId = "soniox_job_id"
+        case sonioxFileId = "soniox_file_id"
         case status
         case progress
         case createdAt = "created_at"
@@ -381,6 +389,7 @@ struct TranscriptionJobRow: Codable {
         self.id = job.id
         self.trackId = job.trackId
         self.sonioxJobId = job.sonioxJobId
+        self.sonioxFileId = job.sonioxFileId
         self.status = job.status
         self.progress = job.progress
         self.createdAt = job.createdAt
