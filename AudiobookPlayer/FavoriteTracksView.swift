@@ -69,6 +69,7 @@ struct FavoriteTracksView: View {
     
     private func toggleFavorite(_ entry: LibraryStore.FavoriteTrackEntry) {
         library.toggleFavorite(for: entry.track.id, in: entry.collection.id)
+        audioPlayer.notifyFavoriteToggle(for: entry.track.id)
     }
     
     private func play(entry: LibraryStore.FavoriteTrackEntry) {
@@ -160,6 +161,7 @@ private enum FavoriteTracksPreviewData {
         collections.forEach { library.save($0) }
 
         let audioPlayer = AudioPlayerViewModel()
+        audioPlayer.bindLibrary(library)
         if let firstCollection = library.collections.first {
             audioPlayer.prepareCollection(firstCollection)
         }

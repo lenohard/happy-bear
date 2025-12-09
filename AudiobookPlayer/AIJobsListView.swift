@@ -23,6 +23,7 @@ struct AIJobsListView: View {
                                     } label: {
                                         Label("Cancel", systemImage: "xmark.circle")
                                     }
+                                    .labelStyle(.iconOnly)
                                     .tint(.gray)
                                 }
                             }
@@ -48,6 +49,7 @@ struct AIJobsListView: View {
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+                                .labelStyle(.iconOnly)
                                 
                                 if job.status == .failed || job.status == .canceled {
                                     Button {
@@ -55,6 +57,7 @@ struct AIJobsListView: View {
                                     } label: {
                                         Label("Restart", systemImage: "arrow.clockwise")
                                     }
+                                    .labelStyle(.iconOnly)
                                     .tint(.blue)
                                 }
                             }

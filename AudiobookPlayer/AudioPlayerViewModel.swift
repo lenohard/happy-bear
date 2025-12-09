@@ -4,6 +4,7 @@ import Foundation
 import CryptoKit
 #if os(iOS)
 import MediaPlayer
+private let favoriteNowPlayingInfoKey = "MPNowPlayingInfoPropertyIsLiked"
 #endif
 
 @MainActor
@@ -56,6 +57,7 @@ final class AudioPlayerViewModel: ObservableObject {
     private var sleepTimer: Timer?
     private var currentSessionStartTime: Date?
     private let sessionDurationThreshold: TimeInterval = 2.0
+    private weak var library: LibraryStore?
 
     private static let playbackRateDefaultsKey = "audio_player_playback_rate"
     private static let shuffleDefaultsKey = "audio_player_shuffle_enabled"
@@ -110,6 +112,15 @@ final class AudioPlayerViewModel: ObservableObject {
 #if os(iOS)
         configureRemoteCommands()
 #endif
+    }
+
+    func bindLibrary(_ library: LibraryStore?) {
+        self.library = library
+    }
+
+    func notifyFavoriteToggle(for trackID: UUID) {
+        applyFavoriteStateChange(for: trackID)
+        updateNowPlayingFavoriteState()
     }
 
     var hasActivePlayer: Bool {
@@ -1709,6 +1720,9 @@ private extension AudioPlayerViewModel {
         commandCenter.changePlaybackPositionCommand.isEnabled = true
         commandCenter.changePlaybackRateCommand.isEnabled = true
         commandCenter.changePlaybackRateCommand.supportedPlaybackRates = AudioPlayerViewModel.presetPlaybackRates.map { NSNumber(value: $0) }
+        commandCenter.likeCommand.isEnabled = true
+        commandCenter.likeCommand.localizedTitle = NSLocalizedString("favorite_tracks_title", comment: "Favorite")
+        commandCenter.likeCommand.localizedShortTitle = NSLocalizedString("favorite_short_title", value: "Favorite", comment: "Favorite short title")
 
         let playTarget = commandCenter.playCommand.addTarget { [weak self] _ in
             self?.handleRemotePlayCommand() ?? .commandFailed
@@ -1752,6 +1766,11 @@ private extension AudioPlayerViewModel {
             return self?.handleRemotePlaybackRateCommand(event: rateEvent) ?? .commandFailed
         }
         remoteCommandTargets.append((commandCenter.changePlaybackRateCommand, changeRateTarget))
+
+        let favoriteTarget = commandCenter.likeCommand.addTarget { [weak self] _ in
+            return self?.handleRemoteFavoriteCommand() ?? .commandFailed
+        }
+        remoteCommandTargets.append((commandCenter.likeCommand, favoriteTarget))
     }
 
     func clearRemoteCommandTargets() {
@@ -1830,6 +1849,20 @@ private extension AudioPlayerViewModel {
         return .success
     }
 
+    func handleRemoteFavoriteCommand() -> MPRemoteCommandHandlerStatus {
+        guard
+            let library,
+            let collection = activeCollection,
+            let track = currentTrack
+        else {
+            return .commandFailed
+        }
+
+        library.toggleFavorite(for: track.id, in: collection.id)
+        notifyFavoriteToggle(for: track.id)
+        return .success
+    }
+
     func updateNowPlayingInfo() {
         guard let collection = activeCollection, let track = currentTrack else {
             resetNowPlayingInfo()
@@ -1860,6 +1893,9 @@ private extension AudioPlayerViewModel {
         if durationValue > 0 {
             info[MPMediaItemPropertyPlaybackDuration] = durationValue
         }
+#if os(iOS)
+        info[favoriteNowPlayingInfoKey] = NSNumber(value: track.isFavorite)
+#endif
 
         // Add artwork based on collection cover type
         switch collection.coverAsset.kind {
@@ -1890,6 +1926,9 @@ private extension AudioPlayerViewModel {
 
         nowPlayingInfo = info
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+#if os(iOS)
+        MPRemoteCommandCenter.shared().likeCommand.isActive = track.isFavorite
+#endif
     }
 
     func updateNowPlayingElapsedTime() {
@@ -1925,9 +1964,35 @@ private extension AudioPlayerViewModel {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
 
+    func updateNowPlayingFavoriteState() {
+        guard !nowPlayingInfo.isEmpty else { return }
+        let isFavorite = currentTrack?.isFavorite ?? false
+#if os(iOS)
+        nowPlayingInfo[favoriteNowPlayingInfoKey] = NSNumber(value: isFavorite)
+#endif
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+#if os(iOS)
+        MPRemoteCommandCenter.shared().likeCommand.isActive = isFavorite
+#endif
+    }
+
     func resetNowPlayingInfo() {
         nowPlayingInfo.removeAll()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+#if os(iOS)
+        MPRemoteCommandCenter.shared().likeCommand.isActive = false
+#endif
+    }
+
+    private func applyFavoriteStateChange(for trackID: UUID) {
+        guard var current = currentTrack, current.id == trackID else { return }
+        current.isFavorite.toggle()
+        current.favoritedAt = current.isFavorite ? Date() : nil
+        currentTrack = current
+
+        if let playlistIndex = playlist.firstIndex(where: { $0.id == trackID }) {
+            playlist[playlistIndex] = current
+        }
     }
     
     // MARK: - Listening Statistics Tracking

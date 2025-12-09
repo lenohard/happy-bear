@@ -12,6 +12,7 @@ struct TrackPickerView: View {
     @State private var browsePath: String = "/"
     @State private var isPresentingBrowser = false
     @State private var errorMessage: String?
+    @State private var isProcessing = false
 
     var body: some View {
         NavigationStack {
@@ -31,6 +32,7 @@ struct TrackPickerView: View {
                 }
             }
             .ignoresSafeArea(edges: .bottom) // Apply to entire ZStack
+            .interactiveDismissDisabled(isProcessing)
             .navigationTitle(NSLocalizedString("add_tracks_button", comment: "Track picker title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -40,12 +42,14 @@ struct TrackPickerView: View {
                     } label: {
                         Label(NSLocalizedString("track_picker_browse_button", comment: "Browse Netdisk"), systemImage: "folder.badge.plus")
                     }
+                    .disabled(isProcessing)
                 }
 
                 ToolbarItem(placement: .cancellationAction) {
                     Button(NSLocalizedString("cancel_button", comment: "Cancel")) {
                         dismiss()
                     }
+                    .disabled(isProcessing)
                 }
             }
             .alert(item: Binding(
@@ -187,11 +191,19 @@ struct TrackPickerView: View {
 
                 Spacer()
 
-                Button(NSLocalizedString("track_picker_add_selected", comment: "Add selected")) {
+                Button(action: {
                     addSelectedTracks()
+                }) {
+                    if isProcessing {
+                        ProgressView()
+                            .controlSize(.small)
+                            .tint(.white)
+                    } else {
+                        Text(NSLocalizedString("track_picker_add_selected", comment: "Add selected"))
+                    }
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(selectedEntries.isEmpty)
+                .disabled(selectedEntries.isEmpty || isProcessing)
             }
             .padding(.horizontal)
             .padding(.bottom, 20) // Account for safe area
@@ -227,26 +239,75 @@ struct TrackPickerView: View {
     }
 
     private func addSelectedTracks() {
-        let baseIndex = library.collections.first { $0.id == collectionID }?.tracks.count ?? 0
-
-        let newTracks: [AudiobookTrack] = selectedEntries.enumerated().map { offset, entry in
-            AudiobookTrack(
-                id: UUID(),
-                displayName: entry.serverFilename,
-                filename: entry.serverFilename,
-                location: .baidu(fsId: entry.fsId, path: entry.path),
-                fileSize: entry.size,
-                duration: nil,
-                trackNumber: baseIndex + offset + 1,
-                checksum: entry.md5,
-                metadata: [:]
-            )
+        guard let token = authViewModel.token else { return }
+        isProcessing = true
+        
+        Task {
+            defer { isProcessing = false }
+            
+            var finalEntries: [BaiduNetdiskEntry] = []
+            let client = BaiduNetdiskClient()
+            
+            for entry in selectedEntries {
+                if entry.isDir {
+                    let files = await fetchAllFiles(in: entry, client: client, token: token)
+                    finalEntries.append(contentsOf: files)
+                } else {
+                    finalEntries.append(entry)
+                }
+            }
+            
+            guard !finalEntries.isEmpty else { return }
+            
+            // Re-calculate base index as it might have changed or we want to be safe
+            let baseIndex = library.collections.first { $0.id == collectionID }?.tracks.count ?? 0
+            
+            let newTracks: [AudiobookTrack] = finalEntries.enumerated().map { offset, entry in
+                AudiobookTrack(
+                    id: UUID(),
+                    displayName: entry.serverFilename,
+                    filename: entry.serverFilename,
+                    location: .baidu(fsId: entry.fsId, path: entry.path),
+                    fileSize: entry.size,
+                    duration: nil,
+                    trackNumber: baseIndex + offset + 1,
+                    checksum: entry.md5,
+                    metadata: [:]
+                )
+            }
+            
+            await MainActor.run {
+                onTracksSelected(newTracks)
+                dismiss()
+            }
         }
-
-        guard !newTracks.isEmpty else { return }
-
-        onTracksSelected(newTracks)
-        dismiss()
+    }
+    
+    private func fetchAllFiles(in folder: BaiduNetdiskEntry, client: BaiduNetdiskListing, token: BaiduOAuthToken) async -> [BaiduNetdiskEntry] {
+        var files: [BaiduNetdiskEntry] = []
+        var queue: [String] = [folder.path]
+        
+        // Simple BFS to fetch all files
+        while !queue.isEmpty {
+            let currentPath = queue.removeFirst()
+            
+            do {
+                let entries = try await client.listDirectory(path: currentPath, token: token)
+                
+                for entry in entries {
+                    if entry.isDir {
+                        queue.append(entry.path)
+                    } else {
+                        files.append(entry)
+                    }
+                }
+            } catch {
+                print("Failed to fetch contents of \(currentPath): \(error)")
+                // Continue with other folders even if one fails
+            }
+        }
+        
+        return files
     }
 
     private func formatBytes(_ bytes: Int64) -> String {

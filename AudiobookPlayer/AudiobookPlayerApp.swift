@@ -56,6 +56,7 @@ struct AudiobookPlayerApp: App {
                 handleIncomingURL(url)
             }
             .onAppear {
+                audioPlayer.bindLibrary(libraryStore)
                 bubbleWindowManager.show(audioPlayer: audioPlayer, tabSelection: tabSelection)
             }
             .sheet(item: Binding(

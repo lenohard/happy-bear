@@ -58,6 +58,7 @@ struct TranscriptCorrectionsView: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            .labelStyle(.iconOnly)
                         }
                         .swipeActions(edge: .leading, allowsFullSwipe: true) {
                             if correction.isApplied {
@@ -66,6 +67,7 @@ struct TranscriptCorrectionsView: View {
                                 } label: {
                                     Label("Undo", systemImage: "arrow.uturn.backward")
                                 }
+                                .labelStyle(.iconOnly)
                                 .tint(.orange)
                             } else {
                                 Button {
@@ -73,6 +75,7 @@ struct TranscriptCorrectionsView: View {
                                 } label: {
                                     Label("Apply", systemImage: "checkmark")
                                 }
+                                .labelStyle(.iconOnly)
                                 .tint(.green)
                             }
                         }

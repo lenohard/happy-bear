@@ -911,6 +911,7 @@ struct CollectionDetailView: View {
                         },
                         onToggleFavorite: {
                             library.toggleFavorite(for: track.id, in: collection.id)
+                            audioPlayer.notifyFavoriteToggle(for: track.id)
                         }
                     )
                     .id(track.id)
@@ -937,6 +938,7 @@ struct CollectionDetailView: View {
                                     systemImage: "pencil"
                                 )
                             }
+                            .labelStyle(.iconOnly)
 
                             Button(role: .destructive) {
                                 confirmDeleteTrack(track)
@@ -946,6 +948,7 @@ struct CollectionDetailView: View {
                                     systemImage: "trash"
                                 )
                             }
+                            .labelStyle(.iconOnly)
                         }
                     }
                     .contextMenu {
@@ -1285,6 +1288,7 @@ struct CollectionDetailView: View {
     private func favoriteSwipeButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
         Button {
             library.toggleFavorite(for: track.id, in: collection.id)
+            audioPlayer.notifyFavoriteToggle(for: track.id)
         } label: {
             Label(
                 track.isFavorite
@@ -1293,6 +1297,7 @@ struct CollectionDetailView: View {
                 systemImage: track.isFavorite ? "heart.slash" : "heart"
             )
         }
+        .labelStyle(.iconOnly)
         .tint(track.isFavorite ? .pink : Color.accentColor)
     }
 

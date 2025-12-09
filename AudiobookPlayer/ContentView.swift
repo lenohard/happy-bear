@@ -399,6 +399,7 @@ struct PlayingView: View {
                 
                 FavoriteToggleButton(isFavorite: snapshot.track.isFavorite) {
                     library.toggleFavorite(for: snapshot.track.id, in: snapshot.collection.id)
+                    audioPlayer.notifyFavoriteToggle(for: snapshot.track.id)
                 }
             }
 
@@ -631,6 +632,7 @@ struct PlayingView: View {
 
                 Button {
                     library.toggleFavorite(for: track.id, in: collection.id)
+                    audioPlayer.notifyFavoriteToggle(for: track.id)
                 } label: {
                     Image(systemName: track.isFavorite ? "heart.fill" : "heart")
                         .foregroundStyle(track.isFavorite ? .pink : .gray)

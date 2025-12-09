@@ -2917,6 +2917,18 @@
     "failed_status" : {
       "comment" : "Failed job status"
     },
+    "favorite_short_title" : {
+      "comment" : "Favorite short title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Favorite"
+          }
+        }
+      }
+    },
     "favorite_tracks_empty" : {
       "comment" : "Empty favorites message",
       "localizations" : {
@@ -2935,7 +2947,7 @@
       }
     },
     "favorite_tracks_title" : {
-      "comment" : "Favorite tracks view title",
+      "comment" : "Favorite\nFavorite tracks view title",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3766,6 +3778,9 @@
           }
         }
       }
+    },
+    "Only for tracks longer than 10 minutes" : {
+
     },
     "open_collection" : {
       "comment" : "Open collection button",

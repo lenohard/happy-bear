@@ -37,17 +37,20 @@ struct TTSJobsListView: View {
                                     Button(action: { pauseJob(job) }) {
                                         Label(NSLocalizedString("tts_jobs_action_pause", comment: ""), systemImage: "pause.fill")
                                     }
+                                    .labelStyle(.iconOnly)
                                     .tint(.orange)
                                 } else if job.status == "paused" {
                                     Button(action: { resumeJob(job) }) {
                                         Label(NSLocalizedString("tts_jobs_action_continue", comment: ""), systemImage: "play.fill")
                                     }
+                                    .labelStyle(.iconOnly)
                                     .tint(.blue)
                                 }
 
                                 Button(role: .destructive, action: { deleteJob(job) }) {
                                     Label(NSLocalizedString("tts_jobs_action_delete", comment: ""), systemImage: "trash")
                                 }
+                                .labelStyle(.iconOnly)
                             }
                     }
                 }
@@ -72,6 +75,7 @@ struct TTSJobsListView: View {
                                     } label: {
                                         Label(NSLocalizedString("tts_jobs_action_retry", comment: ""), systemImage: "arrow.triangle.2.circlepath")
                                     }
+                                    .labelStyle(.iconOnly)
                                     .tint(.blue)
                                 }
                                 
@@ -80,6 +84,7 @@ struct TTSJobsListView: View {
                                 } label: {
                                     Label(NSLocalizedString("tts_jobs_action_delete", comment: ""), systemImage: "trash")
                                 }
+                                .labelStyle(.iconOnly)
                             }
                     }
                 }

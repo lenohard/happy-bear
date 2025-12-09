@@ -218,6 +218,7 @@ struct ListeningStatisticsView: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            .labelStyle(.iconOnly)
                         }
                 }
             } header: {

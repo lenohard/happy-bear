@@ -406,6 +406,7 @@ struct SonioxFilesListView: View {
                 } label: {
                     Label(NSLocalizedString("tts_files_delete_action", comment: ""), systemImage: "trash")
                 }
+                .labelStyle(.iconOnly)
             }
         }
     }
@@ -483,5 +484,4 @@ struct SonioxFilesListView: View {
         .environmentObject(TranscriptionManager.preview)
         .environmentObject(LibraryStore.preview)
 }
-
 
