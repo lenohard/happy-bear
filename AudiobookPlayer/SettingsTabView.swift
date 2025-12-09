@@ -77,7 +77,12 @@ struct SettingsTabView: View {
 
             Section {
                 Toggle(isOn: $autoGenerateTrackSummaries) {
-                    Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
+                    VStack(alignment: .leading, spacing: 4) {
+                        Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
+                        Text("Only for tracks longer than 10 minutes")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 
                 Toggle(isOn: $autoGenerateNextEbookAudio) {

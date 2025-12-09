@@ -60,7 +60,7 @@ final class CollectionBuilderViewModel: ObservableObject {
     @MainActor @Published private(set) var state: State = .idle
 
     private let client: BaiduNetdiskClient
-    private let maxTracksPerCollection = 500
+    private let maxTracksPerCollection = 10000
 
     init(client: BaiduNetdiskClient = BaiduNetdiskClient()) {
         self.client = client

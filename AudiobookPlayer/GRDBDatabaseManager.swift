@@ -223,9 +223,6 @@ actor GRDBDatabaseManager {
                         track.characterCount
                     ]
                 )
-                if idx % 20 == 0 {
-                    print("[GRDB] Inserted \(idx) tracks...")
-                }
             }
 
             // Insert playback states

@@ -996,6 +996,16 @@ struct PlayingView: View {
         do {
             try await dbManager.initializeDatabase()
 
+            // Check track duration (must be > 10 minutes)
+            if let uuid = UUID(uuidString: trackId),
+               let result = try await dbManager.loadTrack(id: uuid) {
+                let duration = result.track.duration ?? 0
+                if duration < 600 {
+                    print("[AutoSummary] Skipping track \(trackId): duration \(duration)s < 600s")
+                    return
+                }
+            }
+
             if let summary = try await dbManager.fetchTrackSummary(forTrackId: trackId) {
                 switch summary.status {
                 case .complete:

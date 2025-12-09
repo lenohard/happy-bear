@@ -106,35 +106,54 @@ final class BaiduNetdiskClient: BaiduNetdiskListing {
             throw NetdiskError.expiredToken
         }
 
-        var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
-        components.queryItems = [
-            URLQueryItem(name: "method", value: "list"),
-            URLQueryItem(name: "dir", value: path),
-            URLQueryItem(name: "access_token", value: token.accessToken)
-        ]
+        var allEntries: [BaiduNetdiskEntry] = []
+        var start = 0
+        let limit = 1000
+        var hasMore = true
 
-        guard let url = components.url else {
-            throw NetdiskError.invalidRequest
+        while hasMore {
+            var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
+            components.queryItems = [
+                URLQueryItem(name: "method", value: "list"),
+                URLQueryItem(name: "dir", value: path),
+                URLQueryItem(name: "start", value: String(start)),
+                URLQueryItem(name: "limit", value: String(limit)),
+                URLQueryItem(name: "access_token", value: token.accessToken)
+            ]
+
+            guard let url = components.url else {
+                throw NetdiskError.invalidRequest
+            }
+
+            let (data, response) = try await urlSession.data(from: url)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw NetdiskError.unexpectedResponse
+            }
+
+            guard (200...299).contains(httpResponse.statusCode) else {
+                let body = String(data: data, encoding: .utf8) ?? ""
+                throw NetdiskError.httpStatus(httpResponse.statusCode, body: body)
+            }
+
+            let decoded = try jsonDecoder.decode(BaiduNetdiskListResponse.self, from: data)
+
+            guard decoded.errno == 0 else {
+                throw NetdiskError.apiError(decoded.errno)
+            }
+
+            let entries = decoded.list
+            allEntries.append(contentsOf: entries)
+
+            // If we received fewer items than the limit, we've reached the end.
+            if entries.count < limit {
+                hasMore = false
+            } else {
+                start += limit
+            }
         }
 
-        let (data, response) = try await urlSession.data(from: url)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NetdiskError.unexpectedResponse
-        }
-
-        guard (200...299).contains(httpResponse.statusCode) else {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw NetdiskError.httpStatus(httpResponse.statusCode, body: body)
-        }
-
-        let decoded = try jsonDecoder.decode(BaiduNetdiskListResponse.self, from: data)
-
-        guard decoded.errno == 0 else {
-            throw NetdiskError.apiError(decoded.errno)
-        }
-
-        return decoded.list
+        return allEntries
     }
 
     func search(keyword: String, directory: String, recursive: Bool, audioOnly: Bool, token: BaiduOAuthToken) async throws -> [BaiduNetdiskEntry] {
