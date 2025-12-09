@@ -1833,7 +1833,7 @@ private struct TrackDetailRow: View, Equatable {
         .buttonStyle(.plain)
         .accessibilityLabel(Text(playPauseAccessibilityLabel))
         .accessibilityHint(Text(NSLocalizedString("play_pause_button_hint", comment: "Accessibility hint for play pause button")))
-        .frame(width: 34, height: 34)
+        .frame(width: 30, height: 30)
     }
 
     private var playPauseAccessibilityLabel: String {

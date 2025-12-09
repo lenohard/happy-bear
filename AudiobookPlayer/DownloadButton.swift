@@ -27,7 +27,7 @@ struct DownloadButton: View {
                     }
                     .buttonStyle(.plain)
                     .disabled(true)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 30)
                     .confirmationDialog(
                         NSLocalizedString("delete_cache_title", comment: "Delete cached track confirmation"),
                         isPresented: $showDeleteConfirmation,
@@ -51,7 +51,7 @@ struct DownloadButton: View {
                             .frame(width: 24, height: 24)
                     }
                     .buttonStyle(.plain)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 30)
 
                 case .notCached:
                     // Download state
@@ -62,7 +62,7 @@ struct DownloadButton: View {
                             .font(.title3)
                     }
                     .buttonStyle(.plain)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 30)
 
                 case .local:
                     // Local file - no download button needed
@@ -77,7 +77,7 @@ struct DownloadButton: View {
                         .font(.title3)
                 }
                 .buttonStyle(.plain)
-                .frame(width: 34, height: 34)
+                .frame(width: 30, height: 30)
             }
         }
     }
