@@ -34,6 +34,7 @@ struct FavoriteToggleButton: View {
                     .foregroundStyle(isFavorite ? .red : .secondary)
             }
             .buttonStyle(.plain)
+            .frame(width: 34, height: 34)
         case .bordered:
             Button(action: action) {
                 Label(
