@@ -1336,45 +1336,42 @@ struct CollectionDetailView: View {
 
     private func loadTranscriptStatus() {
         guard let collection else { return }
-        
-        // Debounce: Cancel previous task
+
         transcriptStatusTask?.cancel()
 
+        let tracks = collection.tracks
+        let trackIds = tracks.map { $0.id }
+
         transcriptStatusTask = Task {
-            // Wait 300ms to debounce rapid changes
             try? await Task.sleep(nanoseconds: 300_000_000)
             if Task.isCancelled { return }
 
-            var newCache: [UUID: Bool] = [:]
-            let dbManager = GRDBDatabaseManager.shared
-
-            do {
-                try await dbManager.initializeDatabase()
-            } catch {
-                if !Task.isCancelled {
-                    await MainActor.run {
-                        self.transcriptStatusCache = [:]
-                    }
+            guard !trackIds.isEmpty else {
+                await MainActor.run {
+                    self.transcriptStatusCache = [:]
                 }
                 return
             }
-            
-            if Task.isCancelled { return }
 
-            // Fetch all at once if possible, or iterate (iteration is fine for now if off main thread)
-            for track in collection.tracks {
+            let dbManager = GRDBDatabaseManager.shared
+
+            do {
+                let trackIdStrings = trackIds.map { $0.uuidString }
+                let completedIds = try await dbManager.fetchTrackIdsWithCompletedTranscripts(trackIds: trackIdStrings)
                 if Task.isCancelled { return }
-                do {
-                    let hasTranscript = try await dbManager.hasCompletedTranscript(forTrackId: track.id.uuidString)
-                    newCache[track.id] = hasTranscript
-                } catch {
-                    newCache[track.id] = false
-                }
-            }
 
-            if !Task.isCancelled {
                 await MainActor.run {
+                    var newCache: [UUID: Bool] = [:]
+                    let completedSet = completedIds
+                    for track in tracks {
+                        newCache[track.id] = completedSet.contains(track.id.uuidString)
+                    }
                     self.transcriptStatusCache = newCache
+                }
+            } catch {
+                if Task.isCancelled { return }
+                await MainActor.run {
+                    self.transcriptStatusCache = [:]
                 }
             }
         }
@@ -1833,7 +1830,7 @@ private struct TrackDetailRow: View, Equatable {
         .buttonStyle(.plain)
         .accessibilityLabel(Text(playPauseAccessibilityLabel))
         .accessibilityHint(Text(NSLocalizedString("play_pause_button_hint", comment: "Accessibility hint for play pause button")))
-        .frame(width: 30, height: 30)
+        .frame(width: 26, height: 26)
     }
 
     private var playPauseAccessibilityLabel: String {
