@@ -1871,54 +1871,58 @@ private struct TrackDetailRow: View, Equatable {
     }
 
     private var metadataRow: some View {
-        HStack(spacing: 6) {
-            HStack(spacing: 4) {
-                // Show character count for text tracks, file size for others
-                if track.isTextTrack, let charCount = track.characterCount {
-                    Text("\(formatNumber(charCount)) chars")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(formatBytes(track.fileSize))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-
-                if hasTranscript {
-                    Image(systemName: "text.alignleft")
-                        .font(.caption2)
-                        .foregroundStyle(.blue)
-                        .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
-                }
-
-                if hasSummary {
-                    Image(systemName: "text.book.closed")
-                        .font(.caption2)
-                        .foregroundStyle(.purple)
-                        .accessibilityLabel(NSLocalizedString("track_summary_indicator_label", comment: "Track summary availability indicator"))
-                }
-
-                if track.isVideoTrack {
-                    Image(systemName: "film")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                        .accessibilityLabel(NSLocalizedString("video_track_indicator_label", value: "Video", comment: "Video track indicator"))
-                }
-
-                if isTranscribing {
-                    HStack(spacing: 4) {
-                        ProgressView()
-                            .controlSize(.mini)
-                            .progressViewStyle(.circular)
-                        Text(NSLocalizedString("transcription_step_transcribing", comment: ""))
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 6) {
+                HStack(spacing: 4) {
+                    // Show character count for text tracks, file size for others
+                    if track.isTextTrack, let charCount = track.characterCount {
+                        Text("\(formatNumber(charCount)) chars")
                             .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    } else {
+                        Text(formatBytes(track.fileSize))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
-                    .foregroundStyle(Color.blue)
-                    .accessibilityLabel(NSLocalizedString("transcription_view_running_job", comment: "View running transcription"))
-                }
-            }
 
-            Spacer()
+                    if hasTranscript {
+                        Image(systemName: "text.alignleft")
+                            .font(.caption2)
+                            .foregroundStyle(.blue)
+                            .accessibilityLabel(NSLocalizedString("transcript_available", comment: "Transcript available accessibility label"))
+                    }
+
+                    if hasSummary {
+                        Image(systemName: "text.book.closed")
+                            .font(.caption2)
+                            .foregroundStyle(.purple)
+                            .accessibilityLabel(NSLocalizedString("track_summary_indicator_label", comment: "Track summary availability indicator"))
+                    }
+
+                    if track.isVideoTrack {
+                        Image(systemName: "film")
+                            .font(.caption2)
+                            .foregroundStyle(.orange)
+                            .accessibilityLabel(NSLocalizedString("video_track_indicator_label", value: "Video", comment: "Video track indicator"))
+                    }
+
+                    if isTranscribing {
+                        HStack(spacing: 4) {
+                            ProgressView()
+                                .controlSize(.mini)
+                                .progressViewStyle(.circular)
+                            Text(NSLocalizedString("transcription_step_transcribing", comment: ""))
+                                .font(.caption2)
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                        }
+                        .foregroundStyle(Color.blue)
+                        .accessibilityLabel(NSLocalizedString("transcription_view_running_job", comment: "View running transcription"))
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
 
             if let state = playbackState, state.position > 1 {
                 HStack(spacing: 8) {

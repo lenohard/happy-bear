@@ -18,13 +18,16 @@ struct DownloadButton: View {
                     Button {
                         showDeleteConfirmation = true
                     } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
+                        Label {
                             Text(NSLocalizedString("download_button_downloaded", comment: "Downloaded button label"))
-                                .font(.subheadline)
+                        } icon: {
+                            Image(systemName: "checkmark.circle.fill")
                         }
+                        .labelStyle(.iconOnly)
+                        .font(.title3)
+                        .foregroundStyle(.green)
                     }
+                    .buttonStyle(.plain)
                     .disabled(true)
                     .confirmationDialog(
                         NSLocalizedString("delete_cache_title", comment: "Delete cached track confirmation"),

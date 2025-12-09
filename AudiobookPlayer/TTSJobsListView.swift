@@ -270,20 +270,20 @@ struct TTSJobCardView: View {
         let isTTSJob = job.sonioxJobId.hasPrefix("tts-")
         
         switch job.status {
-        case "queued": return "Queued"
+        case "queued": return NSLocalizedString("queued_status", comment: "")
         case "downloading": return NSLocalizedString("status_downloading_audio", comment: "")
         case "uploading": return NSLocalizedString("status_uploading_audio", comment: "")
         case "generating", "transcribing", "processing":
             if isTTSJob {
                 if let processed = job.processedParagraphs, let total = job.totalParagraphs {
-                    return "Generating audio (paragraph \(processed) of \(total))"
+                    return String(format: NSLocalizedString("tts_generating_paragraph_progress", comment: ""), processed, total)
                 } else {
-                    return "Generating audio..."
+                    return NSLocalizedString("tts_generating_audio", comment: "")
                 }
             } else {
-                return "Transcribing..."
+                return NSLocalizedString("transcribing_status", comment: "")
             }
-        case "completed": return "Completed"
+        case "completed": return NSLocalizedString("completed_status", comment: "")
         case "failed": return "Failed (retry \(job.retryCount))"
         case "paused": return NSLocalizedString("tts_jobs_status_paused", comment: "")
         default: return job.status.capitalized
@@ -348,7 +348,7 @@ struct TTSJobStatusBadge: View {
     var statusIcon: String {
         switch status {
         case "queued": return "clock.fill"
-        case "downloading", "uploading", "transcribing", "processing": return "arrow.triangle.2.circlepath"
+        case "downloading", "uploading", "transcribing", "processing", "generating": return "arrow.triangle.2.circlepath"
         case "completed": return "checkmark.circle.fill"
         case "failed": return "exclamationmark.triangle.fill"
         case "paused": return "pause.circle.fill"
@@ -358,11 +358,16 @@ struct TTSJobStatusBadge: View {
     
     var statusText: String {
         switch status {
-        case "queued": return "Queued"
-        case "downloading", "uploading", "transcribing", "processing": return "Running"
-        case "completed": return "Completed"
-        case "failed": return "Failed"
-        case "paused": return "Paused"
+        case "queued":
+            return NSLocalizedString("queued_status", comment: "")
+        case "downloading", "uploading", "transcribing", "processing", "generating":
+            return NSLocalizedString("tts_job_status_running", comment: "Active TTS job label")
+        case "completed":
+            return NSLocalizedString("completed_status", comment: "")
+        case "failed":
+            return NSLocalizedString("failed_status", comment: "")
+        case "paused":
+            return NSLocalizedString("tts_jobs_status_paused", comment: "")
         default: return status.capitalized
         }
     }

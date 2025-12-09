@@ -225,12 +225,13 @@ struct STTJobCardView: View {
     
     private func statusText(for job: TranscriptionJob) -> String {
         switch job.status {
-        case "queued": return "Queued"
+        case "queued": return NSLocalizedString("queued_status", comment: "")
         case "downloading": return NSLocalizedString("status_downloading_audio", comment: "")
         case "uploading": return NSLocalizedString("status_uploading_audio", comment: "")
-        case "transcribing", "processing": return "Transcribing..."
-        case "completed": return "Completed"
-        case "failed": return "Failed (retry \(job.retryCount))"
+        case "transcribing", "processing": return NSLocalizedString("transcribing_status", comment: "")
+        case "completed": return NSLocalizedString("completed_status", comment: "")
+        case "failed":
+            return "Failed (retry \(job.retryCount))"
         case "paused": return NSLocalizedString("tts_jobs_status_paused", comment: "")
         default: return job.status.capitalized
         }
@@ -289,11 +290,16 @@ struct STTJobStatusBadge: View {
     
     var statusText: String {
         switch status {
-        case "queued": return "Queued"
-        case "downloading", "uploading", "transcribing", "processing": return "Running"
-        case "completed": return "Completed"
-        case "failed": return "Failed"
-        case "paused": return "Paused"
+        case "queued":
+            return NSLocalizedString("queued_status", comment: "")
+        case "downloading", "uploading", "transcribing", "processing":
+            return NSLocalizedString("stt_job_status_running", comment: "Active STT job label")
+        case "completed":
+            return NSLocalizedString("completed_status", comment: "")
+        case "failed":
+            return NSLocalizedString("failed_status", comment: "")
+        case "paused":
+            return NSLocalizedString("tts_jobs_status_paused", comment: "")
         default: return status.capitalized
         }
     }

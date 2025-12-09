@@ -3292,6 +3292,23 @@
         }
       }
     },
+    "jobs_indicator_mixed" : {
+      "comment" : "HUD label when multiple job types are active",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jobs running"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "任务运行中"
+          }
+        }
+      }
+    },
     "Last position: %@" : {
 
     },
@@ -5016,6 +5033,23 @@
     "STT Jobs" : {
 
     },
+    "stt_job_status_running" : {
+      "comment" : "Active STT job label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribing..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录中..."
+          }
+        }
+      }
+    },
     "Tap refresh to load available models." : {
       "localizations" : {
         "zh-Hans" : {
@@ -5683,17 +5717,38 @@
       }
     },
     "transcribing_indicator" : {
+      "comment" : "HUD label when STT jobs are active",
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribing"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "转录中提示"
+            "value" : "转录中"
           }
         }
       }
     },
     "transcribing_status" : {
-
+      "comment" : "Detailed status label during transcription",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcribing..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录中..."
+          }
+        }
+      }
     },
     "Transcript Corrections" : {
       "localizations" : {
@@ -6332,6 +6387,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在生成音频（第 %d 段，共 %d 段）"
+          }
+        }
+      }
+    },
+    "tts_indicator_label" : {
+      "comment" : "HUD label when TTS jobs are active",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating audio"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成音频中"
+          }
+        }
+      }
+    },
+    "tts_job_status_running" : {
+      "comment" : "Active TTS job label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Generating audio..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "生成音频中..."
           }
         }
       }

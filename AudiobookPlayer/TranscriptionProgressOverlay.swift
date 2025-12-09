@@ -9,6 +9,27 @@ struct TranscriptionProgressOverlay: View {
     @EnvironmentObject private var library: LibraryStore
     @State private var showProgressSheet = false
 
+    private var sttJobCount: Int {
+        transcriptionManager.activeJobs.filter { !$0.sonioxJobId.hasPrefix("tts-") }.count
+    }
+
+    private var ttsJobCount: Int {
+        transcriptionManager.activeJobs.filter { $0.sonioxJobId.hasPrefix("tts-") }.count
+    }
+
+    private var overlayTitleKey: String {
+        switch (sttJobCount > 0, ttsJobCount > 0) {
+        case (true, false):
+            return "transcribing_indicator"
+        case (false, true):
+            return "tts_indicator_label"
+        case (true, true):
+            return "jobs_indicator_mixed"
+        default:
+            return "transcribing_indicator"
+        }
+    }
+
     var body: some View {
         Group {
             if !transcriptionManager.activeJobs.isEmpty {
@@ -20,9 +41,10 @@ struct TranscriptionProgressOverlay: View {
                                 .frame(width: 16, height: 16)
 
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("transcribing_indicator")
+                                Text(NSLocalizedString(overlayTitleKey, comment: "Active job indicator"))
                                     .font(.caption)
                                     .lineLimit(1)
+                                    .fixedSize(horizontal: true, vertical: false)
 
                                 if let summary = overlaySummary {
                                     Text(summary)
@@ -188,6 +210,7 @@ struct TranscriptionProgressSheet: View {
 
 struct StatusBadge: View {
     let status: String
+    let isTTSJob: Bool
 
     var statusColor: Color {
         switch status {
@@ -221,7 +244,7 @@ struct StatusBadge: View {
         case "generating":
             return "tts_generating_audio"
         case "transcribing", "processing":
-            return "transcribing_status"
+            return isTTSJob ? "tts_generating_audio" : "transcribing_status"
         case "completed":
             return "completed_status"
         case "failed":
@@ -344,7 +367,7 @@ struct TranscriptionJobRowView: View {
                         
                         Spacer()
                         
-                        StatusBadge(status: job.status)
+                        StatusBadge(status: job.status, isTTSJob: isTTSJob)
                     }
                     
                     Text("ID: " + job.sonioxJobId)
