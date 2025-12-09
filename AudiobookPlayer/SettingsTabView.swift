@@ -10,6 +10,7 @@ private struct IdentifiableString: Identifiable {
 struct SettingsTabView: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
+    @EnvironmentObject private var aliyunAuth: AliyunAuthViewModel
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
@@ -89,6 +90,10 @@ struct SettingsTabView: View {
             Section {
                 baiduSourcesContent
             }
+
+            // Section {
+            //     aliyunSourcesContent
+            // }
 
             Section {
                 NavigationLink(destination: AboutView()) {
@@ -361,6 +366,69 @@ private extension SettingsTabView {
             }
 
             if let error = authViewModel.errorMessage {
+                Text(error)
+                    .font(.caption)
+                    .foregroundColor(.red)
+            }
+        }
+    }
+
+    @ViewBuilder
+    var aliyunSourcesContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Aliyun Drive", systemImage: "externaldrive.fill.badge.icloud")
+                .font(.headline)
+
+            Text("Connect your Aliyun Drive to import audiobooks or stream directly.")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+
+            if let token = aliyunAuth.token {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(NSLocalizedString("access_token_acquired", comment: "Access token acquired"))
+                        .font(.subheadline)
+                        .bold()
+
+                    Text("Expires: " + token.expiresAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                NavigationLink {
+                    AliyunNetdiskBrowserView(
+                        tokenProvider: { aliyunAuth.token },
+                        onSelectFile: { entry in
+                            // Playback not fully implemented yet
+                            print("Selected Aliyun file: \(entry.name)")
+                        }
+                    )
+                } label: {
+                    Label("Browse Aliyun Drive", systemImage: "folder.badge.gear")
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    aliyunAuth.signOut()
+                } label: {
+                    Label(NSLocalizedString("sign_out_button", comment: "Sign out button"), systemImage: "arrow.uturn.left")
+                }
+                .buttonStyle(.plain)
+                .foregroundColor(.red)
+            } else {
+                Button {
+                    aliyunAuth.signIn()
+                } label: {
+                    Label("Sign in with Aliyun Drive", systemImage: "person.crop.circle.badge.checkmark")
+                }
+                .buttonStyle(.plain)
+                .disabled(aliyunAuth.isAuthorizing)
+
+                if aliyunAuth.isAuthorizing {
+                    ProgressView("Authorizing…")
+                }
+            }
+
+            if let error = aliyunAuth.errorMessage {
                 Text(error)
                     .font(.caption)
                     .foregroundColor(.red)
@@ -696,6 +764,7 @@ private struct SettingsNetdiskEntryDetailSheet: View {
     SettingsTabView()
         .environmentObject(AudioPlayerViewModel())
         .environmentObject(BaiduAuthViewModel())
+        .environmentObject(AliyunAuthViewModel())
         .environmentObject(LibraryStore())
         .environmentObject(TranscriptionManager())
         .environmentObject(AIGatewayViewModel())

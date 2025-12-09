@@ -60,6 +60,12 @@
 		862957002EE58AA9006ABE75 /* AddRSSCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862956FC2EE58AA9006ABE75 /* AddRSSCollectionView.swift */; };
 		862957012EE58AA9006ABE75 /* RSSParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862956FE2EE58AA9006ABE75 /* RSSParser.swift */; };
 		862957032EE5FC7A006ABE75 /* CollectionReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 862957022EE5FC7A006ABE75 /* CollectionReviewView.swift */; };
+		862957102EE80C42006ABE75 /* AliyunNetdiskBrowserViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8629570C2EE80C41006ABE75 /* AliyunNetdiskBrowserViewModel.swift */; };
+		862957112EE80C42006ABE75 /* AliyunNetdiskBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8629570B2EE80C41006ABE75 /* AliyunNetdiskBrowserView.swift */; };
+		862957122EE80C42006ABE75 /* AliyunNetdiskClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8629570D2EE80C41006ABE75 /* AliyunNetdiskClient.swift */; };
+		862957132EE80C42006ABE75 /* AliyunTokenStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8629570F2EE80C41006ABE75 /* AliyunTokenStore.swift */; };
+		862957142EE80C42006ABE75 /* AliyunOAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8629570E2EE80C41006ABE75 /* AliyunOAuth.swift */; };
+		862957152EE80C42006ABE75 /* AliyunAuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8629570A2EE80C41006ABE75 /* AliyunAuthViewModel.swift */; };
 		8637370F2EBCF7120002CD46 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8637370E2EBCF7120002CD46 /* GRDB */; };
 		8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */; };
 		8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */; };
@@ -176,6 +182,12 @@
 		862956FD2EE58AA9006ABE75 /* CollectionImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionImportService.swift; sourceTree = "<group>"; };
 		862956FE2EE58AA9006ABE75 /* RSSParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSSParser.swift; sourceTree = "<group>"; };
 		862957022EE5FC7A006ABE75 /* CollectionReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionReviewView.swift; sourceTree = "<group>"; };
+		8629570A2EE80C41006ABE75 /* AliyunAuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliyunAuthViewModel.swift; sourceTree = "<group>"; };
+		8629570B2EE80C41006ABE75 /* AliyunNetdiskBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliyunNetdiskBrowserView.swift; sourceTree = "<group>"; };
+		8629570C2EE80C41006ABE75 /* AliyunNetdiskBrowserViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliyunNetdiskBrowserViewModel.swift; sourceTree = "<group>"; };
+		8629570D2EE80C41006ABE75 /* AliyunNetdiskClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliyunNetdiskClient.swift; sourceTree = "<group>"; };
+		8629570E2EE80C41006ABE75 /* AliyunOAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliyunOAuth.swift; sourceTree = "<group>"; };
+		8629570F2EE80C41006ABE75 /* AliyunTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliyunTokenStore.swift; sourceTree = "<group>"; };
 		8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeychainStore.swift; sourceTree = "<group>"; };
 		8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeyViewModel.swift; sourceTree = "<group>"; };
 		8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryPlaybackContext.swift; sourceTree = "<group>"; };
@@ -303,6 +315,12 @@
 				8603AC0F2EDC139B00889565 /* StorageManagementView.swift */,
 				86FD8DFF2ED6E0AB002A2036 /* PersonalView.swift */,
 				86FD8E002ED6E0AB002A2036 /* SmartView.swift */,
+				8629570A2EE80C41006ABE75 /* AliyunAuthViewModel.swift */,
+				8629570B2EE80C41006ABE75 /* AliyunNetdiskBrowserView.swift */,
+				8629570C2EE80C41006ABE75 /* AliyunNetdiskBrowserViewModel.swift */,
+				8629570D2EE80C41006ABE75 /* AliyunNetdiskClient.swift */,
+				8629570E2EE80C41006ABE75 /* AliyunOAuth.swift */,
+				8629570F2EE80C41006ABE75 /* AliyunTokenStore.swift */,
 				869F06BD2ED6200A00B79131 /* TranscriptCorrectionsView.swift */,
 				86E5CFFB2ED0458600CE62A1 /* AIJobsListView.swift */,
 				86E5CFFC2ED0458600CE62A1 /* AIModelsListView.swift */,
@@ -544,6 +562,12 @@
 				86E5D1022ECDC8C400CE62A1 /* TrackSummaryGenerator.swift in Sources */,
 				86E5CFF02ECDC51D00CE62A1 /* TrackSummaryDatabaseSchema.swift in Sources */,
 				8617DDED2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift in Sources */,
+				862957102EE80C42006ABE75 /* AliyunNetdiskBrowserViewModel.swift in Sources */,
+				862957112EE80C42006ABE75 /* AliyunNetdiskBrowserView.swift in Sources */,
+				862957122EE80C42006ABE75 /* AliyunNetdiskClient.swift in Sources */,
+				862957132EE80C42006ABE75 /* AliyunTokenStore.swift in Sources */,
+				862957142EE80C42006ABE75 /* AliyunOAuth.swift in Sources */,
+				862957152EE80C42006ABE75 /* AliyunAuthViewModel.swift in Sources */,
 				8617DDEE2EBE0A26006E7CA7 /* SonioxAPI.swift in Sources */,
 				8617DDF02EBE0A26006E7CA7 /* TranscriptionSheet.swift in Sources */,
 				8603AC142EDCA72000889565 /* VideoPlayerSheet.swift in Sources */,

@@ -1449,6 +1449,9 @@
         }
       }
     },
+    "Aliyun Drive" : {
+
+    },
     "and_more_files" : {
       "comment" : "More files count",
       "extractionState" : "extracted_with_value",
@@ -1777,6 +1780,9 @@
           }
         }
       }
+    },
+    "Browse Aliyun Drive" : {
+
     },
     "browse_baidu_netdisk" : {
       "comment" : "Browse Baidu netdisk",
@@ -2299,6 +2305,9 @@
           }
         }
       }
+    },
+    "Connect your Aliyun Drive to import audiobooks or stream directly." : {
+
     },
     "connect_baidu_before_stream" : {
       "comment" : "Alert message to sign in before streaming",
@@ -4761,6 +4770,18 @@
           }
         }
       }
+    },
+    "shuffle_toggle_hint" : {
+      "comment" : "Shuffle toggle hint"
+    },
+    "shuffle_turn_off" : {
+      "comment" : "Turn shuffle off"
+    },
+    "shuffle_turn_on" : {
+      "comment" : "Turn shuffle on"
+    },
+    "Sign in with Aliyun Drive" : {
+
     },
     "sign_in_on_sources_tab" : {
       "comment" : "Sign in on sources tab message",
