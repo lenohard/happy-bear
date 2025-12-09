@@ -18,14 +18,12 @@ struct DownloadButton: View {
                     Button {
                         showDeleteConfirmation = true
                     } label: {
-                        Label {
-                            Text(NSLocalizedString("download_button_downloaded", comment: "Downloaded button label"))
-                        } icon: {
-                            Image(systemName: "checkmark.circle.fill")
-                        }
-                        .labelStyle(.iconOnly)
-                        .font(.title3)
-                        .foregroundStyle(.green)
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.green)
+                            .accessibilityLabel(
+                                Text(NSLocalizedString("download_button_downloaded", comment: "Downloaded button label"))
+                            )
                     }
                     .buttonStyle(.plain)
                     .disabled(true)
