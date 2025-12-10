@@ -54,6 +54,20 @@ struct CollectionDetailView: View {
     @State private var playbackStateSnapshot: [UUID: TrackPlaybackState] = [:]
     @State private var isDescriptionExpanded = false
     @State private var cachedOrderedTracks: [AudiobookTrack] = []
+    @State private var cachedSortedTracks: [AudiobookTrack] = []
+    @State private var filterTask: Task<Void, Never>?
+    @State private var sortTask: Task<Void, Never>?
+    @State private var searchDebounceTask: Task<Void, Never>?
+    @State private var loadedPages: [Int: [AudiobookTrack]] = [:]
+    @State private var loadingPages: Set<Int> = []
+    @State private var totalPages: Int = 0
+    @State private var totalResults: Int = 0
+    @State private var isListLoading: Bool = false
+    private let pagingThreshold = 1000
+    private let pageSize = 500
+    @State private var currentQuery: String = ""
+    @State private var currentFilterKey: FilterOption = .all
+    @State private var currentSortKey: SortOption = .trackNumber
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -134,12 +148,51 @@ struct CollectionDetailView: View {
         }
     }
 
+    private var isPagedMode: Bool {
+        let countHint = max(
+            totalResults,
+            collection?.trackCount ?? 0,
+            collection?.tracks.count ?? 0
+        )
+        return countHint > pagingThreshold
+    }
+
     private var sortedTracks: [AudiobookTrack] {
-        guard let collection else { return [] }
-        
-        let tracks = collection.tracks
-        
-        switch selectedSort {
+        if isPagedMode {
+            return pagedTracks
+        } else {
+            if !cachedSortedTracks.isEmpty { return cachedSortedTracks }
+            guard let collection else { return [] }
+            return sortTracks(collection.tracks, by: selectedSort)
+        }
+    }
+
+    private var pagedTracks: [AudiobookTrack] {
+        // Combine loaded pages in order
+        let keys = loadedPages.keys.sorted()
+        return keys.flatMap { loadedPages[$0] ?? [] }
+    }
+
+    private func filterDBKey(for option: FilterOption) -> String {
+        switch option {
+        case .all: return "all"
+        case .transcribed: return "transcribed"
+        case .unplayed: return "unplayed"
+        case .summarized: return "summarized"
+        case .played: return "played"
+        }
+    }
+
+    private func sortDBKey(for option: SortOption) -> String {
+        switch option {
+        case .trackNumber: return "trackNumber"
+        case .titleAscending: return "titleAscending"
+        case .titleDescending: return "titleDescending"
+        }
+    }
+
+    private func sortTracks(_ tracks: [AudiobookTrack], by option: SortOption) -> [AudiobookTrack] {
+        switch option {
         case .trackNumber:
             return tracks.sorted {
                 if $0.trackNumber != $1.trackNumber {
@@ -158,23 +211,88 @@ struct CollectionDetailView: View {
         }
     }
 
-    private func computeOrderedTracks() -> [AudiobookTrack] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        var tracks = sortedTracks
-        
-        // Apply Filter
-        if selectedFilter != .all {
+    private func updateCachedTracks() {
+        // Deprecated: keep for compatibility if called; redirect to scheduled path.
+        scheduleFilteredTracksUpdate()
+    }
+
+    private func scheduleSortedTracksUpdate() {
+        sortTask?.cancel()
+
+        if isPagedMode {
+            Task { await reloadFromDatabase(startingPage: 0, focusTarget: pendingAutoFocusTrackId) }
+            return
+        }
+
+        guard let collection else {
+            cachedSortedTracks = []
+            scheduleFilteredTracksUpdate()
+            return
+        }
+
+        let tracks = collection.tracks
+        let sortOption = selectedSort
+
+        sortTask = Task.detached {
+            let sorted = sortTracks(tracks, by: sortOption)
+            if Task.isCancelled { return }
+            await MainActor.run {
+                cachedSortedTracks = sorted
+                scheduleFilteredTracksUpdate()
+            }
+        }
+    }
+
+    private func scheduleFilteredTracksUpdate() {
+        filterTask?.cancel()
+
+        if isPagedMode {
+            Task {
+                await reloadFromDatabase(startingPage: 0, focusTarget: pendingAutoFocusTrackId)
+            }
+            return
+        }
+
+        let base = sortedTracks
+        let filter = selectedFilter
+        let query = searchText
+        let transcriptCache = transcriptStatusCache
+        let summaryIds = tracksWithSummaries
+        let collectionRef = collection
+
+        filterTask = Task.detached {
+            // Compute on a background thread
+            let filtered = computeOrderedTracks(from: base, filter: filter, query: query, transcriptCache: transcriptCache, summaryIds: summaryIds, collection: collectionRef)
+            if Task.isCancelled { return }
+            await MainActor.run {
+                cachedOrderedTracks = filtered
+                totalResults = filtered.count
+            }
+        }
+    }
+
+    private func computeOrderedTracks(
+        from base: [AudiobookTrack],
+        filter: FilterOption,
+        query: String,
+        transcriptCache: [UUID: Bool],
+        summaryIds: Set<UUID>,
+        collection: AudiobookCollection?
+    ) -> [AudiobookTrack] {
+        var tracks = base
+
+        if filter != .all {
             tracks = tracks.filter { track in
-                switch selectedFilter {
+                switch filter {
                 case .all:
                     return true
                 case .transcribed:
-                    return transcriptStatusCache[track.id] == true
+                    return transcriptCache[track.id] == true
                 case .unplayed:
                     let state = collection?.playbackState(for: track.id)
-                    return state == nil || state!.position < 1 // Consider < 1 second as unplayed
+                    return state == nil || state!.position < 1
                 case .summarized:
-                    return tracksWithSummaries.contains(track.id)
+                    return summaryIds.contains(track.id)
                 case .played:
                     if let state = collection?.playbackState(for: track.id) {
                         return state.position >= 1
@@ -184,16 +302,13 @@ struct CollectionDetailView: View {
             }
         }
 
-        guard !query.isEmpty else { return tracks }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return tracks }
 
         return tracks.filter { track in
-            track.displayName.localizedCaseInsensitiveContains(query) ||
-            track.filename.localizedCaseInsensitiveContains(query)
+            track.displayName.localizedCaseInsensitiveContains(trimmed) ||
+            track.filename.localizedCaseInsensitiveContains(trimmed)
         }
-    }
-
-    private func updateCachedTracks() {
-        cachedOrderedTracks = computeOrderedTracks()
     }
 
     private var filteredTracks: [AudiobookTrack] {
@@ -536,16 +651,31 @@ struct CollectionDetailView: View {
                     await library.ensureCollectionLoaded(collectionID)
                     await MainActor.run {
                         refreshPlaybackStateSnapshot(for: self.collection)
+                        currentQuery = searchText
+                        currentFilterKey = selectedFilter
+                        currentSortKey = selectedSort
                     }
+                    await reloadFromDatabase(startingPage: 0, focusTarget: pendingAutoFocusTrackId)
                 }
-                updateCachedTracks()
             }
-            .onChange(of: collection?.tracks) { _ in updateCachedTracks() }
-            .onChange(of: searchText) { _ in updateCachedTracks() }
-            .onChange(of: selectedFilter) { _ in updateCachedTracks() }
-            .onChange(of: selectedSort) { _ in updateCachedTracks() }
-            .onChange(of: transcriptStatusCache) { _ in updateCachedTracks() }
-            .onChange(of: tracksWithSummaries) { _ in updateCachedTracks() }
+            .onChange(of: collection?.tracks) { _ in scheduleSortedTracksUpdate() }
+            .onChange(of: searchText) { _ in
+                // Debounce search to avoid hammering DB per keystroke
+                searchDebounceTask?.cancel()
+                searchDebounceTask = Task {
+                    try? await Task.sleep(nanoseconds: 350_000_000)
+                    if Task.isCancelled { return }
+                    await MainActor.run { scheduleFilteredTracksUpdate() }
+                }
+            }
+            .onSubmit(of: .search) {
+                searchDebounceTask?.cancel()
+                scheduleFilteredTracksUpdate()
+            }
+            .onChange(of: selectedFilter) { _ in scheduleFilteredTracksUpdate() }
+            .onChange(of: selectedSort) { _ in scheduleSortedTracksUpdate() }
+            .onChange(of: transcriptStatusCache) { _ in scheduleFilteredTracksUpdate() }
+            .onChange(of: tracksWithSummaries) { _ in scheduleFilteredTracksUpdate() }
             .onReceive(transcriptionManager.$activeJobs) { jobs in
                 refreshSttTranscribingTrackIds(from: jobs)
                 refreshTTSGeneratingTrackIds(from: jobs)
@@ -561,6 +691,16 @@ struct CollectionDetailView: View {
             .onDisappear {
                 summaryIndicatorTask?.cancel()
                 summaryIndicatorTask = nil
+                filterTask?.cancel()
+                sortTask?.cancel()
+                cachedOrderedTracks = []
+                cachedSortedTracks = []
+                transcriptStatusCache = [:]
+                tracksWithSummaries = []
+                playbackStateSnapshot = [:]
+                loadedPages = [:]
+                loadingPages = []
+                totalPages = 0
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TranscriptionCompleted"))) { notification in
                 print("[CollectionDetailView] Received TranscriptionCompleted notification")
@@ -637,6 +777,24 @@ struct CollectionDetailView: View {
                         
                         if showScrollToBottomButton {
                             Button {
+                                if isPagedMode {
+                                    let maxLoaded = loadedPages.keys.max() ?? 0
+                                    let nextPage = maxLoaded + 1
+                                    if nextPage < totalPages {
+                                        Task {
+                                            await loadPage(nextPage)
+                                            await MainActor.run {
+                                                if let last = filteredTracks.last {
+                                                    withAnimation {
+                                                        proxy.scrollTo(last.id, anchor: .bottom)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        return
+                                    }
+                                }
+                                
                                 if let last = filteredTracks.last {
                                     withAnimation {
                                         proxy.scrollTo(last.id, anchor: .bottom)
@@ -898,7 +1056,7 @@ struct CollectionDetailView: View {
         let tracks = filteredTracks
         Section(header: tracksHeader) {
             if tracks.isEmpty {
-                if collection.tracks.isEmpty && collection.trackCount > 0 {
+                if isListLoading || (collection.tracks.isEmpty && collection.trackCount > 0) {
                     HStack {
                         Spacer()
                         ProgressView()
@@ -912,8 +1070,7 @@ struct CollectionDetailView: View {
                         .padding(.vertical, 4)
                 }
             } else {
-                ForEach(tracks.indices, id: \.self) { index in
-                    let track = tracks[index]
+                ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
                     let trackIsActive = isCurrentTrack(track: track)
                     let hasTranscript = transcriptStatusCache[track.id] ?? false
                     let isTranscribingTrack = sttTranscribingTrackIds.contains(track.id)
@@ -941,6 +1098,11 @@ struct CollectionDetailView: View {
                     .onAppear {
                         if index == tracks.count - 1 {
                             isLastTrackVisible = true
+                            // Load next page when bottom is reached in paged mode
+                            if isPagedMode {
+                                let currentPage = loadedPages.keys.sorted().last ?? 0
+                                Task { await loadPage(currentPage + 1) }
+                            }
                         }
                     }
                     .onDisappear {
@@ -1072,7 +1234,12 @@ struct CollectionDetailView: View {
             return
         }
 
-        let trackIds = collection.tracks.map { $0.id.uuidString }
+        let trackIds: [String]
+        if isPagedMode {
+            trackIds = pagedTracks.map { $0.id.uuidString }
+        } else {
+            trackIds = collection.tracks.map { $0.id.uuidString }
+        }
         guard !trackIds.isEmpty else {
             tracksWithSummaries = []
             summaryIndicatorTask = nil
@@ -1087,8 +1254,18 @@ struct CollectionDetailView: View {
 
             var readyTrackIds = Set<UUID>()
             do {
-                let completedIds = try await GRDBDatabaseManager.shared.fetchTrackIdsWithCompletedSummaries(trackIds: trackIds)
-                readyTrackIds = Set(completedIds.compactMap { UUID(uuidString: $0) })
+                let batchSize = 500
+                var completedStrings: Set<String> = []
+                var index = 0
+                while index < trackIds.count {
+                    if Task.isCancelled { return }
+                    let end = min(index + batchSize, trackIds.count)
+                    let batch = Array(trackIds[index..<end])
+                    let completedIds = try await GRDBDatabaseManager.shared.fetchTrackIdsWithCompletedSummaries(trackIds: batch)
+                    completedStrings.formUnion(completedIds)
+                    index = end
+                }
+                readyTrackIds = Set(completedStrings.compactMap { UUID(uuidString: $0) })
             } catch {
                 print("[CollectionDetailView] Failed to refresh summary indicators: \(error.localizedDescription)")
             }
@@ -1152,18 +1329,30 @@ struct CollectionDetailView: View {
         return nil
     }
 
-    private func attemptAutoFocusIfNeeded(using proxy: ScrollViewProxy) {
+    private func attemptAutoFocusIfNeeded(using proxy: ScrollViewProxy?) {
         guard
             !didAutoFocusTrack,
             let targetId = pendingAutoFocusTrackId,
-            filteredTracks.contains(where: { $0.id == targetId })
+            filteredTracks.contains(where: { $0.id == targetId }),
+            !isPagedMode, // disable autofocus for large/paged collections
+            !isListLoading,
+            loadingPages.isEmpty
         else { return }
+
+        // If proxy is nil (paging load context), skip scroll but mark ready
+        guard let proxy else {
+            didAutoFocusTrack = true
+            return
+        }
+
+        // Mark as focused immediately to avoid multiple rapid scrolls
+        didAutoFocusTrack = true
 
         DispatchQueue.main.async {
             withAnimation(.easeInOut(duration: 0.25)) {
                 proxy.scrollTo(targetId, anchor: .center)
             }
-            self.didAutoFocusTrack = true
+            pendingAutoFocusTrackId = nil
         }
     }
 
@@ -1315,6 +1504,115 @@ struct CollectionDetailView: View {
         showTrackPicker = true
     }
     
+    // MARK: - Paging Helpers
+
+    private func pageIndexForTrack(collectionId: UUID, trackId: UUID, total: Int) -> Int? {
+        do {
+            if let trackNumber = try GRDBDatabaseManager.shared.fetchTrackNumber(collectionId: collectionId, trackId: trackId) {
+                return max(0, (trackNumber - 1) / pageSize)
+            }
+        } catch {
+            print("[CollectionDetailView] Failed to fetch track number: \(error)")
+        }
+        return nil
+    }
+
+    @MainActor
+    private func updateLoadedPages(_ page: Int, tracks: [AudiobookTrack]) {
+        loadedPages[page] = tracks
+        // Keep a small window to limit memory; always retain first page.
+        let keep = [page - 1, page, page + 1, 0].filter { $0 >= 0 }
+        loadedPages = loadedPages.filter { keep.contains($0.key) }
+        cachedOrderedTracks = pagedTracks
+    }
+
+    private func loadPage(_ page: Int) async {
+        guard !loadingPages.contains(page) else { return }
+        guard page >= 0 else { return }
+        if totalPages > 0, page >= totalPages { return }
+        guard let collection else { return }
+
+        await MainActor.run { loadingPages.insert(page) }
+        defer {
+            Task { @MainActor in loadingPages.remove(page) }
+        }
+
+        do {
+            let offset = page * pageSize
+            let (tracks, total) = try await GRDBDatabaseManager.shared.fetchTracks(
+                collectionId: collection.id,
+                query: currentQuery,
+                filter: filterDBKey(for: currentFilterKey),
+                sort: sortDBKey(for: currentSortKey),
+                offset: offset,
+                limit: pageSize
+            )
+
+            let states = try await GRDBDatabaseManager.shared.fetchPlaybackStates(collectionId: collection.id, trackIds: tracks.map { $0.id })
+            await MainActor.run {
+                totalResults = total
+                totalPages = Int(ceil(Double(totalResults) / Double(pageSize)))
+                // Merge playback state snapshot for these tracks
+                for (id, state) in states {
+                    playbackStateSnapshot[id] = state
+                }
+                updateLoadedPages(page, tracks: tracks)
+                if page == 0 {
+                    isListLoading = false
+                }
+                // Refresh status caches for visible pages only
+                loadTranscriptStatus()
+                refreshTrackSummaryIndicators(for: collection)
+            }
+        } catch {
+            print("[CollectionDetailView] Failed to load page \(page): \(error)")
+            if page == 0 {
+                await MainActor.run {
+                    isListLoading = false
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func resetPagingState(clearCaches: Bool = false) {
+        loadedPages = [:]
+        loadingPages = []
+        totalPages = 0
+        totalResults = 0
+        if clearCaches {
+            cachedOrderedTracks = []
+            cachedSortedTracks = []
+        }
+    }
+
+    private func reloadFromDatabase(startingPage: Int, focusTarget: UUID?) async {
+        await MainActor.run {
+            isListLoading = true
+        }
+
+        resetPagingState(clearCaches: false)
+        currentQuery = searchText
+        currentFilterKey = selectedFilter
+        currentSortKey = selectedSort
+
+        // Always load first page; we no longer preload neighbors to reduce jank.
+        await loadPage(0)
+
+        // Only attempt autofocus for non-paged collections; large collections skip it.
+        await MainActor.run {
+            pendingAutoFocusTrackId = isPagedMode ? nil : focusTarget
+            didAutoFocusTrack = false
+            isListLoading = false
+        }
+
+        if !isPagedMode, focusTarget != nil {
+            await MainActor.run {
+                attemptAutoFocusIfNeeded(using: nil)
+            }
+        }
+    }
+    
     @ViewBuilder
     private func favoriteSwipeButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
         Button {
@@ -1370,7 +1668,7 @@ struct CollectionDetailView: View {
 
         transcriptStatusTask?.cancel()
 
-        let tracks = collection.tracks
+        let tracks = isPagedMode ? pagedTracks : collection.tracks
         let trackIds = tracks.map { $0.id }
 
         transcriptStatusTask = Task {
@@ -1388,12 +1686,23 @@ struct CollectionDetailView: View {
 
             do {
                 let trackIdStrings = trackIds.map { $0.uuidString }
-                let completedIds = try await dbManager.fetchTrackIdsWithCompletedTranscripts(trackIds: trackIdStrings)
+                var completedSet = Set<String>()
+
+                let batchSize = 200
+                var index = 0
+                while index < trackIdStrings.count {
+                    if Task.isCancelled { return }
+                    let end = min(index + batchSize, trackIdStrings.count)
+                    let batch = Array(trackIdStrings[index..<end])
+                    let completedIds = try await dbManager.fetchTrackIdsWithCompletedTranscripts(trackIds: batch)
+                    completedSet.formUnion(completedIds)
+                    index = end
+                }
+
                 if Task.isCancelled { return }
 
                 await MainActor.run {
                     var newCache: [UUID: Bool] = [:]
-                    let completedSet = completedIds
                     for track in tracks {
                         newCache[track.id] = completedSet.contains(track.id.uuidString)
                     }

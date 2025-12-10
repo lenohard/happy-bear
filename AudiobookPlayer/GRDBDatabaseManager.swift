@@ -396,6 +396,137 @@ actor GRDBDatabaseManager {
         }
     }
 
+    /// Load a single page of tracks for a collection (ordered by track_number)
+    func fetchTracksPage(collectionId: UUID, offset: Int, limit: Int) throws -> [AudiobookTrack] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: "SELECT * FROM tracks WHERE collection_id = ? ORDER BY track_number LIMIT ? OFFSET ?",
+                arguments: [collectionId.uuidString, limit, offset]
+            )
+            var tracks: [AudiobookTrack] = []
+            for row in rows {
+                if let track = try reconstructTrack(row: row) {
+                    tracks.append(track)
+                }
+            }
+            return tracks
+        }
+    }
+
+    /// Load filtered/sorted tracks with paging and total count
+    func fetchTracks(
+        collectionId: UUID,
+        query: String?,
+        filter: String,
+        sort: String,
+        offset: Int,
+        limit: Int
+    ) throws -> ([AudiobookTrack], Int) {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        let trimmedQuery = (query ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        var whereClauses: [String] = ["t.collection_id = ?"]
+        var arguments: [DatabaseValueConvertible] = [collectionId.uuidString]
+
+        if !trimmedQuery.isEmpty {
+            whereClauses.append("(t.display_name LIKE ? OR t.filename LIKE ?)")
+            let pattern = "%\(trimmedQuery)%"
+            arguments.append(pattern)
+            arguments.append(pattern)
+        }
+
+        switch filter {
+        case "transcribed":
+            whereClauses.append("EXISTS (SELECT 1 FROM transcripts tr WHERE tr.track_id = t.id AND tr.status = 'completed')")
+        case "summarized":
+            whereClauses.append("EXISTS (SELECT 1 FROM track_summaries ts WHERE ts.track_id = t.id AND ts.status = 'completed')")
+        case "unplayed":
+            whereClauses.append("NOT EXISTS (SELECT 1 FROM playback_states ps WHERE ps.collection_id = t.collection_id AND ps.track_id = t.id AND ps.position >= 1)")
+        case "played":
+            whereClauses.append("EXISTS (SELECT 1 FROM playback_states ps WHERE ps.collection_id = t.collection_id AND ps.track_id = t.id AND ps.position >= 1)")
+        default:
+            break
+        }
+
+        let whereSQL = whereClauses.joined(separator: " AND ")
+
+        let orderSQL: String
+        switch sort {
+        case "titleAscending":
+            orderSQL = "ORDER BY t.display_name COLLATE NOCASE ASC"
+        case "titleDescending":
+            orderSQL = "ORDER BY t.display_name COLLATE NOCASE DESC"
+        default:
+            orderSQL = "ORDER BY t.track_number ASC, t.display_name COLLATE NOCASE ASC"
+        }
+
+        return try db.read { db in
+            let countSQL = "SELECT COUNT(*) FROM tracks t WHERE \(whereSQL)"
+            let total = try Int.fetchOne(db, sql: countSQL, arguments: StatementArguments(arguments)) ?? 0
+
+            var pageArgs: [DatabaseValueConvertible] = arguments
+            pageArgs.append(contentsOf: [limit, offset])
+            let pageSQL = """
+            SELECT * FROM tracks t
+            WHERE \(whereSQL)
+            \(orderSQL)
+            LIMIT ? OFFSET ?
+            """
+
+            let rows = try Row.fetchAll(db, sql: pageSQL, arguments: StatementArguments(pageArgs))
+            var tracks: [AudiobookTrack] = []
+            for row in rows {
+                if let track = try reconstructTrack(row: row) {
+                    tracks.append(track)
+                }
+            }
+            return (tracks, total)
+        }
+    }
+
+    /// Fetch playback states for a subset of tracks
+    func fetchPlaybackStates(collectionId: UUID, trackIds: [UUID]) throws -> [UUID: TrackPlaybackState] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+        guard !trackIds.isEmpty else { return [:] }
+
+        let idStrings = trackIds.map { $0.uuidString }
+
+        return try db.read { db in
+            let placeholders = Array(repeating: "?", count: idStrings.count).joined(separator: ",")
+            let sql = "SELECT * FROM playback_states WHERE collection_id = ? AND track_id IN (\(placeholders))"
+            var args: [DatabaseValueConvertible] = [collectionId.uuidString]
+            args.append(contentsOf: idStrings)
+            let rows = try Row.fetchAll(db, sql: sql, arguments: StatementArguments(args))
+            var result: [UUID: TrackPlaybackState] = [:]
+            for row in rows {
+                if
+                    let trackIdStr = row["track_id"] as? String,
+                    let trackId = UUID(uuidString: trackIdStr),
+                    let state = try reconstructPlaybackState(row: row)
+                {
+                    result[trackId] = state
+                }
+            }
+            return result
+        }
+    }
+
+    /// Fetch track_number for a single track (used to locate paging position)
+    func fetchTrackNumber(collectionId: UUID, trackId: UUID) throws -> Int? {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            try Row.fetchOne(
+                db,
+                sql: "SELECT track_number FROM tracks WHERE collection_id = ? AND id = ? LIMIT 1",
+                arguments: [collectionId.uuidString, trackId.uuidString]
+            )?["track_number"]
+        }
+    }
+
     /// Delete a collection
     func deleteCollection(id: UUID) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
