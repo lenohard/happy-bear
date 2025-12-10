@@ -50,7 +50,7 @@ final class TabSelectionManager: ObservableObject {
 }
 
 struct ContentView: View {
-    @StateObject private var tabSelection = TabSelectionManager()
+    @EnvironmentObject private var tabSelection: TabSelectionManager
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
@@ -60,7 +60,7 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                TabView(selection: $tabSelection.selectedTab) {
+                TabView(selection: tabSelectionBinding) {
                     LibraryView()
                         .tabItem {
                             Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
@@ -88,7 +88,6 @@ struct ContentView: View {
                 }
             }
             }
-            .environmentObject(tabSelection)
             .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
                 handleResumeShortcut()
             }
@@ -119,6 +118,15 @@ struct ContentView: View {
         } else {
             audioPlayer.play(track: track, in: collection, token: nil)
         }
+    }
+}
+
+private extension ContentView {
+    var tabSelectionBinding: Binding<TabSelectionManager.Tab> {
+        Binding(
+            get: { tabSelection.selectedTab },
+            set: { tabSelection.selectedTab = $0 }
+        )
     }
 }
 
@@ -1097,6 +1105,7 @@ private struct TranscriptionSheetContext: Identifiable {
                 .environmentObject(TranscriptionManager())
                 .environmentObject(AIGatewayViewModel())
                 .environmentObject(AIGenerationManager())
+                .environmentObject(TabSelectionManager())
                 .task {
                     // Create dummy data with fixed UUIDs for consistent DB operations in preview
                     let dummyTrackId = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!

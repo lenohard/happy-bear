@@ -62,6 +62,10 @@ class FloatingBubbleWindowManager: ObservableObject {
         // Define hit test logic: only capture touches within the bubble's frame
         window.shouldHandleTouch = { [weak self] point in
             guard let self = self else { return false }
+
+            if self.viewModel.requiresFullScreenHitTesting {
+                return true
+            }
             // Bubble geometry
             let position = self.viewModel.position
             let size: CGFloat = 60

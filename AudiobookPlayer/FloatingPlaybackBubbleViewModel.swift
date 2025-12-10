@@ -12,6 +12,7 @@ class FloatingPlaybackBubbleViewModel: ObservableObject {
     @AppStorage("floatingBubblePositionNormalizedY") private var normalizedY: Double = Constants.defaultNormalizedY
 
     @Published var position: CGPoint
+    @Published private(set) var requiresFullScreenHitTesting: Bool = false
     
     // Persistent setting
     @AppStorage("floatingBubbleEnabled") var isEnabled: Bool = true
@@ -89,6 +90,10 @@ class FloatingPlaybackBubbleViewModel: ObservableObject {
         withAnimation {
             isHiddenForSession = false
         }
+    }
+
+    func setFullScreenHitTestingRequired(_ required: Bool) {
+        requiresFullScreenHitTesting = required
     }
 
     private func persistPosition(_ point: CGPoint) {

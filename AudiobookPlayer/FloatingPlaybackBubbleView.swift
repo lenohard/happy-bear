@@ -98,6 +98,9 @@ struct FloatingPlaybackBubbleView: View {
                         }
                         Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) { }
                     }
+                    .onChange(of: showingBubbleMenu) { isShowing in
+                        viewModel.setFullScreenHitTestingRequired(isShowing)
+                    }
             }
         }
     }
