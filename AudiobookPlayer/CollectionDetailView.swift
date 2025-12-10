@@ -53,6 +53,7 @@ struct CollectionDetailView: View {
     @State private var refreshReviewDescription = ""
     @State private var playbackStateSnapshot: [UUID: TrackPlaybackState] = [:]
     @State private var isDescriptionExpanded = false
+    @State private var cachedOrderedTracks: [AudiobookTrack] = []
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -157,7 +158,7 @@ struct CollectionDetailView: View {
         }
     }
 
-    private var filteredTracks: [AudiobookTrack] {
+    private func computeOrderedTracks() -> [AudiobookTrack] {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
         var tracks = sortedTracks
         
@@ -189,6 +190,14 @@ struct CollectionDetailView: View {
             track.displayName.localizedCaseInsensitiveContains(query) ||
             track.filename.localizedCaseInsensitiveContains(query)
         }
+    }
+
+    private func updateCachedTracks() {
+        cachedOrderedTracks = computeOrderedTracks()
+    }
+
+    private var filteredTracks: [AudiobookTrack] {
+        cachedOrderedTracks
     }
 
     private var showScrollToTopButton: Bool {
@@ -529,7 +538,14 @@ struct CollectionDetailView: View {
                         refreshPlaybackStateSnapshot(for: self.collection)
                     }
                 }
+                updateCachedTracks()
             }
+            .onChange(of: collection?.tracks) { _ in updateCachedTracks() }
+            .onChange(of: searchText) { _ in updateCachedTracks() }
+            .onChange(of: selectedFilter) { _ in updateCachedTracks() }
+            .onChange(of: selectedSort) { _ in updateCachedTracks() }
+            .onChange(of: transcriptStatusCache) { _ in updateCachedTracks() }
+            .onChange(of: tracksWithSummaries) { _ in updateCachedTracks() }
             .onReceive(transcriptionManager.$activeJobs) { jobs in
                 refreshSttTranscribingTrackIds(from: jobs)
                 refreshTTSGeneratingTrackIds(from: jobs)
@@ -921,7 +937,7 @@ struct CollectionDetailView: View {
                             audioPlayer.notifyFavoriteToggle(for: track.id)
                         }
                     )
-                    .id(track.id)
+                    .equatable()
                     .onAppear {
                         if index == tracks.count - 1 {
                             isLastTrackVisible = true
@@ -1785,7 +1801,7 @@ private struct TrackDetailRow: View, Equatable {
     static func == (lhs: TrackDetailRow, rhs: TrackDetailRow) -> Bool {
         lhs.index == rhs.index &&
         lhs.track.id == rhs.track.id &&
-        lhs.collection.id == rhs.collection.id &&
+        lhs.collection.id == rhs.collection.id && // Only compare ID, assuming title doesn't change often or doesn't matter for row layout
         lhs.track.displayName == rhs.track.displayName &&
         lhs.track.fileSize == rhs.track.fileSize &&
         lhs.isActive == rhs.isActive &&

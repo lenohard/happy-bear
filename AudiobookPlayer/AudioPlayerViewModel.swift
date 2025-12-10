@@ -48,6 +48,7 @@ final class AudioPlayerViewModel: ObservableObject {
     private var playerItemStatusObserver: NSKeyValueObservation?
     private var currentToken: BaiduOAuthToken?
     private var pendingInitialSeek: Double?
+    private var lastBroadcastedPlaybackTime: Double = -1
     private let netdiskClient: BaiduNetdiskClient
     private let cacheManager: AudioCacheManager
     private let downloadManager: AudioCacheDownloadManager
@@ -182,12 +183,12 @@ final class AudioPlayerViewModel: ObservableObject {
 
         if let selectedTrack,
            let state = collection.playbackStates[selectedTrack.id] {
-            currentTime = state.position
+            publishCurrentTime(state.position, force: true)
             if let recordedDuration = state.duration {
                 duration = max(duration, recordedDuration)
             }
         } else {
-            currentTime = 0
+            publishCurrentTime(0, force: true)
             if !isPlaying {
                 duration = 0
             }
@@ -264,10 +265,10 @@ final class AudioPlayerViewModel: ObservableObject {
         let resumeState = collection.playbackStates[track.id]
         if let resumePosition = resumeState?.position, resumePosition > 1 {
             pendingInitialSeek = resumePosition
-            currentTime = resumePosition
+            publishCurrentTime(resumePosition, force: true)
         } else {
             pendingInitialSeek = nil
-            currentTime = 0
+            publishCurrentTime(0, force: true)
         }
 
         if let recordedDuration = resumeState?.duration {
@@ -947,7 +948,7 @@ final class AudioPlayerViewModel: ObservableObject {
         let target = CMTime(seconds: time, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         player.seek(to: target) { [weak self] _ in
             guard let self else { return }
-            self.currentTime = time
+            self.publishCurrentTime(time, force: true)
 #if os(iOS)
             self.updateNowPlayingElapsedTime()
 #endif
@@ -1307,9 +1308,9 @@ final class AudioPlayerViewModel: ObservableObject {
 
         let initialPosition = pendingInitialSeek
         if let initialPosition {
-            currentTime = initialPosition
+            publishCurrentTime(initialPosition, force: true)
         } else {
-            currentTime = 0
+            publishCurrentTime(0, force: true)
         }
 
         Task {
@@ -1325,7 +1326,7 @@ final class AudioPlayerViewModel: ObservableObject {
             let target = CMTime(seconds: initialPosition, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
             player?.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
                 guard let self else { return }
-                self.currentTime = initialPosition
+                self.publishCurrentTime(initialPosition, force: true)
                 if autoPlay {
                     self.startPlaybackImmediately()
                     self.isPlaying = true
@@ -1413,7 +1414,7 @@ final class AudioPlayerViewModel: ObservableObject {
             return
         }
 
-        currentTime = 0
+        publishCurrentTime(0, force: true)
         isPlaying = false
         pendingInitialSeek = nil
 
@@ -1454,13 +1455,29 @@ final class AudioPlayerViewModel: ObservableObject {
             queue: .main
         ) { [weak self] time in
             guard let self else { return }
-            self.currentTime = time.seconds.isFinite ? time.seconds : 0
-            if let itemDuration = self.player?.currentItem?.duration.seconds, itemDuration.isFinite {
-                self.duration = max(self.duration, itemDuration)
+            self.publishCurrentTime(time.seconds, force: false)
+            if let itemDuration = self.player?.currentItem?.duration.seconds,
+               itemDuration.isFinite {
+                let clampedDuration = max(0, itemDuration)
+                if abs(clampedDuration - self.duration) >= 0.25 {
+                    self.duration = clampedDuration
+                }
             }
             // Lock screen elapsed time is automatically calculated by iOS based on playback rate
             // Only need to update on events (seek, play, pause, track change) - not continuously
         }
+    }
+
+    private func publishCurrentTime(_ rawValue: Double, force: Bool) {
+        let sanitized = rawValue.isFinite ? max(0, rawValue) : 0
+        if !force {
+            if lastBroadcastedPlaybackTime >= 0,
+               abs(sanitized - lastBroadcastedPlaybackTime) < 0.95 {
+                return
+            }
+        }
+        lastBroadcastedPlaybackTime = sanitized
+        currentTime = sanitized
     }
 
     func removeObservers() {
@@ -1518,7 +1535,7 @@ final class AudioPlayerViewModel: ObservableObject {
         removeObservers()
         player = nil
         isPlaying = false
-        currentTime = 0
+        publishCurrentTime(0, force: true)
         duration = 0
         pendingInitialSeek = nil
 #if os(iOS)
@@ -1841,7 +1858,7 @@ private extension AudioPlayerViewModel {
         let target = CMTime(seconds: clampedTime, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
             guard let self else { return }
-            self.currentTime = clampedTime
+            self.publishCurrentTime(clampedTime, force: true)
 #if os(iOS)
             self.updateNowPlayingElapsedTime()
 #endif

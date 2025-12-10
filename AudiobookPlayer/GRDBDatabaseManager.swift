@@ -1261,6 +1261,45 @@ actor GRDBDatabaseManager {
         return hasTranscript
     }
 
+    /// Fetch all track IDs (subset of the provided list) that currently have completed transcripts.
+    /// Uses chunked IN queries to avoid SQLite's 999-parameter ceiling.
+    func fetchTrackIdsWithCompletedTranscripts(trackIds: [String]) throws -> Set<String> {
+        guard !trackIds.isEmpty else { return [] }
+        try initializeDatabase()
+        guard let db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { database in
+            var completedIds = Set<String>()
+            let normalizedStatuses = ["complete", "completed"]
+            let chunkSize = 900 // leave room for the status parameters
+            var index = 0
+
+            while index < trackIds.count {
+                let end = min(index + chunkSize, trackIds.count)
+                let chunk = Array(trackIds[index..<end])
+                index = end
+
+                guard !chunk.isEmpty else { continue }
+
+                let placeholders = chunk.map { _ in "?" }.joined(separator: ", ")
+                let sql = """
+                    SELECT track_id FROM transcripts
+                    WHERE track_id IN (\(placeholders))
+                    AND LOWER(job_status) IN (?, ?)
+                """
+                let arguments = StatementArguments(chunk + normalizedStatuses)
+                let rows = try Row.fetchAll(database, sql: sql, arguments: arguments)
+                for row in rows {
+                    if let trackId = row["track_id"] as? String {
+                        completedIds.insert(trackId)
+                    }
+                }
+            }
+
+            return completedIds
+        }
+    }
+
     /// Load all transcript segments for a transcript
     func loadTranscriptSegments(forTranscriptId transcriptId: String) throws -> [TranscriptSegment] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
