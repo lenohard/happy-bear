@@ -51,6 +51,7 @@ struct CollectionDetailView: View {
     @State private var showRefreshReview = false
     @State private var refreshReviewTitle = ""
     @State private var refreshReviewDescription = ""
+    @State private var playbackStateSnapshot: [UUID: TrackPlaybackState] = [:]
     @State private var isDescriptionExpanded = false
 
     // MARK: - Filter & Sort Enums
@@ -496,10 +497,12 @@ struct CollectionDetailView: View {
                 loadTranscriptStatus()
                 prepareAutoFocusTargetIfNeeded(for: self.collection)
                 refreshTrackSummaryIndicators(for: self.collection)
+                refreshPlaybackStateSnapshot(for: self.collection)
             }
             .onChange(of: collection?.tracks.map(\.id) ?? []) { _ in
                 prepareAutoFocusTargetIfNeeded(for: self.collection)
                 refreshTrackSummaryIndicators(for: self.collection)
+                refreshPlaybackStateSnapshot(for: self.collection)
             }
             .onChange(of: audioPlayer.activeCollection?.id) { _ in
                 prepareAutoFocusTargetIfNeeded(for: self.collection)
@@ -517,10 +520,14 @@ struct CollectionDetailView: View {
                 loadTranscriptStatus()
                 prepareAutoFocusTargetIfNeeded(for: self.collection)
                 refreshTrackSummaryIndicators(for: self.collection)
+                refreshPlaybackStateSnapshot(for: self.collection)
                 
                 // Trigger lazy load
                 Task {
                     await library.ensureCollectionLoaded(collectionID)
+                    await MainActor.run {
+                        refreshPlaybackStateSnapshot(for: self.collection)
+                    }
                 }
             }
             .onReceive(transcriptionManager.$activeJobs) { jobs in
@@ -901,7 +908,7 @@ struct CollectionDetailView: View {
                         collection: collection,
                         isActive: trackIsActive,
                         isPlaying: trackIsActive && audioPlayer.isPlaying,
-                        playbackState: collection.playbackState(for: track.id),
+                        playbackState: playbackStateSnapshot[track.id],
                         isFavorite: track.isFavorite,
                         hasTranscript: hasTranscript,
                         hasSummary: tracksWithSummaries.contains(track.id),
@@ -1098,6 +1105,14 @@ struct CollectionDetailView: View {
     private func resetAutoFocusState() {
         pendingAutoFocusTrackId = nil
         didAutoFocusTrack = false
+    }
+
+    private func refreshPlaybackStateSnapshot(for collection: AudiobookCollection?) {
+        guard let collection else {
+            playbackStateSnapshot = [:]
+            return
+        }
+        playbackStateSnapshot = collection.playbackStates
     }
 
     private func resolveAutoFocusTrackID(for collection: AudiobookCollection?) -> UUID? {
@@ -1801,15 +1816,19 @@ private struct TrackDetailRow: View, Equatable {
                 metadataRow
             }
             .layoutPriority(1)
-            
-            DownloadButton(track: track, collection: collection)
 
-            FavoriteToggleButton(isFavorite: isFavorite) {
-                onToggleFavorite()
+            Spacer(minLength: 8)
+
+            HStack(spacing: 6) {
+                DownloadButton(track: track, collection: collection)
+
+                FavoriteToggleButton(isFavorite: isFavorite) {
+                    onToggleFavorite()
+                }
+                .font(.headline)
+
+                playPauseButton
             }
-            .font(.headline)
-
-            playPauseButton
         }
         .padding(.vertical, 2)
     }
@@ -1851,21 +1870,6 @@ private struct TrackDetailRow: View, Equatable {
             ),
             track.displayName
         )
-    }
-
-    @ViewBuilder
-    private var progressSummaryView: some View {
-        if let state = playbackState, state.position > 1 {
-            if let duration = state.duration, duration > 0 {
-                let clampedPosition = min(state.position, duration)
-                ProgressView(value: clampedPosition, total: duration)
-                    .progressViewStyle(.linear)
-            } else {
-                Text("Last position: \(state.position.formattedTimestamp)")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
-            }
-        }
     }
 
     private var metadataRow: some View {
@@ -1937,6 +1941,21 @@ private struct TrackDetailRow: View, Equatable {
                 }
                 .font(.caption2.monospacedDigit())
                 .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var progressSummaryView: some View {
+        if let state = playbackState, state.position > 1 {
+            if let duration = state.duration, duration > 0 {
+                let clampedPosition = min(state.position, duration)
+                ProgressView(value: clampedPosition, total: duration)
+                    .progressViewStyle(.linear)
+            } else {
+                Text("Last position: \(state.position.formattedTimestamp)")
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.secondary)
             }
         }
     }

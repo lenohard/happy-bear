@@ -60,6 +60,7 @@ struct DownloadButton: View {
                     } label: {
                         Image(systemName: "arrow.down.circle")
                             .font(.title3)
+                            .foregroundStyle(.primary)
                     }
                     .buttonStyle(.plain)
                     .frame(width: 26, height: 26)
@@ -75,6 +76,7 @@ struct DownloadButton: View {
                 } label: {
                     Image(systemName: "arrow.down.circle")
                         .font(.title3)
+                        .foregroundStyle(.primary)
                 }
                 .buttonStyle(.plain)
                 .frame(width: 26, height: 26)
