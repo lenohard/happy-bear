@@ -46,6 +46,7 @@ actor GRDBDatabaseManager {
             try db.execute(sql: DatabaseSchema.createTableSQL)
             try addMediaKindColumnIfNeeded(in: db)
             try addCollectionShuffleColumnIfNeeded(in: db)
+            try addCollectionIsMusicColumnIfNeeded(in: db)
             print("[GRDB] Schema tables created")
 
             // Create transcription tables
@@ -122,7 +123,8 @@ actor GRDBDatabaseManager {
                         cover_kind = ?, cover_data = ?, cover_dominant_color = ?,
                         updated_at = ?,
                         source_type = ?, source_payload = ?,
-                        last_played_track_id = ?
+                        last_played_track_id = ?,
+                        is_music = ?
                     WHERE id = ?
                     """,
                     arguments: [
@@ -136,6 +138,7 @@ actor GRDBDatabaseManager {
                         collection.source.typeString,
                         collection.source.payloadJSON(),
                         collection.lastPlayedTrackId?.uuidString,
+                        collection.isMusic ? 1 : 0,
                         collection.id.uuidString
                     ]
                 )
@@ -168,8 +171,9 @@ actor GRDBDatabaseManager {
                     created_at, updated_at,
                     source_type, source_payload,
                     last_played_track_id,
-                    shuffle_enabled
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    shuffle_enabled,
+                    is_music
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     collection.id.uuidString,
@@ -184,7 +188,8 @@ actor GRDBDatabaseManager {
                     collection.source.typeString,
                     collection.source.payloadJSON(),
                     collection.lastPlayedTrackId?.uuidString,
-                    collection.shuffleEnabled ? 1 : 0
+                    collection.shuffleEnabled ? 1 : 0,
+                    collection.isMusic ? 1 : 0
                 ]
             )
 
@@ -695,6 +700,26 @@ actor GRDBDatabaseManager {
         }
     }
 
+    /// Update last played track ID for a collection (without saving playback state)
+    func updateLastPlayedTrack(collectionId: UUID, trackId: UUID) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(sql:
+                """
+                UPDATE collections
+                SET last_played_track_id = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                arguments: [
+                    trackId.uuidString,
+                    Date(),
+                    collectionId.uuidString
+                ]
+            )
+        }
+    }
+
     /// Load playback state for a track
     func loadPlaybackState(trackId: UUID) throws -> TrackPlaybackState? {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
@@ -998,6 +1023,8 @@ actor GRDBDatabaseManager {
         let lastPlayedTrackId = lastPlayedTrackIdStr.flatMap(UUID.init)
         let shuffleEnabledValue: Int? = collectionRow["shuffle_enabled"]
         let shuffleEnabled = (shuffleEnabledValue ?? 0) == 1
+        let isMusicValue: Int? = collectionRow["is_music"]
+        let isMusic = (isMusicValue ?? 0) == 1
 
         return AudiobookCollection(
             id: uuid,
@@ -1013,7 +1040,8 @@ actor GRDBDatabaseManager {
             playbackStates: playbackStates,
             tags: tags,
             trackCount: trackCount,
-            shuffleEnabled: shuffleEnabled
+            shuffleEnabled: shuffleEnabled,
+            isMusic: isMusic
         )
     }
 
@@ -1853,6 +1881,17 @@ actor GRDBDatabaseManager {
         }
         
         try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_collections_shuffle_enabled ON collections(shuffle_enabled)")
+    }
+
+    private func addCollectionIsMusicColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(collections)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("is_music") {
+            try database.execute(sql: "ALTER TABLE collections ADD COLUMN is_music INTEGER NOT NULL DEFAULT 0")
+        }
+        
+        try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_collections_is_music ON collections(is_music)")
     }
 
     private func addTranscriptRepairColumnsIfNeeded(in database: Database) throws {

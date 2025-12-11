@@ -23,6 +23,7 @@ struct CollectionDetailView: View {
     @State private var showBatchRename = false
     @State private var collectionTitleDraft = ""
     @State private var collectionDescriptionDraft = ""
+    @State private var collectionIsMusicDraft = false
     @State private var trackForTranscription: AudiobookTrack?
     @State private var trackForViewing: AudiobookTrack?
     @State private var trackForReading: AudiobookTrack?
@@ -478,6 +479,7 @@ struct CollectionDetailView: View {
                     descriptionFieldLabel: NSLocalizedString("collection_description_field_label", comment: "Collection description field label"),
                     name: $collectionTitleDraft,
                     description: $collectionDescriptionDraft,
+                    isMusic: $collectionIsMusicDraft,
                     onSubmit: applyCollectionDetailsUpdate,
                     onCancel: cancelCollectionDetailsEdit
                 )
@@ -842,6 +844,11 @@ struct CollectionDetailView: View {
                                     .font(.title3)
                                     .foregroundStyle(.orange)
                                     .accessibilityLabel(NSLocalizedString("rss_collection_indicator_accessibility", value: "RSS collection", comment: "Indicator for RSS collection"))
+                            } else if collection.isMusic {
+                                Image(systemName: "music.note")
+                                    .font(.title3)
+                                    .foregroundStyle(.pink)
+                                    .accessibilityLabel("Music Collection")
                             }
                         }
 
@@ -1455,6 +1462,7 @@ struct CollectionDetailView: View {
     private func beginEditingCollectionDetails(_ collection: AudiobookCollection) {
         collectionTitleDraft = String(collection.title.prefix(256))
         collectionDescriptionDraft = String((collection.description ?? "").prefix(1024))
+        collectionIsMusicDraft = collection.isMusic
         showCollectionInfoSheet = true
     }
 
@@ -1482,13 +1490,14 @@ struct CollectionDetailView: View {
         let clampedTitle = String(trimmedTitle.prefix(256))
         let clampedDescription = trimmedDescription.isEmpty ? nil : String(trimmedDescription.prefix(1024))
 
-        guard clampedTitle != collection.title || clampedDescription != collection.description else { return }
+        guard clampedTitle != collection.title || clampedDescription != collection.description || collectionIsMusicDraft != collection.isMusic else { return }
 
         library.updateCollectionDetails(
             collectionID: collectionID,
             newTitle: clampedTitle,
             newDescription: clampedDescription,
-            shouldUpdateDescription: true
+            shouldUpdateDescription: true,
+            isMusic: collectionIsMusicDraft
         )
     }
 
@@ -1898,6 +1907,7 @@ private struct CollectionInfoEditorView: View {
     let descriptionFieldLabel: String
     @Binding var name: String
     @Binding var description: String
+    @Binding var isMusic: Bool
     let onSubmit: () -> Void
     let onCancel: () -> Void
 
@@ -1935,6 +1945,8 @@ private struct CollectionInfoEditorView: View {
                             }
                         }
                         .textInputAutocapitalization(.sentences)
+                        
+                    Toggle("Music Collection", isOn: $isMusic)
                 }
             }
             .navigationTitle(title)
@@ -2252,7 +2264,7 @@ private struct TrackDetailRow: View, Equatable {
                 Spacer(minLength: 0)
             }
 
-            if let state = playbackState, state.position > 1 {
+            if !collection.isMusic, let state = playbackState, state.position > 1 {
                 HStack(spacing: 8) {
                     if let duration = state.duration, duration > 0 {
                         let clampedPosition = min(state.position, duration)
@@ -2273,7 +2285,7 @@ private struct TrackDetailRow: View, Equatable {
 
     @ViewBuilder
     private var progressSummaryView: some View {
-        if let state = playbackState, state.position > 1 {
+        if !collection.isMusic, let state = playbackState, state.position > 1 {
             if let duration = state.duration, duration > 0 {
                 let clampedPosition = min(state.position, duration)
                 ProgressView(value: clampedPosition, total: duration)

@@ -395,6 +395,24 @@ final class LibraryStore: ObservableObject {
 
         var collection = collections[index]
         let now = Date()
+
+        if collection.isMusic {
+            if collection.lastPlayedTrackId != trackID {
+                collection.lastPlayedTrackId = trackID
+                collection.updatedAt = now
+                collections[index] = collection
+
+                if !useFallbackJSON {
+                    Task(priority: .utility) {
+                        try? await dbManager.updateLastPlayedTrack(collectionId: collectionID, trackId: trackID)
+                    }
+                } else {
+                    persistCurrentSnapshot()
+                }
+            }
+            return
+        }
+
         var state = collection.playbackStates[trackID] ?? TrackPlaybackState(position: 0, duration: duration, updatedAt: now)
         let clampedPosition = max(0, position)
         let didChangePosition = abs(state.position - clampedPosition) >= 5
@@ -591,7 +609,8 @@ final class LibraryStore: ObservableObject {
         collectionID: UUID,
         newTitle: String,
         newDescription: String?,
-        shouldUpdateDescription: Bool
+        shouldUpdateDescription: Bool,
+        isMusic: Bool? = nil
     ) {
         guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
             return
@@ -622,6 +641,11 @@ final class LibraryStore: ObservableObject {
 
         if shouldUpdateDescription && collection.description != normalizedDescription {
             collection.description = normalizedDescription
+            didChange = true
+        }
+        
+        if let isMusic, collection.isMusic != isMusic {
+            collection.isMusic = isMusic
             didChange = true
         }
 

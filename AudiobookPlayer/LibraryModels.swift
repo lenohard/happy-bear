@@ -103,6 +103,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
     var tags: [String]
     var trackCount: Int
     var shuffleEnabled: Bool
+    var isMusic: Bool
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -120,6 +121,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case tags
         case trackCount
         case shuffleEnabled
+        case isMusic
     }
 
     init(
@@ -136,7 +138,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         playbackStates: [UUID: TrackPlaybackState],
         tags: [String],
         trackCount: Int? = nil, // Optional for backward compatibility in init, defaults to tracks.count
-        shuffleEnabled: Bool = false
+        shuffleEnabled: Bool = false,
+        isMusic: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -152,6 +155,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         self.tags = tags
         self.trackCount = trackCount ?? tracks.count
         self.shuffleEnabled = shuffleEnabled
+        self.isMusic = isMusic
     }
 
     init(from decoder: Decoder) throws {
@@ -177,6 +181,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         }
 
         shuffleEnabled = try container.decodeIfPresent(Bool.self, forKey: .shuffleEnabled) ?? false
+        isMusic = try container.decodeIfPresent(Bool.self, forKey: .isMusic) ?? false
 
         let decodedStates = try container.decodeIfPresent([UUID: TrackPlaybackState].self, forKey: .playbackStates) ?? [:]
         if decodedStates.isEmpty,
@@ -210,6 +215,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         try container.encode(tags, forKey: .tags)
         try container.encode(trackCount, forKey: .trackCount)
         try container.encode(shuffleEnabled, forKey: .shuffleEnabled)
+        try container.encode(isMusic, forKey: .isMusic)
     }
     func playbackState(for trackId: UUID) -> TrackPlaybackState? {
         playbackStates[trackId]
@@ -450,7 +456,9 @@ extension AudiobookCollection {
             lastPlayedTrackId: nil,
             playbackStates: [:],
             tags: [],
-            trackCount: 0
+            trackCount: 0,
+            shuffleEnabled: false,
+            isMusic: false
         )
     }
 }

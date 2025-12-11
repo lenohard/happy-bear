@@ -182,7 +182,8 @@ final class AudioPlayerViewModel: ObservableObject {
         refreshActiveCacheStatus()
 
         if let selectedTrack,
-           let state = collection.playbackStates[selectedTrack.id] {
+           let state = collection.playbackStates[selectedTrack.id],
+           !collection.isMusic {
             publishCurrentTime(state.position, force: true)
             if let recordedDuration = state.duration {
                 duration = max(duration, recordedDuration)
@@ -263,7 +264,10 @@ final class AudioPlayerViewModel: ObservableObject {
 
     private func startPlayback(url: URL, track: AudiobookTrack, collection: AudiobookCollection) {
         let resumeState = collection.playbackStates[track.id]
-        if let resumePosition = resumeState?.position, resumePosition > 1 {
+        if collection.isMusic {
+            pendingInitialSeek = nil
+            publishCurrentTime(0, force: true)
+        } else if let resumePosition = resumeState?.position, resumePosition > 1 {
             pendingInitialSeek = resumePosition
             publishCurrentTime(resumePosition, force: true)
         } else {

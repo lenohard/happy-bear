@@ -14,6 +14,7 @@ struct CreateCollectionView: View {
     @State private var selectedTrackIds: Set<UUID> = []    // Phase 1: track selection state
     @State private var showingError = false
     @State private var errorMessage: String = ""
+    @State private var isMusic = false
 
     init(
         folderPath: String,
@@ -99,7 +100,10 @@ struct CreateCollectionView: View {
             selectedTrackIds: $selectedTrackIds,
             totalSize: draft.totalSize,
             nonPlayableFiles: draft.nonPlayableFiles,
-            onSave: saveCollection
+            onSave: saveCollection,
+            headerContent: {
+                AnyView(Toggle("Music Collection", isOn: $isMusic))
+            }
         ) { track in
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -192,7 +196,8 @@ struct CreateCollectionView: View {
             tracks: selectedTracks,  // Only selected tracks
             lastPlayedTrackId: nil,
             playbackStates: [:],
-            tags: []
+            tags: [],
+            isMusic: isMusic
         )
 
         libraryStore.save(collection)
