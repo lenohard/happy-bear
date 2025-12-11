@@ -17,7 +17,36 @@ final class LibraryStore: ObservableObject {
     private let jsonPersistence: LibraryPersistence  // Keep for fallback
     private let syncEngine: LibrarySyncing?
     private let coverImageStore: CollectionCoverImageStore
-    private let schemaVersion = 3
+    private let schemaVersion = 4
+
+    private func audioPlayerDefaultsBool() -> Bool {
+        UserDefaults.standard.object(forKey: "audio_player_shuffle_enabled") as? Bool ?? false
+    }
+
+    private func migrateShuffleDefaultsIfNeeded(globalShuffleDefault: Bool) {
+        let hasMigratedKey = "has_migrated_shuffle_to_collections_v4"
+        guard !UserDefaults.standard.bool(forKey: hasMigratedKey) else { return }
+
+        var migratedCollections: [AudiobookCollection] = []
+        for collection in collections {
+            var updatedCollection = collection
+            updatedCollection.shuffleEnabled = globalShuffleDefault
+            migratedCollections.append(updatedCollection)
+        }
+
+        collections = migratedCollections
+
+        if !useFallbackJSON {
+            for collection in migratedCollections {
+                persistToDatabase(collection)
+            }
+        } else {
+            persistCurrentSnapshot()
+        }
+
+        UserDefaults.standard.set(true, forKey: hasMigratedKey)
+        print("[MIGRATION] Migrated global shuffle state (\(globalShuffleDefault)) to \(migratedCollections.count) collections")
+    }
 
     private var useFallbackJSON = false
     private var remoteCoverPrefetches: [UUID: Task<Void, Never>] = [:]
@@ -79,6 +108,7 @@ final class LibraryStore: ObservableObject {
             // Load from SQLite database
             let dbCollections = try await dbManager.loadAllCollections()
             collections = dbCollections.sorted { $0.updatedAt > $1.updatedAt }
+            migrateShuffleDefaultsIfNeeded(globalShuffleDefault: audioPlayerDefaultsBool())
 
             // Debug: print favorite count
             let favoriteCount = collections.flatMap { $0.tracks }.filter { $0.isFavorite }.count
@@ -149,6 +179,34 @@ final class LibraryStore: ObservableObject {
             Task(priority: .utility) {
                 try? await syncEngine.saveRemoteCollection(collection)
             }
+        }
+    }
+
+    func updateShuffle(_ enabled: Bool, for collectionID: UUID) {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else { return }
+        guard collections[index].shuffleEnabled != enabled else { return }
+
+        var collection = collections[index]
+        collection.shuffleEnabled = enabled
+        collection.updatedAt = Date()
+        collections[index] = collection
+
+        persistShuffleState(collectionID: collectionID, isEnabled: enabled)
+    }
+
+    private func persistShuffleState(collectionID: UUID, isEnabled: Bool) {
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                do {
+                    try await dbManager.updateCollectionShuffleState(collectionID: collectionID, shuffleEnabled: isEnabled)
+                } catch {
+                    await MainActor.run {
+                        self.lastError = error
+                    }
+                }
+            }
+        } else {
+            persistCurrentSnapshot()
         }
     }
 

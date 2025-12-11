@@ -655,17 +655,22 @@ struct PlayingView: View {
                 DownloadButton(track: track, collection: collection)
             }
 
+            let isCollectionShuffleEnabled = collection.shuffleEnabled
+
             Button {
-                audioPlayer.setShuffleEnabled(!audioPlayer.isShuffleEnabled)
+                audioPlayer.setShuffleEnabled(
+                    !audioPlayer.isShuffleEnabled,
+                    for: collection
+                )
             } label: {
-                Image(systemName: audioPlayer.isShuffleEnabled ? "shuffle.circle.fill" : "shuffle.circle")
+                Image(systemName: isCollectionShuffleEnabled ? "shuffle.circle.fill" : "shuffle.circle")
                     .font(.title3)
-                    .foregroundStyle(audioPlayer.isShuffleEnabled ? Color.accentColor : .secondary)
+                    .foregroundStyle(isCollectionShuffleEnabled ? Color.accentColor : .secondary)
             }
             .buttonStyle(.plain)
             .accessibilityLabel(
                 Text(
-                    audioPlayer.isShuffleEnabled
+                    isCollectionShuffleEnabled
                     ? NSLocalizedString("shuffle_turn_off", comment: "Turn shuffle off")
                     : NSLocalizedString("shuffle_turn_on", comment: "Turn shuffle on")
                 )

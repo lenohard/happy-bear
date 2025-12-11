@@ -22,7 +22,7 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var sleepTimerRemaining: TimeInterval?
     @Published var showGenerateAudioConfirmation = false
     @Published var trackToGenerateAudio: AudiobookTrack?
-    @Published var isShuffleEnabled: Bool
+    @Published private(set) var isShuffleEnabled: Bool
 
     enum SleepTimerMode: Equatable {
         case off
@@ -907,11 +907,14 @@ final class AudioPlayerViewModel: ObservableObject {
         applyPlaybackRateToPlayer()
     }
 
-    func setShuffleEnabled(_ enabled: Bool) {
+    func setShuffleEnabled(_ enabled: Bool, for collection: AudiobookCollection?) {
         guard isShuffleEnabled != enabled else { return }
         isShuffleEnabled = enabled
         defaults.set(enabled, forKey: Self.shuffleDefaultsKey)
         rebuildPlaylistPreservingCurrentTrack()
+        if let collection, !collection.isEphemeral {
+            library?.updateShuffle(enabled, for: collection.id)
+        }
     }
 
     func setSleepTimer(_ mode: SleepTimerMode) {

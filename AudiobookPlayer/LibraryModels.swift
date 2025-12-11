@@ -102,6 +102,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
     var playbackStates: [UUID: TrackPlaybackState]
     var tags: [String]
     var trackCount: Int
+    var shuffleEnabled: Bool
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -118,6 +119,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case legacyLastPlaybackPosition = "lastPlaybackPosition"
         case tags
         case trackCount
+        case shuffleEnabled
     }
 
     init(
@@ -133,7 +135,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         lastPlayedTrackId: UUID?,
         playbackStates: [UUID: TrackPlaybackState],
         tags: [String],
-        trackCount: Int? = nil // Optional for backward compatibility in init, defaults to tracks.count
+        trackCount: Int? = nil, // Optional for backward compatibility in init, defaults to tracks.count
+        shuffleEnabled: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -148,6 +151,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         self.playbackStates = playbackStates
         self.tags = tags
         self.trackCount = trackCount ?? tracks.count
+        self.shuffleEnabled = shuffleEnabled
     }
 
     init(from decoder: Decoder) throws {
@@ -164,13 +168,15 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         tracks = try container.decode([AudiobookTrack].self, forKey: .tracks)
         lastPlayedTrackId = try container.decodeIfPresent(UUID.self, forKey: .lastPlayedTrackId)
         tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
-        
+
         // For backward compatibility, if trackCount is missing, use tracks.count
         if let count = try container.decodeIfPresent(Int.self, forKey: .trackCount) {
             trackCount = count
         } else {
             trackCount = tracks.count
         }
+
+        shuffleEnabled = try container.decodeIfPresent(Bool.self, forKey: .shuffleEnabled) ?? false
 
         let decodedStates = try container.decodeIfPresent([UUID: TrackPlaybackState].self, forKey: .playbackStates) ?? [:]
         if decodedStates.isEmpty,
@@ -203,10 +209,17 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         try container.encode(playbackStates, forKey: .playbackStates)
         try container.encode(tags, forKey: .tags)
         try container.encode(trackCount, forKey: .trackCount)
+        try container.encode(shuffleEnabled, forKey: .shuffleEnabled)
     }
-
     func playbackState(for trackId: UUID) -> TrackPlaybackState? {
         playbackStates[trackId]
+    }
+
+    func withShuffleEnabled(_ enabled: Bool) -> AudiobookCollection {
+        var copy = self
+        copy.shuffleEnabled = enabled
+        copy.updatedAt = Date()
+        return copy
     }
 }
 

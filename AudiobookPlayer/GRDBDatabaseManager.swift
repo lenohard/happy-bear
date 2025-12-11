@@ -45,6 +45,7 @@ actor GRDBDatabaseManager {
             print("[GRDB] Executing createTableSQL...")
             try db.execute(sql: DatabaseSchema.createTableSQL)
             try addMediaKindColumnIfNeeded(in: db)
+            try addCollectionShuffleColumnIfNeeded(in: db)
             print("[GRDB] Schema tables created")
 
             // Create transcription tables
@@ -166,8 +167,9 @@ actor GRDBDatabaseManager {
                     cover_kind, cover_data, cover_dominant_color,
                     created_at, updated_at,
                     source_type, source_payload,
-                    last_played_track_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    last_played_track_id,
+                    shuffle_enabled
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     collection.id.uuidString,
@@ -181,7 +183,8 @@ actor GRDBDatabaseManager {
                     collection.updatedAt,
                     collection.source.typeString,
                     collection.source.payloadJSON(),
-                    collection.lastPlayedTrackId?.uuidString
+                    collection.lastPlayedTrackId?.uuidString,
+                    collection.shuffleEnabled ? 1 : 0
                 ]
             )
 
@@ -844,6 +847,26 @@ actor GRDBDatabaseManager {
         }
     }
 
+    /// Update collection's shuffle state
+    func updateCollectionShuffleState(collectionID: UUID, shuffleEnabled: Bool) async throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try await db.write { db in
+            try db.execute(sql:
+                """
+                UPDATE collections SET
+                    shuffle_enabled = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                arguments: [
+                    shuffleEnabled ? 1 : 0,
+                    Date(),
+                    collectionID.uuidString
+                ]
+            )
+        }
+    }
+
     // MARK: - Tag Operations
 
     /// Add tags to a collection
@@ -973,6 +996,8 @@ actor GRDBDatabaseManager {
         let description = collectionRow["description"] as? String
         let lastPlayedTrackIdStr = collectionRow["last_played_track_id"] as? String
         let lastPlayedTrackId = lastPlayedTrackIdStr.flatMap(UUID.init)
+        let shuffleEnabledValue: Int? = collectionRow["shuffle_enabled"]
+        let shuffleEnabled = (shuffleEnabledValue ?? 0) == 1
 
         return AudiobookCollection(
             id: uuid,
@@ -987,7 +1012,8 @@ actor GRDBDatabaseManager {
             lastPlayedTrackId: lastPlayedTrackId,
             playbackStates: playbackStates,
             tags: tags,
-            trackCount: trackCount
+            trackCount: trackCount,
+            shuffleEnabled: shuffleEnabled
         )
     }
 
@@ -1816,6 +1842,17 @@ actor GRDBDatabaseManager {
         guard !existingColumns.contains("media_kind") else { return }
 
         try database.execute(sql: "ALTER TABLE tracks ADD COLUMN media_kind TEXT NOT NULL DEFAULT 'audio'")
+    }
+
+    private func addCollectionShuffleColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(collections)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("shuffle_enabled") {
+            try database.execute(sql: "ALTER TABLE collections ADD COLUMN shuffle_enabled INTEGER NOT NULL DEFAULT 0")
+        }
+        
+        try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_collections_shuffle_enabled ON collections(shuffle_enabled)")
     }
 
     private func addTranscriptRepairColumnsIfNeeded(in database: Database) throws {

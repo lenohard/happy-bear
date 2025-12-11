@@ -20,7 +20,8 @@ enum DatabaseSchema {
         updated_at DATETIME NOT NULL,
         source_type TEXT NOT NULL,
         source_payload TEXT NOT NULL,
-        last_played_track_id TEXT
+        last_played_track_id TEXT,
+        shuffle_enabled INTEGER NOT NULL DEFAULT 0
     );
 
     -- Tracks table
@@ -113,6 +114,7 @@ struct CollectionRow: Codable {
     let sourceType: String
     let sourcePayload: String
     let lastPlayedTrackId: String?
+    let shuffleEnabled: Bool?
 }
 
 /// Data Transfer Object for tracks in the database
