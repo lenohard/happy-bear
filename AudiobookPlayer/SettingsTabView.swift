@@ -80,25 +80,29 @@ struct SettingsTabView: View {
                 Toggle(isOn: $autoGenerateTrackSummaries) {
                     VStack(alignment: .leading, spacing: 4) {
                         Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
-                        Text(
-                            autoSummaryEnforceDurationLimit
-                            ? NSLocalizedString("settings_auto_summary_hint_long_only", value: "仅对时长超过 10 分钟的音频自动生成", comment: "Auto summary hint long tracks only")
-                            : NSLocalizedString("settings_auto_summary_hint_all_lengths", value: "包含 10 分钟以下的音频也会自动生成", comment: "Auto summary hint all track lengths")
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                            .labelStyle(.titleAndIcon)
+                            .font(.body)
+                            .imageScale(.medium)
                     }
                 }
                 
-                Toggle(isOn: $autoSummaryEnforceDurationLimit) {
-                    Label(
-                        NSLocalizedString("settings_auto_summary_skip_short", value: "跳过 10 分钟以下的音频", comment: "Skip short tracks toggle"),
-                        systemImage: "clock.badge.exclamationmark"
-                    )
+                if autoGenerateTrackSummaries {
+                    Toggle(isOn: $autoSummaryEnforceDurationLimit) {
+                        Label(
+                            NSLocalizedString("settings_auto_summary_skip_short", value: "跳过 10 分钟以下的音频", comment: "Skip short tracks toggle"),
+                            systemImage: "clock.badge.exclamationmark"
+                        )
+                        .labelStyle(.titleAndIcon)
+                        .font(.body)
+                        .imageScale(.medium)
+                    }
                 }
                 
                 Toggle(isOn: $autoGenerateNextEbookAudio) {
                     Label("Auto-generate next ebook audio", systemImage: "waveform.badge.plus")
+                        .labelStyle(.titleAndIcon)
+                        .font(.body)
+                        .imageScale(.medium)
                 }
             } header: {
                 Text(NSLocalizedString("settings_auto_summary_section_title", comment: "Auto summary section title"))
