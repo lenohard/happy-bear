@@ -26,7 +26,6 @@ struct DownloadButton: View {
                             )
                     }
                     .buttonStyle(.plain)
-                    .disabled(true)
                     .frame(width: 26, height: 26)
                     .confirmationDialog(
                         NSLocalizedString("delete_cache_title", comment: "Delete cached track confirmation"),

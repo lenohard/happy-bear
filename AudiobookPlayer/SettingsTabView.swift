@@ -78,12 +78,10 @@ struct SettingsTabView: View {
 
             Section {
                 Toggle(isOn: $autoGenerateTrackSummaries) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
-                            .labelStyle(.titleAndIcon)
-                            .font(.body)
-                            .imageScale(.medium)
-                    }
+                    Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
+                        .labelStyle(.titleAndIcon)
+                        .font(.body)
+                        .imageScale(.medium)
                 }
                 
                 if autoGenerateTrackSummaries {
