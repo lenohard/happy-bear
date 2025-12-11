@@ -8,6 +8,7 @@ final class TrackSummaryViewModel: ObservableObject {
     }
 
     @Published private(set) var summary: TrackSummary?
+    @Published private(set) var summaryTranslations: [TrackSummaryTranslation] = []
     @Published private(set) var sections: [TrackSummarySection] = []
     @Published private(set) var status: TrackSummary.Status = .idle
     @Published private(set) var errorMessage: String?
@@ -60,6 +61,7 @@ final class TrackSummaryViewModel: ObservableObject {
 
             if let bundle = try await dbManager.fetchTrackSummaryBundle(forTrackId: trackId) {
                 summary = bundle.0
+                summaryTranslations = bundle.0.translations
                 sections = bundle.1
                 status = bundle.0.status
                 errorMessage = bundle.0.errorMessage
@@ -70,6 +72,7 @@ final class TrackSummaryViewModel: ObservableObject {
                    await recoverSectionsIfNeeded(for: bundle.0) {
                     if let refreshed = try await dbManager.fetchTrackSummaryBundle(forTrackId: trackId) {
                         summary = refreshed.0
+                        summaryTranslations = refreshed.0.translations
                         sections = refreshed.1
                         status = refreshed.0.status
                         errorMessage = refreshed.0.errorMessage
@@ -123,7 +126,8 @@ final class TrackSummaryViewModel: ObservableObject {
         using manager: AIGenerationManager,
         modelId: String,
         targetSections: Int? = nil,
-        includeKeywords: Bool = true
+        includeKeywords: Bool = true,
+        requestTranslations: Bool = false
     ) async throws {
         guard let trackId = currentTrackId else {
             throw AIGatewayRequestError(message: NSLocalizedString("track_summary_missing_track", comment: ""))
@@ -136,6 +140,7 @@ final class TrackSummaryViewModel: ObservableObject {
             trackId: trackId,
             targetSectionCount: targetSections,
             includeKeywords: includeKeywords,
+            requestTranslations: requestTranslations,
             modelId: modelId
         )
         activeJob = job

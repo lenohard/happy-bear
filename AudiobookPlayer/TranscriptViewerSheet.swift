@@ -45,9 +45,11 @@ struct TranscriptViewerSheet: View {
         }
         .task {
             await viewModel.loadTranscript()
+            await viewModel.refreshTranslations()
             handleRepairJobUpdates()
             if showTrackSummary {
                 trackSummaryViewModel.setTrackId(trackId)
+                await refreshSummaryTranslations()
                 handleTrackSummaryJobUpdates()
             }
         }
@@ -328,7 +330,13 @@ struct TranscriptViewerSheet: View {
                                 track: context.track,
                                 isTranscriptAvailable: viewModel.transcript != nil,
                                 viewModel: trackSummaryViewModel,
-                                seekAndPlayAction: { time in seekAndPlay(to: time) }
+                                seekAndPlayAction: { time in seekAndPlay(to: time) },
+                                onRequestTranscription: {
+                                    Task { await viewModel.loadTranscript() }
+                                },
+                                onRequestTranslations: {
+                                    Task { await triggerTranslationGeneration() }
+                                }
                             )
                             .padding(.horizontal)
                             .padding(.top, 8)
@@ -646,12 +654,46 @@ private extension TranscriptViewerSheet {
             activeJobs: aiGenerationManager.activeJobs,
             recentJobs: aiGenerationManager.recentJobs
         )
+
+        Task { await refreshSummaryTranslations() }
     }
 
     func handleTrackSummaryTranscriptFinalized(trackId: String) {
         guard showTrackSummary else { return }
         guard trackId == self.trackId else { return }
         trackSummaryViewModel.handleTranscriptFinalized(trackId: trackId)
+        Task { await refreshSummaryTranslations() }
+    }
+
+    private func refreshSummaryTranslations() async {
+        guard showTrackSummary else { return }
+        await viewModel.refreshTranslations()
+    }
+
+    private func triggerTranslationGeneration() async {
+        guard viewModel.transcript != nil else {
+            await MainActor.run {
+                playbackAlertMessage = NSLocalizedString(
+                    "track_summary_requires_transcript",
+                    comment: "Translation generation requires transcript"
+                )
+            }
+            return
+        }
+
+        do {
+            let modelId = aiGateway.selectedModelID
+            try await trackSummaryViewModel.startGeneration(
+                using: aiGenerationManager,
+                modelId: modelId,
+                includeKeywords: true,
+                requestTranslations: true
+            )
+        } catch {
+            await MainActor.run {
+                playbackAlertMessage = error.localizedDescription
+            }
+        }
     }
 }
 

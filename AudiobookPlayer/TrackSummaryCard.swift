@@ -7,6 +7,7 @@ struct TrackSummaryCard: View {
     @ObservedObject var viewModel: TrackSummaryViewModel
     var seekAndPlayAction: (TimeInterval) -> Void
     var onRequestTranscription: (() -> Void)? = nil
+    var onRequestTranslations: (() -> Void)? = nil
 
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
@@ -78,12 +79,32 @@ struct TrackSummaryCard: View {
                     ProgressView()
                         .controlSize(.small)
                 } else {
-                    Button(actionButtonTitle) {
-                        Task { await triggerGeneration() }
+                    Menu {
+                        Button {
+                            Task { await triggerGeneration() }
+                        } label: {
+                            Label(
+                                NSLocalizedString("track_summary_generate_button", comment: "Generate summary button"),
+                                systemImage: "text.badge.plus"
+                            )
+                        }
+
+                        if let onRequestTranslations {
+                            Button(action: onRequestTranslations) {
+                                Label(
+                                    NSLocalizedString("track_summary_translate_button", comment: "Generate translated summary button"),
+                                    systemImage: "character.book.closed"
+                                )
+                            }
+                            .accessibilityIdentifier("trackSummaryTranslateButton")
+                        }
+                    } label: {
+                        Label(actionButtonTitle, systemImage: "sparkles")
+                            .labelStyle(.titleAndIcon)
                     }
-                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("trackSummaryActionMenu")
+                    .menuStyle(.button)
                     .controlSize(.small)
-                    .font(.system(size: 12))
                     .disabled(isActionDisabled)
                 }
             }
@@ -125,6 +146,10 @@ struct TrackSummaryCard: View {
             }
         } else if viewModel.hasSummaryContent(), let summary = viewModel.summary {
             summaryView(summary)
+
+            if !viewModel.summaryTranslations.isEmpty {
+                translationsView(viewModel.summaryTranslations)
+            }
         } else {
             idleView
         }

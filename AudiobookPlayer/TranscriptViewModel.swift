@@ -252,6 +252,19 @@ class TranscriptViewModel: NSObject, ObservableObject {
 
     // MARK: - Private
 
+    func refreshTranslations() async {
+        do {
+            let loaded = try await loadTranslations()
+            await MainActor.run {
+                self.translations = loaded
+            }
+        } catch {
+            await MainActor.run {
+                self.translations = []
+            }
+        }
+    }
+
     private func loadTranslations() async throws -> [TrackSummaryTranslation] {
         guard let summary = try await dbManager.fetchTrackSummary(forTrackId: trackId) else {
             return []
