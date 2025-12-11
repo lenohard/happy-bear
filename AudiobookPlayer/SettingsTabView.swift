@@ -80,20 +80,21 @@ struct SettingsTabView: View {
                 Toggle(isOn: $autoGenerateTrackSummaries) {
                     VStack(alignment: .leading, spacing: 4) {
                         Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
-                        if autoSummaryEnforceDurationLimit {
-                            Text("Only for tracks longer than 10 minutes")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("Includes tracks shorter than 10 minutes")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
+                        Text(
+                            autoSummaryEnforceDurationLimit
+                            ? NSLocalizedString("settings_auto_summary_hint_long_only", value: "仅对时长超过 10 分钟的音频自动生成", comment: "Auto summary hint long tracks only")
+                            : NSLocalizedString("settings_auto_summary_hint_all_lengths", value: "包含 10 分钟以下的音频也会自动生成", comment: "Auto summary hint all track lengths")
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                 }
                 
                 Toggle(isOn: $autoSummaryEnforceDurationLimit) {
-                    Label("Skip tracks under 10 minutes", systemImage: "clock.badge.exclamationmark")
+                    Label(
+                        NSLocalizedString("settings_auto_summary_skip_short", value: "跳过 10 分钟以下的音频", comment: "Skip short tracks toggle"),
+                        systemImage: "clock.badge.exclamationmark"
+                    )
                 }
                 
                 Toggle(isOn: $autoGenerateNextEbookAudio) {
