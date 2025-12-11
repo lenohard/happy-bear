@@ -222,6 +222,7 @@ struct TranscriptViewerSheet: View {
                             let segment = item.segment
                             TranscriptSegmentRowView(
                                 segment: segment,
+                                translation: viewModel.translation(for: segment),
                                 isSelected: selectedSegment?.id == segment.id,
                                 onTap: {
                                     selectedSegment = segment
@@ -496,6 +497,7 @@ struct TranscriptViewerSheet: View {
 
 struct TranscriptSegmentRowView: View {
     let segment: TranscriptSegment
+    let translation: TrackSummaryTranslation?
     let isSelected: Bool
     let onTap: () -> Void
 
@@ -527,6 +529,14 @@ struct TranscriptSegmentRowView: View {
                 .font(.body)
                 .lineSpacing(1)
                 .fixedSize(horizontal: false, vertical: true)
+
+            if let translation {
+                Text(translation.translation)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(1)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 6)

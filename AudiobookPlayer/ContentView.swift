@@ -139,6 +139,7 @@ struct PlayingView: View {
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
+    @AppStorage("autoSummaryEnforceDurationLimit") private var autoSummaryEnforceDurationLimit = true
 
     @State private var missingAuthAlert = false
     @State private var showingEphemeralSave = false
@@ -1006,13 +1007,15 @@ struct PlayingView: View {
         do {
             try await dbManager.initializeDatabase()
 
-            // Check track duration (must be > 10 minutes)
-            if let uuid = UUID(uuidString: trackId),
-               let result = try await dbManager.loadTrack(id: uuid) {
-                let duration = result.track.duration ?? 0
-                if duration < 600 {
-                    print("[AutoSummary] Skipping track \(trackId): duration \(duration)s < 600s")
-                    return
+            // Optionally skip short tracks (< 10 minutes)
+            if autoSummaryEnforceDurationLimit {
+                if let uuid = UUID(uuidString: trackId),
+                   let result = try await dbManager.loadTrack(id: uuid) {
+                    let duration = result.track.duration ?? 0
+                    if duration < 600 {
+                        print("[AutoSummary] Skipping track \(trackId): duration \(duration)s < 600s")
+                        return
+                    }
                 }
             }
 

@@ -202,10 +202,6 @@ struct TrackSummaryCard: View {
                 mentionedItemsRow(summary.mentionedItems)
             }
 
-            if !summary.translations.isEmpty {
-                translationsView(summary.translations)
-            }
-
             if !viewModel.sections.isEmpty {
                 Text(NSLocalizedString("track_summary_sections_header", comment: "Track summary sections header"))
                     .font(.subheadline)

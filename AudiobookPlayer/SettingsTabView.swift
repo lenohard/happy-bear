@@ -16,6 +16,7 @@ struct SettingsTabView: View {
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @AppStorage("floatingBubbleOpacity") private var floatingBubbleOpacity: Double = 0.8
     @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
+    @AppStorage("autoSummaryEnforceDurationLimit") private var autoSummaryEnforceDurationLimit = true
     @AppStorage("autoGenerateNextEbookAudio") private var autoGenerateNextEbookAudio = true
     @AppStorage("backupIncludeCredentials") private var includeCredentials = false
     @State private var selectedNetdiskEntry: BaiduNetdiskEntry?
@@ -79,10 +80,20 @@ struct SettingsTabView: View {
                 Toggle(isOn: $autoGenerateTrackSummaries) {
                     VStack(alignment: .leading, spacing: 4) {
                         Label(NSLocalizedString("settings_auto_summary_toggle", comment: "Auto summary toggle label"), systemImage: "sparkles.rectangle.stack")
-                        Text("Only for tracks longer than 10 minutes")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        if autoSummaryEnforceDurationLimit {
+                            Text("Only for tracks longer than 10 minutes")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("Includes tracks shorter than 10 minutes")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
+                }
+                
+                Toggle(isOn: $autoSummaryEnforceDurationLimit) {
+                    Label("Skip tracks under 10 minutes", systemImage: "clock.badge.exclamationmark")
                 }
                 
                 Toggle(isOn: $autoGenerateNextEbookAudio) {
