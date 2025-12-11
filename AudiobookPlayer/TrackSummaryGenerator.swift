@@ -28,6 +28,12 @@ struct TrackSummarySectionPayload: Equatable {
     let keywords: [String]
 }
 
+struct TrackSummaryTranslationPayload: Equatable {
+    let orderIndex: Int
+    let startTimeMs: Int
+    let translation: String
+}
+
 struct TrackSummaryGenerationResult: Equatable {
     let summaryTitle: String?
     let summaryBody: String
@@ -35,6 +41,7 @@ struct TrackSummaryGenerationResult: Equatable {
     let mentionedItems: [String]
     let suggestedCorrections: [String: String]
     let sections: [TrackSummarySectionPayload]
+    let translations: [TrackSummaryTranslationPayload]
 }
 
 enum TrackSummaryGenerationError: LocalizedError {
@@ -103,9 +110,9 @@ final class TrackSummaryGenerator {
           "summary": {
             "suggested_corrections": {
               "incorrect spelling": "correct spelling"
-            }
+            },
             "title": "optional short title",
-            "overview": "2-3 sentences summarizing the overall track",
+            "overview": "Summarizing the overall track",
             "keywords": ["keyword1", "keyword2"],
             "mentioned_items": ["《Book Title》(Author)", "《Movie Name》(Director, year)"],
           },
@@ -118,6 +125,13 @@ final class TrackSummaryGenerator {
               "summary": "1-2 sentence blurb of the section",
               "keywords": ["topic", "theme"]
             }
+          ],
+          "translations":[ // optional, include when this is a song or short transcript under 5 minute.
+          {
+          "order":1,
+          "start_ms": xx,
+          "translation": "xxxxxxx",
+          }
           ]
         }
         """
@@ -129,6 +143,12 @@ final class TrackSummaryGenerator {
         \(metadata.joined(separator: "\n"))
 
         Requirements:
+        - Decide whether the transcript is primarily song lyrics or a regular narration. 
+        - If it is a song or short performance:
+          - Keep using this template but describe the song (title, performer, release background, etc.) in `summary.overview`, adding any notable context when the track is well known.
+          - Include a `translation` field that mirrors the provided `start_ms` and contains the Chinese translation when the original lyrics are not Chinese. Don't return translation filed if the orignal text is Chinese already.
+          - Don't include `sections` field.
+        - If it is not a song, follow the normal audiobook summary workflow.
         - Provide a concise overview (2-3 sentences).
         - \(sectionInstruction)
         - Sections must have `start_ms` integers derived from the provided `start_ms` values (do not invent new times).
@@ -208,13 +228,39 @@ final class TrackSummaryGenerator {
                     )
                 }
 
+            let translations = payload.translations
+                .compactMap { entry -> TrackSummaryTranslationPayload? in
+                    guard let startMs = entry.normalizedStartMs else { return nil }
+                    guard let text = entry.translation?.trimmedNonEmpty else { return nil }
+                    return TrackSummaryTranslationPayload(
+                        orderIndex: entry.order ?? 0,
+                        startTimeMs: max(0, startMs),
+                        translation: text
+                    )
+                }
+                .sorted { lhs, rhs in
+                    if lhs.startTimeMs == rhs.startTimeMs {
+                        return lhs.orderIndex < rhs.orderIndex
+                    }
+                    return lhs.startTimeMs < rhs.startTimeMs
+                }
+                .enumerated()
+                .map { index, payload in
+                    TrackSummaryTranslationPayload(
+                        orderIndex: index,
+                        startTimeMs: payload.startTimeMs,
+                        translation: payload.translation
+                    )
+                }
+
             return TrackSummaryGenerationResult(
                 summaryTitle: payload.summary.title?.trimmedNonEmpty,
                 summaryBody: overview,
                 keywords: keywords,
                 mentionedItems: mentionedItems,
                 suggestedCorrections: suggestedCorrections,
-                sections: sections
+                sections: sections,
+                translations: translations
             )
         } catch {
             throw TrackSummaryGenerationError.decodingFailed(error.localizedDescription)
@@ -368,18 +414,51 @@ private struct TrackSummaryLLMResponse: Decodable {
         }
     }
 
+    struct Translation: Decodable {
+        let order: Int?
+        let startMs: Int?
+        let startTimeMs: Int?
+        let startSeconds: Double?
+        let startTime: String?
+        let translation: String?
+
+        enum CodingKeys: String, CodingKey {
+            case order
+            case startMs = "start_ms"
+            case startTimeMs = "start_time_ms"
+            case startSeconds = "start_seconds"
+            case startTime = "start_time"
+            case translation
+        }
+
+        var normalizedStartMs: Int? {
+            if let startMs { return startMs }
+            if let startTimeMs { return startTimeMs }
+            if let startSeconds {
+                return Int(startSeconds * 1000)
+            }
+            if let startTime {
+                return TrackSummaryGenerator.parseTimecode(startTime)
+            }
+            return nil
+        }
+    }
+
     let summary: SummarySection
     let sections: [Section]
+    let translations: [Translation]
 
     enum CodingKeys: String, CodingKey {
         case summary
         case sections
+        case translations
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         summary = try container.decode(SummarySection.self, forKey: .summary)
         sections = try container.decodeIfPresent([Section].self, forKey: .sections) ?? []
+        translations = try container.decodeIfPresent([Translation].self, forKey: .translations) ?? []
     }
 }
 

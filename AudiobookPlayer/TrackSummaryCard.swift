@@ -202,6 +202,10 @@ struct TrackSummaryCard: View {
                 mentionedItemsRow(summary.mentionedItems)
             }
 
+            if !summary.translations.isEmpty {
+                translationsView(summary.translations)
+            }
+
             if !viewModel.sections.isEmpty {
                 Text(NSLocalizedString("track_summary_sections_header", comment: "Track summary sections header"))
                     .font(.subheadline)
@@ -324,6 +328,46 @@ struct TrackSummaryCard: View {
                 }
             }
         }
+    }
+
+    private func translationsView(_ translations: [TrackSummaryTranslation]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(
+                NSLocalizedString("track_summary_translations_header", value: "Lyric Translation", comment: "Translations header"),
+                systemImage: "music.note.list"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+
+            VStack(spacing: 6) {
+                ForEach(translations) { translation in
+                    translationRow(translation)
+                }
+            }
+        }
+    }
+
+    private func translationRow(_ translation: TrackSummaryTranslation) -> some View {
+        Button {
+            let seconds = TimeInterval(translation.startTimeMs) / 1000.0
+            seekAndPlayAction(seconds)
+        } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(translation.startTimeLabel)
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(Color.accentColor)
+                Text(translation.translation)
+                    .font(.footnote)
+                    .foregroundStyle(.primary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color(uiColor: .tertiarySystemFill))
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     private func jobStatusLabel(for job: AIGenerationJob) -> String {

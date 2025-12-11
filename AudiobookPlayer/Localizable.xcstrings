@@ -5658,6 +5658,18 @@
         }
       }
     },
+    "track_summary_translations_header" : {
+      "comment" : "Translations header",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Lyric Translation"
+          }
+        }
+      }
+    },
     "Tracks" : {
       "extractionState" : "stale",
       "localizations" : {

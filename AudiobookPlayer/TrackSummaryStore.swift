@@ -160,6 +160,7 @@ extension GRDBDatabaseManager {
         keywords: [String],
         mentionedItems: [String],
         suggestedCorrections: [String: String],
+        translations: [TrackSummaryTranslation] = [],
         sections: [TrackSummarySection],
         modelIdentifier: String?,
         jobId: String?
@@ -174,6 +175,7 @@ extension GRDBDatabaseManager {
         let keywordsJSON = encodeKeywords(keywords)
         let mentionedItemsJSON = encodeKeywords(mentionedItems)
         let suggestedCorrectionsJSON = encodeDictionary(suggestedCorrections)
+        let translationSegmentsJSON = encodeTranslations(translations)
 
         // Ensure sections reference correct summary ID and remain ordered
         let normalizedSections = sections
@@ -198,10 +200,16 @@ extension GRDBDatabaseManager {
                 sql: """
                 INSERT INTO track_summaries (
                     id, track_id, transcript_id, language,
-                    summary_title, summary_body, keywords_json, mentioned_items_json, suggested_corrections_json, section_count,
+                    summary_title, summary_body, keywords_json, mentioned_items_json, suggested_corrections_json, translation_segments_json, section_count,
                     model_identifier, generated_at, status, error_message, last_job_id,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
+                ) VALUES (
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?, ?,
+                    ?, ?, ?, ?,
+                    NULL,
+                    ?, ?, ?
+                )
                 ON CONFLICT(track_id) DO UPDATE SET
                     transcript_id = excluded.transcript_id,
                     language = excluded.language,
@@ -210,6 +218,7 @@ extension GRDBDatabaseManager {
                     keywords_json = excluded.keywords_json,
                     mentioned_items_json = excluded.mentioned_items_json,
                     suggested_corrections_json = excluded.suggested_corrections_json,
+                    translation_segments_json = excluded.translation_segments_json,
                     section_count = excluded.section_count,
                     model_identifier = excluded.model_identifier,
                     generated_at = excluded.generated_at,
@@ -228,6 +237,7 @@ extension GRDBDatabaseManager {
                     keywordsJSON,
                     mentionedItemsJSON,
                     suggestedCorrectionsJSON,
+                    translationSegmentsJSON,
                     normalizedSections.count,
                     modelIdentifier,
                     Self.sqliteDateFormatter.string(from: now),
@@ -300,6 +310,7 @@ extension GRDBDatabaseManager {
             mentionedItems: mentionedItems,
             suggestedCorrections: suggestedCorrections,
             sectionCount: normalizedSections.count,
+            translations: translations,
             modelIdentifier: modelIdentifier,
             generatedAt: now,
             status: .complete,
@@ -367,6 +378,7 @@ extension GRDBDatabaseManager {
         let keywordsJSON = row["keywords_json"] as? String
         let mentionedItemsJSON = row["mentioned_items_json"] as? String
         let suggestedCorrectionsJSON = row["suggested_corrections_json"] as? String
+        let translationSegmentsJSON = row["translation_segments_json"] as? String
         let sectionCount = (row["section_count"] as? Int) ?? 0
         let model = row["model_identifier"] as? String
         let statusRaw = row["status"] as? String ?? TrackSummary.Status.idle.rawValue
@@ -388,6 +400,7 @@ extension GRDBDatabaseManager {
             mentionedItems: decodeKeywords(mentionedItemsJSON),
             suggestedCorrections: decodeDictionary(suggestedCorrectionsJSON),
             sectionCount: sectionCount,
+            translations: decodeTranslations(translationSegmentsJSON),
             modelIdentifier: model,
             generatedAt: generatedAt,
             status: TrackSummary.Status(rawValue: statusRaw) ?? .idle,
@@ -453,6 +466,20 @@ extension GRDBDatabaseManager {
         return decoded
     }
 
+    private func encodeTranslations(_ translations: [TrackSummaryTranslation]) -> String? {
+        guard !translations.isEmpty else { return nil }
+        guard let data = try? JSONEncoder().encode(translations) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private func decodeTranslations(_ json: String?) -> [TrackSummaryTranslation] {
+        guard let json, let data = json.data(using: .utf8),
+              let decoded = try? JSONDecoder().decode([TrackSummaryTranslation].self, from: data) else {
+            return []
+        }
+        return decoded
+    }
+
     func addMentionedItemsColumnIfNeeded(in database: Database) throws {
         let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(track_summaries)")
         let existingColumns = Set(rows.compactMap { $0["name"] as? String })
@@ -463,6 +490,10 @@ extension GRDBDatabaseManager {
 
         if !existingColumns.contains("suggested_corrections_json") {
             try database.execute(sql: "ALTER TABLE track_summaries ADD COLUMN suggested_corrections_json TEXT")
+        }
+
+        if !existingColumns.contains("translation_segments_json") {
+            try database.execute(sql: "ALTER TABLE track_summaries ADD COLUMN translation_segments_json TEXT")
         }
     }
 

@@ -176,6 +176,13 @@ final class TrackSummaryViewModel: ObservableObject {
                     keywords: payload.keywords
                 )
             }
+            let recoveredTranslations = parsed.translations.enumerated().map { index, payload in
+                TrackSummaryTranslation(
+                    orderIndex: index,
+                    startTimeMs: payload.startTimeMs,
+                    translation: payload.translation
+                )
+            }
 
             _ = try await dbManager.persistTrackSummaryResult(
                 trackId: summary.trackId,
@@ -186,6 +193,7 @@ final class TrackSummaryViewModel: ObservableObject {
                 keywords: parsed.keywords,
                 mentionedItems: parsed.mentionedItems,
                 suggestedCorrections: parsed.suggestedCorrections,
+                translations: recoveredTranslations,
                 sections: recoveredSections,
                 modelIdentifier: summary.modelIdentifier,
                 jobId: jobId

@@ -424,6 +424,7 @@ struct TrackSummary: Identifiable, Codable {
     var mentionedItems: [String]
     var suggestedCorrections: [String: String]
     var sectionCount: Int
+    var translations: [TrackSummaryTranslation]
     var modelIdentifier: String?
     var generatedAt: Date?
     var status: Status
@@ -443,6 +444,7 @@ struct TrackSummary: Identifiable, Codable {
         mentionedItems: [String] = [],
         suggestedCorrections: [String: String] = [:],
         sectionCount: Int = 0,
+        translations: [TrackSummaryTranslation] = [],
         modelIdentifier: String? = nil,
         generatedAt: Date? = nil,
         status: Status = .idle,
@@ -461,6 +463,7 @@ struct TrackSummary: Identifiable, Codable {
         self.mentionedItems = mentionedItems
         self.suggestedCorrections = suggestedCorrections
         self.sectionCount = sectionCount
+        self.translations = translations
         self.modelIdentifier = modelIdentifier
         self.generatedAt = generatedAt
         self.status = status
@@ -513,15 +516,44 @@ struct TrackSummarySection: Identifiable, Codable {
     }
 
     var startTimeLabel: String {
-        let seconds = startTimeMs / 1000
-        let hrs = seconds / 3600
-        let mins = (seconds % 3600) / 60
-        let secs = seconds % 60
-        if hrs > 0 {
-        return String(format: "%02d:%02d:%02d", hrs, mins, secs)
-        }
-        return String(format: "%02d:%02d", mins, secs)
+        formattedTimeLabel(for: startTimeMs)
     }
+}
+
+struct TrackSummaryTranslation: Identifiable, Codable {
+    let id: String
+    var orderIndex: Int
+    var startTimeMs: Int
+    var translation: String
+
+    init(
+        id: String = UUID().uuidString,
+        orderIndex: Int,
+        startTimeMs: Int,
+        translation: String
+    ) {
+        self.id = id
+        self.orderIndex = orderIndex
+        self.startTimeMs = startTimeMs
+        self.translation = translation
+    }
+
+    var startTimeLabel: String {
+        formattedTimeLabel(for: startTimeMs)
+    }
+}
+
+@inline(__always)
+private func formattedTimeLabel(for milliseconds: Int) -> String {
+    let clampedMs = max(0, milliseconds)
+    let totalSeconds = clampedMs / 1000
+    let hrs = totalSeconds / 3600
+    let mins = (totalSeconds % 3600) / 60
+    let secs = totalSeconds % 60
+    if hrs > 0 {
+        return String(format: "%02d:%02d:%02d", hrs, mins, secs)
+    }
+    return String(format: "%02d:%02d", mins, secs)
 }
 
 // MARK: - Transcript Correction Models

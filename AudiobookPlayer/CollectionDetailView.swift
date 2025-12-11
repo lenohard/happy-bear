@@ -320,6 +320,7 @@ struct CollectionDetailView: View {
     }
 
     private var showScrollToBottomButton: Bool {
+        guard !isPagedMode else { return false }
         guard !filteredTracks.isEmpty else { return false }
         return !isLastTrackVisible
     }

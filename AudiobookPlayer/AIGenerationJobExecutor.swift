@@ -319,6 +319,13 @@ actor AIGenerationJobExecutor {
                     keywords: payload.keywords
                 )
             }
+            let translations = parsed.translations.enumerated().map { index, payload in
+                TrackSummaryTranslation(
+                    orderIndex: index,
+                    startTimeMs: payload.startTimeMs,
+                    translation: payload.translation
+                )
+            }
 
             _ = try await dbManager.persistTrackSummaryResult(
                 trackId: payload.trackId,
@@ -329,6 +336,7 @@ actor AIGenerationJobExecutor {
                 keywords: parsed.keywords,
                 mentionedItems: parsed.mentionedItems,
                 suggestedCorrections: parsed.suggestedCorrections,
+                translations: translations,
                 sections: sections,
                 modelIdentifier: modelId,
                 jobId: job.id
