@@ -94,7 +94,7 @@ struct AddRSSCollectionView: View {
     
     private func fetchFeed() {
         let trimmedURLString = feedURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmedURLString), !trimmedURLString.isEmpty else {
+        guard let url = parseFeedURL(from: trimmedURLString) else {
             errorMessage = NSLocalizedString("rss_error_invalid_url", value: "Invalid RSS feed URL", comment: "Invalid RSS URL message")
             showError = true
             return
@@ -148,6 +148,8 @@ struct AddRSSCollectionView: View {
                     // Default select all
                     selectedTrackIds = Set(tracks.map(\.id))
                     isLoading = false
+                    // If user pasted an http:// URL (or omitted a scheme), keep the UI in sync with what we actually use.
+                    feedURL = url.absoluteString
                 }
             } catch {
                 await MainActor.run {
@@ -162,7 +164,7 @@ struct AddRSSCollectionView: View {
     private func addCollection() {
         guard let feed = parsedFeed else { return }
         let trimmedURLString = feedURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let feedURL = URL(string: trimmedURLString) else { return }
+        guard let feedURL = parseFeedURL(from: trimmedURLString) else { return }
         
         let selectedTracks = previewTracks.filter { selectedTrackIds.contains($0.id) }
         guard !selectedTracks.isEmpty else { return }
@@ -230,6 +232,13 @@ struct AddRSSCollectionView: View {
         formatter.allowedUnits = [.useKB, .useMB, .useGB]
         formatter.countStyle = .file
         return formatter.string(fromByteCount: bytes)
+    }
+
+    private func parseFeedURL(from input: String) -> URL? {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let withScheme = trimmed.contains("://") ? trimmed : "https://\(trimmed)"
+        return URL(string: withScheme)?.upgradedToHTTPSIfHTTP()
     }
 }
 

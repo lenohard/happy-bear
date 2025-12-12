@@ -1219,7 +1219,7 @@ actor GRDBDatabaseManager {
                   let url = URL(string: urlString) else {
                 throw DatabaseError.inconsistentData("Invalid RSS feed URL")
             }
-            return .rss(feedUrl: url)
+            return .rss(feedUrl: url.upgradedToHTTPSIfHTTP())
 
         default:
             throw DatabaseError.inconsistentData("Unknown source type: \(type)")
@@ -1251,7 +1251,7 @@ actor GRDBDatabaseManager {
                   let url = URL(string: urlStr) else {
                 throw DatabaseError.inconsistentData("Invalid external URL")
             }
-            return .external(url: url)
+            return .external(url: url.upgradedToHTTPSIfHTTP())
 
         case "text":
             guard let content = dict["content"] as? String else {

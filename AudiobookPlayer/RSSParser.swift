@@ -1,5 +1,17 @@
 import Foundation
 
+extension URL {
+    /// iOS App Transport Security (ATS) blocks cleartext HTTP by default.
+    /// Many RSS feeds still advertise `http://` URLs even when `https://` works.
+    /// This helper upgrades `http` -> `https` as a best-effort compatibility fix.
+    func upgradedToHTTPSIfHTTP() -> URL {
+        guard scheme?.lowercased() == "http" else { return self }
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+        components.scheme = "https"
+        return components.url ?? self
+    }
+}
+
 // MARK: - RSS Feed Models
 
 struct RSSFeed {
@@ -77,8 +89,18 @@ final class RSSParser: NSObject {
     }()
     
     func parse(url: URL) async throws -> RSSFeed {
-        // Fetch RSS feed data
-        let (data, _) = try await URLSession.shared.data(from: url)
+        // Fetch RSS feed data. Best-effort upgrade to HTTPS to satisfy ATS.
+        let effectiveURL = url.upgradedToHTTPSIfHTTP()
+        let data: Data
+        do {
+            (data, _) = try await URLSession.shared.data(from: effectiveURL)
+        } catch {
+            // Provide a clearer message for the common ATS failure mode.
+            if let urlError = error as? URLError, urlError.code == .appTransportSecurityRequiresSecureConnection {
+                throw RSSParserError.parsingError("This RSS feed uses HTTP. iOS requires HTTPS (ATS). Try changing http:// to https://.")
+            }
+            throw RSSParserError.networkError(error)
+        }
         
         // Parse XML
         let parser = XMLParser(data: data)
@@ -145,7 +167,7 @@ extension RSSParser: XMLParserDelegate {
                 // Check if it's an audio file
                 let ext = (url.pathExtension.lowercased())
                 if PlayableMediaFormat.isPlayableExtension(ext) {
-                    currentEnclosureURL = url
+                    currentEnclosureURL = url.upgradedToHTTPSIfHTTP()
                     if let lengthString = attributeDict["length"],
                        let length = Int64(lengthString) {
                         currentEnclosureLength = length
@@ -163,7 +185,7 @@ extension RSSParser: XMLParserDelegate {
             if !isInItem,
                let href = attributeDict["href"],
                let url = URL(string: href) {
-                itunesImageURL = url
+                itunesImageURL = url.upgradedToHTTPSIfHTTP()
             }
             
         default:
@@ -234,7 +256,7 @@ extension RSSParser: XMLParserDelegate {
         } else if elementName == "image" {
             if isInImage {
                 if let url = URL(string: currentImageURLString) {
-                    regularImageURL = url
+                    regularImageURL = url.upgradedToHTTPSIfHTTP()
                 }
                 isInImage = false
             }

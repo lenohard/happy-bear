@@ -326,7 +326,7 @@ final class LibraryStore: ObservableObject {
         }
 
         let parser = RSSParser()
-        let feed = try await parser.parse(url: feedUrl)
+        let feed = try await parser.parse(url: feedUrl.upgradedToHTTPSIfHTTP())
 
         let existingURLs = Set(collection.tracks.compactMap { track -> String? in
             if case let .external(url) = track.location {
