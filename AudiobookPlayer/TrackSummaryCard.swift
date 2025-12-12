@@ -146,10 +146,6 @@ struct TrackSummaryCard: View {
             }
         } else if viewModel.hasSummaryContent(), let summary = viewModel.summary {
             summaryView(summary)
-
-            if !viewModel.summaryTranslations.isEmpty {
-                translationsView(viewModel.summaryTranslations)
-            }
         } else {
             idleView
         }
