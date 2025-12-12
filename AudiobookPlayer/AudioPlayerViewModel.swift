@@ -10,8 +10,11 @@ private let favoriteNowPlayingInfoKey = "MPNowPlayingInfoPropertyIsLiked"
 @MainActor
 final class AudioPlayerViewModel: ObservableObject {
     @Published var isPlaying = false
-    @Published var currentTime: Double = 0
-    @Published var duration: Double = 0
+    /// High-frequency ticks are emitted via `playbackClock` instead of this object.
+    var currentTime: Double = 0
+    var duration: Double = 0 {
+        didSet { playbackClock.duration = duration }
+    }
     @Published var statusMessage: String?
     @Published private(set) var activeCollection: AudiobookCollection?
     @Published private(set) var currentTrack: AudiobookTrack?
@@ -59,6 +62,8 @@ final class AudioPlayerViewModel: ObservableObject {
     private var currentSessionStartTime: Date?
     private let sessionDurationThreshold: TimeInterval = 2.0
     private weak var library: LibraryStore?
+
+    let playbackClock = PlaybackClock()
 
     private static let playbackRateDefaultsKey = "audio_player_playback_rate"
     private static let shuffleDefaultsKey = "audio_player_shuffle_enabled"
@@ -1485,6 +1490,7 @@ final class AudioPlayerViewModel: ObservableObject {
         }
         lastBroadcastedPlaybackTime = sanitized
         currentTime = sanitized
+        playbackClock.currentTime = sanitized
     }
 
     func removeObservers() {

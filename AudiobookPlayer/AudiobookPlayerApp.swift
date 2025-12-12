@@ -22,6 +22,7 @@ struct AudiobookPlayerApp: App {
             ZStack {
                 ContentView()
                     .environmentObject(audioPlayer)
+                    .environmentObject(audioPlayer.playbackClock)
                     .environmentObject(libraryStore)
                     .environmentObject(baiduAuth)
                     .environmentObject(aliyunAuth)

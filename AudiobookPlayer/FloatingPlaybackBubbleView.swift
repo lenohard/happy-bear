@@ -3,6 +3,7 @@ import SwiftUI
 struct FloatingPlaybackBubbleView: View {
     @StateObject var viewModel: FloatingPlaybackBubbleViewModel
     @EnvironmentObject var audioPlayer: AudioPlayerViewModel
+    @EnvironmentObject var playbackClock: PlaybackClock
     @EnvironmentObject var tabSelection: TabSelectionManager
     @AppStorage("floatingBubbleOpacity") private var storedOpacity: Double = 0.8
     
@@ -106,8 +107,8 @@ struct FloatingPlaybackBubbleView: View {
     }
     
     private var progress: Double {
-        guard audioPlayer.duration > 0 else { return 0 }
-        return min(max(audioPlayer.currentTime / audioPlayer.duration, 0), 1)
+        guard playbackClock.duration > 0 else { return 0 }
+        return min(max(playbackClock.currentTime / playbackClock.duration, 0), 1)
     }
 
     @ViewBuilder

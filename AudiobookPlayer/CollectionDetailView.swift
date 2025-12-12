@@ -593,19 +593,7 @@ struct CollectionDetailView: View {
 
                 prepareAutoFocusTargetIfNeeded(for: currentCollection)
             }
-            .onChange(of: audioPlayer.currentTime) { newValue in
-                guard
-                    audioPlayer.activeCollection?.id == collectionID,
-                    let collection,
-                    let track = audioPlayer.currentTrack
-                else { return }
-
-                // Throttle updates: only record every 5 seconds or if playback is paused (handled elsewhere usually, but good to be safe)
-                // We check if the integer value is a multiple of 5 to approximate 5-second intervals
-                if Int(newValue) % 5 == 0 {
-                    recordPlayback(for: collection, track: track, position: newValue)
-                }
-            }
+            .background(CollectionPlaybackProgressObserver(collectionID: collectionID))
 
         let viewWithStateEvents = viewWithPlaybackEvents
             .onChange(of: trackToRename) { newValue in
@@ -2348,26 +2336,54 @@ private struct TrackDetailRow: View, Equatable {
     }
 }
 
-
-
-private struct PlaybackTimeline: View {
+private struct CollectionPlaybackProgressObserver: View {
+    @EnvironmentObject private var playbackClock: PlaybackClock
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
+    @EnvironmentObject private var library: LibraryStore
+
+    let collectionID: UUID
+
+    var body: some View {
+        Color.clear
+            .onChange(of: playbackClock.currentTime) { newValue in
+                guard
+                    audioPlayer.activeCollection?.id == collectionID,
+                    let track = audioPlayer.currentTrack,
+                    let collection = library.collections.first(where: { $0.id == collectionID })
+                else { return }
+
+                // Approximate 5s checkpoints (matches previous behavior).
+                if Int(newValue) % 5 == 0 {
+                    library.recordPlaybackProgress(
+                        collectionID: collection.id,
+                        trackID: track.id,
+                        position: newValue,
+                        duration: audioPlayer.duration
+                    )
+                }
+            }
+    }
+}
+
+	private struct PlaybackTimeline: View {
+    @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
+    @EnvironmentObject private var playbackClock: PlaybackClock
 
     var body: some View {
         VStack(spacing: 8) {
             Slider(
                 value: Binding(
-                    get: { audioPlayer.currentTime },
+                    get: { playbackClock.currentTime },
                     set: { audioPlayer.seek(to: $0) }
                 ),
-                in: 0...(max(audioPlayer.duration, 1))
+                in: 0...(max(playbackClock.duration, 1))
             )
             .tint(Color.accentColor)
 
             HStack {
-                Text(audioPlayer.currentTime.formattedTimestamp)
+                Text(playbackClock.currentTime.formattedTimestamp)
                 Spacer()
-                Text(audioPlayer.duration.formattedTimestamp)
+                Text(playbackClock.duration.formattedTimestamp)
             }
             .font(.caption.monospacedDigit())
             .foregroundStyle(.secondary)

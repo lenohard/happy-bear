@@ -85,11 +85,12 @@ class FloatingBubbleWindowManager: ObservableObject {
         // Create the hosting controller with the bubble view
         let bubbleView = FloatingPlaybackBubbleView(viewModel: self.viewModel)
             .environmentObject(audioPlayer)
+            .environmentObject(audioPlayer.playbackClock)
             .environmentObject(tabSelection)
             .ignoresSafeArea()
         
         let hostingController = UIHostingController(rootView: bubbleView)
-        hostingController.view.backgroundColor = .clear
+        hostingController.view.backgroundColor = UIColor.clear
         
         window.rootViewController = hostingController
         window.isHidden = false

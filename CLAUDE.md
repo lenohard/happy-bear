@@ -36,6 +36,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 
 ## Recent Lessons
 
+- **2025-12-12 – SwiftUI playback tick performance**: Don’t publish high-frequency playback ticks (`currentTime`) from a widely-used `@EnvironmentObject` like `AudioPlayerViewModel`, or large views (e.g. `PlayingView` `ScrollView`) will re-render on every tick and stutter. Instead, route ticks through a small dedicated `PlaybackClock` (`ObservableObject`) and have only the timeline/auto-follow subviews observe it. Also avoid expensive work in `View.body` (e.g. HTML parsing); compute once and cache, or use a cheap sanitizer if the feature isn’t important.
 - **2025-12-09 – Swipe actions**: All swipe-to-reveal actions (List rows, jobs, statistics, etc.) should style buttons with `.labelStyle(.iconOnly)` so the circular buttons stay centered regardless of localization length.
 - **2025-12-09 – Baidu Netdisk Collection Refresh Behavior**:
   - **Adding tracks from other folders**: Fully supported. The "Refresh Collection" action scans the collection's *original root folder* for new files and checks against *all* existing tracks (including those manually added from elsewhere). It never deletes tracks, so multi-source collections remain safe.

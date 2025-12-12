@@ -1,6 +1,63 @@
 import SwiftUI
 import Foundation
 
+/// Caches and sanitizes track HTML descriptions so we don't re-parse on every SwiftUI update.
+private actor TrackDescriptionSanitizer {
+    static let shared = TrackDescriptionSanitizer()
+
+    private var cache: [String: String] = [:]
+
+    /// Returns a plain-text description, or nil if the sanitized text is empty.
+    func sanitizedDescription(from raw: String) -> String? {
+        if let cached = cache[raw] {
+            return cached.isEmpty ? nil : cached
+        }
+
+        let sanitized = Self.sanitizeHTML(raw)
+        cache[raw] = sanitized ?? ""
+        return sanitized
+    }
+
+    nonisolated private static func sanitizeHTML(_ raw: String) -> String? {
+        let trimmedRaw = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedRaw.isEmpty else { return nil }
+        // Cheap strip: preserve paragraph breaks and remove tags.
+        var intermediate = trimmedRaw
+        intermediate = intermediate.replacingOccurrences(
+            of: "(?i)<br ?/?>",
+            with: "\n",
+            options: .regularExpression
+        )
+        intermediate = intermediate.replacingOccurrences(
+            of: "(?i)</p>",
+            with: "\n\n",
+            options: .regularExpression
+        )
+        let stripped = intermediate.replacingOccurrences(
+            of: "<[^>]+>",
+            with: "",
+            options: .regularExpression
+        )
+
+        // Minimal entity decode for common cases.
+        let decoded = stripped
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&lt;", with: "<")
+            .replacingOccurrences(of: "&gt;", with: ">")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .replacingOccurrences(of: "&#39;", with: "'")
+
+        let collapsed = decoded
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "\n")
+
+        return collapsed.isEmpty ? nil : collapsed
+    }
+}
+
 struct TrackSummaryCard: View {
     let track: AudiobookTrack
     let isTranscriptAvailable: Bool
@@ -15,6 +72,7 @@ struct TrackSummaryCard: View {
     @State private var isExpanded = false
     @State private var hasAnimatedExpansion = false
     @State private var didInitializeExpansion = false
+    @State private var sanitizedDescriptionText: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -44,6 +102,9 @@ struct TrackSummaryCard: View {
         }
         .task {
             initializeExpansionState()
+        }
+        .task(id: rawDescription) {
+            await refreshSanitizedDescription()
         }
     }
 
@@ -150,7 +211,7 @@ struct TrackSummaryCard: View {
             idleView
         }
 
-        if let description = sanitizedDescription, !description.isEmpty {
+        if let description = sanitizedDescriptionText, !description.isEmpty {
             Divider()
             VStack(alignment: .leading, spacing: 4) {
                 Text(NSLocalizedString("track_description_header", value: "Description", comment: "Track description header"))
@@ -223,17 +284,17 @@ struct TrackSummaryCard: View {
                 mentionedItemsRow(summary.mentionedItems)
             }
 
-            if !viewModel.sections.isEmpty {
-                Text(NSLocalizedString("track_summary_sections_header", comment: "Track summary sections header"))
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+        if !viewModel.sections.isEmpty {
+            Text(NSLocalizedString("track_summary_sections_header", comment: "Track summary sections header"))
+                .font(.subheadline)
+                .fontWeight(.semibold)
 
-                VStack(spacing: 8) {
-                    ForEach(viewModel.sections) { section in
-                        sectionRow(section)
-                    }
+            LazyVStack(spacing: 8) {
+                ForEach(viewModel.sections) { section in
+                    sectionRow(section)
                 }
             }
+        }
         }
     }
 
@@ -356,7 +417,7 @@ struct TrackSummaryCard: View {
             .font(.caption)
             .foregroundStyle(.secondary)
 
-            VStack(spacing: 6) {
+            LazyVStack(spacing: 6) {
                 ForEach(translations) { translation in
                     translationRow(translation)
                 }
@@ -417,47 +478,8 @@ struct TrackSummaryCard: View {
         )
     }
     
-    private var sanitizedDescription: String? {
-        guard let raw = track.metadata["description"], !raw.isEmpty else { return nil }
-        
-        if let data = raw.data(using: .utf8),
-           let attributed = try? NSAttributedString(
-               data: data,
-               options: [
-                   .documentType: NSAttributedString.DocumentType.html,
-                   .characterEncoding: String.Encoding.utf8.rawValue
-               ],
-               documentAttributes: nil
-           ) {
-            let text = attributed.string.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !text.isEmpty { return text }
-        }
-        
-        // Fallback: strip tags manually and preserve paragraph breaks
-        var intermediate = raw
-        intermediate = intermediate.replacingOccurrences(
-            of: "(?i)<br ?/?>",
-            with: "\n",
-            options: .regularExpression
-        )
-        intermediate = intermediate.replacingOccurrences(
-            of: "(?i)</p>",
-            with: "\n\n",
-            options: .regularExpression
-        )
-        let stripped = intermediate.replacingOccurrences(
-            of: "<[^>]+>",
-            with: "",
-            options: .regularExpression
-        )
-        
-        let collapsed = stripped
-            .components(separatedBy: .newlines)
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
-            .joined(separator: "\n")
-        
-        return collapsed.isEmpty ? nil : collapsed
+    private var rawDescription: String? {
+        track.metadata["description"]
     }
 
     private func collapsedPreviewText() -> String? {
@@ -496,10 +518,21 @@ struct TrackSummaryCard: View {
             }
         }
 
-    private func formattedNumber(_ value: Int) -> String {
+    private static let numberFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
-        return formatter.string(from: NSNumber(value: value)) ?? "\(value)"
+        return formatter
+    }()
+
+    private func formattedNumber(_ value: Int) -> String {
+        Self.numberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    @MainActor
+    private func refreshSanitizedDescription() async {
+        sanitizedDescriptionText = nil
+        guard let raw = rawDescription, !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        sanitizedDescriptionText = await TrackDescriptionSanitizer.shared.sanitizedDescription(from: raw)
     }
 
     private func triggerGeneration() async {

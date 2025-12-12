@@ -55,19 +55,19 @@ struct TranscriptViewerSheet: View {
         }
         .onChange(of: segmentIDs) { _ in
             lastAutoScrolledSegmentID = nil
-            focusOnCurrentPlayback(animated: false)
+            focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
         }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             lastAutoScrolledSegmentID = nil
-            focusOnCurrentPlayback(animated: false)
+            focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
         }
-        .onChange(of: audioPlayer.currentTime) { _ in
-            focusOnCurrentPlayback(animated: true)
-        }
+        .background(PlaybackAutoFollowObserver { currentTime in
+            focusOnCurrentPlayback(currentTime: currentTime, animated: true)
+        })
         .onChange(of: viewModel.searchText) { newValue in
             if newValue.isEmpty {
                 lastAutoScrolledSegmentID = nil
-                focusOnCurrentPlayback(animated: false)
+                focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
             }
         }
         .alert(
@@ -382,7 +382,7 @@ struct TranscriptViewerSheet: View {
                         isAutoFocusEnabled = true
                         showJumpToCurrentButton = false
                         lastAutoScrolledSegmentID = nil
-                        focusOnCurrentPlayback(animated: true)
+                        focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: true)
                     } label: {
                         Image(systemName: "location.fill")
                             .font(.system(size: 18, weight: .medium))
@@ -452,9 +452,9 @@ struct TranscriptViewerSheet: View {
         return nil
     }
 
-    private func focusOnCurrentPlayback(animated: Bool) {
+    private func focusOnCurrentPlayback(currentTime: Double, animated: Bool) {
         guard shouldAutoFollowPlayback,
-              let segment = viewModel.segmentClosest(to: audioPlayer.currentTime) else {
+              let segment = viewModel.segmentClosest(to: currentTime) else {
             return
         }
 
@@ -782,6 +782,18 @@ struct HighlightedTranscriptText: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct PlaybackAutoFollowObserver: View {
+    @EnvironmentObject private var playbackClock: PlaybackClock
+    let onTick: (Double) -> Void
+
+    var body: some View {
+        Color.clear
+            .onChange(of: playbackClock.currentTime) { newValue in
+                onTick(newValue)
+            }
     }
 }
 

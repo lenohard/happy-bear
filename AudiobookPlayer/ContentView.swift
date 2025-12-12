@@ -283,14 +283,13 @@ struct PlayingView: View {
                 VideoPlayerSheet(player: player)
             }
         }
+        // Keep high-frequency playback ticks out of this view's invalidation path.
+        .background(PlaybackProgressObserver(onTick: syncPlaybackState))
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             syncPlaybackState()
             refreshTranscriptStatus()
             let trackId = audioPlayer.currentTrack.map { $0.id.uuidString }
             trackSummaryViewModel.setTrackId(trackId)
-        }
-        .onChange(of: audioPlayer.currentTime) { _ in
-            syncPlaybackState()
         }
         .onChange(of: library.isLoading) { isLoading in
             if !isLoading {
@@ -494,24 +493,7 @@ struct PlayingView: View {
     }
 
     private func liveTimeline() -> some View {
-        VStack(spacing: 8) {
-            Slider(
-                value: Binding(
-                    get: { audioPlayer.currentTime },
-                    set: { audioPlayer.seek(to: $0) }
-                ),
-                in: 0...(max(audioPlayer.duration, 1))
-            )
-            .tint(.accentColor)
-
-            HStack {
-                Text(audioPlayer.currentTime.formattedTimestamp)
-                Spacer()
-                Text(audioPlayer.duration.formattedTimestamp)
-            }
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(.secondary)
-        }
+        LiveTimelineView(seekAction: { audioPlayer.seek(to: $0) })
     }
 
     private func playbackSpeedControls() -> some View {
@@ -1068,6 +1050,44 @@ struct PlayingView: View {
     }
 }
 
+private struct PlaybackProgressObserver: View {
+    @EnvironmentObject private var playbackClock: PlaybackClock
+    let onTick: () -> Void
+
+    var body: some View {
+        Color.clear
+            .onChange(of: playbackClock.currentTime) { _ in
+                onTick()
+            }
+    }
+}
+
+private struct LiveTimelineView: View {
+    @EnvironmentObject private var playbackClock: PlaybackClock
+    let seekAction: (Double) -> Void
+
+    var body: some View {
+        VStack(spacing: 8) {
+            Slider(
+                value: Binding(
+                    get: { playbackClock.currentTime },
+                    set: { seekAction($0) }
+                ),
+                in: 0...(max(playbackClock.duration, 1))
+            )
+            .tint(.accentColor)
+
+            HStack {
+                Text(playbackClock.currentTime.formattedTimestamp)
+                Spacer()
+                Text(playbackClock.duration.formattedTimestamp)
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(.secondary)
+        }
+    }
+}
+
 private enum TranscriptStatus {
     case unknown
     case loading
@@ -1121,6 +1141,7 @@ private struct TranscriptionSheetContext: Identifiable {
         var body: some View {
             ContentView()
                 .environmentObject(player)
+                .environmentObject(player.playbackClock)
                 .environmentObject(library)
                 .environmentObject(BaiduAuthViewModel())
                 .environmentObject(TranscriptionManager())
