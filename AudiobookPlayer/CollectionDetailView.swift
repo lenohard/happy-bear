@@ -330,6 +330,7 @@ struct CollectionDetailView: View {
         let baseView = content
             .navigationTitle(collection?.title ?? NSLocalizedString("collection_title_fallback", comment: "Collection detail fallback title"))
             .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
             .searchable(
                 text: $searchText,
                 prompt: Text(NSLocalizedString("search_tracks_prompt", comment: "Search tracks prompt"))
