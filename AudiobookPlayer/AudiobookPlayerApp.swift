@@ -178,15 +178,43 @@ private struct PendingEbookImport: Identifiable {
 // MARK: - App Delegate for Quick Actions
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
+    private var pendingShortcutItem: UIApplicationShortcutItem?
+
+    func application(_ application: UIApplication,
+                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        // If launched from a home-screen quick action, capture it and defer handling
+        // until the SwiftUI hierarchy is up. Returning false prevents the system
+        // from calling performActionFor automatically during cold start.
+        if let shortcutItem = launchOptions?[.shortcutItem] as? UIApplicationShortcutItem {
+            pendingShortcutItem = shortcutItem
+            return false
+        }
+        return true
+    }
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        guard let shortcutItem = pendingShortcutItem else { return }
+        pendingShortcutItem = nil
+        _ = handle(shortcutItem: shortcutItem)
+    }
+
     func application(_ application: UIApplication,
                      performActionFor shortcutItem: UIApplicationShortcutItem,
                      completionHandler: @escaping (Bool) -> Void) {
+        let handled = handle(shortcutItem: shortcutItem)
+        completionHandler(handled)
+    }
+
+    @discardableResult
+    private func handle(shortcutItem: UIApplicationShortcutItem) -> Bool {
         if shortcutItem.type == "com.senaca.AudiobookPlayer.continueLast" {
-            NotificationCenter.default.post(name: .resumePlaybackShortcut, object: nil)
-            completionHandler(true)
-        } else {
-            completionHandler(false)
+            // Ensure delivery happens after SwiftUI views have subscribed.
+            DispatchQueue.main.async {
+                NotificationCenter.default.post(name: .resumePlaybackShortcut, object: nil)
+            }
+            return true
         }
+        return false
     }
 }
 

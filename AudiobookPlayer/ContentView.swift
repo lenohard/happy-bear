@@ -57,6 +57,8 @@ struct ContentView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
 
+    @State private var pendingResumeShortcutAfterLoad = false
+
     var body: some View {
         GeometryReader { geometry in
             ZStack {
@@ -89,6 +91,15 @@ struct ContentView: View {
             }
             }
             .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
+                if library.isLoading {
+                    pendingResumeShortcutAfterLoad = true
+                } else {
+                    handleResumeShortcut()
+                }
+            }
+            .onChange(of: library.isLoading) { isLoading in
+                guard !isLoading, pendingResumeShortcutAfterLoad else { return }
+                pendingResumeShortcutAfterLoad = false
                 handleResumeShortcut()
             }
         }
