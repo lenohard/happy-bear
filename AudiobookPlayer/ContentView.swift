@@ -97,6 +97,8 @@ struct ContentView: View {
         if let activeCollection = audioPlayer.activeCollection,
            let currentTrack = audioPlayer.currentTrack {
             playFromShortcut(collection: activeCollection, track: currentTrack)
+        } else if let recent = library.mostRecentPlayback() {
+            playFromShortcut(collection: recent.collection, track: recent.track)
         } else {
             for collection in library.collections {
                 if let track = collection.resumeTrack() {

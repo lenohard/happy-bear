@@ -472,6 +472,24 @@ final class LibraryStore: ObservableObject {
         }
     }
 
+    /// Returns the most recent playback entry across all collections, based on TrackPlaybackState.updatedAt.
+    /// Used by Siri/App Intents and "Continue Last" shortcut.
+    func mostRecentPlayback() -> (collection: AudiobookCollection, track: AudiobookTrack)? {
+        var best: (collection: AudiobookCollection, track: AudiobookTrack, date: Date)?
+
+        for collection in collections {
+            for (trackId, state) in collection.playbackStates {
+                guard let track = collection.tracks.first(where: { $0.id == trackId }) else { continue }
+                if best == nil || state.updatedAt > best!.date {
+                    best = (collection: collection, track: track, date: state.updatedAt)
+                }
+            }
+        }
+
+        guard let best else { return nil }
+        return (best.collection, best.track)
+    }
+
     // MARK: - Listening History Support
 
     private func preloadCollectionsForListeningHistoryIfNeeded(limit: Int = 12) async {
@@ -1429,4 +1447,3 @@ extension UIImage {
         }
     }
 }
-

@@ -55,6 +55,14 @@ struct AudiobookPlayerApp: App {
             .onOpenURL { url in
                 handleIncomingURL(url)
             }
+            .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackIntentRequested)) { _ in
+                handleResumeIntent()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .playCollectionIntentRequested)) { notification in
+                if let id = notification.object as? UUID {
+                    handlePlayCollectionIntent(collectionId: id)
+                }
+            }
             .onAppear {
                 audioPlayer.bindLibrary(libraryStore)
                 bubbleWindowManager.show(audioPlayer: audioPlayer, tabSelection: tabSelection)
@@ -125,6 +133,40 @@ struct AudiobookPlayerApp: App {
             }
         }
     }
+
+    // MARK: - Siri / App Intents Notifications
+
+    private func handleResumeIntent() {
+        Task {
+            guard let recent = libraryStore.mostRecentPlayback() else { return }
+            await playFromIntent(collection: recent.collection, track: recent.track)
+        }
+    }
+
+    private func handlePlayCollectionIntent(collectionId: UUID) {
+        Task {
+            await libraryStore.ensureCollectionLoaded(collectionId)
+            guard let collection = libraryStore.collections.first(where: { $0.id == collectionId }) else { return }
+            guard let track = collection.resumeTrack() else { return }
+            await playFromIntent(collection: collection, track: track)
+        }
+    }
+
+    @MainActor
+    private func playFromIntent(collection: AudiobookCollection, track: AudiobookTrack) {
+        if case .baiduNetdisk(_, _) = collection.source {
+            guard let token = baiduAuth.token else {
+                tabSelection.selectedTab = .personal
+                baiduAuth.signIn()
+                return
+            }
+            audioPlayer.play(track: track, in: collection, token: token)
+        } else {
+            audioPlayer.play(track: track, in: collection, token: nil)
+        }
+
+        tabSelection.selectedTab = .playing
+    }
 }
 
 private struct PendingEbookImport: Identifiable {
@@ -151,6 +193,9 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 extension Notification.Name {
     static let resumePlaybackShortcut = Notification.Name("resumePlaybackShortcut")
     static let transcriptDidFinalize = Notification.Name("transcriptDidFinalize")
+
+    static let resumePlaybackIntentRequested = Notification.Name("resumePlaybackIntentRequested")
+    static let playCollectionIntentRequested = Notification.Name("playCollectionIntentRequested")
 }
 
 // MARK: - Splash Screen
