@@ -312,23 +312,11 @@ private struct LibraryCollectionRow: View {
 
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(collection.title)
+                    inlineCollectionTitle(for: collection)
                         .font(.headline)
-                        .lineLimit(2)
-                    if case .ebook = collection.source {
-                        Image(systemName: "book")
-                            .font(.subheadline)
-                            .foregroundStyle(.blue)
-                            .accessibilityLabel(NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection"))
-                    } else if case .rss = collection.source {
-                        Image(systemName: "antenna.radiowaves.left.and.right")
-                            .font(.subheadline)
-                            .foregroundStyle(.orange)
-                            .accessibilityLabel(NSLocalizedString("rss_collection_indicator_accessibility", value: "RSS collection", comment: "Indicator for RSS collection"))
-                    }
-                    
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
-
                 if let author = collection.author, !author.isEmpty {
                     Text(author)
                         .font(.subheadline)
@@ -343,6 +331,24 @@ private struct LibraryCollectionRow: View {
             Spacer()
         }
         .contentShape(Rectangle())
+    }
+
+    private func inlineCollectionTitle(for collection: AudiobookCollection) -> Text {
+        let title = Text(collection.title)
+
+        if case .ebook = collection.source {
+            return coloredIconText("book", color: .blue) + Text(" ") + title
+        } else if case .rss = collection.source {
+            return coloredIconText("antenna.radiowaves.left.and.right", color: .orange) + Text(" ") + title
+        } else if collection.isMusic {
+            return coloredIconText("music.note", color: .pink) + Text(" ") + title
+        }
+
+        return title
+    }
+
+    private func coloredIconText(_ systemName: String, color: Color) -> Text {
+        Text(Image(systemName: systemName)).foregroundStyle(color)
     }
 
     private var coverView: some View {

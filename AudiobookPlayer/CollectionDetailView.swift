@@ -330,7 +330,6 @@ struct CollectionDetailView: View {
         let baseView = content
             .navigationTitle(collection?.title ?? NSLocalizedString("collection_title_fallback", comment: "Collection detail fallback title"))
             .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
             .searchable(
                 text: $searchText,
                 prompt: Text(NSLocalizedString("search_tracks_prompt", comment: "Search tracks prompt"))
@@ -830,28 +829,12 @@ struct CollectionDetailView: View {
                     coverEditor(for: collection)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        HStack(spacing: 6) {
-                            Text(collection.title)
-                                .font(.title3)
-                                .bold()
-                                .multilineTextAlignment(.leading)
-                            if case .ebook = collection.source {
-                                Image(systemName: "book")
-                                    .font(.title3)
-                                    .foregroundStyle(.blue)
-                                    .accessibilityLabel(NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection"))
-                            } else if case .rss = collection.source {
-                                Image(systemName: "antenna.radiowaves.left.and.right")
-                                    .font(.title3)
-                                    .foregroundStyle(.orange)
-                                    .accessibilityLabel(NSLocalizedString("rss_collection_indicator_accessibility", value: "RSS collection", comment: "Indicator for RSS collection"))
-                            } else if collection.isMusic {
-                                Image(systemName: "music.note")
-                                    .font(.title3)
-                                    .foregroundStyle(.pink)
-                                    .accessibilityLabel("Music Collection")
-                            }
-                        }
+                        inlineCollectionTitle(for: collection)
+                            .font(.title3)
+                            .bold()
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
 
                         if case .ebook = collection.source, let charCount = collection.totalCharacterCount {
                             Text("\(collection.trackCount) tracks • \(formatNumber(charCount)) chars")
@@ -929,6 +912,41 @@ struct CollectionDetailView: View {
         }
     }
     
+    private func inlineCollectionTitle(for collection: AudiobookCollection) -> Text {
+        let titleText = Text(collection.title)
+
+        if case .ebook = collection.source {
+            return coloredIconText("book", color: .blue) + Text(" ") + titleText
+        } else if case .rss = collection.source {
+            return coloredIconText("antenna.radiowaves.left.and.right", color: .orange) + Text(" ") + titleText
+        } else if collection.isMusic {
+            return coloredIconText("music.note", color: .pink) + Text(" ") + titleText
+        }
+
+        return titleText
+    }
+
+    private func coloredIconText(_ systemName: String, color: Color) -> Text {
+        Text(Image(systemName: systemName)).foregroundStyle(color)
+    }
+
+    private func collectionTitleAccessibilityLabel(for collection: AudiobookCollection) -> String {
+        var prefix: String?
+        if case .ebook = collection.source {
+            prefix = NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection")
+        } else if case .rss = collection.source {
+            prefix = NSLocalizedString("rss_collection_indicator_accessibility", value: "RSS collection", comment: "Indicator for RSS collection")
+        } else if collection.isMusic {
+            prefix = NSLocalizedString("music_collection_indicator_accessibility", value: "Music collection", comment: "Indicator for music collection")
+        }
+
+        if let prefix {
+            return "\(prefix): \(collection.title)"
+        }
+        return collection.title
+    }
+
+
     private func formatNumber(_ number: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
