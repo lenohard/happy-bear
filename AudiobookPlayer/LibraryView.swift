@@ -376,6 +376,10 @@ struct CollectionCoverArtView: View {
 
     @State private var localImage: UIImage?
     @State private var cachedRelativePath: String?
+    @State private var loadTask: Task<Void, Never>?
+
+    // Cache for small thumbnails to avoid repeated resizing
+    private static let thumbnailCache = NSCache<NSString, UIImage>()
 
     var body: some View {
         ZStack {
@@ -413,6 +417,10 @@ struct CollectionCoverArtView: View {
         .clipped()
         .onAppear { refreshImageIfNeeded(force: false) }
         .onChange(of: cover) { _ in refreshImageIfNeeded(force: true) }
+        .onDisappear {
+            loadTask?.cancel()
+            loadTask = nil
+        }
     }
 
     private var initialsOverlay: some View {
@@ -461,26 +469,68 @@ struct CollectionCoverArtView: View {
         
         let cacheKey = relativePath as NSString
         
-        // Check cache first - this is synchronous and fast
+        // 1. Check thumbnail cache first (fastest) if size is within thumbnail range
+        // Standardize on 320px thumbnails (covers 110pt @ 2x/3x comfortably)
+        if size <= 160, let cachedThumbnail = Self.thumbnailCache.object(forKey: cacheKey) {
+            cachedRelativePath = relativePath
+            localImage = cachedThumbnail
+            return
+        }
+        
+        // 2. Check main cache
         if let cached = CollectionCoverImageStore.cache.object(forKey: cacheKey) {
+            // If we need a thumbnail but only have full size, we might want to resize it asynchronously
+            // But for now, using the cached full image is better than reloading file
             cachedRelativePath = relativePath
             localImage = cached
+            
+            // If we really need a thumbnail, spawn a task to generate it and put in thumbnail cache for next time
+            if size <= 160 {
+                generateThumbnail(from: cached, key: cacheKey)
+            }
             return
         }
 
-        // Only spawn background task if not in cache
+        // 3. Load from disk
         cachedRelativePath = relativePath
+        loadTask?.cancel()
         
-        Task.detached(priority: .utility) {
+        loadTask = Task.detached(priority: .userInitiated) {
             let url = CollectionCoverImageStore.fileURL(for: relativePath)
-            if let image = UIImage(contentsOfFile: url.path) {
-                CollectionCoverImageStore.cache.setObject(image, forKey: cacheKey)
-                await MainActor.run {
-                    if self.cachedRelativePath == relativePath {
-                        self.localImage = image
-                    }
+            
+            // Load full image
+            guard let image = UIImage(contentsOfFile: url.path) else { return }
+            
+            // Cache full image
+            CollectionCoverImageStore.cache.setObject(image, forKey: cacheKey)
+            
+            // If we need a thumbnail, resize it
+            let resultImage: UIImage
+            if self.size <= 160 {
+                // Standardize thumbnail size to 320px
+                let targetSize = CGSize(width: 320, height: 320)
+                let thumbnail = image.redraw(to: targetSize)
+                Self.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
+                resultImage = thumbnail
+            } else {
+                resultImage = image
+            }
+            
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                if self.cachedRelativePath == relativePath {
+                    self.localImage = resultImage
                 }
             }
+        }
+    }
+    
+    private func generateThumbnail(from image: UIImage, key: NSString) {
+        Task.detached(priority: .background) {
+            let targetSize = CGSize(width: 320, height: 320)
+            let thumbnail = image.redraw(to: targetSize)
+            Self.thumbnailCache.setObject(thumbnail, forKey: key)
         }
     }
 
@@ -550,3 +600,5 @@ private struct PendingEbookImport: Identifiable {
     let url: URL
     var id: String { url.absoluteString }
 }
+
+

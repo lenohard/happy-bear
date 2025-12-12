@@ -1254,32 +1254,7 @@ actor CollectionCoverImageStore {
     }
 }
 
-private extension UIImage {
-    func resizedForCover(maxDimension: CGFloat) -> UIImage {
-        let longestSide = max(size.width, size.height)
-        guard longestSide > maxDimension else { return normalizedImage() }
-        let scale = maxDimension / longestSide
-        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
-        return redraw(to: newSize)
-    }
 
-    func normalizedImage() -> UIImage {
-        if imageOrientation == .up {
-            return self
-        }
-        return redraw(to: size)
-    }
-
-    func redraw(to targetSize: CGSize) -> UIImage {
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        format.opaque = false
-        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
-        return renderer.image { _ in
-            draw(in: CGRect(origin: .zero, size: targetSize))
-        }
-    }
-}
 
 private extension LibraryStore {
     nonisolated static func makeDefaultSyncEngine() -> LibrarySyncing? {
@@ -1427,3 +1402,31 @@ actor LibraryPersistence {
             .appendingPathComponent("library.json", isDirectory: false)
     }
 }
+
+extension UIImage {
+    func resizedForCover(maxDimension: CGFloat) -> UIImage {
+        let longestSide = max(size.width, size.height)
+        guard longestSide > maxDimension else { return normalizedImage() }
+        let scale = maxDimension / longestSide
+        let newSize = CGSize(width: size.width * scale, height: size.height * scale)
+        return redraw(to: newSize)
+    }
+
+    func normalizedImage() -> UIImage {
+        if imageOrientation == .up {
+            return self
+        }
+        return redraw(to: size)
+    }
+
+    func redraw(to targetSize: CGSize) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = false
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+        return renderer.image { _ in
+            draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+    }
+}
+

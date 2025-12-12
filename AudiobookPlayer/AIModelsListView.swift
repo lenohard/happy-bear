@@ -4,6 +4,10 @@ struct AIModelsListView: View {
     @EnvironmentObject private var gateway: AIGatewayViewModel
     @State private var searchText = ""
     @State private var expandedProviders: Set<String> = []
+    
+    // Cached view data to prevent re-computation on every render
+    @State private var viewData: [(provider: String, models: [AIModelInfo])] = []
+    @State private var calculationTask: Task<Void, Never>?
 
     var body: some View {
         List {
@@ -53,8 +57,8 @@ struct AIModelsListView: View {
                 }
                 .listRowSeparator(.hidden)
             } else {
-                if !filteredModelGroups.isEmpty {
-                    ForEach(filteredModelGroups, id: \.provider) { group in
+                if !viewData.isEmpty {
+                    ForEach(viewData, id: \.provider) { group in
                         ProviderSection(
                             provider: group.provider,
                             models: group.models,
@@ -94,49 +98,72 @@ struct AIModelsListView: View {
             }
         }
         .task {
+            updateViewData()
             if gateway.models.isEmpty {
                 try? await gateway.refreshModels()
             }
         }
+        .onChange(of: gateway.models) { _ in updateViewData() }
         .onChange(of: searchText) { newValue in
             handleSearchChange(newValue)
+            updateViewData()
         }
     }
 
-    private var groupedModels: [(provider: String, models: [AIModelInfo])] {
-        let grouped = Dictionary(grouping: gateway.models) { providerName(for: $0.id) }
-        return grouped
-            .map { (provider: $0.key, models: $0.value.sorted { ($0.name ?? $0.id) < ($1.name ?? $1.id) }) }
-            .sorted { $0.provider.localizedCaseInsensitiveCompare($1.provider) == .orderedAscending }
-    }
-
-    private var filteredModelGroups: [(provider: String, models: [AIModelInfo])] {
-        let groups = groupedModels
-        let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return groups }
-        let query = trimmed.lowercased()
-
-        return groups.compactMap { group in
-            let providerMatches = group.provider.lowercased().contains(query)
-            let models = providerMatches ? group.models : group.models.filter { modelMatches($0, query: query) }
-            guard !models.isEmpty else { return nil }
-            return (provider: group.provider, models: models)
+    private func updateViewData() {
+        calculationTask?.cancel()
+        
+        let currentModels = gateway.models
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        
+        calculationTask = Task.detached(priority: .userInitiated) {
+            // 1. Group by provider
+            let grouped = Dictionary(grouping: currentModels) { model -> String in
+                if let prefix = model.id.split(separator: "/").first, !prefix.isEmpty {
+                    return String(prefix)
+                }
+                return NSLocalizedString("ai_tab_model_group_other", comment: "")
+            }
+            
+            // 2. Sort groups and models within groups
+            let sortedGroups = grouped
+                .map { (provider: $0.key, models: $0.value.sorted { ($0.name ?? $0.id) < ($1.name ?? $1.id) }) }
+                .sorted { $0.provider.localizedCaseInsensitiveCompare($1.provider) == .orderedAscending }
+            
+            // 3. Filter if needed
+            let finalData: [(provider: String, models: [AIModelInfo])]
+            if query.isEmpty {
+                finalData = sortedGroups
+            } else {
+                finalData = sortedGroups.compactMap { group in
+                    let providerMatches = group.provider.lowercased().contains(query)
+                    
+                    // If provider matches, show all models. If not, filter models.
+                    let matchingModels = providerMatches 
+                        ? group.models 
+                        : group.models.filter { model in
+                            let displayName = (model.name ?? model.id).lowercased()
+                            return displayName.contains(query) ||
+                                   model.id.lowercased().contains(query) ||
+                                   (model.description?.lowercased().contains(query) ?? false)
+                        }
+                    
+                    guard !matchingModels.isEmpty else { return nil }
+                    return (provider: group.provider, models: matchingModels)
+                }
+            }
+            
+            guard !Task.isCancelled else { return }
+            
+            await MainActor.run {
+                self.viewData = finalData
+                
+                // Auto-expand all sections if searching
+                if !query.isEmpty {
+                    self.expandedProviders = Set(finalData.map { $0.provider })
+                }
+            }
         }
-    }
-
-    private func providerName(for modelID: String) -> String {
-        if let prefix = modelID.split(separator: "/").first, !prefix.isEmpty {
-            return String(prefix)
-        }
-        return NSLocalizedString("ai_tab_model_group_other", comment: "")
-    }
-
-    private func modelMatches(_ model: AIModelInfo, query: String) -> Bool {
-        let displayName = (model.name ?? model.id).lowercased()
-        if displayName.contains(query) { return true }
-        if model.id.lowercased().contains(query) { return true }
-        if let description = model.description?.lowercased(), description.contains(query) { return true }
-        return false
     }
     
     private func isProviderExpanded(_ provider: String) -> Bool {
@@ -155,10 +182,6 @@ struct AIModelsListView: View {
         if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             // Clear search - collapse all
             expandedProviders.removeAll()
-        } else {
-            // Searching - expand all providers with results
-            let providers = filteredModelGroups.map { $0.provider }
-            expandedProviders = Set(providers)
         }
     }
 }

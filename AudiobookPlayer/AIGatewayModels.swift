@@ -1,6 +1,6 @@
 import Foundation
 
-struct AIModelPricing: Codable {
+struct AIModelPricing: Codable, Equatable {
     let input: String?
     let output: String?
     let inputCacheRead: String?
@@ -12,7 +12,7 @@ struct AIModelPricing: Codable {
     }
 }
 
-struct AIModelMetadata: Codable {
+struct AIModelMetadata: Codable, Equatable {
     let provider: String?
     let modality: [String]?
     let inputCost: Double?
@@ -26,7 +26,7 @@ struct AIModelMetadata: Codable {
     }
 }
 
-struct AIModelInfo: Identifiable, Codable {
+struct AIModelInfo: Identifiable, Codable, Equatable {
     let id: String
     let name: String?
     let description: String?
