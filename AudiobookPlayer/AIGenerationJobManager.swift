@@ -248,7 +248,14 @@ extension GRDBDatabaseManager {
             try database.execute(
                 sql: """
                 UPDATE ai_generation_jobs
-                SET status = 'completed', final_output = ?, usage_json = ?, completed_at = ?, updated_at = ?, progress = 1.0
+                SET status = 'completed',
+                    final_output = ?,
+                    usage_json = ?,
+                    completed_at = ?,
+                    updated_at = ?,
+                    progress = 1.0,
+                    streamed_output = NULL,
+                    streamed_reasoning = NULL
                 WHERE id = ?
                 """,
                 arguments: [
@@ -269,7 +276,12 @@ extension GRDBDatabaseManager {
             try database.execute(
                 sql: """
                 UPDATE ai_generation_jobs
-                SET status = 'failed', error_message = ?, retry_count = retry_count + 1, updated_at = ?
+                SET status = 'failed',
+                    error_message = ?,
+                    retry_count = retry_count + 1,
+                    updated_at = ?,
+                    streamed_output = NULL,
+                    streamed_reasoning = NULL
                 WHERE id = ?
                 """,
                 arguments: [
@@ -316,8 +328,6 @@ extension GRDBDatabaseManager {
                     error_message = NULL,
                     streamed_output = NULL,
                     streamed_reasoning = NULL,
-                    final_output = NULL,
-                    usage_json = NULL,
                     progress = NULL,
                     completed_at = NULL,
                     updated_at = ?
