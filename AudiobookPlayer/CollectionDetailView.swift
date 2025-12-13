@@ -103,22 +103,25 @@ struct CollectionDetailView: View {
 
     enum SortOption: String, CaseIterable, Identifiable {
         case trackNumber = "Track Number"
+        case trackNumberDescending = "Track Number Descending"
         case titleAscending = "Title Ascending"
         case titleDescending = "Title Descending"
-        
+
         var id: String { rawValue }
-        
+
         var localizedName: String {
             switch self {
             case .trackNumber: return NSLocalizedString("sort_track_number", value: "Track Number", comment: "Sort option: Track Number")
+            case .trackNumberDescending: return NSLocalizedString("sort_track_number_desc", value: "Track Number Descending", comment: "Sort option: Track Number Descending")
             case .titleAscending: return NSLocalizedString("sort_title_asc", value: "Title Ascending", comment: "Sort option: Title Ascending")
             case .titleDescending: return NSLocalizedString("sort_title_desc", value: "Title Descending", comment: "Sort option: Title Descending")
             }
         }
-        
+
         var icon: String {
             switch self {
             case .trackNumber: return "list.number"
+            case .trackNumberDescending: return "list.number.rtl"
             case .titleAscending: return "arrow.up"
             case .titleDescending: return "arrow.down"
             }
@@ -187,6 +190,7 @@ struct CollectionDetailView: View {
     private func sortDBKey(for option: SortOption) -> String {
         switch option {
         case .trackNumber: return "trackNumber"
+        case .trackNumberDescending: return "trackNumberDescending"
         case .titleAscending: return "titleAscending"
         case .titleDescending: return "titleDescending"
         }
@@ -198,6 +202,13 @@ struct CollectionDetailView: View {
             return tracks.sorted {
                 if $0.trackNumber != $1.trackNumber {
                     return $0.trackNumber < $1.trackNumber
+                }
+                return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
+            }
+        case .trackNumberDescending:
+            return tracks.sorted {
+                if $0.trackNumber != $1.trackNumber {
+                    return $0.trackNumber > $1.trackNumber
                 }
                 return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
             }
@@ -448,7 +459,7 @@ struct CollectionDetailView: View {
             }
 
         let viewWithSheets = viewWithAlerts
-            .sheet(isPresented: $showTrackPicker) {
+            .fullScreenCover(isPresented: $showTrackPicker) {
                 TrackPickerView(
                     collectionID: collectionID,
                     onTracksSelected: { newTracks in
@@ -523,59 +534,33 @@ struct CollectionDetailView: View {
             .fileImporter(isPresented: $showCoverFileImporter, allowedContentTypes: [.image]) { result in
                 handleCoverFileImport(result)
             }
-            .sheet(isPresented: $showRefreshReview) {
-                NavigationStack {
-                    CollectionReviewView(
-                        title: $refreshReviewTitle,
-                        description: $refreshReviewDescription,
-                        tracks: candidateTracks,
-                        selectedTrackIds: $selectedCandidateIds,
-                        totalSize: candidateTracks.reduce(0) { $0 + $1.fileSize },
-                        nonPlayableFiles: [],
-                        saveButtonTitle: NSLocalizedString("add_tracks_button", comment: "Add Tracks"),
-                        onSave: {
-                            let selected = candidateTracks.filter { selectedCandidateIds.contains($0.id) }
-                            library.addTracks(to: collectionID, tracks: selected)
-                            
-                            if let collection = collection, (refreshReviewTitle != collection.title || refreshReviewDescription != (collection.description ?? "")) {
-                                library.updateCollectionDetails(
-                                    collectionID: collectionID,
-                                    newTitle: refreshReviewTitle,
-                                    newDescription: refreshReviewDescription.isEmpty ? nil : refreshReviewDescription,
-                                    shouldUpdateDescription: true
-                                )
-                            }
-                            
-                            showRefreshReview = false
-                            refreshResult = String(format: NSLocalizedString("refresh_success_message", value: "Added %d tracks.", comment: "Refresh success"), selected.count)
-                            showRefreshResult = true
+            .navigationDestination(isPresented: $showRefreshReview) {
+                CollectionRefreshReviewView(
+                    title: $refreshReviewTitle,
+                    description: $refreshReviewDescription,
+                    candidateTracks: candidateTracks,
+                    selectedCandidateIds: $selectedCandidateIds,
+                    onSave: {
+                        let selected = candidateTracks.filter { selectedCandidateIds.contains($0.id) }
+                        library.addTracks(to: collectionID, tracks: selected)
+
+                        if let collection = collection, (refreshReviewTitle != collection.title || refreshReviewDescription != (collection.description ?? "")) {
+                            library.updateCollectionDetails(
+                                collectionID: collectionID,
+                                newTitle: refreshReviewTitle,
+                                newDescription: refreshReviewDescription.isEmpty ? nil : refreshReviewDescription,
+                                shouldUpdateDescription: true
+                            )
                         }
-                    ) { track in
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(track.displayName)
-                                    .font(.body)
-                                    .lineLimit(2)
 
-                                Text(formatBytes(track.fileSize))
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-
-                            Text("\(track.trackNumber)")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                        showRefreshReview = false
+                        refreshResult = String(format: NSLocalizedString("refresh_success_message", value: "Added %d tracks.", comment: "Refresh success"), selected.count)
+                        showRefreshResult = true
+                    },
+                    onCancel: {
+                        showRefreshReview = false
                     }
-                    .navigationTitle(NSLocalizedString("review_new_tracks_title", value: "New Tracks", comment: "Review new tracks title"))
-                    .toolbar {
-                         ToolbarItem(placement: .cancellationAction) {
-                             Button(NSLocalizedString("cancel_button", comment: "Cancel")) { showRefreshReview = false }
-                         }
-                    }
-                }
+                )
             }
 
         let viewWithPlaybackEvents = viewWithSheets
@@ -613,6 +598,23 @@ struct CollectionDetailView: View {
                 prepareAutoFocusTargetIfNeeded(for: self.collection)
                 refreshTrackSummaryIndicators(for: self.collection)
                 refreshPlaybackStateSnapshot(for: self.collection)
+
+                // Restore saved sort preference or apply smart defaults
+                if let collection = self.collection {
+                    if let savedSortOrder = collection.preferredSortOrder,
+                       let restoredSort = SortOption(rawValue: savedSortOrder) {
+                        selectedSort = restoredSort
+                    } else {
+                        // Apply smart defaults based on collection source
+                        if case .rss = collection.source {
+                            // RSS collections default to newest-first (descending track number)
+                            selectedSort = .trackNumberDescending
+                        } else {
+                            // Other collections default to oldest-first (ascending track number)
+                            selectedSort = .trackNumber
+                        }
+                    }
+                }
             }
             .onChange(of: collection?.tracks.map(\.id) ?? []) { _ in
                 prepareAutoFocusTargetIfNeeded(for: self.collection)
@@ -664,7 +666,13 @@ struct CollectionDetailView: View {
                 scheduleFilteredTracksUpdate()
             }
             .onChange(of: selectedFilter) { _ in scheduleFilteredTracksUpdate() }
-            .onChange(of: selectedSort) { _ in scheduleSortedTracksUpdate() }
+            .onChange(of: selectedSort) { newSort in
+                scheduleSortedTracksUpdate()
+                // Persist sort preference to collection
+                if let collection = collection {
+                    library.updatePreferredSortOrder(newSort.rawValue, for: collection.id)
+                }
+            }
             .onChange(of: transcriptStatusCache) { _ in scheduleFilteredTracksUpdate() }
             .onChange(of: tracksWithSummaries) { _ in scheduleFilteredTracksUpdate() }
             .onReceive(transcriptionManager.$activeJobs) { jobs in

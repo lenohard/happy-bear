@@ -21,7 +21,8 @@ enum DatabaseSchema {
         source_type TEXT NOT NULL,
         source_payload TEXT NOT NULL,
         last_played_track_id TEXT,
-        shuffle_enabled INTEGER NOT NULL DEFAULT 0
+        shuffle_enabled INTEGER NOT NULL DEFAULT 0,
+        preferred_sort_order TEXT
     );
 
     -- Tracks table
@@ -115,6 +116,7 @@ struct CollectionRow: Codable {
     let sourcePayload: String
     let lastPlayedTrackId: String?
     let shuffleEnabled: Bool?
+    let preferredSortOrder: String?
 }
 
 /// Data Transfer Object for tracks in the database

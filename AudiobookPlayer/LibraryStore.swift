@@ -155,6 +155,38 @@ final class LibraryStore: ObservableObject {
 
         await preloadCollectionsForListeningHistoryIfNeeded()
         prefetchRemoteCovers()
+        preloadCollectionThumbnails()
+    }
+
+    /// Preload cover thumbnails into NSCache to prevent disk I/O during scroll
+    private func preloadCollectionThumbnails() {
+        Task.detached(priority: .background) {
+            for collection in await self.collections {
+                guard case let .image(relativePath) = collection.coverAsset.kind else { continue }
+                let cacheKey = relativePath as NSString
+
+                // Skip if already cached
+                if CollectionCoverImageStore.cache.object(forKey: cacheKey) != nil {
+                    // Also ensure thumbnail is cached
+                    if CollectionCoverArtView.thumbnailCache.object(forKey: cacheKey) == nil,
+                       let fullImage = CollectionCoverImageStore.cache.object(forKey: cacheKey) {
+                        let thumbnail = fullImage.redraw(to: CGSize(width: 320, height: 320))
+                        CollectionCoverArtView.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
+                    }
+                    continue
+                }
+
+                let url = CollectionCoverImageStore.fileURL(for: relativePath)
+                guard let image = UIImage(contentsOfFile: url.path) else { continue }
+
+                // Cache full image
+                CollectionCoverImageStore.cache.setObject(image, forKey: cacheKey)
+
+                // Generate and cache thumbnail (320px for library rows)
+                let thumbnail = image.redraw(to: CGSize(width: 320, height: 320))
+                CollectionCoverArtView.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
+            }
+        }
     }
 
     func save(_ collection: AudiobookCollection) {
@@ -199,6 +231,34 @@ final class LibraryStore: ObservableObject {
             Task(priority: .utility) {
                 do {
                     try await dbManager.updateCollectionShuffleState(collectionID: collectionID, shuffleEnabled: isEnabled)
+                } catch {
+                    await MainActor.run {
+                        self.lastError = error
+                    }
+                }
+            }
+        } else {
+            persistCurrentSnapshot()
+        }
+    }
+
+    func updatePreferredSortOrder(_ sortOrder: String, for collectionID: UUID) {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else { return }
+        guard collections[index].preferredSortOrder != sortOrder else { return }
+
+        var collection = collections[index]
+        collection.preferredSortOrder = sortOrder
+        collection.updatedAt = Date()
+        collections[index] = collection
+
+        persistPreferredSortOrder(collectionID: collectionID, sortOrder: sortOrder)
+    }
+
+    private func persistPreferredSortOrder(collectionID: UUID, sortOrder: String) {
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                do {
+                    try await dbManager.updateCollectionPreferredSortOrder(collectionID: collectionID, sortOrder: sortOrder)
                 } catch {
                     await MainActor.run {
                         self.lastError = error

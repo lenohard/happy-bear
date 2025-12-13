@@ -104,6 +104,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
     var trackCount: Int
     var shuffleEnabled: Bool
     var isMusic: Bool
+    var preferredSortOrder: String?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -122,6 +123,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case trackCount
         case shuffleEnabled
         case isMusic
+        case preferredSortOrder
     }
 
     init(
@@ -139,7 +141,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         tags: [String],
         trackCount: Int? = nil, // Optional for backward compatibility in init, defaults to tracks.count
         shuffleEnabled: Bool = false,
-        isMusic: Bool = false
+        isMusic: Bool = false,
+        preferredSortOrder: String? = nil
     ) {
         self.id = id
         self.title = title
@@ -156,6 +159,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         self.trackCount = trackCount ?? tracks.count
         self.shuffleEnabled = shuffleEnabled
         self.isMusic = isMusic
+        self.preferredSortOrder = preferredSortOrder
     }
 
     init(from decoder: Decoder) throws {
@@ -182,6 +186,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
 
         shuffleEnabled = try container.decodeIfPresent(Bool.self, forKey: .shuffleEnabled) ?? false
         isMusic = try container.decodeIfPresent(Bool.self, forKey: .isMusic) ?? false
+        preferredSortOrder = try container.decodeIfPresent(String.self, forKey: .preferredSortOrder)
 
         let decodedStates = try container.decodeIfPresent([UUID: TrackPlaybackState].self, forKey: .playbackStates) ?? [:]
         if decodedStates.isEmpty,
@@ -216,6 +221,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         try container.encode(trackCount, forKey: .trackCount)
         try container.encode(shuffleEnabled, forKey: .shuffleEnabled)
         try container.encode(isMusic, forKey: .isMusic)
+        try container.encodeIfPresent(preferredSortOrder, forKey: .preferredSortOrder)
     }
     func playbackState(for trackId: UUID) -> TrackPlaybackState? {
         playbackStates[trackId]
