@@ -2,28 +2,57 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>AliyunClientId</key>
+	<string>gZPCb85UYJfr7daj</string>
+	<key>AliyunClientSecret</key>
+	<string>0wQXNYFxXGwlIHC5PcXNDueAVrVAty</string>
+	<key>AliyunOAuthBaseURL</key>
+	<string>https://bj27238.api.aliyunpds.com</string>
+	<key>AliyunRedirectURI</key>
+	<string>aliyun-auth-scheme://oauth-callback</string>
+	<key>AliyunScope</key>
+	<string>user:base,file:all:read,file:all:write</string>
 	<key>BaiduClientId</key>
 	<string>37MPKvV2gjL7SKHTwoErDDlOEWCO9Pi4</string>
 	<key>BaiduClientSecret</key>
 	<string>cUTK7dZv9HCTCuNuD362xGZqueyGmwPD</string>
 	<key>BaiduRedirectURI</key>
 	<string>bd120615406://oauth-callback</string>
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>耳机熊</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Earphone Bear</string>
+		</dict>
+	</array>
+	<key>NSSiriUsageDescription</key>
+	<string>你可以使用 Siri 来播放你的音频合集</string>
 	<key>BaiduScope</key>
 	<string>basic,netdisk</string>
-	<key>AliyunClientId</key>
-	<string>gZPCb85UYJfr7daj</string>
-	<key>AliyunClientSecret</key>
-	<string>0wQXNYFxXGwlIHC5PcXNDueAVrVAty</string>
-	<key>AliyunRedirectURI</key>
-	<string>aliyun-auth-scheme://oauth-callback</string>
-	<key>AliyunScope</key>
-	<string>user:base,file:all:read,file:all:write</string>
-	<key>AliyunOAuthBaseURL</key>
-	<string>https://bj27238.api.aliyunpds.com</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
 	<string>happyBear</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>EPUB Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>org.idpf.epub-container</string>
+				<string>public.epub</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -104,22 +133,6 @@
 		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>CFBundleDocumentTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeName</key>
-			<string>EPUB Document</string>
-			<key>CFBundleTypeRole</key>
-			<string>Viewer</string>
-			<key>LSHandlerRank</key>
-			<string>Alternate</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>org.idpf.epub-container</string>
-				<string>public.epub</string>
-			</array>
-		</dict>
 	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>

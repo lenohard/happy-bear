@@ -94,9 +94,14 @@ struct HappyBearShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: ResumePlaybackIntent(),
             phrases: [
-                "Play ${applicationName} right now",
+                // English
                 "Resume ${applicationName}",
-                "Continue ${applicationName}"
+                "Continue ${applicationName}",
+                "Play ${applicationName}",
+                // Chinese
+                "用${applicationName}继续播放",
+                "${applicationName}继续",
+                "播放${applicationName}"
             ],
             shortTitle: "Resume",
             systemImageName: "play.circle"
@@ -104,9 +109,13 @@ struct HappyBearShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: PlayCollectionIntent(),
             phrases: [
-                "Play ${applicationName} \(\.$collection)",
+                // English
+                "Play \(\.$collection) in ${applicationName}",
                 "Resume \(\.$collection) in ${applicationName}",
-                "Let's play \(\.$collection) in ${applicationName}"
+                // Chinese
+                "用${applicationName}播放\(\.$collection)",
+                "${applicationName}播放\(\.$collection)",
+                "在${applicationName}里播放\(\.$collection)"
             ],
             shortTitle: "Play Collection",
             systemImageName: "books.vertical"
