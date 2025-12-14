@@ -21,6 +21,7 @@ struct TranscriptViewerSheet: View {
     @State private var scrollTargetSegmentID: String?
     @State private var scrollTargetShouldAnimate = true
     @State private var lastAutoScrolledSegmentID: String?
+    @State private var hasQueuedInitialFocus = false
     @State private var isAutoFocusEnabled = true
     @State private var showJumpToCurrentButton = false
 
@@ -52,14 +53,25 @@ struct TranscriptViewerSheet: View {
                 await refreshSummaryTranslations()
                 handleTrackSummaryJobUpdates()
             }
+
+            queueInitialAutoFocus()
+            refreshJumpButtonVisibility()
         }
         .onChange(of: segmentIDs) { _ in
             lastAutoScrolledSegmentID = nil
             focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
+            refreshJumpButtonVisibility()
         }
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
             lastAutoScrolledSegmentID = nil
             focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
+            refreshJumpButtonVisibility()
+        }
+        .onChange(of: viewModel.isLoading) { isLoading in
+            if !isLoading {
+                queueInitialAutoFocus()
+                refreshJumpButtonVisibility()
+            }
         }
         .background(PlaybackAutoFollowObserver { currentTime in
             focusOnCurrentPlayback(currentTime: currentTime, animated: true)
@@ -416,11 +428,6 @@ struct TranscriptViewerSheet: View {
         }
 
         audioPlayer.seek(to: position)
-
-        // Dismiss after a short delay to show selection
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            dismiss()
-        }
     }
 
     private func seekAndPlay(to time: TimeInterval) {
@@ -437,10 +444,6 @@ struct TranscriptViewerSheet: View {
         }
 
         audioPlayer.seek(to: time)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            dismiss()
-        }
     }
 
     private func resolveTrackContext() -> (track: AudiobookTrack, collection: AudiobookCollection)? {
@@ -498,6 +501,22 @@ struct TranscriptViewerSheet: View {
     private var displayedSegments: [(index: Int, segment: TranscriptSegment)] {
         let indices = Array(viewModel.segments.indices)
         return indices.map { ($0, viewModel.segments[$0]) }
+    }
+
+    private func queueInitialAutoFocus() {
+        guard !hasQueuedInitialFocus else { return }
+        guard shouldAutoFollowPlayback else { return }
+        guard !viewModel.segments.isEmpty else { return }
+
+        hasQueuedInitialFocus = true
+
+        DispatchQueue.main.async {
+            focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
+        }
+    }
+
+    private func refreshJumpButtonVisibility() {
+        showJumpToCurrentButton = isViewingCurrentTrack && !viewModel.segments.isEmpty
     }
 }
 

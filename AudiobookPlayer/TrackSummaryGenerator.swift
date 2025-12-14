@@ -12,6 +12,9 @@ struct TrackSummaryPromptContext {
     let segments: [TranscriptSegment]
     let targetSectionCount: Int?
     let includeKeywords: Bool
+    /// When true, always include translated transcript lines in the `translations` array.
+    /// When false, translations are only expected for songs/very short tracks.
+    let requestTranslations: Bool
 }
 
 struct TrackSummaryPrompts {
@@ -94,14 +97,21 @@ final class TrackSummaryGenerator {
             metadata.append("Collection description: \(description)")
         }
 
-        var sectionInstruction = "Aim for natural sections of 3–6 minutes each."
-        if let target = context.targetSectionCount {
-            sectionInstruction = "Produce about \(target) evenly sized sections."
-        }
 
         let keywordInstruction = context.includeKeywords
             ? "Provide up to 5 concise keywords per section and globally."
             : "Return empty keyword arrays."
+
+        let translationInstruction: String
+        if context.requestTranslations {
+            translationInstruction = """
+            - Include a `translations` array with entries aligned to the provided `start_ms` values, translating the transcript text into Chinese. Don't return 'translate' field if original langauge is Chinese.
+            """
+        } else {
+            translationInstruction = """
+            - Only include `translations` when the track is a song or the transcript is under 5 minutes. For other cases, don't return 'translations' field.
+            """
+        }
 
         let excerpt = transcriptExcerpt(for: context.segments)
 
@@ -126,7 +136,7 @@ final class TrackSummaryGenerator {
               "keywords": ["topic", "theme"]
             }
           ],
-          "translations":[ // optional, include when this is a song or short transcript under 5 minute.
+          "translations":[ // optional, include when 1. this is a song or short transcript under 5 minute. 2. when the instructino explictly ask for it.
           {
           "order":1,
           "start_ms": xx,
@@ -138,23 +148,24 @@ final class TrackSummaryGenerator {
 
         let userPrompt = """
         You will receive ordered transcript segments with timestamps.
+        
 
         Metadata:
         \(metadata.joined(separator: "\n"))
 
         Requirements:
-        - Decide whether the transcript is primarily song lyrics or a regular narration. 
-        - If it is a song or short performance:
+        - Decide whether the transcript is primarily song lyrics or a regular narration.
+        - If it is a song or short transcript (under 5 minutes):
           - Keep using this template but describe the song (title, performer, release background, etc.) in `summary.overview`, adding any notable context when the track is well known.
-          - Include a `translation` field that mirrors the provided `start_ms` and contains the Chinese translation when the original lyrics are not Chinese. Don't return translation filed if the orignal text is Chinese already.
-          - Don't include `sections` field.
+          - Don't include `sections` field. Beacuse the audio is short or song, sections are not needed.
         - If it is not a song, follow the normal audiobook summary workflow.
+        \(translationInstruction)
         - Provide a concise overview (2-3 sentences).
-        - \(sectionInstruction)
         - Sections must have `start_ms` integers derived from the provided `start_ms` values (do not invent new times).
         - Keep `end_ms` optional; omit if uncertain.
         - \(keywordInstruction)
         - Extract any books or movies mentioned in the transcript into `mentioned_items`. Format: "Title (Author/Director, Year)" if author/director and year are mentioned in the transcript; otherwise just "Title".
+        - For correction, don't change the language, eg correct English into Chinese, you should correct within the same language.
         - Identify frequent obvious typos in important terms (movie titles, book titles, people names) that appear repeatedly in the transcript.
         - IMPORTANT: Only suggest corrections where the incorrect and correct spellings are DIFFERENT. Do NOT include entries where both sides are identical (e.g., "王家卫": "王家卫" is invalid).
         - Return `suggested_corrections` as a dictionary: keys are incorrect spellings found in the transcript, values are their correct spellings. For common errors with variations (e.g., '错误1', '错误2', '错误h'), consolidate them into a single canonical correction entry (e.g., '错误': '正确').

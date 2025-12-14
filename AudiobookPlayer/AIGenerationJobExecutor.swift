@@ -269,7 +269,8 @@ actor AIGenerationJobExecutor {
                 transcriptLanguage: transcript.language,
                 segments: segments,
                 targetSectionCount: payload.targetSectionCount,
-                includeKeywords: payload.includeKeywords
+                includeKeywords: payload.includeKeywords,
+                requestTranslations: payload.requestTranslations
             )
 
             let prompts = trackSummaryGenerator.makePrompts(from: context)

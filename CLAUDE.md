@@ -5,17 +5,15 @@ You can use deepwiki to query about detailas quickly of this repo using deepwiki
 
 Remeber use iphone 17 Pro simulator for building by default.
 
-
 (Be aware that the folder ./local/ is not ignored by git for this repository.)
-# Current Task
-
-local/PROD.md:
-@local/PROD.md
-
 
 - Background audio + enhanced playback controls completed 2025-11-03
 
-## Recent Progress (2025-11-28 – 2025-12-07)
+## Recent Progress (2025-12-08 – 2025-12-12)
+- **Library & Model List Performance (Phase 2) (2025-12-12)**: Fixed scroll stuttering by implementing background thumbnail generation (320px) and NSCache-based in-memory caching for collection covers, and moved heavy model grouping/filtering/sorting to background task with `viewData` caching. Also added `Equatable` conformance to `AIModelInfo` for efficient SwiftUI updates. Files: LibraryView.swift, LibraryStore.swift, AIModelsListView.swift, AIGatewayModels.swift.
+- **Floating Bubble Sheet Coverage Fix (2025-12-05)**: Floating playback bubble was hidden by sheets because overlays don't render above SwiftUI sheet windows. Implemented separate `UIWindow` at `windowLevel = .alert + 1` with custom `PassThroughWindow` for precise hit-testing and `.ignoresSafeArea()` fix to align coordinate systems. Bubble now always visible and fully interactive. Commit: `6729f55`.
+- **Random Play Feature (2025-12-08)**: Added persisted shuffle toggle to Playing tab. `AudioPlayerViewModel` randomizes playback queue without breaking next/previous/auto-finish flows. Doc: `local/feat-random-play.md`.
+- **Play Button Fix (2025-12-08)**: Removed overly strict token guard in `CollectionDetailView.startPlayback()` that blocked playback even for cached files and non-Baidu collections. Users can now play cached tracks, ebook audio, and local files immediately after app launch without authentication.
 - **RSS podcast collections (2025-12-07)**: Added `.rss` source support so users can import podcast feeds via a dedicated sheet, persist feed metadata/tracks, tag collections as podcast/rss, show antenna indicators in the Library + detail views, and refresh RSS collections to pull new episodes on demand. Parser errors/localization captured; see `local/rss-collection-support.md` + `local/new_xcstrings.md`.
 - **Remote cover caching (2025-12-08)**: Library now prefetches every `.remote` cover (primarily RSS feeds) as soon as collections load/sync, saves them inside `CollectionCovers/`, and rewrites the model to `.image` so Library rows, detail headers, Now Playing, and backups show the art instantly even when offline. RSS imports also download the feed artwork immediately and persist it as a local cover so the very first render doesn't need to wait on AsyncImage.
 - **Listening history & resume stability**: Playback collections now preload when the player starts so the Listening History surface can show context instantly, and a regression that dropped playback progress snapshots after relaunch is fixed (commits `65bd540`, `c5f982c`).
@@ -30,12 +28,14 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 
 ## Collaboration Notes (2025-11-17)
 - When a task mainly requires configuration or mechanical asset edits (e.g., Xcode plist/localization wiring), prefer to document the exact steps and hand it to the user unless they explicitly ask for a full implementation. Always describe the workflow first so they can decide whether to run it themselves.
-- Document those steps in `local/task-*.md` so future sessions can reuse them without re-reading diffs.
+- Document those steps in `local/*.md` so future sessions can reuse them without re-reading diffs.
 
-**Project Root**: `~/projects/audiobook-player`
 
 ## Recent Lessons
-
+- **2025-12-13 – Library scroll stutter fix (preload + cache pattern)**: Scroll stuttering in List/ForEach views is often caused by on-demand disk I/O during scroll. Fix pattern: (1) Preload assets into NSCache when data loads (`Task.detached(priority: .background)`), (2) View's `onAppear` checks cache synchronously first - only spawn async Task on cache miss, (3) Generate appropriately-sized thumbnails (320px covers retina displays up to 160pt). Files: `LibraryStore.preloadCollectionThumbnails()`, `CollectionCoverArtView.refreshImageIfNeeded()`.
+- **2025-12-12 – Image caching for scroll performance**: NSCache-based image caching combined with background thumbnail generation (resized to 320px) eliminates disk access during scroll events. Always compute derivatives (thumbnails, resized images) in background and cache them in memory with appropriate size limits. This pattern applies to any frequently-rendered collection view.
+- **2025-12-12 – UIWindow for overlay windows**: SwiftUI `.overlay()` modifiers don't render above sheets/alerts since they live in different window hierarchies. For persistent UI (floating bubbles, persistent HUDs), create a separate `UIWindow` at `windowLevel = .alert + 1`, use custom `PassThroughWindow` for hit-testing, and call `.ignoresSafeArea()` on the SwiftUI view to align coordinates correctly.
+- **2025-12-12 – Perf: avoid high-frequency state publishers**: Don't publish model state changes that happen at high frequency (playback ticks, progress updates). Create a dedicated small `ObservableObject` for frequently-changing values and have only the consuming views observe it. This prevents entire view hierarchies from re-rendering on every tick.
 - **2025-12-12 – SwiftUI playback tick performance**: Don’t publish high-frequency playback ticks (`currentTime`) from a widely-used `@EnvironmentObject` like `AudioPlayerViewModel`, or large views (e.g. `PlayingView` `ScrollView`) will re-render on every tick and stutter. Instead, route ticks through a small dedicated `PlaybackClock` (`ObservableObject`) and have only the timeline/auto-follow subviews observe it. Also avoid expensive work in `View.body` (e.g. HTML parsing); compute once and cache, or use a cheap sanitizer if the feature isn’t important.
 - **2025-12-09 – Swipe actions**: All swipe-to-reveal actions (List rows, jobs, statistics, etc.) should style buttons with `.labelStyle(.iconOnly)` so the circular buttons stay centered regardless of localization length.
 - **2025-12-09 – Baidu Netdisk Collection Refresh Behavior**:
@@ -53,17 +53,14 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **2025-11-27 – Xcode Build Database Lock**: Persistent "database is locked" errors in `xcodebuild` often require killing all `xcodebuild` processes (`killall xcodebuild`) and/or clearing the `DerivedData` directory (`rm -rf ~/Library/Developer/Xcode/DerivedData/*`).
 - **2025-11-27 – Swift Actor/Class Closure**: When editing large files (like `GRDBDatabaseManager.swift`), ensure that all methods and the class/actor itself are properly closed with `}`. Missing braces can cause confusing "Declaration is only valid at file scope" errors for extensions that follow.
 - **2025-11-27 – Transcript sheet summary layout**: The track summary card now starts collapsed by default and the transcript sheet content lives inside a single `ScrollView`, which prevents the expanded card from overlapping the navigation bar on load while keeping the scroll-to-segment helpers working.
-
 - **2025-11-20 – Mac Catalyst log spam**: Seeing `[API] cannot add handler to <N> from <M> – dropping` in the Xcode console is an Apple framework issue (Backboard/HID bridge) that appears after enabling Mac Catalyst; our code does not emit it. Treat it as harmless noise, hide it via scheme console filters or `OS_ACTIVITY_MODE=disable`, and keep Xcode/macOS updated until Apple removes the logging.
 - **2025-11-20 – Track summary CTA + streaming stability**: Playing tab `TrackSummaryCard` now exposes a single header CTA that swaps between Generate/Regenerate, while `AIGenerationJobExecutor` buffers stream deltas on-actor so track summary jobs stop crashing with `EXC_BAD_ACCESS` when deltas arrive rapidly. Reuse `persistStreamDelta` whenever adding new streaming job types.
 - **2025-11-18 – AI Gateway streaming + max token removal**: Chat/completions now streams by default (SSE via `URLSession.bytes`), stops sending `max_tokens` so each model uses its native cap, and automatically falls back to non-streaming if iOS reports `URLError.secureConnectionFailed` (TLS -1200/-9816). Fixed the endpoint path to always hit `/v1/chat/completions` when streaming.
 - **2025-11-18 – AI tab tester feedback**: The AI tab's "Run Test" button now disables while streaming, shows a spinner, renders incremental chunks live, and flags when TLS issues force a non-streaming fallback so users stop re-tapping blindly.
 - **2025-11-18 – Tap-to-dismiss keyboard**: `CreateCollectionView` and `AITabView` now attach a background `TapGesture` that calls `resignFirstResponder()` so iPhone users can hide the keyboard by tapping outside focused fields. Reuse this helper whenever we add new SwiftUI forms that rely on `Form`/`List`, since those containers don’t dismiss on their own.
-
 - **2025-11-18 – Transcription cache parity & progress smoothing**: Transcription now reuses the playback cache for Baidu tracks (keyed by real fsId) and downloads via `AudioCacheDownloadManager`, so transcription is as fast as the playing card and updates the same cache entry. Added cache hit/miss logs. The sheet’s download progress bar now only advances during the download stage and no longer flickers when later stages update overall progress.
 
 - **2025-11-17 – Transcription sheet progress + context**: The per-track transcription sheet now shows granular stages (download/upload/transcribe/process) with byte progress, and includes a user-editable context box that defaults to collection title/description + track name; context is sent via the Soniox `context` field. Progress UI polls active jobs to stay in sync with backend status.
-
 - **2025-11-15 – Keychain access in Mac Catalyst DMG builds**: When packaging the Mac Catalyst build into an unsigned DMG for personal distribution, the app crashed with `Keychain error: 没有所需的授权`. The fix was to enable the **Keychain Sharing** capability so the Catalyst binary gets the required `keychain-access-groups` entitlement even when it is only signed with the free Personal Team certificate. Without that capability, importing backups that include credentials will fail on macOS because Keychain writes are denied.
   - DMG packaging script: `scripts/package-maccatalyst-dmg.sh`
   - Packaging guide: `DMG_PACKET_GUIDE.md`
@@ -82,7 +79,6 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
   - **Lesson**: Nested container views in SwiftUI affect view hierarchy and ID resolution for state-driven operations like `scrollTo()`. Always ensure views with `.id()` modifiers are direct children of containers that reference them via state.
 
 ### Build & Schemes
-
 - Shared Xcode scheme `AudiobookPlayer.xcodeproj/xcshareddata/xcschemes/AudiobookPlayer.xcscheme` lives in the repo so `xcodebuild -scheme AudiobookPlayer` (CI, scripts, other agents) can resolve SwiftPM packages. Keep it under version control; removing it breaks command-line builds.
 - **Build output quick filters**:
 
@@ -126,7 +122,6 @@ Generates all required iOS app icon sizes from a single source image.
 ---
 
 ## Current App Surface (2025-11)
-
 ### Tabs & Primary Screens
 
 1. `Playing` (PlayingView in ContentView.swift) now opens by default when the app launches, renders the active/last-played `PlaybackSnapshot`, playback history feed, progress bars, and exposes cache settings via the toolbar sheet; it gracefully falls back to persisted states when nothing is actively playing.
@@ -135,7 +130,6 @@ Generates all required iOS app icon sizes from a single source image.
 4. `Personal` (`PersonalView`) houses listening history, statistics placeholders, and exposes the original `SettingsTabView` sections (cache management, Baidu sources, etc.) so users can keep configuration controls together. The `SettingsTabView` file now renders inside this tab rather than representing a top-level tab itself.
 
 ### Supporting Workflows & Sheets
-
 - `CollectionDetailView` + `FavoriteTracksView` provide track-level playback, favorites, and per-track resume states; both surfaces reuse the shared `AudioPlayerViewModel` for actions.
 - `BaiduNetdiskBrowserView` (and its detail sheet) powers both the Settings tab (Baidu Sources section) and Collection import flows, including direct streaming via `TemporaryPlaybackContext`.
 - `CreateCollectionView` + `CollectionBuilderViewModel` orchestrate pulling an entire Netdisk folder (metadata, tracks, checksums) into the local library and monitor background work.
@@ -154,14 +148,12 @@ Generates all required iOS app icon sizes from a single source image.
 ## Architecture Snapshot (2025-11)
 
 ### Core Stack
-
 - SwiftUI + ObservableObject environment graph inside `AudiobookPlayerApp`; Combine is used sparingly (e.g., cache progress publishers) while async/await drives Baidu, Soniox, and AI Gateway requests.
 - AVFoundation/AVPlayer power playback with background audio + `MPRemoteCommandCenter` hooks for lock-screen/Control Center transport controls; `NowPlaying` metadata is kept in sync inside `AudioPlayerViewModel`.
 - Persistence lives in GRDB-backed SQLite (`GRDBDatabaseManager`, `DatabaseSchema`, `TranscriptionDatabaseSchema`); JSON file fallback (`LibraryPersistence`) and optional `CloudKitLibrarySync` keep collections portable.
 - Secrets stay in Keychain stores (`KeychainBaiduOAuthTokenStore`, `KeychainAIGatewayAPIKeyStore`, `SonioxKeychainStore`), while Info.plist still contains legacy placeholders for Baidu/Soniox defaults.
 
 ### Modules & Responsibilities
-
 - **App shell & DI**: `AudiobookPlayerApp` instantiates player, library, Baidu auth, tab manager, AI gateway, and transcription manager, injects them via `.environmentObject`, and shows `SplashScreenView` until ready.
 - **Library & collections**: `LibraryStore` coordinates GRDB + CloudKit + JSON fallback, handles schema upgrades, provides duplicate-path detection, favorites, and `recordPlaybackProgress`. `CollectionDetailView`, `LibraryCollectionRow`, and `FavoriteToggleButton` consume its data.
 - **Baidu OAuth + Netdisk**: `BaiduAuthViewModel` wraps `ASWebAuthenticationSession`-backed `BaiduOAuthService`, persists tokens, and exposes sign-in/out states. `BaiduNetdiskClient` lists/searches directories and produces signed download URLs; `BaiduNetdiskBrowserView` + `BaiduNetdiskBrowserViewModel` provide the UI, and `NetdiskEntryDetailSheet` lets users play or save folders.
@@ -174,7 +166,6 @@ Generates all required iOS app icon sizes from a single source image.
 - **System integrations**: Info.plist enables `UIBackgroundModes=audio`, lock-screen controls, and entitlements for networking. App Intents scaffolding (`AudiobookCollectionEntity`, `PlayCollectionIntent`, etc. inside `AppIntents/`) is implemented but blocked on paid Apple Developer provisioning.
 
 ### Data Flow
-
 - Baidu OAuth (`BaiduAuthViewModel`) → `BaiduNetdiskBrowserView` fetches folder contents → `CreateCollectionView` persists them through `LibraryStore`/GRDB and optional `CloudKitLibrarySync`.
 - Library selections (`LibraryView`/`CollectionDetailView`) → `AudioPlayerViewModel` loads playlists + resume state → streaming URLs are minted by `BaiduNetdiskClient`, optionally cached via `AudioCacheManager`, and surfaced in `PlayingView`.
 - Playback ticks call `recordPlaybackProgress`, which updates GRDB and keeps history/quick-play tiles accurate; cache/download progress flows to `CacheManagementView` and `PlayingView` cards through `CacheStatusSnapshot`.
@@ -242,28 +233,22 @@ Generates all required iOS app icon sizes from a single source image.
 
 ## Progress Tracking
 
-### Session: 2025-11-05 (App Intents Investigation & WIP)
-**Siri/App Intents Exploration** 🔍
+### Session: 2025-12-08 to 2025-12-12 (Performance & UX Polish)
+**Library & Model List Performance, Floating Bubble, Random Play, Transcript Fixes** ✅
 
-- [x] Analyzed App Intents architecture and implementation plan
-- [x] Created complete App Intents infrastructure (Phase 1 & 2):
-  - AudiobookCollectionEntity, AudiobookCollectionQuery, PlayCollectionIntent, AudiobookShortcuts
-  - IntentPlaybackController, LibrarySnapshotStore, AudiobookCollectionSummary
-- [x] Added 13 Siri localization keys (English + Chinese) to Localizable.xcstrings
-- [x] Upgraded iOS deployment target from 16.0 → 17.0 (App Intents requirement)
-- [x] Configured entitlements with `com.apple.developer.appintents` flag
-- ❌ **BLOCKED**: Free/Team Apple Developer accounts cannot provision App Intents entitlements
-  - Error: "iOS Team Provisioning Profile doesn't include the com.apple.developer.appintents entitlement"
-  - Only paid ($99/year) Apple Developer accounts can create provisioning profiles with App Intents support
-  - Solution: Saved all work in `feature/siri-control-wip` branch (commit: `ba67470`)
-  - Action: When account upgraded to paid, restore from WIP branch and proceed with Phase 4 device testing
+- [x] Fixed Library scroll stuttering via NSCache-based image caching + background thumbnail generation
+- [x] Fixed AI Models list performance via background grouping/filtering/sorting with `viewData` caching
+- [x] Fixed floating bubble hidden by sheets (separate UIWindow at .alert + 1 level with PassThroughWindow)
+- [x] Added random/shuffle play feature with persisted toggle
+- [x] Fixed play button not working for cached/non-Baidu files immediately after app launch
+- [x] Removed nested ScrollView from transcript viewer to enable auto-focus on current playing segment
+- [x] Removed 400+ lines of obsolete repair mode code from transcript viewer
+- [x] Fixed transcript token combining to handle language spacing correctly (prevented 'N anc y' issues)
+- [x] Enhanced abbreviation detection (30+ common titles/streets/business terms) to prevent unwanted segment splits
 
-**Important Lesson - Xcode Project File Handling**:
+**Key Files Modified**: LibraryView.swift, AIModelsListView.swift, FloatingBubbleWindowManager.swift, TranscriptViewerSheet.swift, CollectionDetailView.swift, TranscriptionManager.swift, AudioPlayerViewModel.swift
 
-- ❌ DO NOT attempt to edit `project.pbxproj` via bash/Python scripts
-- ✅ Instead: Generate content files (`.strings`, assets, etc.) programmatically, then let user manually add to Xcode via UI
-- ✅ This approach is more reliable and avoids pbxproj corruption
-- For localization tasks: Generate `.lproj` directories + `.strings` files, then ask user to add via Xcode UI
+**Key Insights**: High-frequency state publishers cause entire view hierarchies to re-render; separate small ObservableObjects for frequently-changing values. SwiftUI overlays don't render above sheets; use separate UIWindow for persistent UI. NSCache eliminates disk I/O during scroll by keeping resized images in memory.
 
 ### Session: 2025-11-03
 
@@ -328,12 +313,7 @@ Generates all required iOS app icon sizes from a single source image.
      // "search_files_prompt": "搜索文件" (Chinese)
      ```
 
-7. **App Intents & Siri Support - Requires Paid Developer Account**:
-   - ❌ **FREE accounts cannot use App Intents**: Free and Team provisioning profiles lack `com.apple.developer.appintents` entitlement support
-   - ❌ **Paid accounts only**: Only Apple Developer Program members ($99/year) can create App Intents-enabled provisioning profiles
-   - ✅ **Workaround**: Save complete implementation in WIP branch, restore when account is upgraded
-   - ✅ **All other features** (background audio, cache, playback controls, lock screen) work fine on free accounts
-   - **Lesson**: Always verify account limitations before implementing platform-specific features. App Intents was fully architected before discovering the blocker.
+7. **App Intents & Siri Support 
 
 8. **UI Button Design Pattern - Intuitive Refresh Buttons**:
    - ✅ **Use icon-only buttons for intuitive actions**: Refresh buttons (↻), close buttons (✕), etc. don't need text labels
@@ -352,7 +332,6 @@ Generates all required iOS app icon sizes from a single source image.
 - **Example**: Removing `print()` statements doesn't need a full Xcode build cycle
 
 ## Database Reference (STT & Library)
-
 - **Main Database**: `~/Library/Containers/6DAE9FFA-3650-44C2-9FD6-788F8AC6FB2E/Data/Library/Application Support/AudiobookPlayer/library.sqlite`
 - **Database Type**: SQLite with GRDB ORM
 - **Key Tables**: `transcripts`, `transcript_segments`, `transcription_jobs`, `collections`, `tracks`, `playback_states`

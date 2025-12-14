@@ -13,6 +13,9 @@ struct TrackPickerView: View {
     @State private var isPresentingBrowser = false
     @State private var errorMessage: String?
     @State private var isProcessing = false
+    @State private var isPresentingReview = false
+    @State private var reviewTracks: [AudiobookTrack] = []
+    @State private var reviewSelectedTrackIds: Set<UUID> = []
 
     var body: some View {
         NavigationStack {
@@ -76,9 +79,45 @@ struct TrackPickerView: View {
                 }
             }
         }
-        .presentationDetents([.fraction(0.8), .large])
-        .presentationDragIndicator(.visible)
         .onAppear(perform: validateState)
+        .navigationDestination(isPresented: $isPresentingReview) {
+            CollectionReviewView(
+                tracks: reviewTracks,
+                selectedTrackIds: $reviewSelectedTrackIds,
+                totalSize: reviewTracks.reduce(0) { $0 + $1.fileSize },
+                actionStyle: .toolbar(
+                    cancelTitle: NSLocalizedString("cancel_button", comment: "Cancel"),
+                    confirmTitle: NSLocalizedString("add_tracks_button", comment: "Add Tracks"),
+                    onCancel: { isPresentingReview = false }
+                ),
+                selectionListMaxHeight: 520,
+                saveButtonTitle: NSLocalizedString("add_tracks_button", comment: "Add Tracks"),
+                onSave: {
+                    let selected = reviewTracks.filter { reviewSelectedTrackIds.contains($0.id) }
+                    onTracksSelected(selected)
+                    dismiss()
+                }
+            ) { track in
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(track.displayName)
+                            .font(.body)
+                            .lineLimit(2)
+
+                        Text(formatBytes(track.fileSize))
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer()
+
+                    Text("\(track.trackNumber)")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .navigationTitle(NSLocalizedString("review_new_tracks_title", value: "New Tracks", comment: "Review new tracks title"))
+        }
     }
 
     private var emptyState: some View {
@@ -277,8 +316,9 @@ struct TrackPickerView: View {
             }
             
             await MainActor.run {
-                onTracksSelected(newTracks)
-                dismiss()
+                reviewTracks = newTracks
+                reviewSelectedTrackIds = Set(newTracks.map(\.id))
+                isPresentingReview = true
             }
         }
     }

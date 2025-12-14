@@ -177,7 +177,7 @@ struct LibraryView: View {
             }
             activeSource = nil
         }
-        .sheet(
+        .fullScreenCover(
             isPresented: Binding(
                 get: { activeSource == .rss },
                 set: { if !$0 { activeSource = nil } }
@@ -384,8 +384,12 @@ struct CollectionCoverArtView: View {
     @State private var cachedRelativePath: String?
     @State private var loadTask: Task<Void, Never>?
 
-    // Cache for small thumbnails to avoid repeated resizing
-    private static let thumbnailCache = NSCache<NSString, UIImage>()
+    // Cache for small thumbnails to avoid repeated resizing - shared for preloading
+    static let thumbnailCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 200
+        return cache
+    }()
 
     var body: some View {
         ZStack {
@@ -472,61 +476,46 @@ struct CollectionCoverArtView: View {
 
         // If we already have this image loaded, skip
         guard force || cachedRelativePath != relativePath || localImage == nil else { return }
-        
+
         let cacheKey = relativePath as NSString
-        
-        // 1. Check thumbnail cache first (fastest) if size is within thumbnail range
-        // Standardize on 320px thumbnails (covers 110pt @ 2x/3x comfortably)
+        cachedRelativePath = relativePath
+
+        // 1. Check thumbnail cache first (fastest) - this is the hot path during scroll
         if size <= 160, let cachedThumbnail = Self.thumbnailCache.object(forKey: cacheKey) {
-            cachedRelativePath = relativePath
             localImage = cachedThumbnail
             return
         }
-        
-        // 2. Check main cache
+
+        // 2. Check main cache - also fast, no disk I/O
         if let cached = CollectionCoverImageStore.cache.object(forKey: cacheKey) {
-            // If we need a thumbnail but only have full size, we might want to resize it asynchronously
-            // But for now, using the cached full image is better than reloading file
-            cachedRelativePath = relativePath
             localImage = cached
-            
-            // If we really need a thumbnail, spawn a task to generate it and put in thumbnail cache for next time
+            // Generate thumbnail in background for next time (non-blocking)
             if size <= 160 {
                 generateThumbnail(from: cached, key: cacheKey)
             }
             return
         }
 
-        // 3. Load from disk
-        cachedRelativePath = relativePath
+        // 3. Disk load - defer to background, don't block scroll
+        // Only spawn task if we don't already have one running for this path
         loadTask?.cancel()
-        
-        loadTask = Task.detached(priority: .userInitiated) {
+
+        loadTask = Task.detached(priority: .utility) {
             let url = CollectionCoverImageStore.fileURL(for: relativePath)
-            
-            // Load full image
             guard let image = UIImage(contentsOfFile: url.path) else { return }
-            
+
             // Cache full image
             CollectionCoverImageStore.cache.setObject(image, forKey: cacheKey)
-            
-            // If we need a thumbnail, resize it
-            let resultImage: UIImage
-            if self.size <= 160 {
-                // Standardize thumbnail size to 320px
-                let targetSize = CGSize(width: 320, height: 320)
-                let thumbnail = image.redraw(to: targetSize)
-                Self.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
-                resultImage = thumbnail
-            } else {
-                resultImage = image
-            }
-            
+
+            // Generate and cache thumbnail
+            let thumbnail = image.redraw(to: CGSize(width: 320, height: 320))
+            Self.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
+
             guard !Task.isCancelled else { return }
-            
+
             await MainActor.run {
                 if self.cachedRelativePath == relativePath {
-                    self.localImage = resultImage
+                    self.localImage = self.size <= 160 ? thumbnail : image
                 }
             }
         }
@@ -606,5 +595,4 @@ private struct PendingEbookImport: Identifiable {
     let url: URL
     var id: String { url.absoluteString }
 }
-
 

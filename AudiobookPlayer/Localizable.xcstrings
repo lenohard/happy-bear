@@ -4,7 +4,13 @@
     "" : {
 
     },
+    " " : {
+
+    },
     "--" : {
+
+    },
+    "%@" : {
 
     },
     "%@ / %@" : {
@@ -2015,6 +2021,18 @@
         }
       }
     },
+    "clear_button" : {
+      "comment" : "Clear button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clear"
+          }
+        }
+      }
+    },
     "Close" : {
 
     },
@@ -2051,6 +2069,9 @@
           }
         }
       }
+    },
+    "Collection" : {
+
     },
     "Collection Details" : {
       "extractionState" : "stale",
@@ -2382,6 +2403,9 @@
           }
         }
       }
+    },
+    "Continue your most recent happyBear playback." : {
+
     },
     "Correct text" : {
       "localizations" : {
@@ -2962,9 +2986,6 @@
           }
         }
       }
-    },
-    "Filter" : {
-
     },
     "filter_all" : {
       "comment" : "Filter option: All",
@@ -3575,6 +3596,21 @@
         }
       }
     },
+    "Music Collection" : {
+
+    },
+    "music_collection_indicator_accessibility" : {
+      "comment" : "Indicator for music collection",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Music collection"
+          }
+        }
+      }
+    },
     "name_field_label" : {
       "comment" : "Name field label",
       "localizations" : {
@@ -3796,9 +3832,6 @@
         }
       }
     },
-    "Only for tracks longer than 10 minutes" : {
-
-    },
     "open_collection" : {
       "comment" : "Open collection button",
       "localizations" : {
@@ -3832,6 +3865,9 @@
           }
         }
       }
+    },
+    "Order" : {
+
     },
     "Parsing ebook..." : {
 
@@ -3874,6 +3910,9 @@
           }
         }
       }
+    },
+    "Play Collection" : {
+
     },
     "play_collection_accessibility" : {
       "comment" : "Play collection accessibility label",
@@ -4192,114 +4231,6 @@
         }
       }
     },
-    "repair_controls_toggle" : {
-      "comment" : "Toggle repair controls",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Toggle repair controls"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "展开/折叠修复设置"
-          }
-        }
-      }
-    },
-    "repair_stats_summary_format" : {
-      "comment" : "Stats summary format",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Matches %@ · Selected %@ / %@ · Repaired %@ · Characters %@ / %@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "匹配 %@ · 已选 %@/%@ · 已修复 %@ · 字符 %@/%@"
-          }
-        }
-      }
-    },
-    "repair_threshold_summary" : {
-      "comment" : "Threshold summary",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Below %1$d%% · %2$d matches found"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "低于 %1$d%% · 找到 %2$d 条"
-          }
-        }
-      }
-    },
-    "repair_toggle_hide_repaired" : {
-      "comment" : "Toggle label",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hide repaired"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "过滤已修复"
-          }
-        }
-      }
-    },
-    "repair_toggle_select_all" : {
-      "comment" : "Toggle label",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Select all"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全选"
-          }
-        }
-      }
-    },
-    "repair_toggle_selected_only" : {
-      "comment" : "Toggle label",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Selected only"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "只看选中"
-          }
-        }
-      }
-    },
     "Replace with..." : {
       "localizations" : {
         "zh-Hans" : {
@@ -4311,6 +4242,15 @@
       }
     },
     "Restart" : {
+
+    },
+    "Resume" : {
+
+    },
+    "Resume a specific collection from its last position." : {
+
+    },
+    "Resume Playback" : {
 
     },
     "resume_listening" : {
@@ -4329,6 +4269,12 @@
           }
         }
       }
+    },
+    "Resuming %@." : {
+
+    },
+    "Resuming happyBear." : {
+
     },
     "retry_button" : {
       "localizations" : {
@@ -4642,39 +4588,6 @@
         }
       }
     },
-    "Select" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选中"
-          }
-        }
-      }
-    },
-    "Select All" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全选"
-          }
-        }
-      }
-    },
-    "Select Tracks" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择音频"
-          }
-        }
-      }
-    },
     "select_all_button" : {
       "comment" : "Select all items",
       "extractionState" : "extracted_with_value",
@@ -4723,24 +4636,6 @@
         }
       }
     },
-    "settings_auto_summary_description" : {
-      "comment" : "Auto summary description",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Automatically queue an AI summary as soon as a transcript finishes."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "转录完成后会立即排队生成 AI 摘要。"
-          }
-        }
-      }
-    },
     "settings_auto_summary_section_title" : {
       "comment" : "Auto summary section title",
       "extractionState" : "manual",
@@ -4759,6 +4654,18 @@
         }
       }
     },
+    "settings_auto_summary_skip_short" : {
+      "comment" : "Skip short tracks toggle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "跳过 10 分钟以下的音频"
+          }
+        }
+      }
+    },
     "settings_auto_summary_toggle" : {
       "comment" : "Auto summary toggle label",
       "localizations" : {
@@ -4771,7 +4678,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在转录完成后自动生成摘要"
+            "value" : "转录成后自动生成摘要"
           }
         }
       }
@@ -4896,48 +4803,95 @@
         }
       }
     },
-    "Sort" : {
+    "Sort By" : {
+
+    },
+    "sort_ascending" : {
+      "comment" : "Sort order: Ascending",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Ascending"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "排序"
+            "value" : "升序"
           }
         }
       }
     },
-    "sort_title_asc" : {
-      "comment" : "Sort option: Title Ascending",
+    "sort_descending" : {
+      "comment" : "Sort order: Descending",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Title Ascending"
+            "value" : "Descending"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "降序"
           }
         }
       }
     },
-    "sort_title_desc" : {
-      "comment" : "Sort option: Title Descending",
+    "sort_pubdate" : {
+      "comment" : "Sort criterion: Pub Date",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Title Descending"
+            "value" : "Pub Date"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发布时间"
+          }
+        }
+      }
+    },
+    "sort_title" : {
+      "comment" : "Sort criterion: Title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Title"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "标题"
           }
         }
       }
     },
     "sort_track_number" : {
-      "comment" : "Sort option: Track Number",
+      "comment" : "Sort criterion: Track Number",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "Track Number"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认"
           }
         }
       }
@@ -5200,28 +5154,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "提示"
-          }
-        }
-      }
-    },
-    "Title" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "标题"
-          }
-        }
-      }
-    },
-    "Total Size" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "总大小"
           }
         }
       }
@@ -5574,7 +5506,7 @@
       }
     },
     "track_summary_requires_transcript" : {
-      "comment" : "Track summary requires transcript message\nTrack transcript not found",
+      "comment" : "Track summary requires transcript message\nTrack transcript not found\nTranslation generation requires transcript",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -5658,6 +5590,17 @@
         }
       }
     },
+    "track_summary_translate_button" : {
+      "comment" : "Generate translated summary button",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "翻译全部"
+          }
+        }
+      }
+    },
     "track_summary_translations_header" : {
       "comment" : "Translations header",
       "extractionState" : "extracted_with_value",
@@ -5666,17 +5609,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Lyric Translation"
-          }
-        }
-      }
-    },
-    "Tracks" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "音频"
           }
         }
       }
@@ -6588,17 +6520,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
-          }
-        }
-      }
-    },
-    "Unselect" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不选中"
           }
         }
       }
