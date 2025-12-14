@@ -42,7 +42,6 @@ struct AddRSSCollectionView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         }
-                        .padding(.vertical, 4)
                     }
                 } else {
                     Form {
@@ -111,9 +110,24 @@ struct AddRSSCollectionView: View {
                 let parser = RSSParser()
                 let feed = try await parser.parse(url: url)
                 let isoFormatter = ISO8601DateFormatter()
-                
+
+                // Sort items by pubDate (oldest first) before assigning track numbers
+                // Items without pubDate are placed at the end
+                let sortedItems = feed.items.sorted { item1, item2 in
+                    switch (item1.pubDate, item2.pubDate) {
+                    case (let date1?, let date2?):
+                        return date1 < date2  // Oldest first
+                    case (nil, _?):
+                        return false  // Items without date go to the end
+                    case (_?, nil):
+                        return true   // Items with date come before items without
+                    case (nil, nil):
+                        return false  // Preserve original order for items without dates
+                    }
+                }
+
                 // Convert to tracks immediately
-                let tracks = feed.items.enumerated().map { index, item -> AudiobookTrack in
+                let tracks = sortedItems.enumerated().map { index, item -> AudiobookTrack in
                     var metadata: [String: String] = [:]
                     if let pubDate = item.pubDate {
                         metadata["pubDate"] = isoFormatter.string(from: pubDate)

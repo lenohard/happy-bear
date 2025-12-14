@@ -402,10 +402,25 @@ final class LibraryStore: ObservableObject {
 
         guard !newItems.isEmpty else { return [] }
 
+        // Sort new items by pubDate (oldest first) before assigning track numbers
+        // Items without pubDate are placed at the end
+        let sortedNewItems = newItems.sorted { item1, item2 in
+            switch (item1.pubDate, item2.pubDate) {
+            case (let date1?, let date2?):
+                return date1 < date2  // Oldest first
+            case (nil, _?):
+                return false  // Items without date go to the end
+            case (_?, nil):
+                return true   // Items with date come before items without
+            case (nil, nil):
+                return false  // Preserve original order for items without dates
+            }
+        }
+
         let startTrackNumber = (collection.tracks.map(\.trackNumber).max() ?? 0) + 1
         let isoFormatter = ISO8601DateFormatter()
 
-        return newItems.enumerated().compactMap { offset, item in
+        return sortedNewItems.enumerated().compactMap { offset, item in
             let enclosureURL = item.enclosureURL
 
             var metadata: [String: String] = [:]
