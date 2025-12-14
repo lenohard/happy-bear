@@ -68,7 +68,8 @@ struct CollectionDetailView: View {
     private let pageSize = 500
     @State private var currentQuery: String = ""
     @State private var currentFilterKey: FilterOption = .all
-    @State private var currentSortKey: SortOption = .trackNumber
+    @State private var currentSortCriterion: SortCriterion = .trackNumber
+    @State private var currentSortOrder: SortOrder = .ascending
 
     // MARK: - Filter & Sort Enums
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -101,35 +102,54 @@ struct CollectionDetailView: View {
         }
     }
 
-    enum SortOption: String, CaseIterable, Identifiable {
+    enum SortCriterion: String, CaseIterable, Identifiable {
         case trackNumber = "Track Number"
-        case trackNumberDescending = "Track Number Descending"
-        case titleAscending = "Title Ascending"
-        case titleDescending = "Title Descending"
+        case title = "Title"
+        case pubDate = "Pub Date"
 
         var id: String { rawValue }
 
         var localizedName: String {
             switch self {
-            case .trackNumber: return NSLocalizedString("sort_track_number", value: "Track Number", comment: "Sort option: Track Number")
-            case .trackNumberDescending: return NSLocalizedString("sort_track_number_desc", value: "Track Number Descending", comment: "Sort option: Track Number Descending")
-            case .titleAscending: return NSLocalizedString("sort_title_asc", value: "Title Ascending", comment: "Sort option: Title Ascending")
-            case .titleDescending: return NSLocalizedString("sort_title_desc", value: "Title Descending", comment: "Sort option: Title Descending")
+            case .trackNumber: return NSLocalizedString("sort_track_number", value: "Track Number", comment: "Sort criterion: Track Number")
+            case .title: return NSLocalizedString("sort_title", value: "Title", comment: "Sort criterion: Title")
+            case .pubDate: return NSLocalizedString("sort_pubdate", value: "Pub Date", comment: "Sort criterion: Pub Date")
             }
         }
 
         var icon: String {
             switch self {
             case .trackNumber: return "list.number"
-            case .trackNumberDescending: return "list.number.rtl"
-            case .titleAscending: return "arrow.up"
-            case .titleDescending: return "arrow.down"
+            case .title: return "textformat"
+            case .pubDate: return "calendar"
+            }
+        }
+    }
+
+    enum SortOrder: String, CaseIterable, Identifiable {
+        case ascending = "Ascending"
+        case descending = "Descending"
+
+        var id: String { rawValue }
+
+        var localizedName: String {
+            switch self {
+            case .ascending: return NSLocalizedString("sort_ascending", value: "Ascending", comment: "Sort order: Ascending")
+            case .descending: return NSLocalizedString("sort_descending", value: "Descending", comment: "Sort order: Descending")
+            }
+        }
+
+        var icon: String {
+            switch self {
+            case .ascending: return "arrow.up"
+            case .descending: return "arrow.down"
             }
         }
     }
 
     @State private var selectedFilter: FilterOption = .all
-    @State private var selectedSort: SortOption = .trackNumber
+    @State private var selectedCriterion: SortCriterion = .trackNumber
+    @State private var selectedOrder: SortOrder = .ascending
 
     private var collection: AudiobookCollection? {
         library.collections.first { $0.id == collectionID }
@@ -167,7 +187,7 @@ struct CollectionDetailView: View {
         } else {
             if !cachedSortedTracks.isEmpty { return cachedSortedTracks }
             guard let collection else { return [] }
-            return sortTracks(collection.tracks, by: selectedSort)
+            return sortTracks(collection.tracks, by: selectedCriterion, order: selectedOrder)
         }
     }
 
@@ -187,40 +207,57 @@ struct CollectionDetailView: View {
         }
     }
 
-    private func sortDBKey(for option: SortOption) -> String {
-        switch option {
-        case .trackNumber: return "trackNumber"
-        case .trackNumberDescending: return "trackNumberDescending"
-        case .titleAscending: return "titleAscending"
-        case .titleDescending: return "titleDescending"
+    private func sortDBKey(for criterion: SortCriterion, order: SortOrder) -> String {
+        let base: String
+        switch criterion {
+        case .trackNumber: base = "trackNumber"
+        case .title: base = "title"
+        case .pubDate: base = "pubDate"
         }
+
+        let suffix = order == .descending ? "Descending" : "Ascending"
+        return base + suffix
     }
 
-    private func sortTracks(_ tracks: [AudiobookTrack], by option: SortOption) -> [AudiobookTrack] {
-        switch option {
+    private func sortTracks(_ tracks: [AudiobookTrack], by criterion: SortCriterion, order: SortOrder) -> [AudiobookTrack] {
+        let sorted: [AudiobookTrack]
+
+        switch criterion {
         case .trackNumber:
-            return tracks.sorted {
-                if $0.trackNumber != $1.trackNumber {
-                    return $0.trackNumber < $1.trackNumber
+            sorted = tracks.sorted { track1, track2 in
+                if track1.trackNumber != track2.trackNumber {
+                    return track1.trackNumber < track2.trackNumber
                 }
-                return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
+                return track1.displayName.localizedStandardCompare(track2.displayName) == .orderedAscending
             }
-        case .trackNumberDescending:
-            return tracks.sorted {
-                if $0.trackNumber != $1.trackNumber {
-                    return $0.trackNumber > $1.trackNumber
-                }
-                return $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
-            }
-        case .titleAscending:
-            return tracks.sorted {
+        case .title:
+            sorted = tracks.sorted {
                 $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
             }
-        case .titleDescending:
-            return tracks.sorted {
-                $0.displayName.localizedStandardCompare($1.displayName) == .orderedDescending
+        case .pubDate:
+            sorted = tracks.sorted { track1, track2 in
+                let date1 = Self.parsePubDate(from: track1.metadata["pubDate"])
+                let date2 = Self.parsePubDate(from: track2.metadata["pubDate"])
+                switch (date1, date2) {
+                case (let d1?, let d2?):
+                    return d1 < d2
+                case (nil, _?):
+                    return false  // No date goes to end
+                case (_?, nil):
+                    return true   // Has date comes before no date
+                case (nil, nil):
+                    return track1.trackNumber < track2.trackNumber  // Fallback to track number
+                }
             }
         }
+
+        return order == .descending ? sorted.reversed() : sorted
+    }
+
+    fileprivate static func parsePubDate(from string: String?) -> Date? {
+        guard let string = string else { return nil }
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: string)
     }
 
     private func updateCachedTracks() {
@@ -243,10 +280,11 @@ struct CollectionDetailView: View {
         }
 
         let tracks = collection.tracks
-        let sortOption = selectedSort
+        let criterion = selectedCriterion
+        let order = selectedOrder
 
         sortTask = Task.detached {
-            let sorted = sortTracks(tracks, by: sortOption)
+            let sorted = sortTracks(tracks, by: criterion, order: order)
             if Task.isCancelled { return }
             await MainActor.run {
                 cachedSortedTracks = sorted
@@ -601,17 +639,36 @@ struct CollectionDetailView: View {
 
                 // Restore saved sort preference or apply smart defaults
                 if let collection = self.collection {
-                    if let savedSortOrder = collection.preferredSortOrder,
-                       let restoredSort = SortOption(rawValue: savedSortOrder) {
-                        selectedSort = restoredSort
+                    if let savedSortOrder = collection.preferredSortOrder {
+                        // Try to parse new format: "criterion:order"
+                        let components = savedSortOrder.split(separator: ":")
+                        if components.count == 2,
+                           let criterion = SortCriterion(rawValue: String(components[0])),
+                           let order = SortOrder(rawValue: String(components[1])) {
+                            selectedCriterion = criterion
+                            selectedOrder = order
+                        } else {
+                            // Apply smart defaults based on collection source
+                            if case .rss = collection.source {
+                                // RSS collections default to newest-first (descending track number)
+                                selectedCriterion = .trackNumber
+                                selectedOrder = .descending
+                            } else {
+                                // Other collections default to oldest-first (ascending track number)
+                                selectedCriterion = .trackNumber
+                                selectedOrder = .ascending
+                            }
+                        }
                     } else {
                         // Apply smart defaults based on collection source
                         if case .rss = collection.source {
                             // RSS collections default to newest-first (descending track number)
-                            selectedSort = .trackNumberDescending
+                            selectedCriterion = .trackNumber
+                            selectedOrder = .descending
                         } else {
                             // Other collections default to oldest-first (ascending track number)
-                            selectedSort = .trackNumber
+                            selectedCriterion = .trackNumber
+                            selectedOrder = .ascending
                         }
                     }
                 }
@@ -646,7 +703,8 @@ struct CollectionDetailView: View {
                         refreshPlaybackStateSnapshot(for: self.collection)
                         currentQuery = searchText
                         currentFilterKey = selectedFilter
-                        currentSortKey = selectedSort
+                        currentSortCriterion = selectedCriterion
+                        currentSortOrder = selectedOrder
                     }
                     await reloadFromDatabase(startingPage: 0, focusTarget: pendingAutoFocusTrackId)
                 }
@@ -666,11 +724,20 @@ struct CollectionDetailView: View {
                 scheduleFilteredTracksUpdate()
             }
             .onChange(of: selectedFilter) { _ in scheduleFilteredTracksUpdate() }
-            .onChange(of: selectedSort) { newSort in
+            .onChange(of: selectedCriterion) { _ in
                 scheduleSortedTracksUpdate()
                 // Persist sort preference to collection
                 if let collection = collection {
-                    library.updatePreferredSortOrder(newSort.rawValue, for: collection.id)
+                    let sortString = "\(selectedCriterion.rawValue):\(selectedOrder.rawValue)"
+                    library.updatePreferredSortOrder(sortString, for: collection.id)
+                }
+            }
+            .onChange(of: selectedOrder) { _ in
+                scheduleSortedTracksUpdate()
+                // Persist sort preference to collection
+                if let collection = collection {
+                    let sortString = "\(selectedCriterion.rawValue):\(selectedOrder.rawValue)"
+                    library.updatePreferredSortOrder(sortString, for: collection.id)
                 }
             }
             .onChange(of: transcriptStatusCache) { _ in scheduleFilteredTracksUpdate() }
@@ -965,45 +1032,65 @@ struct CollectionDetailView: View {
                 .font(.headline)
                 .foregroundStyle(.primary)
                 .textCase(nil)
-            
+
             Spacer()
-            
+
+            // Filter menu
             Menu {
-                Section {
-                    ForEach(FilterOption.allCases) { option in
-                        Button {
-                            selectedFilter = option
-                        } label: {
-                            if selectedFilter == option {
-                                Label(option.localizedName, systemImage: "checkmark")
-                            } else {
-                                Label(option.localizedName, systemImage: option.icon)
-                            }
+                ForEach(FilterOption.allCases) { option in
+                    Button {
+                        selectedFilter = option
+                    } label: {
+                        if selectedFilter == option {
+                            Label(option.localizedName, systemImage: "checkmark")
+                        } else {
+                            Label(option.localizedName, systemImage: option.icon)
                         }
                     }
-                } header: {
-                    Text("Filter")
-                }
-                
-                Section {
-                    ForEach(SortOption.allCases) { option in
-                        Button {
-                            selectedSort = option
-                        } label: {
-                            if selectedSort == option {
-                                Label(option.localizedName, systemImage: "checkmark")
-                            } else {
-                                Label(option.localizedName, systemImage: option.icon)
-                            }
-                        }
-                    }
-                } header: {
-                    Text("Sort")
                 }
             } label: {
                 Image(systemName: selectedFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
                     .font(.subheadline)
                     .foregroundStyle(selectedFilter == .all ? .secondary : Color.accentColor)
+            }
+
+            // Sort menu
+            Menu {
+                Section {
+                    ForEach(SortCriterion.allCases) { criterion in
+                        Button {
+                            selectedCriterion = criterion
+                        } label: {
+                            if selectedCriterion == criterion {
+                                Label(criterion.localizedName, systemImage: "checkmark")
+                            } else {
+                                Label(criterion.localizedName, systemImage: criterion.icon)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Sort By")
+                }
+
+                Section {
+                    ForEach(SortOrder.allCases) { order in
+                        Button {
+                            selectedOrder = order
+                        } label: {
+                            if selectedOrder == order {
+                                Label(order.localizedName, systemImage: "checkmark")
+                            } else {
+                                Label(order.localizedName, systemImage: order.icon)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Order")
+                }
+            } label: {
+                Image(systemName: "arrow.up.arrow.down.circle")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -1568,7 +1655,7 @@ struct CollectionDetailView: View {
                 collectionId: collection.id,
                 query: currentQuery,
                 filter: filterDBKey(for: currentFilterKey),
-                sort: sortDBKey(for: currentSortKey),
+                sort: sortDBKey(for: currentSortCriterion, order: currentSortOrder),
                 offset: offset,
                 limit: pageSize
             )
@@ -1619,7 +1706,8 @@ struct CollectionDetailView: View {
         resetPagingState(clearCaches: false)
         currentQuery = searchText
         currentFilterKey = selectedFilter
-        currentSortKey = selectedSort
+        currentSortCriterion = selectedCriterion
+        currentSortOrder = selectedOrder
 
         // Always load first page; we no longer preload neighbors to reduce jank.
         await loadPage(0)
@@ -2229,6 +2317,15 @@ private struct TrackDetailRow: View, Equatable {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 6) {
                 HStack(spacing: 4) {
+                    // Show pubDate for RSS tracks first
+                    if let pubDateString = track.metadata["pubDate"], case .rss = collection.source {
+                        if let formattedDate = formatPubDate(pubDateString) {
+                            Text(formattedDate)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
                     // Show character count for text tracks, file size for others
                     if track.isTextTrack, let charCount = track.characterCount {
                         Text("\(formatNumber(charCount)) chars")
@@ -2296,6 +2393,14 @@ private struct TrackDetailRow: View, Equatable {
                 .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private func formatPubDate(_ isoString: String) -> String? {
+        guard let date = CollectionDetailView.parsePubDate(from: isoString) else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
     }
 
     @ViewBuilder
