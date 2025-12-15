@@ -2526,6 +2526,12 @@
             "state" : "new",
             "value" : "Deselect All"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全不选"
+          }
         }
       }
     },
@@ -2647,9 +2653,6 @@
     },
     "Duration" : {
 
-    },
-    "ebook_collection_indicator_accessibility" : {
-      "comment" : "Indicator for ebook collection"
     },
     "Edge TTS" : {
 
@@ -3475,18 +3478,6 @@
     "Music Collection" : {
 
     },
-    "music_collection_indicator_accessibility" : {
-      "comment" : "Indicator for music collection",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Music collection"
-          }
-        }
-      }
-    },
     "name_field_label" : {
       "comment" : "Name field label",
       "localizations" : {
@@ -4212,7 +4203,7 @@
     },
     "rss_collection_indicator_accessibility" : {
       "comment" : "Indicator for RSS collection",
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4473,6 +4464,12 @@
             "state" : "new",
             "value" : "Select All"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全选"
+          }
         }
       }
     },
@@ -4683,7 +4680,7 @@
 
     },
     "sort_ascending" : {
-      "comment" : "Sort order: Ascending",
+      "comment" : "Sort ascending\nSort order: Ascending",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
@@ -4701,7 +4698,7 @@
       }
     },
     "sort_descending" : {
-      "comment" : "Sort order: Descending",
+      "comment" : "Sort descending\nSort order: Descending",
       "extractionState" : "extracted_with_value",
       "localizations" : {
         "en" : {
