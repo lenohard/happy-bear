@@ -25,6 +25,8 @@
 		6FC010052C5B0C0000AA00AA /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010042C5B0C0000AA00AA /* LibraryView.swift */; };
 		6FC010072C5B0C0000AA00AA /* SourcesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010062C5B0C0000AA00AA /* SourcesView.swift */; };
 		6FC010092C5B0C0000AA00AA /* CollectionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC010082C5B0C0000AA00AA /* CollectionDetailView.swift */; };
+		08E8E02170624D2F97A9EDD9 /* CollectionDetailViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 688ACB11D5A942F29EFB2321 /* CollectionDetailViewModel.swift */; };
+		688ACB11D5A942F29EFB2321 /* CollectionDetailViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionDetailViewModel.swift; sourceTree = "<group>"; };
 		6FC0100B2C5B0C0000AA00AA /* TrackPickerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0100A2C5B0C0000AA00AA /* TrackPickerView.swift */; };
 		6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FC0101B2C5B0C0000AA00AA /* CloudKitLibrarySync.swift */; };
 		6FC0200D2C5B0C0000AA00AA /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 6FC0200A2C5B0C0000AA00AA /* Localizable.strings */; };
@@ -281,6 +283,7 @@
 		6F6E7F672C4A9B0500AA00AA /* AudiobookPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				688ACB11D5A942F29EFB2321 /* CollectionDetailViewModel.swift */,
 				B1C5E09F2F12300000AAA001 /* InfoPlist.strings */,
 				86FDF2062EC8F1F300DB7430 /* AudiobookPlayer.entitlements */,
 				86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */,
@@ -518,6 +521,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				08E8E02170624D2F97A9EDD9 /* CollectionDetailViewModel.swift in Sources */,
 				6F99A0072C4C200000AA00AA /* BaiduNetdiskBrowserView.swift in Sources */,
 				86B633542ED94E8100A04510 /* AboutView.swift in Sources */,
 				86B633552ED94E8100A04510 /* AppInfo.swift in Sources */,

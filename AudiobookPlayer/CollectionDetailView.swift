@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 import GRDB
 
 struct CollectionDetailView: View {
-    let collectionID: UUID
+    @StateObject private var viewModel: CollectionDetailViewModel
 
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
@@ -12,395 +12,36 @@ struct CollectionDetailView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
 
-    @State private var searchText = ""
-    @State private var missingAuthAlert = false
-    @State private var showTrackPicker = false
-    @State private var trackToDelete: AudiobookTrack?
-    @State private var showDeleteConfirmation = false
-    @State private var trackToRename: AudiobookTrack?
-    @State private var trackTitleDraft = ""
-    @State private var showCollectionInfoSheet = false
-    @State private var showBatchRename = false
-    @State private var collectionTitleDraft = ""
-    @State private var collectionDescriptionDraft = ""
-    @State private var collectionIsMusicDraft = false
-    @State private var trackForTranscription: AudiobookTrack?
-    @State private var trackForViewing: AudiobookTrack?
-    @State private var trackForReading: AudiobookTrack?
-    @State private var trackForTTSProgress: AudiobookTrack?
-    @State private var transcriptStatusCache: [UUID: Bool] = [:]
-    @State private var pendingAutoFocusTrackId: UUID?
-    @State private var didAutoFocusTrack = false
-    @State private var trackPendingTranscriptDeletion: AudiobookTrack?
-    @State private var showTranscriptDeletionDialog = false
-    @State private var transcriptDeletionError: String?
-    @State private var showTranscriptDeletionError = false
-    @State private var tracksWithSummaries: Set<UUID> = []
-    @State private var summaryIndicatorTask: Task<Void, Never>?
-    @State private var coverPhotoItem: PhotosPickerItem?
-    @State private var showCoverFileImporter = false
-    @State private var showCoverPhotosPicker = false
-    @State private var isUpdatingCover = false
-    @State private var coverUpdateError: String?
-    @State private var showCoverUpdateError = false
-    @State private var isSummaryVisible = true
-    @State private var isLastTrackVisible = false
-    @State private var refreshResult: String?
-    @State private var showRefreshResult = false
-    @State private var candidateTracks: [AudiobookTrack] = []
-    @State private var selectedCandidateIds: Set<UUID> = []
-    @State private var showRefreshReview = false
-    @State private var refreshReviewTitle = ""
-    @State private var refreshReviewDescription = ""
-    @State private var playbackStateSnapshot: [UUID: TrackPlaybackState] = [:]
-    @State private var isDescriptionExpanded = false
-    @State private var cachedOrderedTracks: [AudiobookTrack] = []
-    @State private var cachedSortedTracks: [AudiobookTrack] = []
-    @State private var filterTask: Task<Void, Never>?
-    @State private var sortTask: Task<Void, Never>?
-    @State private var searchDebounceTask: Task<Void, Never>?
-    @State private var loadedPages: [Int: [AudiobookTrack]] = [:]
-    @State private var loadingPages: Set<Int> = []
-    @State private var totalPages: Int = 0
-    @State private var totalResults: Int = 0
-    @State private var isListLoading: Bool = false
-    private let pagingThreshold = 1000
-    private let pageSize = 500
-    @State private var currentQuery: String = ""
-    @State private var currentFilterKey: FilterOption = .all
-    @State private var currentSortCriterion: SortCriterion = .trackNumber
-    @State private var currentSortOrder: SortOrder = .ascending
-
-    // MARK: - Filter & Sort Enums
-    enum FilterOption: String, CaseIterable, Identifiable {
-        case all = "All"
-        case transcribed = "Transcribed"
-        case unplayed = "Unplayed"
-        case summarized = "Summarized"
-        case played = "Played"
-        
-        var id: String { rawValue }
-        
-        var localizedName: String {
-            switch self {
-            case .all: return NSLocalizedString("filter_all", value: "All", comment: "Filter option: All")
-            case .transcribed: return NSLocalizedString("filter_transcribed", value: "已转录", comment: "Filter option: Transcribed")
-            case .unplayed: return NSLocalizedString("filter_unplayed", value: "未播放", comment: "Filter option: Unplayed")
-            case .summarized: return NSLocalizedString("filter_summarized", value: "已总结", comment: "Filter option: Summarized")
-            case .played: return NSLocalizedString("filter_played", value: "播放过", comment: "Filter option: Played")
-            }
-        }
-        
-        var icon: String {
-            switch self {
-            case .all: return "line.3.horizontal.decrease.circle"
-            case .transcribed: return "text.bubble"
-            case .unplayed: return "circle"
-            case .summarized: return "doc.text"
-            case .played: return "play.circle"
-            }
-        }
-    }
-
-    enum SortCriterion: String, CaseIterable, Identifiable {
-        case trackNumber = "Track Number"
-        case title = "Title"
-        case pubDate = "Pub Date"
-
-        var id: String { rawValue }
-
-        var localizedName: String {
-            switch self {
-            case .trackNumber: return NSLocalizedString("sort_track_number", value: "Track Number", comment: "Sort criterion: Track Number")
-            case .title: return NSLocalizedString("sort_title", value: "Title", comment: "Sort criterion: Title")
-            case .pubDate: return NSLocalizedString("sort_pubdate", value: "Pub Date", comment: "Sort criterion: Pub Date")
-            }
-        }
-
-        var icon: String {
-            switch self {
-            case .trackNumber: return "list.number"
-            case .title: return "textformat"
-            case .pubDate: return "calendar"
-            }
-        }
-    }
-
-    enum SortOrder: String, CaseIterable, Identifiable {
-        case ascending = "Ascending"
-        case descending = "Descending"
-
-        var id: String { rawValue }
-
-        var localizedName: String {
-            switch self {
-            case .ascending: return NSLocalizedString("sort_ascending", value: "Ascending", comment: "Sort order: Ascending")
-            case .descending: return NSLocalizedString("sort_descending", value: "Descending", comment: "Sort order: Descending")
-            }
-        }
-
-        var icon: String {
-            switch self {
-            case .ascending: return "arrow.up"
-            case .descending: return "arrow.down"
-            }
-        }
-    }
-
-    @State private var selectedFilter: FilterOption = .all
-    @State private var selectedCriterion: SortCriterion = .trackNumber
-    @State private var selectedOrder: SortOrder = .ascending
-
-    private var collection: AudiobookCollection? {
-        library.collections.first { $0.id == collectionID }
-    }
-
-    private var isEbookCollection: Bool {
-        if let collection, case .ebook = collection.source {
-            return true
-        }
-        return false
-    }
-
-    private var canRefreshCurrentCollection: Bool {
-        guard let source = collection?.source else { return false }
-        switch source {
-        case .baiduNetdisk, .rss:
-            return true
-        default:
-            return false
-        }
-    }
-
-    private var isPagedMode: Bool {
-        let countHint = max(
-            totalResults,
-            collection?.trackCount ?? 0,
-            collection?.tracks.count ?? 0
-        )
-        return countHint > pagingThreshold
-    }
-
-    private var sortedTracks: [AudiobookTrack] {
-        if isPagedMode {
-            return pagedTracks
-        } else {
-            if !cachedSortedTracks.isEmpty { return cachedSortedTracks }
-            guard let collection else { return [] }
-            return sortTracks(collection.tracks, by: selectedCriterion, order: selectedOrder)
-        }
-    }
-
-    private var pagedTracks: [AudiobookTrack] {
-        // Combine loaded pages in order
-        let keys = loadedPages.keys.sorted()
-        return keys.flatMap { loadedPages[$0] ?? [] }
-    }
-
-    private func filterDBKey(for option: FilterOption) -> String {
-        switch option {
-        case .all: return "all"
-        case .transcribed: return "transcribed"
-        case .unplayed: return "unplayed"
-        case .summarized: return "summarized"
-        case .played: return "played"
-        }
-    }
-
-    private func sortDBKey(for criterion: SortCriterion, order: SortOrder) -> String {
-        let base: String
-        switch criterion {
-        case .trackNumber: base = "trackNumber"
-        case .title: base = "title"
-        case .pubDate: base = "pubDate"
-        }
-
-        let suffix = order == .descending ? "Descending" : "Ascending"
-        return base + suffix
-    }
-
-    private func sortTracks(_ tracks: [AudiobookTrack], by criterion: SortCriterion, order: SortOrder) -> [AudiobookTrack] {
-        let sorted: [AudiobookTrack]
-
-        switch criterion {
-        case .trackNumber:
-            sorted = tracks.sorted { track1, track2 in
-                if track1.trackNumber != track2.trackNumber {
-                    return track1.trackNumber < track2.trackNumber
-                }
-                return track1.displayName.localizedStandardCompare(track2.displayName) == .orderedAscending
-            }
-        case .title:
-            sorted = tracks.sorted {
-                $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
-            }
-        case .pubDate:
-            sorted = tracks.sorted { track1, track2 in
-                let date1 = Self.parsePubDate(from: track1.metadata["pubDate"])
-                let date2 = Self.parsePubDate(from: track2.metadata["pubDate"])
-                switch (date1, date2) {
-                case (let d1?, let d2?):
-                    return d1 < d2
-                case (nil, _?):
-                    return false  // No date goes to end
-                case (_?, nil):
-                    return true   // Has date comes before no date
-                case (nil, nil):
-                    return track1.trackNumber < track2.trackNumber  // Fallback to track number
-                }
-            }
-        }
-
-        return order == .descending ? sorted.reversed() : sorted
-    }
-
-    fileprivate static func parsePubDate(from string: String?) -> Date? {
-        guard let string = string else { return nil }
-        let formatter = ISO8601DateFormatter()
-        return formatter.date(from: string)
-    }
-
-    private func updateCachedTracks() {
-        // Deprecated: keep for compatibility if called; redirect to scheduled path.
-        scheduleFilteredTracksUpdate()
-    }
-
-    private func scheduleSortedTracksUpdate() {
-        sortTask?.cancel()
-
-        if isPagedMode {
-            Task { await reloadFromDatabase(startingPage: 0, focusTarget: pendingAutoFocusTrackId) }
-            return
-        }
-
-        guard let collection else {
-            cachedSortedTracks = []
-            scheduleFilteredTracksUpdate()
-            return
-        }
-
-        let tracks = collection.tracks
-        let criterion = selectedCriterion
-        let order = selectedOrder
-
-        sortTask = Task.detached {
-            let sorted = sortTracks(tracks, by: criterion, order: order)
-            if Task.isCancelled { return }
-            await MainActor.run {
-                cachedSortedTracks = sorted
-                scheduleFilteredTracksUpdate()
-            }
-        }
-    }
-
-    private func scheduleFilteredTracksUpdate() {
-        filterTask?.cancel()
-
-        if isPagedMode {
-            Task {
-                await reloadFromDatabase(startingPage: 0, focusTarget: pendingAutoFocusTrackId)
-            }
-            return
-        }
-
-        let base = sortedTracks
-        let filter = selectedFilter
-        let query = searchText
-        let transcriptCache = transcriptStatusCache
-        let summaryIds = tracksWithSummaries
-        let collectionRef = collection
-
-        filterTask = Task.detached {
-            // Compute on a background thread
-            let filtered = computeOrderedTracks(from: base, filter: filter, query: query, transcriptCache: transcriptCache, summaryIds: summaryIds, collection: collectionRef)
-            if Task.isCancelled { return }
-            await MainActor.run {
-                cachedOrderedTracks = filtered
-                totalResults = filtered.count
-            }
-        }
-    }
-
-    private func computeOrderedTracks(
-        from base: [AudiobookTrack],
-        filter: FilterOption,
-        query: String,
-        transcriptCache: [UUID: Bool],
-        summaryIds: Set<UUID>,
-        collection: AudiobookCollection?
-    ) -> [AudiobookTrack] {
-        var tracks = base
-
-        if filter != .all {
-            tracks = tracks.filter { track in
-                switch filter {
-                case .all:
-                    return true
-                case .transcribed:
-                    return transcriptCache[track.id] == true
-                case .unplayed:
-                    let state = collection?.playbackState(for: track.id)
-                    return state == nil || state!.position < 1
-                case .summarized:
-                    return summaryIds.contains(track.id)
-                case .played:
-                    if let state = collection?.playbackState(for: track.id) {
-                        return state.position >= 1
-                    }
-                    return false
-                }
-            }
-        }
-
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return tracks }
-
-        return tracks.filter { track in
-            track.displayName.localizedCaseInsensitiveContains(trimmed) ||
-            track.filename.localizedCaseInsensitiveContains(trimmed)
-        }
-    }
-
-    private var filteredTracks: [AudiobookTrack] {
-        cachedOrderedTracks
-    }
-
-    private var showScrollToTopButton: Bool {
-        !isSummaryVisible
-    }
-
-    private var showScrollToBottomButton: Bool {
-        guard !isPagedMode else { return false }
-        guard !filteredTracks.isEmpty else { return false }
-        return !isLastTrackVisible
+    init(collectionID: UUID) {
+        _viewModel = StateObject(wrappedValue: CollectionDetailViewModel(collectionID: collectionID))
     }
 
     var body: some View {
         let baseView = content
-            .navigationTitle(collection?.title ?? NSLocalizedString("collection_title_fallback", comment: "Collection detail fallback title"))
+            .navigationTitle(viewModel.collection?.title ?? NSLocalizedString("collection_title_fallback", comment: "Collection detail fallback title"))
             .navigationBarTitleDisplayMode(.inline)
             .searchable(
-                text: $searchText,
+                text: $viewModel.searchText,
                 prompt: Text(NSLocalizedString("search_tracks_prompt", comment: "Search tracks prompt"))
             )
             .toolbar {
-                if library.canModifyCollection(collectionID) {
+                if library.canModifyCollection(viewModel.collectionID) {
                     ToolbarItem(placement: .primaryAction) {
                         Menu {
-                            Button(action: addTracksAction) {
+                            Button(action: viewModel.addTracksAction) {
                                 Label(
                                     NSLocalizedString("add_tracks_button", comment: "Add tracks button"),
                                     systemImage: "plus.circle"
                                 )
                             }
                             
-                            if canRefreshCurrentCollection {
-                                Button(action: refreshCollectionAction) {
+                            if viewModel.canRefreshCurrentCollection {
+                                Button(action: viewModel.refreshCollectionAction) {
                                     Label(NSLocalizedString("refresh_collection_button", value: "Refresh Collection", comment: "Refresh collection button"), systemImage: "arrow.clockwise")
                                 }
                             }
                             
-                            Button(action: { showBatchRename = true }) {
+                            Button(action: { viewModel.showBatchRename = true }) {
                                 Label("Batch Rename", systemImage: "pencil.and.list.clipboard")
                             }
                         } label: {
@@ -411,57 +52,57 @@ struct CollectionDetailView: View {
             }
 
         let viewWithAlerts = baseView
-            .alert(NSLocalizedString("connect_baidu_first", comment: "Connect Baidu First alert"), isPresented: $missingAuthAlert) {
+            .alert(NSLocalizedString("connect_baidu_first", comment: "Connect Baidu First alert"), isPresented: $viewModel.missingAuthAlert) {
                 Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
             } message: {
                 Text(NSLocalizedString("sign_in_on_sources_tab", comment: "Sign in on sources tab message"))
             }
             .alert(
                 NSLocalizedString("remove_track_action", comment: "Remove track dialog title"),
-                isPresented: $showDeleteConfirmation,
-                presenting: trackToDelete
+                isPresented: $viewModel.showDeleteConfirmation,
+                presenting: viewModel.trackToDelete
             ) { _ in
                 Button(NSLocalizedString("cancel_button", comment: "Cancel button"), role: .cancel) {
-                    trackToDelete = nil
+                    viewModel.trackToDelete = nil
                 }
                 Button(NSLocalizedString("remove_track_action", comment: "Remove track action label"), role: .destructive) {
-                    deleteSelectedTrack()
+                    viewModel.deleteSelectedTrack()
                 }
             } message: { track in
-                Text(removePrompt(for: track))
+                Text(viewModel.removePrompt(for: track))
             }
             .alert(
                 NSLocalizedString("delete_transcript_confirm_title", comment: "Delete transcript dialog title"),
-                isPresented: $showTranscriptDeletionDialog,
-                presenting: trackPendingTranscriptDeletion
+                isPresented: $viewModel.showTranscriptDeletionDialog,
+                presenting: viewModel.trackPendingTranscriptDeletion
             ) { track in
                 Button(NSLocalizedString("delete_transcript_cancel", comment: "Cancel delete transcript"), role: .cancel) {
-                    trackPendingTranscriptDeletion = nil
+                    viewModel.trackPendingTranscriptDeletion = nil
                 }
                 Button(NSLocalizedString("delete_transcript_confirm", comment: "Confirm delete transcript"), role: .destructive) {
-                    deleteTranscript(for: track)
+                    viewModel.deleteTranscript(for: track)
                 }
             } message: { track in
                 Text(String(format: NSLocalizedString("delete_transcript_confirm_message", comment: "Delete transcript confirm message"), track.displayName))
             }
             .alert(
                 NSLocalizedString("error_title", comment: "Generic error title"),
-                isPresented: $showTranscriptDeletionError,
-                presenting: transcriptDeletionError
+                isPresented: $viewModel.showTranscriptDeletionError,
+                presenting: viewModel.transcriptDeletionError
             ) { _ in
                 Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) {
-                    showTranscriptDeletionError = false
+                    viewModel.showTranscriptDeletionError = false
                 }
             } message: { error in
                 Text(error)
             }
             .alert(
                 NSLocalizedString("cover_update_failed_title", comment: "Cover update failed title"),
-                isPresented: $showCoverUpdateError,
-                presenting: coverUpdateError
+                isPresented: $viewModel.showCoverUpdateError,
+                presenting: viewModel.coverUpdateError
             ) { _ in
                 Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) {
-                    showCoverUpdateError = false
+                    viewModel.showCoverUpdateError = false
                 }
             } message: { error in
                 Text(error)
@@ -475,7 +116,7 @@ struct CollectionDetailView: View {
                     audioPlayer.trackToGenerateAudio = nil
                 }
                 Button("Generate") {
-                    if let track = audioPlayer.trackToGenerateAudio, let collection = collection {
+                    if let track = audioPlayer.trackToGenerateAudio, let collection = viewModel.collection {
                         audioPlayer.generateAudio(for: track, in: collection, autoPlay: true)
                     }
                     audioPlayer.showGenerateAudioConfirmation = false
@@ -488,8 +129,8 @@ struct CollectionDetailView: View {
             }
             .alert(
                 "Collection Refresh",
-                isPresented: $showRefreshResult,
-                presenting: refreshResult
+                isPresented: $viewModel.showRefreshResult,
+                presenting: viewModel.refreshResult
             ) { _ in
                 Button("OK", role: .cancel) { }
             } message: { result in
@@ -497,12 +138,12 @@ struct CollectionDetailView: View {
             }
 
         let viewWithSheets = viewWithAlerts
-            .fullScreenCover(isPresented: $showTrackPicker) {
+            .fullScreenCover(isPresented: $viewModel.showTrackPicker) {
                 TrackPickerView(
-                    collectionID: collectionID,
+                    collectionID: viewModel.collectionID,
                     onTracksSelected: { newTracks in
                         library.addTracksToCollection(
-                            collectionID: collectionID,
+                            collectionID: viewModel.collectionID,
                             newTracks: newTracks
                         )
                     }
@@ -510,274 +151,282 @@ struct CollectionDetailView: View {
                 .environmentObject(library)
                 .environmentObject(authViewModel)
             }
-            .sheet(item: $trackToRename) { track in
+            .sheet(item: $viewModel.trackToRename) { track in
                 RenameEntryView(
                     title: NSLocalizedString("rename_track_title", comment: "Rename track title"),
                     fieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
-                    text: $trackTitleDraft,
+                    text: $viewModel.trackTitleDraft,
                     onSubmit: {
-                        applyTrackRename(for: track)
+                        viewModel.applyTrackRename(for: track)
                     },
-                    onCancel: cancelTrackRename
+                    onCancel: viewModel.cancelTrackRename
                 )
             }
-            .sheet(isPresented: $showCollectionInfoSheet) {
+            .sheet(isPresented: $viewModel.showCollectionInfoSheet) {
                 CollectionInfoEditorView(
                     title: NSLocalizedString("edit_collection_details_title", comment: "Edit collection details title"),
                     nameFieldLabel: NSLocalizedString("name_field_label", comment: "Name field label"),
                     descriptionFieldLabel: NSLocalizedString("collection_description_field_label", comment: "Collection description field label"),
-                    name: $collectionTitleDraft,
-                    description: $collectionDescriptionDraft,
-                    isMusic: $collectionIsMusicDraft,
-                    onSubmit: applyCollectionDetailsUpdate,
-                    onCancel: cancelCollectionDetailsEdit
+                    name: $viewModel.collectionTitleDraft,
+                    description: $viewModel.collectionDescriptionDraft,
+                    isMusic: $viewModel.collectionIsMusicDraft,
+                    onSubmit: viewModel.applyCollectionDetailsUpdate,
+                    onCancel: viewModel.cancelCollectionDetailsEdit
                 )
             }
-            .sheet(item: $trackForTranscription) { track in
+            .sheet(item: $viewModel.trackForTranscription) { track in
                 TranscriptionSheet(
                     track: track,
-                    collectionID: collectionID,
-                    collectionTitle: collection?.title ?? "",
-                    collectionDescription: collection?.description
+                    collectionID: viewModel.collectionID,
+                    collectionTitle: viewModel.collection?.title ?? "",
+                    collectionDescription: viewModel.collection?.description
                 )
             }
-            .sheet(item: $trackForTTSProgress) { track in
+            .sheet(item: $viewModel.trackForTTSProgress) { track in
                 TTSJobProgressSheet(track: track)
             }
-            .sheet(item: $trackForViewing) { track in
+            .sheet(item: $viewModel.trackForViewing) { track in
                 TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName, showTrackSummary: true)
             }
-            .sheet(item: $trackForReading) { track in
-                if let collection = collection {
+            .sheet(item: $viewModel.trackForReading) { track in
+                if let collection = viewModel.collection {
                     NavigationStack {
                         EbookReaderView(track: track, collection: collection)
                     }
                 }
             }
-            .sheet(isPresented: $showBatchRename) {
-                if let collection = collection {
+            .sheet(isPresented: $viewModel.showBatchRename) {
+                if let collection = viewModel.collection {
                     BatchRenameView(
                         tracks: collection.tracks,
                         onApply: { changes in
-                            library.batchRenameTracks(in: collectionID, changes: changes)
-                            showBatchRename = false
+                            library.batchRenameTracks(in: viewModel.collectionID, changes: changes)
+                            viewModel.showBatchRename = false
                         },
                         onCancel: {
-                            showBatchRename = false
+                            viewModel.showBatchRename = false
                         }
                     )
                 }
             }
-            .photosPicker(isPresented: $showCoverPhotosPicker, selection: $coverPhotoItem, matching: .images)
-            .fileImporter(isPresented: $showCoverFileImporter, allowedContentTypes: [.image]) { result in
-                handleCoverFileImport(result)
+            .photosPicker(isPresented: $viewModel.showCoverPhotosPicker, selection: $viewModel.coverPhotoItem, matching: .images)
+            .fileImporter(isPresented: $viewModel.showCoverFileImporter, allowedContentTypes: [.image]) { result in
+                viewModel.handleCoverFileImport(result)
             }
-            .navigationDestination(isPresented: $showRefreshReview) {
+            .navigationDestination(isPresented: $viewModel.showRefreshReview) {
                 CollectionRefreshReviewView(
-                    title: $refreshReviewTitle,
-                    description: $refreshReviewDescription,
-                    candidateTracks: candidateTracks,
-                    selectedCandidateIds: $selectedCandidateIds,
+                    title: $viewModel.refreshReviewTitle,
+                    description: $viewModel.refreshReviewDescription,
+                    candidateTracks: viewModel.candidateTracks,
+                    selectedCandidateIds: $viewModel.selectedCandidateIds,
                     onSave: {
-                        let selected = candidateTracks.filter { selectedCandidateIds.contains($0.id) }
-                        library.addTracks(to: collectionID, tracks: selected)
+                        let selected = viewModel.candidateTracks.filter { viewModel.selectedCandidateIds.contains($0.id) }
+                        library.addTracks(to: viewModel.collectionID, tracks: selected)
 
-                        if let collection = collection, (refreshReviewTitle != collection.title || refreshReviewDescription != (collection.description ?? "")) {
+                        if let collection = viewModel.collection, (viewModel.refreshReviewTitle != collection.title || viewModel.refreshReviewDescription != (collection.description ?? "")) {
                             library.updateCollectionDetails(
-                                collectionID: collectionID,
-                                newTitle: refreshReviewTitle,
-                                newDescription: refreshReviewDescription.isEmpty ? nil : refreshReviewDescription,
+                                collectionID: viewModel.collectionID,
+                                newTitle: viewModel.refreshReviewTitle,
+                                newDescription: viewModel.refreshReviewDescription.isEmpty ? nil : viewModel.refreshReviewDescription,
                                 shouldUpdateDescription: true
                             )
                         }
 
-                        showRefreshReview = false
-                        refreshResult = String(format: NSLocalizedString("refresh_success_message", value: "Added %d tracks.", comment: "Refresh success"), selected.count)
-                        showRefreshResult = true
+                        viewModel.showRefreshReview = false
+                        viewModel.refreshResult = String(format: NSLocalizedString("refresh_success_message", value: "Added %d tracks.", comment: "Refresh success"), selected.count)
+                        viewModel.showRefreshResult = true
                     },
                     onCancel: {
-                        showRefreshReview = false
+                        viewModel.showRefreshReview = false
                     }
                 )
             }
 
         let viewWithPlaybackEvents = viewWithSheets
             .onChange(of: audioPlayer.currentTrack?.id) { _ in
-                let currentCollection = self.collection
+                let currentCollection = viewModel.collection
                 
                 if
-                    audioPlayer.activeCollection?.id == collectionID,
+                    audioPlayer.activeCollection?.id == viewModel.collectionID,
                     let collection = currentCollection,
                     let track = audioPlayer.currentTrack
                 {
                     // Always record when track changes
-                    recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
+                    viewModel.recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
                 }
 
-                prepareAutoFocusTargetIfNeeded(for: currentCollection)
+                viewModel.prepareAutoFocusTargetIfNeeded(for: currentCollection)
             }
-            .background(CollectionPlaybackProgressObserver(collectionID: collectionID))
+            .background(CollectionPlaybackProgressObserver(collectionID: viewModel.collectionID))
 
         let viewWithStateEvents = viewWithPlaybackEvents
-            .onChange(of: trackToRename) { newValue in
+            .onChange(of: viewModel.trackToRename) { newValue in
                 if newValue == nil {
-                    trackTitleDraft = ""
+                    viewModel.trackTitleDraft = ""
                 }
             }
-            .onChange(of: showCollectionInfoSheet) { newValue in
+            .onChange(of: viewModel.showCollectionInfoSheet) { newValue in
                 if !newValue {
-                    collectionTitleDraft = ""
-                    collectionDescriptionDraft = ""
+                    viewModel.collectionTitleDraft = ""
+                    viewModel.collectionDescriptionDraft = ""
                 }
             }
-            .onChange(of: collectionID) { _ in
-                resetAutoFocusState()
-                loadTranscriptStatus()
-                prepareAutoFocusTargetIfNeeded(for: self.collection)
-                refreshTrackSummaryIndicators(for: self.collection)
-                refreshPlaybackStateSnapshot(for: self.collection)
+            .onChange(of: viewModel.collectionID) { _ in
+                viewModel.resetAutoFocusState()
+                viewModel.loadTranscriptStatus()
+                viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
+                viewModel.refreshTrackSummaryIndicators(for: viewModel.collection)
+                viewModel.refreshPlaybackStateSnapshot(for: viewModel.collection)
 
                 // Restore saved sort preference or apply smart defaults
-                if let collection = self.collection {
+                if let collection = viewModel.collection {
                     if let savedSortOrder = collection.preferredSortOrder {
                         // Try to parse new format: "criterion:order"
                         let components = savedSortOrder.split(separator: ":")
                         if components.count == 2,
-                           let criterion = SortCriterion(rawValue: String(components[0])),
-                           let order = SortOrder(rawValue: String(components[1])) {
-                            selectedCriterion = criterion
-                            selectedOrder = order
+                           let criterion = CollectionDetailViewModel.SortCriterion(rawValue: String(components[0])),
+                           let order = CollectionDetailViewModel.SortOrder(rawValue: String(components[1])) {
+                            viewModel.selectedCriterion = criterion
+                            viewModel.selectedOrder = order
                         } else {
                             // Apply smart defaults based on collection source
                             if case .rss = collection.source {
                                 // RSS collections default to newest-first (descending track number)
-                                selectedCriterion = .trackNumber
-                                selectedOrder = .descending
+                                viewModel.selectedCriterion = .trackNumber
+                                viewModel.selectedOrder = .descending
                             } else {
                                 // Other collections default to oldest-first (ascending track number)
-                                selectedCriterion = .trackNumber
-                                selectedOrder = .ascending
+                                viewModel.selectedCriterion = .trackNumber
+                                viewModel.selectedOrder = .ascending
                             }
                         }
                     } else {
                         // Apply smart defaults based on collection source
                         if case .rss = collection.source {
                             // RSS collections default to newest-first (descending track number)
-                            selectedCriterion = .trackNumber
-                            selectedOrder = .descending
+                            viewModel.selectedCriterion = .trackNumber
+                            viewModel.selectedOrder = .descending
                         } else {
                             // Other collections default to oldest-first (ascending track number)
-                            selectedCriterion = .trackNumber
-                            selectedOrder = .ascending
+                            viewModel.selectedCriterion = .trackNumber
+                            viewModel.selectedOrder = .ascending
                         }
                     }
                 }
             }
-            .onChange(of: collection?.tracks.map(\.id) ?? []) { _ in
-                prepareAutoFocusTargetIfNeeded(for: self.collection)
-                refreshTrackSummaryIndicators(for: self.collection)
-                refreshPlaybackStateSnapshot(for: self.collection)
+            .onChange(of: viewModel.collection?.tracks.map(\.id) ?? []) { _ in
+                viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
+                viewModel.refreshTrackSummaryIndicators(for: viewModel.collection)
+                viewModel.refreshPlaybackStateSnapshot(for: viewModel.collection)
             }
             .onChange(of: audioPlayer.activeCollection?.id) { _ in
-                prepareAutoFocusTargetIfNeeded(for: self.collection)
+                viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
             }
-            .onChange(of: coverPhotoItem) { newItem in
+            .onChange(of: viewModel.coverPhotoItem) { newItem in
                 guard let newItem else { return }
-                handlePhotosPickerSelection(newItem)
+                viewModel.handlePhotosPickerSelection(newItem)
             }
 
         return viewWithStateEvents
             .onAppear {
-                refreshSttTranscribingTrackIds(from: transcriptionManager.activeJobs)
-                refreshTTSGeneratingTrackIds(from: transcriptionManager.activeJobs)
+                viewModel.setup(
+                    library: library,
+                    audioPlayer: audioPlayer,
+                    authViewModel: authViewModel,
+                    transcriptionManager: transcriptionManager,
+                    aiGenerationManager: aiGenerationManager
+                )
+                
+                viewModel.refreshSttTranscribingTrackIds(from: transcriptionManager.activeJobs)
+                viewModel.refreshTTSGeneratingTrackIds(from: transcriptionManager.activeJobs)
 
-                loadTranscriptStatus()
-                prepareAutoFocusTargetIfNeeded(for: self.collection)
-                refreshTrackSummaryIndicators(for: self.collection)
-                refreshPlaybackStateSnapshot(for: self.collection)
+                viewModel.loadTranscriptStatus()
+                viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
+                viewModel.refreshTrackSummaryIndicators(for: viewModel.collection)
+                viewModel.refreshPlaybackStateSnapshot(for: viewModel.collection)
                 
                 // Trigger lazy load
                 Task {
-                    await library.ensureCollectionLoaded(collectionID)
+                    await library.ensureCollectionLoaded(viewModel.collectionID)
                     await MainActor.run {
-                        refreshPlaybackStateSnapshot(for: self.collection)
-                        currentQuery = searchText
-                        currentFilterKey = selectedFilter
-                        currentSortCriterion = selectedCriterion
-                        currentSortOrder = selectedOrder
+                        viewModel.refreshPlaybackStateSnapshot(for: viewModel.collection)
+                        viewModel.currentQuery = viewModel.searchText
+                        viewModel.currentFilterKey = viewModel.selectedFilter
+                        viewModel.currentSortCriterion = viewModel.selectedCriterion
+                        viewModel.currentSortOrder = viewModel.selectedOrder
                     }
-                    await reloadFromDatabase(startingPage: 0, focusTarget: pendingAutoFocusTrackId)
+                    await viewModel.reloadFromDatabase(startingPage: 0, focusTarget: viewModel.pendingAutoFocusTrackId)
                 }
             }
-            .onChange(of: collection?.tracks) { _ in scheduleSortedTracksUpdate() }
-            .onChange(of: searchText) { _ in
+            .onChange(of: viewModel.collection?.tracks) { _ in viewModel.scheduleSortedTracksUpdate() }
+            .onChange(of: viewModel.searchText) { _ in
                 // Debounce search to avoid hammering DB per keystroke
-                searchDebounceTask?.cancel()
-                searchDebounceTask = Task {
+                viewModel.searchDebounceTask?.cancel()
+                viewModel.searchDebounceTask = Task {
                     try? await Task.sleep(nanoseconds: 350_000_000)
                     if Task.isCancelled { return }
-                    await MainActor.run { scheduleFilteredTracksUpdate() }
+                    await MainActor.run { viewModel.scheduleFilteredTracksUpdate() }
                 }
             }
             .onSubmit(of: .search) {
-                searchDebounceTask?.cancel()
-                scheduleFilteredTracksUpdate()
+                viewModel.searchDebounceTask?.cancel()
+                viewModel.scheduleFilteredTracksUpdate()
             }
-            .onChange(of: selectedFilter) { _ in scheduleFilteredTracksUpdate() }
-            .onChange(of: selectedCriterion) { _ in
-                scheduleSortedTracksUpdate()
+            .onChange(of: viewModel.selectedFilter) { _ in viewModel.scheduleFilteredTracksUpdate() }
+            .onChange(of: viewModel.selectedCriterion) { _ in
+                viewModel.scheduleSortedTracksUpdate()
                 // Persist sort preference to collection
-                if let collection = collection {
-                    let sortString = "\(selectedCriterion.rawValue):\(selectedOrder.rawValue)"
+                if let collection = viewModel.collection {
+                    let sortString = "\(viewModel.selectedCriterion.rawValue):\(viewModel.selectedOrder.rawValue)"
                     library.updatePreferredSortOrder(sortString, for: collection.id)
                 }
             }
-            .onChange(of: selectedOrder) { _ in
-                scheduleSortedTracksUpdate()
+            .onChange(of: viewModel.selectedOrder) { _ in
+                viewModel.scheduleSortedTracksUpdate()
                 // Persist sort preference to collection
-                if let collection = collection {
-                    let sortString = "\(selectedCriterion.rawValue):\(selectedOrder.rawValue)"
+                if let collection = viewModel.collection {
+                    let sortString = "\(viewModel.selectedCriterion.rawValue):\(viewModel.selectedOrder.rawValue)"
                     library.updatePreferredSortOrder(sortString, for: collection.id)
                 }
             }
-            .onChange(of: transcriptStatusCache) { _ in scheduleFilteredTracksUpdate() }
-            .onChange(of: tracksWithSummaries) { _ in scheduleFilteredTracksUpdate() }
+            .onChange(of: viewModel.transcriptStatusCache) { _ in viewModel.scheduleFilteredTracksUpdate() }
+            .onChange(of: viewModel.tracksWithSummaries) { _ in viewModel.scheduleFilteredTracksUpdate() }
             .onReceive(transcriptionManager.$activeJobs) { jobs in
-                refreshSttTranscribingTrackIds(from: jobs)
-                refreshTTSGeneratingTrackIds(from: jobs)
+                viewModel.refreshSttTranscribingTrackIds(from: jobs)
+                viewModel.refreshTTSGeneratingTrackIds(from: jobs)
             }
             .onChange(of: aiGenerationManager.activeJobs) { jobs in
                 guard jobs.contains(where: { $0.type == .trackSummary }) else { return }
-                refreshTrackSummaryIndicators(for: self.collection)
+                viewModel.refreshTrackSummaryIndicators(for: viewModel.collection)
             }
             .onChange(of: aiGenerationManager.recentJobs) { jobs in
                 guard jobs.contains(where: { $0.type == .trackSummary }) else { return }
-                refreshTrackSummaryIndicators(for: self.collection)
+                viewModel.refreshTrackSummaryIndicators(for: viewModel.collection)
             }
             .onDisappear {
-                summaryIndicatorTask?.cancel()
-                summaryIndicatorTask = nil
-                filterTask?.cancel()
-                sortTask?.cancel()
-                cachedOrderedTracks = []
-                cachedSortedTracks = []
-                transcriptStatusCache = [:]
-                tracksWithSummaries = []
-                playbackStateSnapshot = [:]
-                loadedPages = [:]
-                loadingPages = []
-                totalPages = 0
+                viewModel.summaryIndicatorTask?.cancel()
+                viewModel.summaryIndicatorTask = nil
+                viewModel.filterTask?.cancel()
+                viewModel.sortTask?.cancel()
+                viewModel.cachedOrderedTracks = []
+                viewModel.cachedSortedTracks = []
+                viewModel.transcriptStatusCache = [:]
+                viewModel.tracksWithSummaries = []
+                viewModel.playbackStateSnapshot = [:]
+                viewModel.loadedPages = [:]
+                viewModel.loadingPages = []
+                viewModel.totalPages = 0
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TranscriptionCompleted"))) { notification in
                 print("[CollectionDetailView] Received TranscriptionCompleted notification")
                 // Reload transcript status when a transcription completes
-                loadTranscriptStatus()
+                viewModel.loadTranscriptStatus()
             }
     }
 
     @ViewBuilder
     private var content: some View {
-        if let collection {
+        if let collection = viewModel.collection {
             listContent(collection)
         } else {
             VStack(spacing: 12) {
@@ -808,17 +457,17 @@ struct CollectionDetailView: View {
                 }
                 .listStyle(.insetGrouped)
                 .onAppear {
-                    prepareAutoFocusTargetIfNeeded(for: collection)
+                    viewModel.prepareAutoFocusTargetIfNeeded(for: collection)
                     attemptAutoFocusIfNeeded(using: proxy)
                 }
-                .onChange(of: pendingAutoFocusTrackId) { _ in
+                .onChange(of: viewModel.pendingAutoFocusTrackId) { _ in
                     attemptAutoFocusIfNeeded(using: proxy)
                 }
-                .onChange(of: filteredTracks.map(\.id)) { _ in
+                .onChange(of: viewModel.filteredTracks.map(\.id)) { _ in
                     attemptAutoFocusIfNeeded(using: proxy)
-                    isLastTrackVisible = false
+                    viewModel.isLastTrackVisible = false
                 }
-                .onChange(of: isListLoading) { loading in
+                .onChange(of: viewModel.isListLoading) { loading in
                     // When loading finishes, try auto-focus since data is now ready
                     if !loading {
                         attemptAutoFocusIfNeeded(using: proxy)
@@ -826,9 +475,9 @@ struct CollectionDetailView: View {
                 }
                 
                 // Jump to Top/Bottom Buttons (Centered)
-                if filteredTracks.count > 10 && (showScrollToTopButton || showScrollToBottomButton) {
+                if viewModel.filteredTracks.count > 10 && (viewModel.showScrollToTopButton || viewModel.showScrollToBottomButton) {
                     VStack {
-                        if showScrollToTopButton {
+                        if viewModel.showScrollToTopButton {
                             Button {
                                 withAnimation {
                                     proxy.scrollTo("summary-section", anchor: .top)
@@ -847,16 +496,16 @@ struct CollectionDetailView: View {
                         
                         Spacer()
                         
-                        if showScrollToBottomButton {
+                        if viewModel.showScrollToBottomButton {
                             Button {
-                                if isPagedMode {
-                                    let maxLoaded = loadedPages.keys.max() ?? 0
+                                if viewModel.isPagedMode {
+                                    let maxLoaded = viewModel.loadedPages.keys.max() ?? 0
                                     let nextPage = maxLoaded + 1
-                                    if nextPage < totalPages {
+                                    if nextPage < viewModel.totalPages {
                                         Task {
-                                            await loadPage(nextPage)
+                                            await viewModel.loadPage(nextPage)
                                             await MainActor.run {
-                                                if let last = filteredTracks.last {
+                                                if let last = viewModel.filteredTracks.last {
                                                     withAnimation {
                                                         proxy.scrollTo(last.id, anchor: .bottom)
                                                     }
@@ -867,7 +516,7 @@ struct CollectionDetailView: View {
                                     }
                                 }
                                 
-                                if let last = filteredTracks.last {
+                                if let last = viewModel.filteredTracks.last {
                                     withAnimation {
                                         proxy.scrollTo(last.id, anchor: .bottom)
                                     }
@@ -916,9 +565,9 @@ struct CollectionDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
 
-                        if collection.description?.isEmpty != false, library.canModifyCollection(collectionID) {
+                        if collection.description?.isEmpty != false, library.canModifyCollection(viewModel.collectionID) {
                             Button {
-                                beginEditingCollectionDetails(collection)
+                                viewModel.beginEditingCollectionDetails(collection)
                             } label: {
                                 Label(
                                     NSLocalizedString("add_description_button", comment: "Add description button"),
@@ -934,10 +583,10 @@ struct CollectionDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .layoutPriority(1)
 
-                    if library.canModifyCollection(collectionID) {
+                    if library.canModifyCollection(viewModel.collectionID) {
                         Menu {
                             Button {
-                                beginEditingCollectionDetails(collection)
+                                viewModel.beginEditingCollectionDetails(collection)
                             } label: {
                                 Label(
                                     NSLocalizedString("edit_collection_details_action", comment: "Edit collection details action"),
@@ -957,7 +606,7 @@ struct CollectionDetailView: View {
                 if let description = collection.description, !description.isEmpty {
                     CollectionDescriptionView(
                         description: description,
-                        isExpanded: $isDescriptionExpanded
+                        isExpanded: $viewModel.isDescriptionExpanded
                     )
                 } else {
                     Text(NSLocalizedString("collection_description_empty", comment: "Collection description empty placeholder"))
@@ -968,16 +617,16 @@ struct CollectionDetailView: View {
             .padding(.vertical, 4)
         }
         .onChange(of: collection.id) { _ in
-            isDescriptionExpanded = false
+            viewModel.isDescriptionExpanded = false
         }
         .onChange(of: collection.description ?? "") { _ in
-            isDescriptionExpanded = false
+            viewModel.isDescriptionExpanded = false
         }
         .onAppear {
-            isSummaryVisible = true
+            viewModel.isSummaryVisible = true
         }
         .onDisappear {
-            isSummaryVisible = false
+            viewModel.isSummaryVisible = false
         }
     }
     
@@ -998,23 +647,6 @@ struct CollectionDetailView: View {
     private func coloredIconText(_ systemName: String, color: Color) -> Text {
         Text(Image(systemName: systemName)).foregroundStyle(color)
     }
-
-    private func collectionTitleAccessibilityLabel(for collection: AudiobookCollection) -> String {
-        var prefix: String?
-        if case .ebook = collection.source {
-            prefix = NSLocalizedString("ebook_collection_indicator_accessibility", comment: "Indicator for ebook collection")
-        } else if case .rss = collection.source {
-            prefix = NSLocalizedString("rss_collection_indicator_accessibility", value: "RSS collection", comment: "Indicator for RSS collection")
-        } else if collection.isMusic {
-            prefix = NSLocalizedString("music_collection_indicator_accessibility", value: "Music collection", comment: "Indicator for music collection")
-        }
-
-        if let prefix {
-            return "\(prefix): \(collection.title)"
-        }
-        return collection.title
-    }
-
 
     private func formatNumber(_ number: Int) -> String {
         let formatter = NumberFormatter()
@@ -1043,11 +675,11 @@ struct CollectionDetailView: View {
 
             // Filter menu
             Menu {
-                ForEach(FilterOption.allCases) { option in
+                ForEach(CollectionDetailViewModel.FilterOption.allCases) { option in
                     Button {
-                        selectedFilter = option
+                        viewModel.selectedFilter = option
                     } label: {
-                        if selectedFilter == option {
+                        if viewModel.selectedFilter == option {
                             Label(option.localizedName, systemImage: "checkmark")
                         } else {
                             Label(option.localizedName, systemImage: option.icon)
@@ -1055,19 +687,19 @@ struct CollectionDetailView: View {
                     }
                 }
             } label: {
-                Image(systemName: selectedFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
+                Image(systemName: viewModel.selectedFilter == .all ? "line.3.horizontal.decrease.circle" : "line.3.horizontal.decrease.circle.fill")
                     .font(.subheadline)
-                    .foregroundStyle(selectedFilter == .all ? .secondary : Color.accentColor)
+                    .foregroundStyle(viewModel.selectedFilter == .all ? .secondary : Color.accentColor)
             }
 
             // Sort menu
             Menu {
                 Section {
-                    ForEach(SortCriterion.allCases) { criterion in
+                    ForEach(CollectionDetailViewModel.SortCriterion.allCases) { criterion in
                         Button {
-                            selectedCriterion = criterion
+                            viewModel.selectedCriterion = criterion
                         } label: {
-                            if selectedCriterion == criterion {
+                            if viewModel.selectedCriterion == criterion {
                                 Label(criterion.localizedName, systemImage: "checkmark")
                             } else {
                                 Label(criterion.localizedName, systemImage: criterion.icon)
@@ -1079,11 +711,11 @@ struct CollectionDetailView: View {
                 }
 
                 Section {
-                    ForEach(SortOrder.allCases) { order in
+                    ForEach(CollectionDetailViewModel.SortOrder.allCases) { order in
                         Button {
-                            selectedOrder = order
+                            viewModel.selectedOrder = order
                         } label: {
-                            if selectedOrder == order {
+                            if viewModel.selectedOrder == order {
                                 Label(order.localizedName, systemImage: "checkmark")
                             } else {
                                 Label(order.localizedName, systemImage: order.icon)
@@ -1112,7 +744,7 @@ struct CollectionDetailView: View {
             .id(collection.updatedAt)
             .shadow(color: Color.black.opacity(0.1), radius: 6, y: 3)
 
-            if isUpdatingCover {
+            if viewModel.isUpdatingCover {
                 ProgressView()
                     .progressViewStyle(.circular)
                     .controlSize(.small)
@@ -1122,7 +754,7 @@ struct CollectionDetailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
             }
 
-            if library.canModifyCollection(collectionID) {
+            if library.canModifyCollection(viewModel.collectionID) {
                 coverMenu(for: collection)
             }
         }
@@ -1131,7 +763,7 @@ struct CollectionDetailView: View {
     private func coverMenu(for collection: AudiobookCollection) -> some View {
         Menu {
             Button {
-                showCoverPhotosPicker = true
+                viewModel.showCoverPhotosPicker = true
             } label: {
                 Label(
                     NSLocalizedString("collection_cover_choose_photo", comment: "Choose cover from photos"),
@@ -1139,7 +771,7 @@ struct CollectionDetailView: View {
                 )
             }
             Button {
-                showCoverFileImporter = true
+                viewModel.showCoverFileImporter = true
             } label: {
                 Label(
                     NSLocalizedString("collection_cover_import_files", comment: "Import cover from files"),
@@ -1148,7 +780,7 @@ struct CollectionDetailView: View {
             }
             if case .image = collection.coverAsset.kind {
                 Button(role: .destructive) {
-                    resetCollectionCoverArtwork()
+                    viewModel.resetCollectionCoverArtwork()
                 } label: {
                     Label(
                         NSLocalizedString("collection_cover_reset_action", comment: "Reset cover to default"),
@@ -1163,16 +795,16 @@ struct CollectionDetailView: View {
                 .background(.thinMaterial, in: Circle())
                 .padding(6)
         }
-        .disabled(isUpdatingCover)
+        .disabled(viewModel.isUpdatingCover)
         .accessibilityLabel(Text(NSLocalizedString("collection_cover_edit_accessibility", comment: "Edit cover accessibility label")))
     }
 
     @ViewBuilder
     private func tracksSection(_ collection: AudiobookCollection) -> some View {
-        let tracks = filteredTracks
+        let tracks = viewModel.filteredTracks
         Section(header: tracksHeader) {
             if tracks.isEmpty {
-                if isListLoading || (collection.tracks.isEmpty && collection.trackCount > 0) {
+                if viewModel.isListLoading || (collection.tracks.isEmpty && collection.trackCount > 0) {
                     HStack {
                         Spacer()
                         ProgressView()
@@ -1180,16 +812,16 @@ struct CollectionDetailView: View {
                         Spacer()
                     }
                 } else {
-                    Text(searchText.isEmpty ? NSLocalizedString("no_audio_tracks", comment: "No audio tracks") : String(format: NSLocalizedString("no_search_results", comment: "No search results"), searchText))
+                    Text(viewModel.searchText.isEmpty ? NSLocalizedString("no_audio_tracks", comment: "No audio tracks") : String(format: NSLocalizedString("no_search_results", comment: "No search results"), viewModel.searchText))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .padding(.vertical, 4)
                 }
             } else {
                 ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
-                    let trackIsActive = isCurrentTrack(track: track)
-                    let hasTranscript = transcriptStatusCache[track.id] ?? false
-                    let isTranscribingTrack = sttTranscribingTrackIds.contains(track.id)
+                    let trackIsActive = viewModel.isCurrentTrack(track: track)
+                    let hasTranscript = viewModel.transcriptStatusCache[track.id] ?? false
+                    let isTranscribingTrack = viewModel.sttTranscribingTrackIds.contains(track.id)
 
                     TrackDetailRow(
                         index: index,
@@ -1197,13 +829,13 @@ struct CollectionDetailView: View {
                         collection: collection,
                         isActive: trackIsActive,
                         isPlaying: trackIsActive && audioPlayer.isPlaying,
-                        playbackState: playbackStateSnapshot[track.id],
+                        playbackState: viewModel.playbackStateSnapshot[track.id],
                         isFavorite: track.isFavorite,
                         hasTranscript: hasTranscript,
-                        hasSummary: tracksWithSummaries.contains(track.id),
+                        hasSummary: viewModel.tracksWithSummaries.contains(track.id),
                         isTranscribing: isTranscribingTrack,
                         onSelect: {
-                            startPlayback(track, in: collection)
+                            viewModel.startPlayback(track, in: collection)
                         },
                         onToggleFavorite: {
                             library.toggleFavorite(for: track.id, in: collection.id)
@@ -1213,26 +845,26 @@ struct CollectionDetailView: View {
                     .equatable()
                     .onAppear {
                         if index == tracks.count - 1 {
-                            isLastTrackVisible = true
+                            viewModel.isLastTrackVisible = true
                             // Load next page when bottom is reached in paged mode
-                            if isPagedMode {
-                                let currentPage = loadedPages.keys.sorted().last ?? 0
-                                Task { await loadPage(currentPage + 1) }
+                            if viewModel.isPagedMode {
+                                let currentPage = viewModel.loadedPages.keys.sorted().last ?? 0
+                                Task { await viewModel.loadPage(currentPage + 1) }
                             }
                         }
                     }
                     .onDisappear {
                         if index == tracks.count - 1 {
-                            isLastTrackVisible = false
+                            viewModel.isLastTrackVisible = false
                         }
                     }
                     .swipeActions(edge: .leading, allowsFullSwipe: false) {
                         favoriteSwipeButton(for: track, in: collection)
                     }
                     .swipeActions(edge: .trailing) {
-                        if library.canModifyCollection(collectionID) {
+                        if library.canModifyCollection(viewModel.collectionID) {
                             Button {
-                                beginRenamingTrack(track)
+                                viewModel.beginRenamingTrack(track)
                             } label: {
                                 Label(
                                     NSLocalizedString("rename_action", comment: "Rename action"),
@@ -1242,7 +874,7 @@ struct CollectionDetailView: View {
                             .labelStyle(.iconOnly)
 
                             Button(role: .destructive) {
-                                confirmDeleteTrack(track)
+                                viewModel.confirmDeleteTrack(track)
                             } label: {
                                 Label(
                                     NSLocalizedString("remove_track_action", comment: "Remove track swipe action"),
@@ -1256,20 +888,20 @@ struct CollectionDetailView: View {
                         // Add Read option for text tracks
                         if case .text = track.location {
                             Button {
-                                trackForReading = track
+                                viewModel.trackForReading = track
                             } label: {
                                 Label("Read", systemImage: "book")
                             }
 
-                            if ttsGeneratingTrackIds.contains(track.id) {
+                            if viewModel.ttsGeneratingTrackIds.contains(track.id) {
                                 Button {
-                                    trackForTTSProgress = track
+                                    viewModel.trackForTTSProgress = track
                                 } label: {
                                     Label("View TTS progress", systemImage: "waveform.path.ecg")
                                 }
                             } else {
                                 Button {
-                                    trackForTTSProgress = track
+                                    viewModel.trackForTTSProgress = track
                                     Task {
                                         await audioPlayer.generateAudio(for: track, in: collection)
                                     }
@@ -1279,7 +911,7 @@ struct CollectionDetailView: View {
                             }
                         } else if case .cachedText = track.location {
                             Button {
-                                trackForReading = track
+                                viewModel.trackForReading = track
                             } label: {
                                 Label("Read", systemImage: "book")
                             }
@@ -1288,7 +920,7 @@ struct CollectionDetailView: View {
 
                         if isTranscribingTrack {
                             Button {
-                                trackForTranscription = track
+                                viewModel.trackForTranscription = track
                             } label: {
                                 Label(
                                     NSLocalizedString("transcription_view_running_job", comment: "View running transcription"),
@@ -1297,7 +929,7 @@ struct CollectionDetailView: View {
                             }
                         } else if !hasTranscript && !track.isTextTrack { // Hide transcribe for text tracks
                             Button {
-                                trackForTranscription = track
+                                viewModel.trackForTranscription = track
                             } label: {
                                 Label(
                                     NSLocalizedString("transcribe_track_title", comment: "Transcribe track title"),
@@ -1308,7 +940,7 @@ struct CollectionDetailView: View {
 
                         if hasTranscript {
                             Button {
-                                trackForViewing = track
+                                viewModel.trackForViewing = track
                             } label: {
                                 Label(
                                     NSLocalizedString("view_transcript", comment: "View transcript menu item"),
@@ -1316,9 +948,9 @@ struct CollectionDetailView: View {
                                 )
                             }
 
-                            if library.canModifyCollection(collectionID) && !isEbookCollection {
+                            if library.canModifyCollection(viewModel.collectionID) && !viewModel.isEbookCollection {
                                 Button(role: .destructive) {
-                                    confirmDeleteTranscript(track)
+                                    viewModel.confirmDeleteTranscript(track)
                                 } label: {
                                     Label(
                                         NSLocalizedString("delete_transcript", comment: "Delete transcript menu item"),
@@ -1340,128 +972,22 @@ struct CollectionDetailView: View {
             }
         }
     }
-
-    private func refreshTrackSummaryIndicators(for collection: AudiobookCollection?) {
-        summaryIndicatorTask?.cancel()
-
-        guard let collection else {
-            tracksWithSummaries = []
-            summaryIndicatorTask = nil
-            return
-        }
-
-        let trackIds: [String]
-        if isPagedMode {
-            trackIds = pagedTracks.map { $0.id.uuidString }
-        } else {
-            trackIds = collection.tracks.map { $0.id.uuidString }
-        }
-        guard !trackIds.isEmpty else {
-            tracksWithSummaries = []
-            summaryIndicatorTask = nil
-            return
-        }
-
-        let task = Task.detached { [trackIds] in
-            // Debounce: wait 500ms before querying
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            
-            if Task.isCancelled { return }
-
-            var readyTrackIds = Set<UUID>()
-            do {
-                let batchSize = 500
-                var completedStrings: Set<String> = []
-                var index = 0
-                while index < trackIds.count {
-                    if Task.isCancelled { return }
-                    let end = min(index + batchSize, trackIds.count)
-                    let batch = Array(trackIds[index..<end])
-                    let completedIds = try await GRDBDatabaseManager.shared.fetchTrackIdsWithCompletedSummaries(trackIds: batch)
-                    completedStrings.formUnion(completedIds)
-                    index = end
-                }
-                readyTrackIds = Set(completedStrings.compactMap { UUID(uuidString: $0) })
-            } catch {
-                print("[CollectionDetailView] Failed to refresh summary indicators: \(error.localizedDescription)")
-            }
-            
-            if Task.isCancelled { return }
-
-            await MainActor.run {
-                tracksWithSummaries = readyTrackIds
-            }
-        }
-
-        summaryIndicatorTask = task
-    }
-
-    private func prepareAutoFocusTargetIfNeeded(for collection: AudiobookCollection?) {
-        guard !didAutoFocusTrack else { return }
-
-        guard let target = resolveAutoFocusTrackID(for: collection) else {
-            if pendingAutoFocusTrackId != nil {
-                pendingAutoFocusTrackId = nil
-            }
-            return
-        }
-
-        if pendingAutoFocusTrackId != target {
-            pendingAutoFocusTrackId = target
-        }
-    }
-
-    private func resetAutoFocusState() {
-        pendingAutoFocusTrackId = nil
-        didAutoFocusTrack = false
-    }
-
-    private func refreshPlaybackStateSnapshot(for collection: AudiobookCollection?) {
-        guard let collection else {
-            playbackStateSnapshot = [:]
-            return
-        }
-        playbackStateSnapshot = collection.playbackStates
-    }
-
-    private func resolveAutoFocusTrackID(for collection: AudiobookCollection?) -> UUID? {
-        guard let collection else { return nil }
-
-        if
-            audioPlayer.activeCollection?.id == collection.id,
-            let activeId = audioPlayer.currentTrack?.id,
-            collection.tracks.contains(where: { $0.id == activeId })
-        {
-            return activeId
-        }
-
-        if
-            let lastPlayed = collection.lastPlayedTrackId,
-            collection.tracks.contains(where: { $0.id == lastPlayed })
-        {
-            return lastPlayed
-        }
-
-        return nil
-    }
-
+    
     private func attemptAutoFocusIfNeeded(using proxy: ScrollViewProxy?) {
         guard
-            !didAutoFocusTrack,
-            let targetId = pendingAutoFocusTrackId,
-            filteredTracks.contains(where: { $0.id == targetId }),
-            !isPagedMode, // disable autofocus for large/paged collections
-            !isListLoading,
-            loadingPages.isEmpty
+            !viewModel.didAutoFocusTrack,
+            let targetId = viewModel.pendingAutoFocusTrackId,
+            viewModel.filteredTracks.contains(where: { $0.id == targetId }),
+            !viewModel.isPagedMode, // disable autofocus for large/paged collections
+            !viewModel.isListLoading,
+            viewModel.loadingPages.isEmpty
         else { return }
 
         // If proxy is nil, skip this attempt - the onChange handlers will retry with a real proxy
-        guard let proxy else {
-            return
-        }
+        guard let proxy else { return }
 
         // Mark as focused immediately to avoid multiple rapid scrolls
-        didAutoFocusTrack = true
+        viewModel.didAutoFocusTrack = true
 
         // Delay to allow ScrollViewReader to register the target ID in its coordinate space
         // Without this delay, scrollTo() may fail because the ID isn't yet in the scroll view's registry
@@ -1469,271 +995,10 @@ struct CollectionDetailView: View {
             withAnimation(.easeInOut(duration: 0.25)) {
                 proxy.scrollTo(targetId, anchor: .center)
             }
-            pendingAutoFocusTrackId = nil
+            viewModel.pendingAutoFocusTrackId = nil
         }
     }
 
-    private func startPlayback(_ track: AudiobookTrack, in collection: AudiobookCollection) {
-        // Don't modify 'missingAuthAlert' here. AudioPlayerViewModel will handle missing token errors if needed.
-        // We pass the optional token. If it's nil and the track requires streaming, AudioPlayer will fail gracefully.
-        // If the track is cached or local, it will play successfully.
-        
-        if audioPlayer.currentTrack?.id == track.id, audioPlayer.isPlaying {
-            audioPlayer.togglePlayback()
-        } else {
-            audioPlayer.play(track: track, in: collection, token: authViewModel.token)
-            recordPlayback(for: collection, track: track, position: audioPlayer.currentTime)
-        }
-    }
-
-    private func isCurrentTrack(track: AudiobookTrack) -> Bool {
-        audioPlayer.currentTrack?.id == track.id && audioPlayer.activeCollection?.id == collectionID
-    }
-
-    private func hasNextTrack(_ track: AudiobookTrack) -> Bool {
-        nextTrack(after: track) != nil
-    }
-
-    private func hasPreviousTrack(_ track: AudiobookTrack) -> Bool {
-        previousTrack(before: track) != nil
-    }
-
-    private func formatBytes(_ bytes: Int64) -> String {
-        let formatter = ByteCountFormatter()
-        formatter.allowedUnits = [.useKB, .useMB, .useGB]
-        formatter.countStyle = .file
-        return formatter.string(fromByteCount: bytes)
-    }
-
-    private func recordPlayback(for collection: AudiobookCollection, track: AudiobookTrack, position: Double) {
-        library.recordPlaybackProgress(
-            collectionID: collection.id,
-            trackID: track.id,
-            position: position,
-            duration: audioPlayer.duration
-        )
-    }
-
-    private func handlePlayPause(for track: AudiobookTrack, in collection: AudiobookCollection) {
-        if audioPlayer.hasActivePlayer, audioPlayer.currentTrack?.id == track.id {
-            audioPlayer.togglePlayback()
-        } else {
-            startPlayback(track, in: collection)
-        }
-    }
-
-    private func handlePreviousButton(for track: AudiobookTrack, in collection: AudiobookCollection) {
-        guard let target = previousTrack(before: track) else { return }
-        if audioPlayer.hasActivePlayer, audioPlayer.currentTrack?.id == track.id {
-            audioPlayer.playPreviousTrack()
-        } else {
-            startPlayback(target, in: collection)
-        }
-    }
-
-    private func handleNextButton(for track: AudiobookTrack, in collection: AudiobookCollection) {
-        guard let target = nextTrack(after: track) else { return }
-        if audioPlayer.hasActivePlayer, audioPlayer.currentTrack?.id == track.id {
-            audioPlayer.playNextTrack()
-        } else {
-            startPlayback(target, in: collection)
-        }
-    }
-
-    private func confirmDeleteTrack(_ track: AudiobookTrack) {
-        trackToDelete = track
-        showDeleteConfirmation = true
-    }
-
-    private func beginRenamingTrack(_ track: AudiobookTrack) {
-        trackToRename = track
-        trackTitleDraft = String(track.displayName.prefix(256))
-    }
-
-    private func cancelTrackRename() {
-        trackToRename = nil
-        trackTitleDraft = ""
-    }
-
-    private func applyTrackRename(for track: AudiobookTrack) {
-        let trimmed = trackTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        trackTitleDraft = ""
-        trackToRename = nil
-
-        guard !trimmed.isEmpty else { return }
-        library.renameTrack(
-            in: collectionID,
-            trackID: track.id,
-            newTitle: String(trimmed.prefix(256))
-        )
-    }
-
-    private func beginEditingCollectionDetails(_ collection: AudiobookCollection) {
-        collectionTitleDraft = String(collection.title.prefix(256))
-        collectionDescriptionDraft = String((collection.description ?? "").prefix(1024))
-        collectionIsMusicDraft = collection.isMusic
-        showCollectionInfoSheet = true
-    }
-
-    private func cancelCollectionDetailsEdit() {
-        showCollectionInfoSheet = false
-        collectionTitleDraft = ""
-        collectionDescriptionDraft = ""
-    }
-
-    private func applyCollectionDetailsUpdate() {
-        guard let collection else {
-            cancelCollectionDetailsEdit()
-            return
-        }
-
-        let trimmedTitle = collectionTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedDescription = collectionDescriptionDraft.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        collectionTitleDraft = ""
-        collectionDescriptionDraft = ""
-        showCollectionInfoSheet = false
-
-        guard !trimmedTitle.isEmpty else { return }
-
-        let clampedTitle = String(trimmedTitle.prefix(256))
-        let clampedDescription = trimmedDescription.isEmpty ? nil : String(trimmedDescription.prefix(1024))
-
-        guard clampedTitle != collection.title || clampedDescription != collection.description || collectionIsMusicDraft != collection.isMusic else { return }
-
-        library.updateCollectionDetails(
-            collectionID: collectionID,
-            newTitle: clampedTitle,
-            newDescription: clampedDescription,
-            shouldUpdateDescription: true,
-            isMusic: collectionIsMusicDraft
-        )
-    }
-
-    private func deleteSelectedTrack() {
-        guard let track = trackToDelete else { return }
-        library.removeTrackFromCollection(
-            collectionID: collectionID,
-            trackID: track.id
-        )
-        trackToDelete = nil
-    }
-
-    private func addTracksAction() {
-        showTrackPicker = true
-    }
-    
-    // MARK: - Paging Helpers
-
-    private func pageIndexForTrack(collectionId: UUID, trackId: UUID, total: Int) -> Int? {
-        do {
-            if let trackNumber = try GRDBDatabaseManager.shared.fetchTrackNumber(collectionId: collectionId, trackId: trackId) {
-                return max(0, (trackNumber - 1) / pageSize)
-            }
-        } catch {
-            print("[CollectionDetailView] Failed to fetch track number: \(error)")
-        }
-        return nil
-    }
-
-    @MainActor
-    private func updateLoadedPages(_ page: Int, tracks: [AudiobookTrack]) {
-        loadedPages[page] = tracks
-        // Keep a small window to limit memory; always retain first page.
-        let keep = [page - 1, page, page + 1, 0].filter { $0 >= 0 }
-        loadedPages = loadedPages.filter { keep.contains($0.key) }
-        cachedOrderedTracks = pagedTracks
-    }
-
-    private func loadPage(_ page: Int) async {
-        guard !loadingPages.contains(page) else { return }
-        guard page >= 0 else { return }
-        if totalPages > 0, page >= totalPages { return }
-        guard let collection else { return }
-
-        await MainActor.run { loadingPages.insert(page) }
-
-        do {
-            let offset = page * pageSize
-            let (tracks, total) = try await GRDBDatabaseManager.shared.fetchTracks(
-                collectionId: collection.id,
-                query: currentQuery,
-                filter: filterDBKey(for: currentFilterKey),
-                sort: sortDBKey(for: currentSortCriterion, order: currentSortOrder),
-                offset: offset,
-                limit: pageSize
-            )
-
-            let states = try await GRDBDatabaseManager.shared.fetchPlaybackStates(collectionId: collection.id, trackIds: tracks.map { $0.id })
-            await MainActor.run {
-                totalResults = total
-                totalPages = Int(ceil(Double(totalResults) / Double(pageSize)))
-                // Merge playback state snapshot for these tracks
-                for (id, state) in states {
-                    playbackStateSnapshot[id] = state
-                }
-                updateLoadedPages(page, tracks: tracks)
-                // Remove from loading set BEFORE setting isListLoading = false
-                // so that loadingPages.isEmpty is true when onChange handlers fire
-                loadingPages.remove(page)
-                if page == 0 {
-                    isListLoading = false
-                }
-                // Refresh status caches for visible pages only
-                loadTranscriptStatus()
-                refreshTrackSummaryIndicators(for: collection)
-            }
-        } catch {
-            print("[CollectionDetailView] Failed to load page \(page): \(error)")
-            await MainActor.run {
-                loadingPages.remove(page)
-                if page == 0 {
-                    isListLoading = false
-                }
-            }
-        }
-    }
-
-    @MainActor
-    private func resetPagingState(clearCaches: Bool = false) {
-        loadedPages = [:]
-        loadingPages = []
-        totalPages = 0
-        totalResults = 0
-        if clearCaches {
-            cachedOrderedTracks = []
-            cachedSortedTracks = []
-        }
-    }
-
-    private func reloadFromDatabase(startingPage: Int, focusTarget: UUID?) async {
-        await MainActor.run {
-            isListLoading = true
-        }
-
-        resetPagingState(clearCaches: false)
-        currentQuery = searchText
-        currentFilterKey = selectedFilter
-        currentSortCriterion = selectedCriterion
-        currentSortOrder = selectedOrder
-
-        // Always load first page; we no longer preload neighbors to reduce jank.
-        await loadPage(0)
-
-        // Only attempt autofocus for non-paged collections; large collections skip it.
-        await MainActor.run {
-            pendingAutoFocusTrackId = isPagedMode ? nil : focusTarget
-            didAutoFocusTrack = false
-            isListLoading = false
-        }
-
-        if !isPagedMode, focusTarget != nil {
-            await MainActor.run {
-                attemptAutoFocusIfNeeded(using: nil)
-            }
-        }
-    }
-    
     @ViewBuilder
     private func favoriteSwipeButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
         Button {
@@ -1751,265 +1016,12 @@ struct CollectionDetailView: View {
         .tint(track.isFavorite ? .pink : Color.accentColor)
     }
 
-    private func removePrompt(for track: AudiobookTrack) -> String {
-        let template = NSLocalizedString("remove_track_prompt", comment: "Remove track confirmation prompt")
-        return template.replacingOccurrences(of: "{{name}}", with: track.displayName)
+    private func formatBytes(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: bytes)
     }
-
-    private func previousTrack(before track: AudiobookTrack) -> AudiobookTrack? {
-        guard let index = sortedTracks.firstIndex(where: { $0.id == track.id }) else {
-            return nil
-        }
-        guard index > sortedTracks.startIndex else {
-            return nil
-        }
-        let previousIndex = sortedTracks.index(before: index)
-        return sortedTracks[previousIndex]
-    }
-
-    private func nextTrack(after track: AudiobookTrack) -> AudiobookTrack? {
-        guard let index = sortedTracks.firstIndex(where: { $0.id == track.id }) else {
-            return nil
-        }
-        let nextIndex = sortedTracks.index(after: index)
-        guard sortedTracks.indices.contains(nextIndex) else {
-            return nil
-        }
-        return sortedTracks[nextIndex]
-    }
-
-    @State private var transcriptStatusTask: Task<Void, Never>?
-    @State private var sttTranscribingTrackIds: Set<UUID> = []
-    @State private var ttsGeneratingTrackIds: Set<UUID> = []
-
-    // ... (removed duplicates)
-
-    private func loadTranscriptStatus() {
-        guard let collection else { return }
-
-        transcriptStatusTask?.cancel()
-
-        let tracks = isPagedMode ? pagedTracks : collection.tracks
-        let trackIds = tracks.map { $0.id }
-
-        transcriptStatusTask = Task {
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            if Task.isCancelled { return }
-
-            guard !trackIds.isEmpty else {
-                await MainActor.run {
-                    self.transcriptStatusCache = [:]
-                }
-                return
-            }
-
-            let dbManager = GRDBDatabaseManager.shared
-
-            do {
-                let trackIdStrings = trackIds.map { $0.uuidString }
-                var completedSet = Set<String>()
-
-                let batchSize = 200
-                var index = 0
-                while index < trackIdStrings.count {
-                    if Task.isCancelled { return }
-                    let end = min(index + batchSize, trackIdStrings.count)
-                    let batch = Array(trackIdStrings[index..<end])
-                    let completedIds = try await dbManager.fetchTrackIdsWithCompletedTranscripts(trackIds: batch)
-                    completedSet.formUnion(completedIds)
-                    index = end
-                }
-
-                if Task.isCancelled { return }
-
-                await MainActor.run {
-                    var newCache: [UUID: Bool] = [:]
-                    for track in tracks {
-                        newCache[track.id] = completedSet.contains(track.id.uuidString)
-                    }
-                    self.transcriptStatusCache = newCache
-                }
-            } catch {
-                if Task.isCancelled { return }
-                await MainActor.run {
-                    self.transcriptStatusCache = [:]
-                }
-            }
-        }
-    }
-
-    private func confirmDeleteTranscript(_ track: AudiobookTrack) {
-        guard !isEbookCollection else { return }
-        trackPendingTranscriptDeletion = track
-        showTranscriptDeletionDialog = true
-    }
-
-    private func deleteTranscript(for track: AudiobookTrack) {
-        showTranscriptDeletionDialog = false
-        trackPendingTranscriptDeletion = nil
-
-        Task {
-            do {
-                try await transcriptionManager.deleteTranscript(forTrackId: track.id)
-                await MainActor.run {
-                    transcriptStatusCache[track.id] = false
-                }
-                loadTranscriptStatus()
-            } catch {
-                await MainActor.run {
-                    transcriptDeletionError = error.localizedDescription
-                    showTranscriptDeletionError = true
-                }
-            }
-        }
-    }
-
-    private func handlePhotosPickerSelection(_ item: PhotosPickerItem) {
-        Task {
-            do {
-                guard let data = try await item.loadTransferable(type: Data.self) else {
-                    throw CollectionCoverImageStore.CoverError.invalidData
-                }
-                await applyCoverImageData(data)
-            } catch {
-                await MainActor.run {
-                    coverUpdateError = error.localizedDescription
-                    showCoverUpdateError = true
-                }
-            }
-            await MainActor.run {
-                coverPhotoItem = nil
-            }
-        }
-    }
-
-    private func handleCoverFileImport(_ result: Result<URL, Error>) {
-        switch result {
-        case .failure(let error):
-            coverUpdateError = error.localizedDescription
-            showCoverUpdateError = true
-        case .success(let url):
-            Task {
-                let needsAccess = url.startAccessingSecurityScopedResource()
-                defer {
-                    if needsAccess {
-                        url.stopAccessingSecurityScopedResource()
-                    }
-                }
-
-                do {
-                    let data = try Data(contentsOf: url)
-                    await applyCoverImageData(data)
-                } catch {
-                    await MainActor.run {
-                        coverUpdateError = error.localizedDescription
-                        showCoverUpdateError = true
-                    }
-                }
-            }
-        }
-    }
-
-    private func applyCoverImageData(_ data: Data) async {
-        await MainActor.run {
-            isUpdatingCover = true
-        }
-
-        do {
-            try await library.updateCollectionCover(collectionID: collectionID, imageData: data)
-        } catch {
-            await MainActor.run {
-                coverUpdateError = error.localizedDescription
-                showCoverUpdateError = true
-            }
-        }
-
-        await MainActor.run {
-            isUpdatingCover = false
-        }
-    }
-
-    private func resetCollectionCoverArtwork() {
-        Task {
-            await MainActor.run {
-                isUpdatingCover = true
-            }
-            await library.resetCollectionCover(collectionID: collectionID)
-            await MainActor.run {
-                isUpdatingCover = false
-            }
-        }
-    }
-
-    private func refreshCollectionAction() {
-        guard let collection = self.collection else { return }
-        
-        Task {
-            do {
-                let candidates: [AudiobookTrack]
-                switch collection.source {
-                case .baiduNetdisk:
-                    guard let token = authViewModel.token else {
-                        await MainActor.run {
-                            missingAuthAlert = true
-                        }
-                        return
-                    }
-                    candidates = try await library.scanNewTracksForBaiduCollection(collectionId: collectionID, token: token)
-                case .rss:
-                    candidates = try await library.scanNewTracksForRSSCollection(collectionId: collectionID)
-                default:
-                    return
-                }
-                
-                if !candidates.isEmpty {
-                    await MainActor.run {
-                        candidateTracks = candidates
-                        selectedCandidateIds = Set(candidates.map(\.id))
-                        refreshReviewTitle = collection.title
-                        refreshReviewDescription = collection.description ?? ""
-                        showRefreshReview = true
-                    }
-                } else {
-                    await MainActor.run {
-                        refreshResult = NSLocalizedString("refresh_no_updates", value: "No new tracks found.", comment: "Refresh result: no updates")
-                        showRefreshResult = true
-                    }
-                }
-            } catch {
-                await MainActor.run {
-                    refreshResult = String(format: NSLocalizedString("refresh_failed_message", value: "Refresh failed: %@", comment: "Refresh failed message"), error.localizedDescription)
-                    showRefreshResult = true
-                }
-            }
-        }
-    }
-
-    private func refreshSttTranscribingTrackIds(from jobs: [TranscriptionJob]) {
-        let newIds = Set(
-            jobs
-                .filter { !$0.sonioxJobId.hasPrefix("tts-") }
-                .compactMap { UUID(uuidString: $0.trackId) }
-        )
-
-        if newIds != sttTranscribingTrackIds {
-            sttTranscribingTrackIds = newIds
-        }
-    }
-
-    private func refreshTTSGeneratingTrackIds(from jobs: [TranscriptionJob]) {
-        let generatingStates: Set<String> = ["queued", "downloading", "uploading", "transcribing", "processing", "generating"]
-        let newIds = Set(
-            jobs
-                .filter { generatingStates.contains($0.status) && $0.sonioxJobId.hasPrefix("tts-") }
-                .compactMap { UUID(uuidString: $0.trackId) }
-        )
-
-        if newIds != ttsGeneratingTrackIds {
-            ttsGeneratingTrackIds = newIds
-        }
-    }
-
 }
 
 private struct CollectionInfoEditorView: View {
@@ -2404,7 +1416,7 @@ private struct TrackDetailRow: View, Equatable {
     }
 
     private func formatPubDate(_ isoString: String) -> String? {
-        guard let date = CollectionDetailView.parsePubDate(from: isoString) else { return nil }
+        guard let date = CollectionDetailViewModel.parsePubDate(from: isoString) else { return nil }
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
@@ -2486,7 +1498,7 @@ private struct CollectionPlaybackProgressObserver: View {
     }
 }
 
-	private struct PlaybackTimeline: View {
+private struct PlaybackTimeline: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var playbackClock: PlaybackClock
 
