@@ -25,7 +25,7 @@ struct CollectionReviewView<RowContent: View>: View {
     let rowContent: (AudiobookTrack) -> RowContent
 
     @State private var trackSearchText: String = ""
-    @State private var isAscending: Bool = true
+    @State private var isAscending: Bool
     
     init(
         title: Binding<String>,
@@ -37,6 +37,7 @@ struct CollectionReviewView<RowContent: View>: View {
         actionStyle: ActionStyle = .stickyFooter,
         selectionListMaxHeight: CGFloat = 640,
         saveButtonTitle: String = NSLocalizedString("rss_add_to_library_button", value: "Add to Library", comment: "Add to library button"),
+        isAscending: Bool = true,
         onSave: @escaping () -> Void,
         headerContent: (() -> AnyView)? = nil,
         @ViewBuilder rowContent: @escaping (AudiobookTrack) -> RowContent
@@ -50,6 +51,7 @@ struct CollectionReviewView<RowContent: View>: View {
         self.actionStyle = actionStyle
         self.selectionListMaxHeight = selectionListMaxHeight
         self.saveButtonTitle = saveButtonTitle
+        self._isAscending = State(initialValue: isAscending)
         self.onSave = onSave
         self.headerContent = headerContent?()
         self.rowContent = rowContent
@@ -63,6 +65,7 @@ struct CollectionReviewView<RowContent: View>: View {
         actionStyle: ActionStyle = .stickyFooter,
         selectionListMaxHeight: CGFloat = 640,
         saveButtonTitle: String = NSLocalizedString("rss_add_to_library_button", value: "Add to Library", comment: "Add to library button"),
+        isAscending: Bool = true,
         onSave: @escaping () -> Void,
         headerContent: (() -> AnyView)? = nil,
         @ViewBuilder rowContent: @escaping (AudiobookTrack) -> RowContent
@@ -76,6 +79,7 @@ struct CollectionReviewView<RowContent: View>: View {
         self.actionStyle = actionStyle
         self.selectionListMaxHeight = selectionListMaxHeight
         self.saveButtonTitle = saveButtonTitle
+        self._isAscending = State(initialValue: isAscending)
         self.onSave = onSave
         self.headerContent = headerContent?()
         self.rowContent = rowContent
