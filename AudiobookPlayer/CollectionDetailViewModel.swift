@@ -332,17 +332,6 @@ final class CollectionDetailViewModel: ObservableObject {
     }
     
     // MARK: - Paging
-    
-    func pageIndexForTrack(collectionId: UUID, trackId: UUID, total: Int) -> Int? {
-        do {
-            if let trackNumber = try GRDBDatabaseManager.shared.fetchTrackNumber(collectionId: collectionId, trackId: trackId) {
-                return max(0, (trackNumber - 1) / pageSize)
-            }
-        } catch {
-            print("[CollectionDetailViewModel] Failed to fetch track number: \(error)")
-        }
-        return nil
-    }
 
     @MainActor
     func updateLoadedPages(_ page: Int, tracks: [AudiobookTrack]) {
