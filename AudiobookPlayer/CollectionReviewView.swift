@@ -25,6 +25,7 @@ struct CollectionReviewView<RowContent: View>: View {
     let rowContent: (AudiobookTrack) -> RowContent
 
     @State private var trackSearchText: String = ""
+    @State private var isAscending: Bool = true
     
     init(
         title: Binding<String>,
@@ -167,33 +168,49 @@ struct CollectionReviewView<RowContent: View>: View {
     }
 
     private var trackSearchRow: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
+        HStack(spacing: 8) {
+            HStack(spacing: 10) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundStyle(.secondary)
 
-            TextField(
-                NSLocalizedString("search_tracks_prompt", value: "Search tracks", comment: "Search tracks prompt"),
-                text: $trackSearchText
-            )
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .submitLabel(.search)
+                TextField(
+                    NSLocalizedString("search_tracks_prompt", value: "Search tracks", comment: "Search tracks prompt"),
+                    text: $trackSearchText
+                )
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.search)
 
-            if !trackSearchText.isEmpty {
-                Button {
-                    trackSearchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
+                if !trackSearchText.isEmpty {
+                    Button {
+                        trackSearchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(NSLocalizedString("clear_button", value: "Clear", comment: "Clear button"))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(NSLocalizedString("clear_button", value: "Clear", comment: "Clear button"))
             }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .background(Color(uiColor: .secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            
+            Button {
+                withAnimation {
+                    isAscending.toggle()
+                }
+            } label: {
+                Image(systemName: isAscending ? "arrow.up" : "arrow.down")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, height: 44)
+                    .background(Color(uiColor: .secondarySystemBackground))
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .accessibilityLabel(isAscending ? NSLocalizedString("sort_descending", value: "Sort Descending", comment: "Sort descending") : NSLocalizedString("sort_ascending", value: "Sort Ascending", comment: "Sort ascending"))
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 14)
-        .background(Color(uiColor: .secondarySystemBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .padding(.horizontal, 4)
     }
     
@@ -239,11 +256,17 @@ struct CollectionReviewView<RowContent: View>: View {
 
     private func filteredTracks() -> [AudiobookTrack] {
         let query = trackSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return tracks }
-
-        return tracks.filter { track in
-            track.displayName.localizedCaseInsensitiveContains(query) ||
-                track.filename.localizedCaseInsensitiveContains(query)
+        let filtered: [AudiobookTrack]
+        
+        if query.isEmpty {
+            filtered = tracks
+        } else {
+            filtered = tracks.filter { track in
+                track.displayName.localizedCaseInsensitiveContains(query) ||
+                    track.filename.localizedCaseInsensitiveContains(query)
+            }
         }
+        
+        return isAscending ? filtered : filtered.reversed()
     }
 }
