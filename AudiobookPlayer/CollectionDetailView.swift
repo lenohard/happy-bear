@@ -818,6 +818,12 @@ struct CollectionDetailView: View {
                     attemptAutoFocusIfNeeded(using: proxy)
                     isLastTrackVisible = false
                 }
+                .onChange(of: isListLoading) { loading in
+                    // When loading finishes, try auto-focus since data is now ready
+                    if !loading {
+                        attemptAutoFocusIfNeeded(using: proxy)
+                    }
+                }
                 
                 // Jump to Top/Bottom Buttons (Centered)
                 if filteredTracks.count > 10 && (showScrollToTopButton || showScrollToBottomButton) {
@@ -1449,16 +1455,17 @@ struct CollectionDetailView: View {
             loadingPages.isEmpty
         else { return }
 
-        // If proxy is nil (paging load context), skip scroll but mark ready
+        // If proxy is nil, skip this attempt - the onChange handlers will retry with a real proxy
         guard let proxy else {
-            didAutoFocusTrack = true
             return
         }
 
         // Mark as focused immediately to avoid multiple rapid scrolls
         didAutoFocusTrack = true
 
-        DispatchQueue.main.async {
+        // Delay to allow ScrollViewReader to register the target ID in its coordinate space
+        // Without this delay, scrollTo() may fail because the ID isn't yet in the scroll view's registry
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             withAnimation(.easeInOut(duration: 0.25)) {
                 proxy.scrollTo(targetId, anchor: .center)
             }
@@ -1645,9 +1652,6 @@ struct CollectionDetailView: View {
         guard let collection else { return }
 
         await MainActor.run { loadingPages.insert(page) }
-        defer {
-            Task { @MainActor in loadingPages.remove(page) }
-        }
 
         do {
             let offset = page * pageSize
@@ -1669,6 +1673,9 @@ struct CollectionDetailView: View {
                     playbackStateSnapshot[id] = state
                 }
                 updateLoadedPages(page, tracks: tracks)
+                // Remove from loading set BEFORE setting isListLoading = false
+                // so that loadingPages.isEmpty is true when onChange handlers fire
+                loadingPages.remove(page)
                 if page == 0 {
                     isListLoading = false
                 }
@@ -1678,8 +1685,9 @@ struct CollectionDetailView: View {
             }
         } catch {
             print("[CollectionDetailView] Failed to load page \(page): \(error)")
-            if page == 0 {
-                await MainActor.run {
+            await MainActor.run {
+                loadingPages.remove(page)
+                if page == 0 {
                     isListLoading = false
                 }
             }

@@ -305,17 +305,6 @@
         }
       }
     },
-    "Add to Library" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加到图书馆"
-          }
-        }
-      }
-    },
     "add_description_button" : {
       "comment" : "Add description button",
       "localizations" : {
@@ -871,29 +860,6 @@
         }
       }
     },
-    "ai_repair_apply" : {
-      "comment" : "Apply repairs",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "修复"
-          }
-        }
-      }
-    },
-    "ai_repair_cancel" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取消"
-          }
-        }
-      }
-    },
     "ai_repair_in_progress" : {
       "comment" : "AI repair in progress",
       "localizations" : {
@@ -901,41 +867,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "请求中"
-          }
-        }
-      }
-    },
-    "ai_repair_missing_key" : {
-      "comment" : "AI key missing",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI未配置"
-          }
-        }
-      }
-    },
-    "ai_repair_missing_key_hint" : {
-      "comment" : "Prompt to add AI key",
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI未配置"
-          }
-        }
-      }
-    },
-    "ai_repair_toggle" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AI修复"
           }
         }
       }
@@ -1529,17 +1460,6 @@
         }
       }
     },
-    "Auto-select low confidence segments" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选中所有低置信片段"
-          }
-        }
-      }
-    },
     "Average" : {
 
     },
@@ -2073,17 +1993,6 @@
     "Collection" : {
 
     },
-    "Collection Details" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "合集详情"
-          }
-        }
-      }
-    },
     "Collection Refresh" : {
 
     },
@@ -2316,17 +2225,6 @@
         }
       }
     },
-    "Confidence threshold" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "置信阀值"
-          }
-        }
-      }
-    },
     "Connect your Aliyun Drive to import audiobooks or stream directly." : {
 
     },
@@ -2377,17 +2275,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "连接您的百度网盘账户以浏览和下载有声书。"
-          }
-        }
-      }
-    },
-    "Content" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "内容"
           }
         }
       }
@@ -2626,17 +2513,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确认删除"
-          }
-        }
-      }
-    },
-    "Deselect All" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取消全选"
           }
         }
       }
