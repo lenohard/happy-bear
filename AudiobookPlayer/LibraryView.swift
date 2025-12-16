@@ -219,8 +219,21 @@ struct LibraryView: View {
                 // Get the updated collection from the store
                 guard let updatedCollection = library.collections.first(where: { $0.id == collection.id }) else { return }
                 guard !updatedCollection.tracks.isEmpty else { return }
-                guard let track = updatedCollection.resumeTrack() else { return }
-                playTrack(track, in: updatedCollection)
+
+                if updatedCollection.isMusic {
+                    // For music: Enable shuffle and pick random track
+                    var collectionToPlay = updatedCollection
+                    if !collectionToPlay.shuffleEnabled {
+                        library.updateShuffle(true, for: collectionToPlay.id)
+                        collectionToPlay.shuffleEnabled = true
+                    }
+                    
+                    guard let randomTrack = collectionToPlay.tracks.randomElement() else { return }
+                    playTrack(randomTrack, in: collectionToPlay)
+                } else {
+                    guard let track = updatedCollection.resumeTrack() else { return }
+                    playTrack(track, in: updatedCollection)
+                }
             }
         }
     }

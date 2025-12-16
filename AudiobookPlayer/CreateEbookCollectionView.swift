@@ -245,6 +245,13 @@ struct CreateEbookCollectionView: View {
         let finalAuthor = editedAuthor.trimmingCharacters(in: .whitespacesAndNewlines)
         let finalDescription = editedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
         
+        // Create bookmark for later access/refresh
+        var bookmark: Data?
+        if epubURL.startAccessingSecurityScopedResource() {
+            defer { epubURL.stopAccessingSecurityScopedResource() }
+            bookmark = try? epubURL.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
+        }
+        
         let collection = AudiobookCollection(
             id: collectionId,
             title: finalTitle.isEmpty ? bookTitle : finalTitle,
@@ -253,7 +260,7 @@ struct CreateEbookCollectionView: View {
             coverAsset: .generatedCover(for: finalTitle.isEmpty ? bookTitle : finalTitle),
             createdAt: now,
             updatedAt: now,
-            source: .ebook(importedDate: now),
+            source: .ebook(importedDate: now, urlBookmark: bookmark),
             tracks: selectedTracks,
             lastPlayedTrackId: nil,
             playbackStates: [:],

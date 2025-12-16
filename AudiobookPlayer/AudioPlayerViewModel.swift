@@ -155,6 +155,8 @@ final class AudioPlayerViewModel: ObservableObject {
     ) {
         if !collection.isEphemeral {
             ephemeralContext = nil
+            // Sync shuffle state with collection settings
+            isShuffleEnabled = collection.shuffleEnabled
         }
 
         let sortedTracks = collection.tracksSortedByFilename

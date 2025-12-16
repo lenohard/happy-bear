@@ -12,7 +12,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case local(directoryBookmark: Data)
         case external(description: String)
         case ephemeralBaidu(path: String)
-        case ebook(importedDate: Date)
+        case ebook(importedDate: Date, urlBookmark: Data?)
         case rss(feedUrl: URL)
 
         private enum CodingKeys: String, CodingKey {
@@ -23,6 +23,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case description
             case ephemeralPath
             case importedDate
+            case ebookUrlBookmark
             case feedUrl
         }
 
@@ -55,7 +56,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
                 self = .ephemeralBaidu(path: path)
             case .ebook:
                 let date = try container.decode(Date.self, forKey: .importedDate)
-                self = .ebook(importedDate: date)
+                let bookmark = try container.decodeIfPresent(Data.self, forKey: .ebookUrlBookmark)
+                self = .ebook(importedDate: date, urlBookmark: bookmark)
             case .rss:
                 let feedUrl = try container.decode(URL.self, forKey: .feedUrl)
                 self = .rss(feedUrl: feedUrl)
@@ -79,9 +81,10 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
             case let .ephemeralBaidu(path):
                 try container.encode(SourceType.ephemeralBaidu, forKey: .type)
                 try container.encode(path, forKey: .ephemeralPath)
-            case let .ebook(importedDate):
+            case let .ebook(importedDate, urlBookmark):
                 try container.encode(SourceType.ebook, forKey: .type)
                 try container.encode(importedDate, forKey: .importedDate)
+                try container.encodeIfPresent(urlBookmark, forKey: .ebookUrlBookmark)
             case let .rss(feedUrl):
                 try container.encode(SourceType.rss, forKey: .type)
                 try container.encode(feedUrl, forKey: .feedUrl)

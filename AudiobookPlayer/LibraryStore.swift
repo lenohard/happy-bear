@@ -1069,6 +1069,13 @@ final class LibraryStore: ObservableObject {
             )
         }
         
+        // Create bookmark for later access/refresh
+        var bookmark: Data?
+        if url.startAccessingSecurityScopedResource() {
+            defer { url.stopAccessingSecurityScopedResource() }
+            bookmark = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil)
+        }
+
         let collection = AudiobookCollection(
             id: collectionId,
             title: title,
@@ -1077,7 +1084,7 @@ final class LibraryStore: ObservableObject {
             coverAsset: .generatedCover(for: title),
             createdAt: now,
             updatedAt: now,
-            source: .ebook(importedDate: now),
+            source: .ebook(importedDate: now, urlBookmark: bookmark),
             tracks: tracks,
             lastPlayedTrackId: nil,
             playbackStates: [:],

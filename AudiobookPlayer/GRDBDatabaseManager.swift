@@ -1107,10 +1107,7 @@ actor GRDBDatabaseManager {
             favoritedAt = nil
         }
 
-        if isFavorite {
-            print("[FAVORITES-DB] Read favorite track from DB: \(displayName), favoritedAt=\(favoritedAt as Any)")
-        }
-
+        
         let charCount: Int? = row["character_count"]
 
         return AudiobookTrack(
@@ -1234,11 +1231,18 @@ actor GRDBDatabaseManager {
             return .ephemeralBaidu(path: path)
 
         case "ebook":
+            let bookmarkData: Data?
+            if let bookmarkStr = dict["ebookUrlBookmark"] as? String {
+                bookmarkData = Data(base64Encoded: bookmarkStr)
+            } else {
+                bookmarkData = nil
+            }
+
             if let timestamp = dict["importedDate"] as? Double {
-                return .ebook(importedDate: Date(timeIntervalSinceReferenceDate: timestamp))
+                return .ebook(importedDate: Date(timeIntervalSinceReferenceDate: timestamp), urlBookmark: bookmarkData)
             } else if let dateStr = dict["importedDate"] as? String,
                       let date = Self.sqliteDateFormatter.date(from: dateStr) {
-                return .ebook(importedDate: date)
+                return .ebook(importedDate: date, urlBookmark: bookmarkData)
             }
             throw DatabaseError.inconsistentData("Invalid ebook importedDate")
 
@@ -2351,8 +2355,11 @@ extension AudiobookCollection.Source {
         case let .ephemeralBaidu(path):
             payload = ["ephemeralPath": path]
 
-        case let .ebook(importedDate):
+        case let .ebook(importedDate, urlBookmark):
             payload = ["importedDate": importedDate.timeIntervalSinceReferenceDate]
+            if let bookmark = urlBookmark {
+                payload["ebookUrlBookmark"] = bookmark.base64EncodedString()
+            }
             
         case let .rss(feedUrl):
             payload = ["feedUrl": feedUrl.absoluteString]

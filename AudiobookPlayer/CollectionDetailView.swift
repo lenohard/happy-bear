@@ -28,11 +28,16 @@ struct CollectionDetailView: View {
                 if library.canModifyCollection(viewModel.collectionID) {
                     ToolbarItem(placement: .primaryAction) {
                         Menu {
-                            Button(action: viewModel.addTracksAction) {
-                                Label(
-                                    NSLocalizedString("add_tracks_button", comment: "Add tracks button"),
-                                    systemImage: "plus.circle"
-                                )
+                            // Hide "Add Tracks" for RSS collections
+                            if case .rss = viewModel.collection?.source {
+                                // Do not show Add Tracks
+                            } else {
+                                Button(action: viewModel.addTracksAction) {
+                                    Label(
+                                        NSLocalizedString("add_tracks_button", comment: "Add tracks button"),
+                                        systemImage: "plus.circle"
+                                    )
+                                }
                             }
                             
                             if viewModel.canRefreshCurrentCollection {
@@ -85,6 +90,23 @@ struct CollectionDetailView: View {
             } message: { track in
                 Text(String(format: NSLocalizedString("delete_transcript_confirm_message", comment: "Delete transcript confirm message"), track.displayName))
             }
+            .alert(
+                "Ebook Import Error",
+                isPresented: Binding(
+                    get: { viewModel.ebookImportError != nil },
+                    set: { if !$0 { viewModel.ebookImportError = nil } }
+                ),
+                presenting: viewModel.ebookImportError
+            ) { _ in
+                Button("OK", role: .cancel) { }
+            } message: { error in
+                Text(error)
+            }
+            .fileImporter(
+                isPresented: $viewModel.showEbookFileImporter,
+                allowedContentTypes: [UTType("org.idpf.epub-container") ?? .epub],
+                onCompletion: viewModel.handleEbookFileImport
+            )
             .alert(
                 NSLocalizedString("error_title", comment: "Generic error title"),
                 isPresented: $viewModel.showTranscriptDeletionError,

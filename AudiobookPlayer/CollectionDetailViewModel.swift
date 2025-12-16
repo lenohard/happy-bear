@@ -45,6 +45,8 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var isUpdatingCover = false
     @Published var coverUpdateError: String?
     @Published var showCoverUpdateError = false
+    @Published var showEbookFileImporter = false
+    @Published var ebookImportError: String?
     @Published var isSummaryVisible = true
     @Published var isLastTrackVisible = false
     @Published var refreshResult: String?
@@ -126,6 +128,8 @@ final class CollectionDetailViewModel: ObservableObject {
         switch source {
         case .baiduNetdisk, .rss:
             return true
+        case .ebook(_, let bookmark):
+            return bookmark != nil
         default:
             return false
         }
@@ -607,6 +611,48 @@ final class CollectionDetailViewModel: ObservableObject {
                     candidates = try await library?.scanNewTracksForBaiduCollection(collectionId: collectionID, token: token) ?? []
                 case .rss:
                     candidates = try await library?.scanNewTracksForRSSCollection(collectionId: collectionID) ?? []
+                case .ebook(_, let bookmark):
+                    var isStale = false
+                    if let bookmark,
+                       let url = try? URL(resolvingBookmarkData: bookmark, options: .withoutUI, relativeTo: nil, bookmarkDataIsStale: &isStale) {
+                        let accessing = url.startAccessingSecurityScopedResource()
+                        defer {
+                            if accessing {
+                                url.stopAccessingSecurityScopedResource()
+                            }
+                        }
+                        
+                        let parser = EpubParser()
+                        let (_, _, chapters) = try parser.parse(epubURL: url)
+                        
+                        let existingNames = Set(collection.tracks.map { $0.filename })
+                        let baseIndex = collection.trackCount
+                        
+                        // Re-do correctly
+                        var newTracks: [AudiobookTrack] = []
+                        var currentIndex = baseIndex
+                        
+                        for chapter in chapters {
+                            if !existingNames.contains(chapter.filename) {
+                                currentIndex += 1
+                                newTracks.append(AudiobookTrack(
+                                    id: UUID(),
+                                    displayName: chapter.title,
+                                    filename: chapter.filename,
+                                    location: .text(content: chapter.content),
+                                    fileSize: Int64(chapter.content.utf8.count),
+                                    duration: nil,
+                                    trackNumber: currentIndex,
+                                    checksum: nil,
+                                    metadata: [:],
+                                    characterCount: chapter.content.count
+                                ))
+                            }
+                        }
+                        candidates = newTracks
+                    } else {
+                        candidates = []
+                    }
                 default:
                     return
                 }
@@ -921,7 +967,70 @@ final class CollectionDetailViewModel: ObservableObject {
     }
 
     func addTracksAction() {
+        if let source = collection?.source {
+            switch source {
+            case .rss:
+                return // RSS does not support manual track addition
+            case .ebook:
+                showEbookFileImporter = true
+                return
+            default:
+                break
+            }
+        }
         showTrackPicker = true
+    }
+
+    func handleEbookFileImport(_ result: Result<URL, Error>) {
+        switch result {
+        case .failure(let error):
+            ebookImportError = error.localizedDescription
+        case .success(let url):
+            Task {
+                let accessing = url.startAccessingSecurityScopedResource()
+                defer {
+                    if accessing {
+                        url.stopAccessingSecurityScopedResource()
+                    }
+                }
+                
+                do {
+                    let parser = EpubParser()
+                    let (_, _, chapters) = try parser.parse(epubURL: url)
+                    
+                    let baseIndex = collection?.trackCount ?? 0
+                    
+                    let newTracks = chapters.enumerated().map { index, chapter in
+                        AudiobookTrack(
+                            id: UUID(),
+                            displayName: chapter.title,
+                            filename: chapter.filename,
+                            location: .text(content: chapter.content),
+                            fileSize: Int64(chapter.content.utf8.count),
+                            duration: nil,
+                            trackNumber: baseIndex + index + 1,
+                            checksum: nil,
+                            metadata: [:],
+                            characterCount: chapter.content.count
+                        )
+                    }
+                    
+                    if !newTracks.isEmpty {
+                        await MainActor.run {
+                            candidateTracks = newTracks
+                            selectedCandidateIds = Set(newTracks.map(\.id))
+                            refreshReviewTitle = collection?.title ?? ""
+                            refreshReviewDescription = collection?.description ?? ""
+                            showRefreshReview = true
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        ebookImportError = error.localizedDescription
+                    }
+                }
+            }
+        }
     }
     
     func removePrompt(for track: AudiobookTrack) -> String {
