@@ -11,7 +11,7 @@ enum EdgeTTSError: Error {
 
 final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
     private var webSocketTask: URLSessionWebSocketTask?
-    private var session: URLSession!
+    private var session: URLSession?
     private let trustedClientToken = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
     private let chromiumVersion = "130.0.2849.68"
     
@@ -25,16 +25,25 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
     
     override init() {
         super.init()
-        let config = URLSessionConfiguration.default
-        self.session = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue.main)
     }
     
     func generateAudio(text: String, voice: String = "en-US-AriaNeural", rate: String = "+0%", pitch: String = "+0Hz", completion: @escaping (Result<Data, Error>) -> Void) {
+        // Reset state
+        self.session?.invalidateAndCancel()
+        self.session = nil
+        
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 60
+        self.session = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue.main)
+        
         self.completion = completion
         self.audioData = Data()
         self.isCompleted = false
         self.isSocketOpen = false
         self.pendingMessages = []
+        
+        print("[EdgeTTS] Starting generation for text length: \(text.count)")
         
         let connectId = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let secMsGec = generateSecMsGec()
@@ -49,6 +58,7 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
         ]
         
         guard let url = components.url else {
+            print("[EdgeTTS] Failed to construct URL")
             completion(.failure(EdgeTTSError.connectionFailed))
             return
         }
@@ -57,7 +67,8 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
         request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0", forHTTPHeaderField: "User-Agent")
         request.addValue("https://www.bing.com", forHTTPHeaderField: "Origin")
         
-        webSocketTask = session.webSocketTask(with: request)
+        print("[EdgeTTS] Connecting to WebSocket...")
+        webSocketTask = session?.webSocketTask(with: request)
         webSocketTask?.resume()
         
         listen()
@@ -76,8 +87,10 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
     
     private func queueOrSend(text: String) {
         if isSocketOpen {
+            print("[EdgeTTS] Sending message immediately (socket open)")
             send(text: text)
         } else {
+            print("[EdgeTTS] Queueing message (socket connecting)")
             pendingMessages.append(text)
         }
     }
@@ -85,19 +98,26 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
     // MARK: - URLSessionWebSocketDelegate
     
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        print("[EdgeTTS] WebSocket didOpenWithProtocol")
         isSocketOpen = true
-        for text in pendingMessages {
-            send(text: text)
+        if !pendingMessages.isEmpty {
+            print("[EdgeTTS] Flushing \(pendingMessages.count) queued messages")
+            for text in pendingMessages {
+                send(text: text)
+            }
+            pendingMessages.removeAll()
         }
-        pendingMessages.removeAll()
     }
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error = error {
+            print("[EdgeTTS] WebSocket didCompleteWithError: \(error)")
             if !isCompleted {
                 isCompleted = true
                 completion?(.failure(EdgeTTSError.socketError(error)))
             }
+        } else {
+            print("[EdgeTTS] WebSocket didComplete successfully")
         }
     }
     

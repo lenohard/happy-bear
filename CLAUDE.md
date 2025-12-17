@@ -32,7 +32,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Swipe Actions**: Use `.labelStyle(.iconOnly)` for swipe buttons to ensure centering.
 
 ### Baidu & Networking
-- **WebSocket Handshake**: Always implement `didOpenWithProtocol` delegate and wait for it before sending data. sending immediately after `resume()` causes "Socket is not connected" errors, especially on VPNs.
+- **WebSocket Handshake**: Always wait for `didOpenWithProtocol` before sending. For critical tasks (TTS), prefer creating a fresh `URLSession` per request to avoid stale connection states on VPNs.
 - **Collection Refresh**: Relies on fixed folder paths. Renaming the source folder in Netdisk breaks refresh; adding files to the folder is supported.
 - **Streaming**: Baidu Netdisk does not natively support WebM streaming.
 
@@ -43,34 +43,96 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Build Filters**: Use `xcodebuild ... | grep -E "error:|warning:|BUILD"` to reduce noise.
 
 ## Main Views & Workflows
-### Playback
-- **Core**: `ContentView.swift` (Root TabView + `PlayingView` implementation), `AudioPlayerViewModel.swift` (Logic).
-- **Overlay**: `FloatingPlaybackBubbleView.swift` (Global bubble), `FloatingPlaybackBubbleViewModel.swift`.
-- **Logic**: `PlaybackSnapshot` (State persistence), `MPRemoteCommandCenter` (Lock screen controls).
+
+### App Structure (ContentView.swift)
+- **TabSelectionManager**: Manages 4 tabs (Library, Playing, Smart, Personal) + navigation state
+- **PlayingView** (embedded): Main playback interface
+  - Live playback card: cover art, title, timeline slider, play/pause/skip controls
+  - Resume card: shows last played when nothing active
+  - Listening history: recent playbacks from all collections
+  - Track summary card: AI-generated summaries with seek-to-section
+  - Sleep timer: end-of-track or timed (5-60 min)
+  - Playback speed: 0.5x-3.0x presets
+  - Shuffle toggle (per-collection), download button, video player sheet
+- **PlaybackClock**: Dedicated ObservableObject for high-frequency ticks (avoids re-rendering entire view)
 
 ### Library Management
-- **List**: `LibraryView.swift` (Main list), `LibraryStore.swift` (Data source/GRDB).
-- **Detail**: `CollectionDetailView.swift` (Track list, Sort/Filter, Batch Actions), `CollectionDetailViewModel.swift` (MVVM logic).
-- **Import**: `CreateCollectionView.swift` (Import flow), `BaiduNetdiskBrowserView.swift` (File picker), `CollectionBuilderViewModel.swift`.
+
+**LibraryView.swift** - Collection list & import hub
+- Collection rows: cover art, title, author, track count, last updated, quick-play button
+- Import menu: Baidu Netdisk (folder browser), Ebook (.epub), RSS Feed (URL)
+- Swipe-to-delete, duplicate import detection, Favorite Tracks nav link
+
+**CollectionDetailView.swift + CollectionDetailViewModel.swift** (MVVM)
+- **Paging**: Auto-activates for >1000 tracks (500/page, on-demand loading)
+- **Filters**: All, Transcribed, Unplayed, Summarized, Played
+- **Sort**: Track Number, Title, Pub Date (Asc/Desc)
+- **Track Row**: Play/pause, prev/next, favorite, transcript badge, summary badge
+- **Swipe Actions**: Rename, Delete, View/Delete Transcript, Transcribe
+- **Collection Actions**: Add tracks, Refresh (scan source), Batch rename, Edit details, Update cover
+- **Auto-focus**: Scrolls to currently playing or last played track
+- **Performance**: Background sort/filter, debounced search (300ms), batched DB status queries
+
+**CreateCollectionView.swift + CollectionBuilderViewModel.swift** - Import flow
+- States: Idle → Loading (progress) → Ready (review) → Failed
+- Review: Edit title/description, select tracks, toggle "Music Collection", save
+
+### Playback System
+
+**AudioPlayerViewModel.swift** - Core playback engine
+- AVPlayer management, playback state (`isPlaying`, `currentTime`, `duration`, `playbackRate`)
+- Controls: play/pause, seek, skip ±15/30s, prev/next track, speed 0.5x-3.0x, shuffle
+- Sleep timer: Off, Time-based, End-of-track
+- Cache integration: checks `AudioCacheManager`, streams if not cached
+- Remote commands: lock screen/control center (play, skip, now playing info, favorite state)
+- Session tracking: auto-saves progress, resume from last position
+
+**FloatingPlaybackBubbleView.swift** - Global mini-player
+- Separate UIWindow (level `.alert + 1`) for persistent overlay
+- Draggable, shows mini cover + title + play/pause, tap switches to Playing tab
 
 ### AI & Transcription
-- **Hub**: `SmartView.swift` (Container for AI/TTS tabs).
-- **Transcription**: `TranscriptionSheet.swift` (Job progress), `TranscriptViewerSheet.swift` (Result viewer), `TranscriptionManager.swift` (Soniox logic).
-- **LLM**: `AIGatewayViewModel.swift` (Chat/Summary logic).
+
+**SmartView.swift** - Hub with nav links to:
+- AI Tab: LLM chat, track summaries, generation jobs
+- STT (Soniox): Speech-to-text jobs
+- TTS (Edge): Text-to-speech audio generation
+- Badge indicators for active job counts
+
+**TranscriptionManager.swift** - Soniox STT integration
+- Workflow: Upload audio → Create job → Poll status (2s interval, 1hr max) → Store transcript
+- Job states: Queued, Uploading, Transcribing, Processing, Complete, Failed
+- Stores transcripts in GRDB with segments and metadata
+
+**AIGatewayViewModel.swift** - LLM integration
+- API key management (Keychain), model selection, credits tracking
+- Chat interface, track summary generation (via AIGenerationManager)
 
 ### Personal & Settings
-- **Profile**: `PersonalView.swift` (History, Stats, Settings container).
-- **Settings**: `SettingsTabView.swift` (Config), `CacheManagementView.swift` (Storage control).
+
+**PersonalView.swift** - User profile container
+- Listening History sheet, Listening Statistics, Settings link
+
+**SettingsTabView.swift** - Configuration
+- Sources: Baidu/Aliyun auth
+- Soniox: API key for STT
+- AI Gateway: API key, model selection, credits
+- Storage: Cache management (`CacheManagementView`), disk usage breakdown
 
 ## Architecture Snapshot
 - **Core**: SwiftUI + ObservableObject. AVFoundation for playback.
 - **Data**: GRDB (SQLite) for library/transcripts. JSON fallback for portability.
 - **Modules**:
-  - `AudioPlayerViewModel`: Playback, remote commands, session.
-  - `LibraryStore`: Collections, favorites, persistence.
-  - `BaiduAuthViewModel` / `BaiduNetdiskClient`: Auth & File operations.
-  - `TranscriptionManager`: Soniox integration (Upload -> Job -> Transcript).
-  - `AIGatewayViewModel`: LLM integration.
+  - `AudioPlayerViewModel`: AVPlayer wrapper, playback controls, sleep timer, shuffle, remote commands, cache integration
+  - `LibraryStore`: Collection CRUD, playback state persistence, favorites, cover image management
+  - `CollectionDetailViewModel`: MVVM for track list with paging (>1000 tracks), filter/sort, transcript/summary status caching
+  - `BaiduAuthViewModel` / `BaiduNetdiskClient`: OAuth flow, file listing, streaming URLs
+  - `TranscriptionManager`: Soniox API integration, job queue, polling, transcript storage
+  - `AIGenerationManager`: LLM job orchestration, summary generation, background polling
+  - `AIGatewayViewModel`: API key management, model selection, chat interface
+  - `GRDBDatabaseManager`: SQLite persistence layer (collections, tracks, transcripts, summaries, playback states)
+  - `AudioCacheManager` / `AudioCacheDownloadManager`: Local audio file caching with byte-range support
+  - `PlaybackClock`: High-frequency time updates isolated from main view hierarchy
 
 ## Tech Decisions
 | Component | Choice | Notes |
@@ -79,6 +141,18 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 | Audio | AVFoundation | Better control than MediaPlayer. |
 | DB | GRDB + SQLite | Robust, supports complex queries & concurrency. |
 | Async | async/await | Used for all network/DB ops. |
+
+## Key Files Quick Reference
+| Category | Files |
+|----------|-------|
+| **Main Views** | `ContentView.swift`, `LibraryView.swift`, `SmartView.swift`, `PersonalView.swift` |
+| **Playback** | `AudioPlayerViewModel.swift`, `FloatingPlaybackBubbleView.swift`, `PlaybackClock` (in AudioPlayerVM) |
+| **Collection Detail** | `CollectionDetailView.swift`, `CollectionDetailViewModel.swift` |
+| **Import Flows** | `CreateCollectionView.swift`, `CollectionBuilderViewModel.swift`, `BaiduNetdiskBrowserView.swift`, `AddRSSCollectionView.swift`, `CreateEbookCollectionView.swift` |
+| **AI/Transcription** | `TranscriptionManager.swift`, `AIGatewayViewModel.swift`, `AIGenerationManager.swift`, `SonioxSTTView.swift`, `EdgeTTSView.swift` |
+| **Data Layer** | `LibraryStore.swift`, `GRDBDatabaseManager.swift`, `AudioCacheManager.swift` |
+| **Auth** | `BaiduAuthViewModel.swift`, `BaiduNetdiskClient.swift`, `AliyunAuthViewModel.swift` |
+| **Settings** | `SettingsTabView.swift`, `CacheManagementView.swift`, `StorageManagementView.swift` |
 
 ## Dev Workflow & Tips
 ### App Icons
