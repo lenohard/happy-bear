@@ -32,6 +32,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Swipe Actions**: Use `.labelStyle(.iconOnly)` for swipe buttons to ensure centering.
 
 ### Baidu & Networking
+- **WebSocket Handshake**: Always implement `didOpenWithProtocol` delegate and wait for it before sending data. sending immediately after `resume()` causes "Socket is not connected" errors, especially on VPNs.
 - **Collection Refresh**: Relies on fixed folder paths. Renaming the source folder in Netdisk breaks refresh; adding files to the folder is supported.
 - **Streaming**: Baidu Netdisk does not natively support WebM streaming.
 

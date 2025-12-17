@@ -11,7 +11,7 @@ enum EdgeTTSError: Error {
 
 final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
     private var webSocketTask: URLSessionWebSocketTask?
-    private let session: URLSession
+    private var session: URLSession!
     private let trustedClientToken = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
     private let chromiumVersion = "130.0.2849.68"
     
@@ -19,16 +19,22 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
     private var completion: ((Result<Data, Error>) -> Void)?
     private var isCompleted = false
     
+    // Connection state management
+    private var isSocketOpen = false
+    private var pendingMessages: [String] = []
+    
     override init() {
-        let config = URLSessionConfiguration.default
-        self.session = URLSession(configuration: config)
         super.init()
+        let config = URLSessionConfiguration.default
+        self.session = URLSession(configuration: config, delegate: self, delegateQueue: OperationQueue.main)
     }
     
     func generateAudio(text: String, voice: String = "en-US-AriaNeural", rate: String = "+0%", pitch: String = "+0Hz", completion: @escaping (Result<Data, Error>) -> Void) {
         self.completion = completion
         self.audioData = Data()
         self.isCompleted = false
+        self.isSocketOpen = false
+        self.pendingMessages = []
         
         let connectId = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let secMsGec = generateSecMsGec()
@@ -58,35 +64,41 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
         
         // Send config
         let timestamp = Date().iso8601
-        let configMessage = """
-        Content-Type: application/json; charset=utf-8\r
-        Path: speech.config\r
-        X-Timestamp: \(timestamp)\r
-        \r
-        {"context":{"synthesis":{"audio":{"metadataoptions":{"sentenceBoundaryEnabled":false,"wordBoundaryEnabled":true},"outputFormat":"audio-24khz-48kbitrate-mono-mp3"}}}}
-        """
-        send(text: configMessage)
+        let configMessage = "Content-Type: application/json; charset=utf-8\r\nPath: speech.config\r\nX-Timestamp: \(timestamp)\r\n\r\n{\"context\":{\"synthesis\":{\"audio\":{\"metadataoptions\":{\"sentenceBoundaryEnabled\":false,\"wordBoundaryEnabled\":true},\"outputFormat\":\"audio-24khz-48kbitrate-mono-mp3\"}}}} "
+        queueOrSend(text: configMessage)
         
         // Send SSML
-        let ssml = """
-        <speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>
-        <voice name='\(voice)'>
-        <prosody pitch='\(pitch)' rate='\(rate)'>
-        \(text)
-        </prosody>
-        </voice>
-        </speak>
-        """
+        let ssml = "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>\n<voice name='\(voice)'>\n<prosody pitch='\(pitch)' rate='\(rate)'>\n\(text)\n</prosody>\n</voice>\n</speak>"
         
-        let ssmlMessage = """
-        Content-Type: application/ssml+xml\r
-        Path: ssml\r
-        X-RequestId: \(connectId)\r
-        X-Timestamp: \(timestamp)\r
-        \r
-        \(ssml)
-        """
-        send(text: ssmlMessage)
+        let ssmlMessage = "Content-Type: application/ssml+xml\r\nPath: ssml\r\nX-RequestId: \(connectId)\r\nX-Timestamp: \(timestamp)\r\n\r\n\(ssml)"
+        queueOrSend(text: ssmlMessage)
+    }
+    
+    private func queueOrSend(text: String) {
+        if isSocketOpen {
+            send(text: text)
+        } else {
+            pendingMessages.append(text)
+        }
+    }
+    
+    // MARK: - URLSessionWebSocketDelegate
+    
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        isSocketOpen = true
+        for text in pendingMessages {
+            send(text: text)
+        }
+        pendingMessages.removeAll()
+    }
+    
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        if let error = error {
+            if !isCompleted {
+                isCompleted = true
+                completion?(.failure(EdgeTTSError.socketError(error)))
+            }
+        }
     }
     
     private func generateSecMsGec() -> String {
@@ -184,4 +196,3 @@ extension Date {
         return formatter.string(from: self)
     }
 }
-
