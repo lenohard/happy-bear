@@ -102,11 +102,6 @@ struct CollectionDetailView: View {
             } message: { error in
                 Text(error)
             }
-            .fileImporter(
-                isPresented: $viewModel.showEbookFileImporter,
-                allowedContentTypes: [UTType("org.idpf.epub-container") ?? .epub],
-                onCompletion: viewModel.handleEbookFileImport
-            )
             .alert(
                 NSLocalizedString("error_title", comment: "Generic error title"),
                 isPresented: $viewModel.showTranscriptDeletionError,
@@ -160,6 +155,11 @@ struct CollectionDetailView: View {
             }
 
         let viewWithSheets = viewWithAlerts
+            .fileImporter(
+                isPresented: $viewModel.showEbookFileImporter,
+                allowedContentTypes: [.epub],
+                onCompletion: viewModel.handleEbookFileImport
+            )
             .fullScreenCover(isPresented: $viewModel.showTrackPicker) {
                 TrackPickerView(
                     collectionID: viewModel.collectionID,
