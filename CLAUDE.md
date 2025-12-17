@@ -32,7 +32,8 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Swipe Actions**: Use `.labelStyle(.iconOnly)` for swipe buttons to ensure centering.
 
 ### Baidu & Networking
-- **WebSocket Handshake**: Always wait for `didOpenWithProtocol` before sending. For critical tasks (TTS), prefer creating a fresh `URLSession` per request to avoid stale connection states on VPNs.
+- **WebSocket Handshake**: Always wait for `didOpenWithProtocol`. Use fresh `URLSession` per request for stability.
+- **SSML/XML**: Always escape text input (especially `&`, `<`, `>`) before embedding in SSML. Malformed XML causes the server to drop the connection immediately, leading to confusing "Socket not connected" errors.
 - **Collection Refresh**: Relies on fixed folder paths. Renaming the source folder in Netdisk breaks refresh; adding files to the folder is supported.
 - **Streaming**: Baidu Netdisk does not natively support WebM streaming.
 

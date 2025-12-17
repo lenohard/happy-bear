@@ -79,10 +79,20 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
         queueOrSend(text: configMessage)
         
         // Send SSML
-        let ssml = "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>\n<voice name='\(voice)'>\n<prosody pitch='\(pitch)' rate='\(rate)'>\n\(text)\n</prosody>\n</voice>\n</speak>"
+        let escapedText = escapeXML(text)
+        let ssml = "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>\n<voice name='\(voice)'>\n<prosody pitch='\(pitch)' rate='\(rate)'>\n\(escapedText)\n</prosody>\n</voice>\n</speak>"
         
         let ssmlMessage = "Content-Type: application/ssml+xml\r\nPath: ssml\r\nX-RequestId: \(connectId)\r\nX-Timestamp: \(timestamp)\r\n\r\n\(ssml)"
         queueOrSend(text: ssmlMessage)
+    }
+    
+    private func escapeXML(_ text: String) -> String {
+        return text
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&apos;")
     }
     
     private func queueOrSend(text: String) {
