@@ -260,9 +260,9 @@ struct CollectionDetailView: View {
             }
 
         let viewWithPlaybackEvents = viewWithSheets
-            .onChange(of: audioPlayer.currentTrack?.id) { _ in
+            .onChange(of: audioPlayer.currentTrack?.id) { _, _ in
                 let currentCollection = viewModel.collection
-                
+
                 if
                     audioPlayer.activeCollection?.id == viewModel.collectionID,
                     let collection = currentCollection,
@@ -277,12 +277,12 @@ struct CollectionDetailView: View {
             .background(CollectionPlaybackProgressObserver(collectionID: viewModel.collectionID))
 
         let viewWithStateEvents = viewWithPlaybackEvents
-            .onChange(of: viewModel.trackToRename) { newValue in
+            .onChange(of: viewModel.trackToRename) { _, newValue in
                 if newValue == nil {
                     viewModel.trackTitleDraft = ""
                 }
             }
-            .onChange(of: viewModel.showCollectionInfoSheet) { newValue in
+            .onChange(of: viewModel.showCollectionInfoSheet) { _, newValue in
                 if !newValue {
                     viewModel.collectionTitleDraft = ""
                     viewModel.collectionDescriptionDraft = ""

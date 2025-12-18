@@ -91,6 +91,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Allow happyBear to access your photos for collection covers.</string>
 	<key>UIApplicationSceneManifest</key>
