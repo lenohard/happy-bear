@@ -38,6 +38,12 @@ struct FloatingVideoPlayerView: View {
                 videoPlayerView
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
+                // Invisible tappable layer to ensure taps are captured (especially over AVKit VideoPlayer)
+                Color.black.opacity(0.001)
+                    .onTapGesture {
+                        toggleControls()
+                    }
+
                 if showControls {
                     controlsOverlay
                 }
@@ -61,9 +67,6 @@ struct FloatingVideoPlayerView: View {
                         position = clampPosition(newPosition, in: geometry)
                     }
             )
-            .onTapGesture {
-                toggleControls()
-            }
             .onAppear {
                 position = clampPosition(position, in: geometry)
                 scheduleControlsHide()

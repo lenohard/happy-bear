@@ -52,8 +52,8 @@ class FloatingVideoWindowManager: ObservableObject {
         window.backgroundColor = .clear
         window.isUserInteractionEnabled = true
 
-        // Always capture touches within the video window area
-        window.shouldHandleTouch = { _ in true }
+        // Remove explicit touch handler to allow pass-through for transparent areas
+        // window.shouldHandleTouch = { _ in true }
 
         let videoView = FloatingVideoPlayerView(
             url: url,
