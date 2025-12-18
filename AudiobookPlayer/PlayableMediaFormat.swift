@@ -33,4 +33,22 @@ enum PlayableMediaFormat {
         let ext = (filename as NSString).pathExtension.lowercased()
         return vlcRequiredExtensions.contains(ext)
     }
+
+    /// Video formats that support audio-only playback via AVPlayer (e.g., MP4, MOV)
+    /// MKV/WebM cannot extract audio with AVPlayer
+    static let audioExtractableVideoExtensions: Set<String> = [
+        "mp4", "mov"
+    ]
+
+    /// Check if a video file supports audio-only playback (AVPlayer can extract audio)
+    static func supportsAudioOnlyPlayback(forFilename filename: String) -> Bool {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        return audioExtractableVideoExtensions.contains(ext)
+    }
+
+    /// Check if a file is a video format
+    static func isVideo(forFilename filename: String) -> Bool {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        return videoExtensions.contains(ext)
+    }
 }

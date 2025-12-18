@@ -155,24 +155,6 @@ struct CollectionDetailView: View {
             }
 
         let viewWithSheets = viewWithAlerts
-            .fileImporter(
-                isPresented: $viewModel.showEbookFileImporter,
-                allowedContentTypes: [.epub],
-                allowsMultipleSelection: false,
-                onCompletion: { result in
-                    print("[CollectionDetailView] File importer completed")
-                    switch result {
-                    case .success(let urls):
-                        if let url = urls.first {
-                            viewModel.handleEbookFileImport(.success(url))
-                        } else {
-                            print("[CollectionDetailView] No file selected")
-                        }
-                    case .failure(let error):
-                        viewModel.handleEbookFileImport(.failure(error))
-                    }
-                }
-            )
             .fullScreenCover(isPresented: $viewModel.showTrackPicker) {
                 TrackPickerView(
                     collectionID: viewModel.collectionID,
@@ -456,6 +438,23 @@ struct CollectionDetailView: View {
                 print("[CollectionDetailView] Received TranscriptionCompleted notification")
                 // Reload transcript status when a transcription completes
                 viewModel.loadTranscriptStatus()
+            }
+            .fileImporter(
+                isPresented: $viewModel.showEbookFileImporter,
+                allowedContentTypes: [UTType.epub],
+                allowsMultipleSelection: false
+            ) { result in
+                print("[CollectionDetailView] File importer completed")
+                switch result {
+                case .success(let urls):
+                    if let url = urls.first {
+                        viewModel.handleEbookFileImport(.success(url))
+                    } else {
+                        print("[CollectionDetailView] No file selected")
+                    }
+                case .failure(let error):
+                    viewModel.handleEbookFileImport(.failure(error))
+                }
             }
     }
 

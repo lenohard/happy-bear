@@ -166,7 +166,7 @@ struct PlayingView: View {
     @State private var libraryLoaded = false
     @StateObject private var trackSummaryViewModel = TrackSummaryViewModel()
     @State private var autoSummaryGuards: Set<String> = []
-    @State private var showingVideoPlayer = false
+    @StateObject private var floatingVideoManager = FloatingVideoWindowManager()
 
     private var currentPlayback: PlaybackSnapshot? {
         guard let currentTrack = audioPlayer.currentTrack else {
@@ -281,25 +281,6 @@ struct PlayingView: View {
         .sheet(item: $transcriptViewerTrack) { track in
             TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
         }
-        .sheet(isPresented: $showingVideoPlayer) {
-            #if canImport(MobileVLCKit)
-            if audioPlayer.currentTrackRequiresVLC,
-               let vlcURL = audioPlayer.currentVLCStreamingURL,
-               let trackName = audioPlayer.currentTrack?.displayName {
-                VLCVideoPlayerSheet(
-                    url: vlcURL,
-                    title: trackName,
-                    onDismiss: { }
-                )
-            } else if let player = audioPlayer.sharedVideoPlayer {
-                VideoPlayerSheet(player: player)
-            }
-            #else
-            if let player = audioPlayer.sharedVideoPlayer {
-                VideoPlayerSheet(player: player)
-            }
-            #endif
-        }
         // Keep high-frequency playback ticks out of this view's invalidation path.
         .background(PlaybackProgressObserver(onTick: syncPlaybackState))
         .onChange(of: audioPlayer.currentTrack?.id) { _ in
@@ -381,7 +362,7 @@ struct PlayingView: View {
                     
                     if snapshot.track.isVideoTrack {
                         Button {
-                            showingVideoPlayer = true
+                            showFloatingVideo(track: snapshot.track)
                         } label: {
                             Label("Show Video", systemImage: "film")
                                 .font(.caption)
@@ -590,7 +571,7 @@ struct PlayingView: View {
                     }
 
                     Button {
-                        audioPlayer.togglePlayback()
+                        handlePlayButtonPress(track: snapshot.track)
                     } label: {
                         Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
                             .font(.system(size: 44))
@@ -665,6 +646,20 @@ struct PlayingView: View {
                 DownloadButton(track: track, collection: collection)
             } else if case .external = track.location {
                 DownloadButton(track: track, collection: collection)
+            }
+
+            // Audio-only button for video tracks that support audio extraction
+            if track.isVideoTrack && PlayableMediaFormat.supportsAudioOnlyPlayback(forFilename: track.filename) {
+                Button {
+                    // Force audio-only playback (don't show video)
+                    audioPlayer.togglePlayback()
+                } label: {
+                    Image(systemName: "waveform")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Audio Only"))
             }
 
             let isCollectionShuffleEnabled = collection.shuffleEnabled
@@ -1063,6 +1058,48 @@ struct PlayingView: View {
             )
         } catch {
             print("[AutoSummary] Failed to queue summary for track \(trackId): \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Video Player Helpers
+
+    private func showFloatingVideo(track: AudiobookTrack) {
+        guard let url = getVideoURL(for: track) else {
+            return
+        }
+
+        let requiresVLC = PlayableMediaFormat.requiresVLC(forFilename: track.filename)
+        floatingVideoManager.show(
+            url: url,
+            title: track.displayName,
+            requiresVLC: requiresVLC,
+            audioPlayer: requiresVLC ? nil : audioPlayer
+        )
+    }
+
+    private func handlePlayButtonPress(track: AudiobookTrack) {
+        // For video tracks, show the floating video player by default
+        if track.isVideoTrack {
+            if audioPlayer.isPlaying {
+                // If already playing, just toggle playback
+                audioPlayer.togglePlayback()
+            } else {
+                // Not playing - show video for video tracks
+                showFloatingVideo(track: track)
+            }
+        } else {
+            // Audio track - normal playback toggle
+            audioPlayer.togglePlayback()
+        }
+    }
+
+    private func getVideoURL(for track: AudiobookTrack) -> URL? {
+        if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
+            return audioPlayer.currentVLCStreamingURL
+        } else {
+            // For AVPlayer-supported formats, we can use the shared player
+            // URL is not needed as we'll use the existing audioPlayer.sharedVideoPlayer
+            return URL(string: "dummy://url") // Placeholder - won't be used
         }
     }
 }

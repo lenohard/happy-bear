@@ -6,6 +6,7 @@
 **Note**: The `./local/` folder is **NOT** ignored by git for this repository.
 
 ## Recent Progress (Dec 2025)
+- **VLC Video Support (Dec 18)**: Integrated MobileVLCKit v3.7.0 via CocoaPods for MKV/WebM playback. Added `VLCVideoPlayerView` wrapper with custom controls. Format detection blocks AVPlayer from attempting unsupported formats. Current limitation: MKV audio-only playback unavailable (AVPlayer cannot extract audio from MKV container).
 - **MVVM & Performance (Dec 12-15)**: Refactored `CollectionDetailView` to MVVM to fix actor isolation. Implemented background thumbnail generation (320px) + NSCache for smooth library scrolling. Moved heavy model grouping to background tasks.
 - **RSS Support (Dec 7)**: Added `.rss` source support, feed import, and remote cover caching. Covers are now prefetched and stored locally.
 - **Playback Features (Dec 8)**: Added Random Play (shuffle), fixed Play button token guard (offline play), and improved Floating Bubble visibility using a separate `UIWindow` (level `.alert + 1`).
@@ -37,11 +38,18 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Collection Refresh**: Relies on fixed folder paths. Renaming the source folder in Netdisk breaks refresh; adding files to the folder is supported.
 - **Streaming**: Baidu Netdisk does not natively support WebM streaming.
 
+### Video Playback & Format Support
+- **MKV/WebM Streaming**: AVPlayer cannot handle MKV/WebM containers. Use MobileVLCKit (v3.7.0+) for these formats.
+- **Format Detection**: Use `PlayableMediaFormat.requiresVLC()` to check if a file needs VLC before passing to AVPlayer. Always block unsupported formats from AVPlayer to prevent crashes.
+- **Audio Extraction Limitation**: AVPlayer cannot extract audio from MKV containers. MKV files are video-only (requires "Show Video" button). MP4/MOV support both audio-only and full video playback.
+- **Future Improvement**: MKV audio-only playback requires either (1) FFmpeg audio extraction with caching, or (2) VLC audio mode in AudioPlayerViewModel. Current implementation uses video-only to prevent AVPlayer crashes.
+
 ### Build & Xcode
 - **Database Locked**: If `xcodebuild` fails with "database is locked", wait/retry or run `killall xcodebuild` and clear DerivedData.
 - **Duplicate Body**: "Declaration only valid at file scope" often means a duplicate `var body: some View` line.
 - **Catalyst**: Enable **Keychain Sharing** capability for Mac Catalyst builds to allow Keychain writes in unsigned DMGs.
 - **Build Filters**: Use `xcodebuild ... | grep -E "error:|warning:|BUILD"` to reduce noise.
+- **CocoaPods Workspace**: Always open `.xcworkspace` (not `.xcodeproj`) when CocoaPods dependencies are present. Run `pod install` after Podfile changes. Use `pod deintegrate && pod install` to reset if framework linking issues occur.
 
 ## Main Views & Workflows
 
@@ -85,8 +93,20 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - Controls: play/pause, seek, skip ±15/30s, prev/next track, speed 0.5x-3.0x, shuffle
 - Sleep timer: Off, Time-based, End-of-track
 - Cache integration: checks `AudioCacheManager`, streams if not cached
+- VLC support: `currentVLCStreamingURL` property for MKV/WebM streams, format detection blocks AVPlayer
 - Remote commands: lock screen/control center (play, skip, now playing info, favorite state)
 - Session tracking: auto-saves progress, resume from last position
+
+**VLCVideoPlayerView.swift** - MKV/WebM video playback
+- SwiftUI wrapper for VLCMediaPlayer with UIViewRepresentable pattern
+- Coordinator manages VLC player lifecycle, delegates for state/time updates
+- Full video controls: play/pause, seek slider (with time display), skip ±15s, draggable overlay
+
+**VLCVideoPlayerSheet.swift** - Video player sheet interface
+- Fullscreen video with tap-to-toggle overlay controls
+- Top bar: close button, video title
+- Bottom bar: progress slider, current/total time, playback buttons
+- Black background, gradient overlays for readability
 
 **FloatingPlaybackBubbleView.swift** - Global mini-player
 - Separate UIWindow (level `.alert + 1`) for persistent overlay
@@ -121,10 +141,10 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - Storage: Cache management (`CacheManagementView`), disk usage breakdown
 
 ## Architecture Snapshot
-- **Core**: SwiftUI + ObservableObject. AVFoundation for playback.
+- **Core**: SwiftUI + ObservableObject. AVFoundation for playback. MobileVLCKit for unsupported video formats.
 - **Data**: GRDB (SQLite) for library/transcripts. JSON fallback for portability.
 - **Modules**:
-  - `AudioPlayerViewModel`: AVPlayer wrapper, playback controls, sleep timer, shuffle, remote commands, cache integration
+  - `AudioPlayerViewModel`: AVPlayer wrapper, playback controls, sleep timer, shuffle, remote commands, cache integration, VLC format detection
   - `LibraryStore`: Collection CRUD, playback state persistence, favorites, cover image management
   - `CollectionDetailViewModel`: MVVM for track list with paging (>1000 tracks), filter/sort, transcript/summary status caching
   - `BaiduAuthViewModel` / `BaiduNetdiskClient`: OAuth flow, file listing, streaming URLs
@@ -134,26 +154,31 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
   - `GRDBDatabaseManager`: SQLite persistence layer (collections, tracks, transcripts, summaries, playback states)
   - `AudioCacheManager` / `AudioCacheDownloadManager`: Local audio file caching with byte-range support
   - `PlaybackClock`: High-frequency time updates isolated from main view hierarchy
+  - `VLCVideoPlayerView`: MobileVLCKit wrapper for MKV/WebM video playback
+  - `PlayableMediaFormat`: Format detection and VLC requirement checking
 
 ## Tech Decisions
 | Component | Choice | Notes |
 |-----------|--------|-------|
 | UI | SwiftUI | Modern standard. |
 | Audio | AVFoundation | Better control than MediaPlayer. |
+| Video | AVPlayer + MobileVLCKit | AVPlayer for MP4/MOV. VLC for MKV/WebM. |
 | DB | GRDB + SQLite | Robust, supports complex queries & concurrency. |
 | Async | async/await | Used for all network/DB ops. |
+| Dependency Management | CocoaPods | For MobileVLCKit integration. |
 
 ## Key Files Quick Reference
 | Category | Files |
 |----------|-------|
 | **Main Views** | `ContentView.swift`, `LibraryView.swift`, `SmartView.swift`, `PersonalView.swift` |
-| **Playback** | `AudioPlayerViewModel.swift`, `FloatingPlaybackBubbleView.swift`, `PlaybackClock` (in AudioPlayerVM) |
+| **Playback** | `AudioPlayerViewModel.swift`, `FloatingPlaybackBubbleView.swift`, `VLCVideoPlayerView.swift`, `PlaybackClock` (in AudioPlayerVM) |
 | **Collection Detail** | `CollectionDetailView.swift`, `CollectionDetailViewModel.swift` |
 | **Import Flows** | `CreateCollectionView.swift`, `CollectionBuilderViewModel.swift`, `BaiduNetdiskBrowserView.swift`, `AddRSSCollectionView.swift`, `CreateEbookCollectionView.swift` |
 | **AI/Transcription** | `TranscriptionManager.swift`, `AIGatewayViewModel.swift`, `AIGenerationManager.swift`, `SonioxSTTView.swift`, `EdgeTTSView.swift` |
 | **Data Layer** | `LibraryStore.swift`, `GRDBDatabaseManager.swift`, `AudioCacheManager.swift` |
 | **Auth** | `BaiduAuthViewModel.swift`, `BaiduNetdiskClient.swift`, `AliyunAuthViewModel.swift` |
 | **Settings** | `SettingsTabView.swift`, `CacheManagementView.swift`, `StorageManagementView.swift` |
+| **Format Support** | `PlayableMediaFormat.swift` (format detection, VLC requirements) |
 
 ## Dev Workflow & Tips
 ### App Icons
