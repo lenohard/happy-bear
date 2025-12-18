@@ -1136,6 +1136,7 @@ struct NativeVideoPlayerSheet: View {
 
             VStack {
                 HStack {
+                    Spacer()
                     Button {
                         dismiss()
                     } label: {
@@ -1144,7 +1145,6 @@ struct NativeVideoPlayerSheet: View {
                             .foregroundStyle(.white)
                             .padding()
                     }
-                    Spacer()
                 }
                 Spacer()
             }
