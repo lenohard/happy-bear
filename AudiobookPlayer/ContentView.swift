@@ -386,7 +386,7 @@ struct PlayingView: View {
                     
                     if snapshot.track.isVideoTrack {
                         Button {
-                            handlePlayButtonPress(track: snapshot.track)
+                            openVideoPlayer(for: snapshot.track)
                         } label: {
                             Label("Show Video", systemImage: "film")
                                 .font(.caption)
@@ -655,20 +655,6 @@ struct PlayingView: View {
                 .buttonStyle(.bordered)
 
                 Spacer()
-
-                // Audio-only button for video tracks that support audio extraction
-                if track.isVideoTrack && PlayableMediaFormat.supportsAudioOnlyPlayback(forFilename: track.filename) {
-                    Button {
-                        // Force audio-only playback (don't show video)
-                        audioPlayer.togglePlayback()
-                    } label: {
-                        Image(systemName: "waveform")
-                            .font(.title3)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Audio Only"))
-                }
 
                 Button {
                     library.toggleFavorite(for: track.id, in: collection.id)
@@ -1088,27 +1074,24 @@ struct PlayingView: View {
     // MARK: - Video Player Helpers
 
     private func handlePlayButtonPress(track: AudiobookTrack) {
-        // For video tracks, handle video playback
-        if track.isVideoTrack {
-            if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
-                // MKV/WebM -> Use VLC Sheet
-                if let url = audioPlayer.currentVLCStreamingURL {
-                    vlcPlayerURL = url
-                    vlcPlayerTitle = track.displayName
-                    showingVLCPlayer = true
+        // Play/pause always controls audio playback only
+        // Use "Show Video" button to open video player
+        audioPlayer.togglePlayback()
+    }
 
-                    // Pause audio player if it's playing audio
-                    if audioPlayer.isPlaying {
-                        audioPlayer.togglePlayback()
-                    }
-                }
-            } else {
-                // MP4/MOV -> Use Native AVPlayer Sheet (supports PiP)
-                showingNativePlayer = true
+    private func openVideoPlayer(for track: AudiobookTrack) {
+        guard track.isVideoTrack else { return }
+
+        if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
+            // MKV/WebM -> Use VLC Sheet
+            if let url = audioPlayer.currentVLCStreamingURL {
+                vlcPlayerURL = url
+                vlcPlayerTitle = track.displayName
+                showingVLCPlayer = true
             }
         } else {
-            // Audio track - normal playback toggle
-            audioPlayer.togglePlayback()
+            // MP4/MOV -> Use Native AVPlayer Sheet (supports PiP)
+            showingNativePlayer = true
         }
     }
 
@@ -1126,27 +1109,21 @@ struct NativeVideoPlayerSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ZStack {
-            Color.black.ignoresSafeArea()
-
+        ZStack(alignment: .topTrailing) {
             if let player = audioPlayer.sharedVideoPlayer {
-                VideoPlayer(player: player)
+                AVPlayerViewControllerRepresentable(player: player)
                     .ignoresSafeArea()
+            } else {
+                Color.black.ignoresSafeArea()
             }
 
-            VStack {
-                HStack {
-                    Spacer()
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundStyle(.white)
-                            .padding()
-                    }
-                }
-                Spacer()
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundStyle(.white)
+                    .padding()
             }
         }
     }

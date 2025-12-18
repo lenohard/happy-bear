@@ -1,23 +1,19 @@
 import SwiftUI
 import AVKit
 
-struct VideoPlayerSheet: View {
+/// Reusable UIViewControllerRepresentable wrapper for AVPlayerViewController with PiP support
+struct AVPlayerViewControllerRepresentable: UIViewControllerRepresentable {
     let player: AVPlayer
-    @Environment(\.dismiss) private var dismiss
 
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            VideoPlayer(player: player)
-                .ignoresSafeArea()
-            
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(.white)
-                    .padding()
-            }
-        }
+    func makeUIViewController(context: Context) -> AVPlayerViewController {
+        let controller = AVPlayerViewController()
+        controller.player = player
+        controller.allowsPictureInPicturePlayback = true
+        controller.canStartPictureInPictureAutomaticallyFromInline = true
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
+        uiViewController.player = player
     }
 }

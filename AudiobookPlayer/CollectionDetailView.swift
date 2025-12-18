@@ -11,6 +11,7 @@ struct CollectionDetailView: View {
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
+    @EnvironmentObject private var tabSelection: TabSelectionManager
 
     init(collectionID: UUID) {
         _viewModel = StateObject(wrappedValue: CollectionDetailViewModel(collectionID: collectionID))
