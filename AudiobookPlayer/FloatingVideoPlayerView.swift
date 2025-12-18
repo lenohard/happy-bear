@@ -11,9 +11,8 @@ struct FloatingVideoPlayerView: View {
     let requiresVLC: Bool
     let audioPlayer: AudioPlayerViewModel?
     let onDismiss: () -> Void
+    let onDrag: (CGSize) -> Void
 
-    @State private var position: CGPoint = CGPoint(x: UIScreen.main.bounds.width / 2, y: 200)
-    @State private var size: CGSize = CGSize(width: 300, height: 200)
     @GestureState private var dragOffset: CGSize = .zero
     @State private var isPlaying = true
     @State private var currentTime: Double = 0
@@ -26,53 +25,43 @@ struct FloatingVideoPlayerView: View {
     @State private var showControls = true
     @State private var controlsTimer: Timer?
 
-    private let minSize = CGSize(width: 200, height: 150)
-    private let maxSize = CGSize(width: UIScreen.main.bounds.width - 40, height: UIScreen.main.bounds.height - 100)
-
     var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                Color.black
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+        ZStack {
+            Color.black
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                videoPlayerView
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+            videoPlayerView
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                // Invisible tappable layer to ensure taps are captured (especially over AVKit VideoPlayer)
-                Color.black.opacity(0.001)
-                    .onTapGesture {
-                        toggleControls()
-                    }
-
-                if showControls {
-                    controlsOverlay
+            // Invisible tappable layer to ensure taps are captured (especially over AVKit VideoPlayer)
+            Color.black.opacity(0.001)
+                .onTapGesture {
+                    toggleControls()
                 }
-            }
-            .frame(width: size.width, height: size.height)
-            .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
-            .position(
-                x: position.x + dragOffset.width,
-                y: position.y + dragOffset.height
-            )
-            .gesture(
-                DragGesture()
-                    .updating($dragOffset) { value, state, _ in
-                        state = value.translation
-                    }
-                    .onEnded { value in
-                        let newPosition = CGPoint(
-                            x: position.x + value.translation.width,
-                            y: position.y + value.translation.height
-                        )
-                        position = clampPosition(newPosition, in: geometry)
-                    }
-            )
-            .onAppear {
-                position = clampPosition(position, in: geometry)
-                scheduleControlsHide()
+
+            if showControls {
+                controlsOverlay
             }
         }
-        .ignoresSafeArea()
+        .shadow(color: .black.opacity(0.3), radius: 10, x: 0, y: 5)
+        .gesture(
+            DragGesture()
+                .onChanged { value in
+                    onDrag(value.translation)
+                }
+                .onEnded { value in
+                    // Reset translation since we moved the window
+                }
+        )
+        .onAppear {
+            scheduleControlsHide()
+        }
+        // Close if track changes to something else
+        .onChange(of: audioPlayer?.currentTrack) { newTrack in
+            if let track = newTrack, !track.isVideoTrack {
+                onDismiss()
+            }
+        }
     }
 
     @ViewBuilder
@@ -281,15 +270,8 @@ struct FloatingVideoPlayerView: View {
     }
 
     private func clampPosition(_ point: CGPoint, in geometry: GeometryProxy) -> CGPoint {
-        let minX = size.width / 2 + geometry.safeAreaInsets.leading + 20
-        let maxX = geometry.size.width - size.width / 2 - geometry.safeAreaInsets.trailing - 20
-        let minY = size.height / 2 + geometry.safeAreaInsets.top + 20
-        let maxY = geometry.size.height - size.height / 2 - geometry.safeAreaInsets.bottom - 20
-
-        return CGPoint(
-            x: min(max(point.x, minX), maxX),
-            y: min(max(point.y, minY), maxY)
-        )
+        // No longer needed as window movement is handled by FloatingVideoWindowManager
+        return point
     }
 
     private func formatTime(_ seconds: Double) -> String {

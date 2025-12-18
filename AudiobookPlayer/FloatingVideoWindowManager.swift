@@ -4,33 +4,10 @@ import UIKit
 import MobileVLCKit
 #endif
 
-/// A UIWindow subclass that only intercepts touches on its subviews, passing through elsewhere
-private class VideoPassThroughWindow: UIWindow {
-    var shouldHandleTouch: ((CGPoint) -> Bool)?
-
-    override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        guard let hitView = super.hitTest(point, with: event) else {
-            return nil
-        }
-
-        if let shouldHandle = shouldHandleTouch {
-            if !shouldHandle(point) {
-                return nil
-            }
-        } else {
-            if hitView == rootViewController?.view {
-                return nil
-            }
-        }
-
-        return hitView
-    }
-}
-
 /// Manages a separate UIWindow for the floating video player to ensure it stays on top
 @MainActor
 class FloatingVideoWindowManager: ObservableObject {
-    private var videoWindow: VideoPassThroughWindow?
+    private var videoWindow: UIWindow?
     @Published var isShowing = false
 
     func show(
@@ -47,13 +24,17 @@ class FloatingVideoWindowManager: ObservableObject {
             return
         }
 
-        let window = VideoPassThroughWindow(windowScene: windowScene)
+        let window = UIWindow(windowScene: windowScene)
         window.windowLevel = .alert + 2 // Above bubble and sheets
         window.backgroundColor = .clear
         window.isUserInteractionEnabled = true
 
-        // Remove explicit touch handler to allow pass-through for transparent areas
-        // window.shouldHandleTouch = { _ in true }
+        // Initial size and position
+        let width: CGFloat = 300
+        let height: CGFloat = 200
+        let x = (UIScreen.main.bounds.width - width) / 2
+        let y: CGFloat = 200
+        window.frame = CGRect(x: x, y: y, width: width, height: height)
 
         let videoView = FloatingVideoPlayerView(
             url: url,
@@ -62,11 +43,23 @@ class FloatingVideoWindowManager: ObservableObject {
             audioPlayer: audioPlayer,
             onDismiss: { [weak self] in
                 self?.hide()
+            },
+            onDrag: { [weak window] translation in
+                guard let window = window else { return }
+                let newOrigin = CGPoint(
+                    x: window.frame.origin.x + translation.width,
+                    y: window.frame.origin.y + translation.height
+                )
+                window.frame.origin = newOrigin
             }
         )
 
         let hostingController = UIHostingController(rootView: videoView)
-        hostingController.view.backgroundColor = UIColor.clear
+        hostingController.view.backgroundColor = .clear
+
+        // Ensure the hosting controller's view fills the window
+        hostingController.view.frame = window.bounds
+        hostingController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
 
         window.rootViewController = hostingController
         window.isHidden = false
