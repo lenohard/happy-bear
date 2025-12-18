@@ -571,7 +571,7 @@ struct PlayingView: View {
                     }
 
                     Button {
-                        handlePlayButtonPress(track: snapshot.track)
+                        handlePlayButtonPress(track: track)
                     } label: {
                         Image(systemName: audioPlayer.isPlaying ? "pause.fill" : "play.fill")
                             .font(.system(size: 44))

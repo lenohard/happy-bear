@@ -18,7 +18,11 @@ struct FloatingVideoPlayerView: View {
     @State private var isPlaying = true
     @State private var currentTime: Double = 0
     @State private var duration: Double = 0
+    #if canImport(MobileVLCKit)
     @State private var vlcPlayer: VLCMediaPlayer?
+    #else
+    @State private var vlcPlayer: Any? // Placeholder to satisfy compiler if VLC is missing
+    #endif
     @State private var showControls = true
     @State private var controlsTimer: Timer?
 
@@ -113,7 +117,9 @@ struct FloatingVideoPlayerView: View {
                 Spacer()
 
                 Button {
+                    #if canImport(MobileVLCKit)
                     vlcPlayer?.stop()
+                    #endif
                     onDismiss()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
