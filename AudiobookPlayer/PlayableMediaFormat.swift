@@ -22,4 +22,15 @@ enum PlayableMediaFormat {
     static func isPlayableExtension(_ ext: String) -> Bool {
         playableExtensions.contains(ext.lowercased())
     }
+
+    /// Formats that require VLC for playback (not natively supported by AVPlayer)
+    static let vlcRequiredExtensions: Set<String> = [
+        "mkv", "webm"
+    ]
+
+    /// Check if a file requires VLC for playback
+    static func requiresVLC(forFilename filename: String) -> Bool {
+        let ext = (filename as NSString).pathExtension.lowercased()
+        return vlcRequiredExtensions.contains(ext)
+    }
 }

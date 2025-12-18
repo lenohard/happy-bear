@@ -15,3 +15,7 @@ build/
 xcschememanagement.plist
 
 *.dmg
+
+# CocoaPods
+Pods/
+*.xcworkspace

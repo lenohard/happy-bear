@@ -137,6 +137,35 @@ final class AudioPlayerViewModel: ObservableObject {
         player
     }
 
+    /// Returns the current streaming URL if playing a track that requires VLC (e.g., MKV)
+    /// Returns nil if no track is playing, track doesn't require VLC, or URL can't be obtained
+    var currentVLCStreamingURL: URL? {
+        guard let track = currentTrack,
+              PlayableMediaFormat.requiresVLC(forFilename: track.filename) else {
+            return nil
+        }
+
+        switch track.location {
+        case .baidu(_, let path):
+            guard let token = currentToken else { return nil }
+            return try? netdiskClient.downloadURL(forPath: path, token: token)
+        case .external(let url):
+            return url
+        case .local(let urlBookmark):
+            // Resolve the URL bookmark to get the actual file URL
+            var isStale = false
+            return try? URL(resolvingBookmarkData: urlBookmark, options: [], relativeTo: nil, bookmarkDataIsStale: &isStale)
+        case .text, .cachedText:
+            return nil
+        }
+    }
+
+    /// Check if the current track requires VLC for playback
+    var currentTrackRequiresVLC: Bool {
+        guard let track = currentTrack else { return false }
+        return PlayableMediaFormat.requiresVLC(forFilename: track.filename)
+    }
+
     func prepare(with url: URL) {
         stopPlayback(clearQueue: true)
         pendingInitialSeek = nil
@@ -235,6 +264,15 @@ final class AudioPlayerViewModel: ObservableObject {
 
         if let existingTrack = currentTrack, existingTrack.id != track.id {
             progressTracker.stopTracking(for: existingTrack.id.uuidString)
+        }
+
+        // Check if track requires VLC (MKV/WebM)
+        if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
+            currentTrack = track
+            statusMessage = NSLocalizedString("video_vlc_required", comment: "Video requires VLC player")
+            // Don't prepare AVPlayer for VLC-required formats
+            // User must tap "Show Video" button to play in VLC
+            return
         }
 
         // Check for ebook track and missing audio
@@ -827,6 +865,15 @@ final class AudioPlayerViewModel: ObservableObject {
 
         if let existingTrack = currentTrack, existingTrack.id != track.id {
             progressTracker.stopTracking(for: existingTrack.id.uuidString)
+        }
+
+        // Check if track requires VLC (MKV/WebM)
+        if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
+            currentTrack = track
+            statusMessage = NSLocalizedString("video_vlc_required", comment: "Video requires VLC player")
+            // Don't prepare AVPlayer for VLC-required formats
+            // User must tap "Show Video" button to play in VLC
+            return
         }
 
         do {

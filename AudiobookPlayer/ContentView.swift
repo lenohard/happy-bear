@@ -1,5 +1,8 @@
 import SwiftUI
 import AVKit
+#if canImport(MobileVLCKit)
+import MobileVLCKit
+#endif
 
 @MainActor
 final class TabSelectionManager: ObservableObject {
@@ -279,9 +282,23 @@ struct PlayingView: View {
             TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName)
         }
         .sheet(isPresented: $showingVideoPlayer) {
+            #if canImport(MobileVLCKit)
+            if audioPlayer.currentTrackRequiresVLC,
+               let vlcURL = audioPlayer.currentVLCStreamingURL,
+               let trackName = audioPlayer.currentTrack?.displayName {
+                VLCVideoPlayerSheet(
+                    url: vlcURL,
+                    title: trackName,
+                    onDismiss: { }
+                )
+            } else if let player = audioPlayer.sharedVideoPlayer {
+                VideoPlayerSheet(player: player)
+            }
+            #else
             if let player = audioPlayer.sharedVideoPlayer {
                 VideoPlayerSheet(player: player)
             }
+            #endif
         }
         // Keep high-frequency playback ticks out of this view's invalidation path.
         .background(PlaybackProgressObserver(onTick: syncPlaybackState))

@@ -6482,6 +6482,9 @@
         }
       }
     },
+    "video_vlc_required" : {
+      "comment" : "Video requires VLC player"
+    },
     "View TTS progress" : {
 
     },
