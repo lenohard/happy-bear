@@ -870,6 +870,7 @@ struct CollectionDetailView: View {
                         isTranscribing: isTranscribingTrack,
                         onSelect: {
                             viewModel.startPlayback(track, in: collection)
+                            tabSelection.switchToPlayingTab()
                         },
                         onToggleFavorite: {
                             library.toggleFavorite(for: track.id, in: collection.id)
