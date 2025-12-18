@@ -166,7 +166,10 @@ struct PlayingView: View {
     @State private var libraryLoaded = false
     @StateObject private var trackSummaryViewModel = TrackSummaryViewModel()
     @State private var autoSummaryGuards: Set<String> = []
-    @StateObject private var floatingVideoManager = FloatingVideoWindowManager()
+    @State private var showingVLCPlayer = false
+    @State private var showingNativePlayer = false
+    @State private var vlcPlayerURL: URL?
+    @State private var vlcPlayerTitle: String = ""
 
     private var currentPlayback: PlaybackSnapshot? {
         guard let currentTrack = audioPlayer.currentTrack else {
@@ -334,6 +337,22 @@ struct PlayingView: View {
         .onDisappear {
             transcriptStatusTask?.cancel()
         }
+        #if canImport(MobileVLCKit)
+        .fullScreenCover(isPresented: $showingVLCPlayer) {
+            if let url = vlcPlayerURL {
+                VLCVideoPlayerSheet(
+                    url: url,
+                    title: vlcPlayerTitle,
+                    onDismiss: {
+                        showingVLCPlayer = false
+                    }
+                )
+            }
+        }
+        #endif
+        .fullScreenCover(isPresented: $showingNativePlayer) {
+            NativeVideoPlayerSheet(audioPlayer: audioPlayer)
+        }
     }
 
     @ViewBuilder
@@ -362,7 +381,7 @@ struct PlayingView: View {
                     
                     if snapshot.track.isVideoTrack {
                         Button {
-                            showFloatingVideo(track: snapshot.track)
+                            handlePlayButtonPress(track: snapshot.track)
                         } label: {
                             Label("Show Video", systemImage: "film")
                                 .font(.caption)
@@ -1063,29 +1082,24 @@ struct PlayingView: View {
 
     // MARK: - Video Player Helpers
 
-    private func showFloatingVideo(track: AudiobookTrack) {
-        guard let url = getVideoURL(for: track) else {
-            return
-        }
-
-        let requiresVLC = PlayableMediaFormat.requiresVLC(forFilename: track.filename)
-        floatingVideoManager.show(
-            url: url,
-            title: track.displayName,
-            requiresVLC: requiresVLC,
-            audioPlayer: requiresVLC ? nil : audioPlayer
-        )
-    }
-
     private func handlePlayButtonPress(track: AudiobookTrack) {
-        // For video tracks, show the floating video player by default
+        // For video tracks, handle video playback
         if track.isVideoTrack {
-            if audioPlayer.isPlaying {
-                // If already playing, just toggle playback
-                audioPlayer.togglePlayback()
+            if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
+                // MKV/WebM -> Use VLC Sheet
+                if let url = audioPlayer.currentVLCStreamingURL {
+                    vlcPlayerURL = url
+                    vlcPlayerTitle = track.displayName
+                    showingVLCPlayer = true
+
+                    // Pause audio player if it's playing audio
+                    if audioPlayer.isPlaying {
+                        audioPlayer.pause()
+                    }
+                }
             } else {
-                // Not playing - show video for video tracks
-                showFloatingVideo(track: track)
+                // MP4/MOV -> Use Native AVPlayer Sheet (supports PiP)
+                showingNativePlayer = true
             }
         } else {
             // Audio track - normal playback toggle
@@ -1097,9 +1111,38 @@ struct PlayingView: View {
         if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
             return audioPlayer.currentVLCStreamingURL
         } else {
-            // For AVPlayer-supported formats, we can use the shared player
-            // URL is not needed as we'll use the existing audioPlayer.sharedVideoPlayer
-            return URL(string: "dummy://url") // Placeholder - won't be used
+            return nil
+        }
+    }
+}
+
+struct NativeVideoPlayerSheet: View {
+    @ObservedObject var audioPlayer: AudioPlayerViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            if let player = audioPlayer.sharedVideoPlayer {
+                VideoPlayer(player: player)
+                    .ignoresSafeArea()
+            }
+
+            VStack {
+                HStack {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundStyle(.white)
+                            .padding()
+                    }
+                    Spacer()
+                }
+                Spacer()
+            }
         }
     }
 }
