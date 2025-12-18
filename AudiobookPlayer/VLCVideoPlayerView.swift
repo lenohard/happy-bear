@@ -4,39 +4,35 @@ import MobileVLCKit
 
 /// A SwiftUI wrapper around VLCMediaPlayer for playing video formats not supported by AVPlayer (e.g., MKV).
 struct VLCVideoPlayerView: UIViewRepresentable {
-    let url: URL
+    let player: VLCMediaPlayer
     let isPlaying: Binding<Bool>
     let currentTime: Binding<Double>
     let duration: Binding<Double>
-    let onPlayerReady: ((VLCMediaPlayer) -> Void)?
 
     init(
-        url: URL,
+        player: VLCMediaPlayer,
         isPlaying: Binding<Bool> = .constant(true),
         currentTime: Binding<Double> = .constant(0),
-        duration: Binding<Double> = .constant(0),
-        onPlayerReady: ((VLCMediaPlayer) -> Void)? = nil
+        duration: Binding<Double> = .constant(0)
     ) {
-        self.url = url
+        self.player = player
         self.isPlaying = isPlaying
         self.currentTime = currentTime
         self.duration = duration
-        self.onPlayerReady = onPlayerReady
     }
 
     func makeUIView(context: Context) -> UIView {
         let view = UIView()
         view.backgroundColor = .black
-        context.coordinator.setupPlayer(in: view, url: url)
+        context.coordinator.setupPlayer(in: view, player: player)
         return view
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        let player = context.coordinator.player
-        if isPlaying.wrappedValue && player?.state != .playing {
-            player?.play()
-        } else if !isPlaying.wrappedValue && player?.state == .playing {
-            player?.pause()
+        if isPlaying.wrappedValue && player.state != .playing {
+            player.play()
+        } else if !isPlaying.wrappedValue && player.state == .playing {
+            player.pause()
         }
     }
 
@@ -51,28 +47,26 @@ struct VLCVideoPlayerView: UIViewRepresentable {
     class Coordinator: NSObject, VLCMediaPlayerDelegate {
         var parent: VLCVideoPlayerView
         var player: VLCMediaPlayer?
-        private var timeObserverActive = false
 
         init(_ parent: VLCVideoPlayerView) {
             self.parent = parent
             super.init()
         }
 
-        func setupPlayer(in view: UIView, url: URL) {
-            let media = VLCMedia(url: url)
-            let player = VLCMediaPlayer()
+        func setupPlayer(in view: UIView, player: VLCMediaPlayer) {
+            self.player = player
             player.delegate = self
             player.drawable = view
-            player.media = media
-            self.player = player
-
-            // Start playback
-            player.play()
-            parent.onPlayerReady?(player)
+            
+            if player.state == .stopped || player.state == .ended {
+                player.play()
+            }
         }
 
         func cleanup() {
-            player?.stop()
+            // Do NOT stop the player here to allow background playback (minimize)
+            // Just detach the view
+            player?.drawable = nil
             player?.delegate = nil
             player = nil
         }
@@ -117,29 +111,25 @@ struct VLCVideoPlayerView: UIViewRepresentable {
 
 /// A sheet view for VLC-based video playback with controls.
 struct VLCVideoPlayerSheet: View {
-    let url: URL
+    let player: VLCMediaPlayer
     let title: String
-    let onDismiss: () -> Void
+    let onMinimize: () -> Void
+    let onClose: () -> Void
 
     @State private var isPlaying = true
     @State private var currentTime: Double = 0
     @State private var duration: Double = 0
-    @State private var player: VLCMediaPlayer?
     @State private var showControls = true
-    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
             VLCVideoPlayerView(
-                url: url,
+                player: player,
                 isPlaying: $isPlaying,
                 currentTime: $currentTime,
-                duration: $duration,
-                onPlayerReady: { player in
-                    self.player = player
-                }
+                duration: $duration
             )
             .ignoresSafeArea()
             .onTapGesture {
@@ -152,9 +142,6 @@ struct VLCVideoPlayerSheet: View {
                 controlsOverlay
             }
         }
-        .onDisappear {
-            player?.stop()
-        }
     }
 
     private var controlsOverlay: some View {
@@ -162,9 +149,7 @@ struct VLCVideoPlayerSheet: View {
             // Top bar with close button and title
             HStack {
                 Button {
-                    player?.stop()
-                    dismiss()
-                    onDismiss()
+                    onClose()
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title)
@@ -177,6 +162,14 @@ struct VLCVideoPlayerSheet: View {
                     .lineLimit(1)
 
                 Spacer()
+                
+                Button {
+                    onMinimize()
+                } label: {
+                    Image(systemName: "arrow.down.right.and.arrow.up.left.circle.fill")
+                        .font(.title)
+                        .foregroundStyle(.white)
+                }
             }
             .padding()
             .background(
@@ -197,7 +190,7 @@ struct VLCVideoPlayerSheet: View {
                         value: Binding(
                             get: { currentTime },
                             set: { newValue in
-                                player?.time = VLCTime(int: Int32(newValue * 1000))
+                                player.time = VLCTime(int: Int32(newValue * 1000))
                             }
                         ),
                         in: 0...duration
@@ -216,7 +209,7 @@ struct VLCVideoPlayerSheet: View {
                 // Playback controls
                 HStack(spacing: 40) {
                     Button {
-                        player?.jumpBackward(15)
+                        player.jumpBackward(15)
                     } label: {
                         Image(systemName: "gobackward.15")
                             .font(.title2)
@@ -224,9 +217,9 @@ struct VLCVideoPlayerSheet: View {
 
                     Button {
                         if isPlaying {
-                            player?.pause()
+                            player.pause()
                         } else {
-                            player?.play()
+                            player.play()
                         }
                     } label: {
                         Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
@@ -234,7 +227,7 @@ struct VLCVideoPlayerSheet: View {
                     }
 
                     Button {
-                        player?.jumpForward(15)
+                        player.jumpForward(15)
                     } label: {
                         Image(systemName: "goforward.15")
                             .font(.title2)

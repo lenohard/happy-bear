@@ -340,10 +340,15 @@ struct PlayingView: View {
         #if canImport(MobileVLCKit)
         .fullScreenCover(isPresented: $showingVLCPlayer) {
             if let url = vlcPlayerURL {
+                let player = audioPlayer.getOrCreateVLCPlayer(url: url)
                 VLCVideoPlayerSheet(
-                    url: url,
+                    player: player,
                     title: vlcPlayerTitle,
-                    onDismiss: {
+                    onMinimize: {
+                        showingVLCPlayer = false
+                    },
+                    onClose: {
+                        audioPlayer.releaseVLCPlayer()
                         showingVLCPlayer = false
                     }
                 )
@@ -651,6 +656,20 @@ struct PlayingView: View {
 
                 Spacer()
 
+                // Audio-only button for video tracks that support audio extraction
+                if track.isVideoTrack && PlayableMediaFormat.supportsAudioOnlyPlayback(forFilename: track.filename) {
+                    Button {
+                        // Force audio-only playback (don't show video)
+                        audioPlayer.togglePlayback()
+                    } label: {
+                        Image(systemName: "waveform")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text("Audio Only"))
+                }
+
                 Button {
                     library.toggleFavorite(for: track.id, in: collection.id)
                     audioPlayer.notifyFavoriteToggle(for: track.id)
@@ -665,20 +684,6 @@ struct PlayingView: View {
                 DownloadButton(track: track, collection: collection)
             } else if case .external = track.location {
                 DownloadButton(track: track, collection: collection)
-            }
-
-            // Audio-only button for video tracks that support audio extraction
-            if track.isVideoTrack && PlayableMediaFormat.supportsAudioOnlyPlayback(forFilename: track.filename) {
-                Button {
-                    // Force audio-only playback (don't show video)
-                    audioPlayer.togglePlayback()
-                } label: {
-                    Image(systemName: "waveform")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text("Audio Only"))
             }
 
             let isCollectionShuffleEnabled = collection.shuffleEnabled
@@ -1094,7 +1099,7 @@ struct PlayingView: View {
 
                     // Pause audio player if it's playing audio
                     if audioPlayer.isPlaying {
-                        audioPlayer.pause()
+                        audioPlayer.togglePlayback()
                     }
                 }
             } else {
@@ -1131,6 +1136,7 @@ struct NativeVideoPlayerSheet: View {
 
             VStack {
                 HStack {
+                    Spacer()
                     Button {
                         dismiss()
                     } label: {
@@ -1139,7 +1145,6 @@ struct NativeVideoPlayerSheet: View {
                             .foregroundStyle(.white)
                             .padding()
                     }
-                    Spacer()
                 }
                 Spacer()
             }

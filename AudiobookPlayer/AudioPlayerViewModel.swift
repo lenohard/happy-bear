@@ -6,6 +6,9 @@ import CryptoKit
 import MediaPlayer
 private let favoriteNowPlayingInfoKey = "MPNowPlayingInfoPropertyIsLiked"
 #endif
+#if canImport(MobileVLCKit)
+import MobileVLCKit
+#endif
 
 @MainActor
 final class AudioPlayerViewModel: ObservableObject {
@@ -31,7 +34,7 @@ final class AudioPlayerViewModel: ObservableObject {
         case off
         case time(TimeInterval)
         case endOfTrack
-        
+
         var title: String {
             switch self {
             case .off: return NSLocalizedString("timer_off", comment: "Timer off")
@@ -45,6 +48,9 @@ final class AudioPlayerViewModel: ObservableObject {
 
     private var playlist: [AudiobookTrack] = []
     private var player: AVPlayer?
+    #if canImport(MobileVLCKit)
+    private var vlcPlayer: VLCMediaPlayer?
+    #endif
     private var timeObserverToken: Any?
     private var endPlaybackObserver: NSObjectProtocol?
     private var timeControlStatusObserver: NSKeyValueObservation?
@@ -136,6 +142,29 @@ final class AudioPlayerViewModel: ObservableObject {
     var sharedVideoPlayer: AVPlayer? {
         player
     }
+
+    #if canImport(MobileVLCKit)
+    func getOrCreateVLCPlayer(url: URL) -> VLCMediaPlayer {
+        if let existingPlayer = vlcPlayer,
+           let currentMedia = existingPlayer.media,
+           currentMedia.url == url {
+            return existingPlayer
+        }
+
+        // Stop existing player if any
+        vlcPlayer?.stop()
+
+        let newPlayer = VLCMediaPlayer()
+        newPlayer.media = VLCMedia(url: url)
+        vlcPlayer = newPlayer
+        return newPlayer
+    }
+
+    func releaseVLCPlayer() {
+        vlcPlayer?.stop()
+        vlcPlayer = nil
+    }
+    #endif
 
     /// Returns the current streaming URL if playing a track that requires VLC (e.g., MKV)
     /// Returns nil if no track is playing, track doesn't require VLC, or URL can't be obtained
