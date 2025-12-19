@@ -286,7 +286,7 @@ struct PlayingView: View {
         }
         // Keep high-frequency playback ticks out of this view's invalidation path.
         .background(PlaybackProgressObserver(onTick: syncPlaybackState))
-        .onChange(of: audioPlayer.currentTrack?.id) { _ in
+        .onChange(of: audioPlayer.currentTrack?.id) {
             syncPlaybackState()
             refreshTranscriptStatus()
             let trackId = audioPlayer.currentTrack.map { $0.id.uuidString }
@@ -1135,7 +1135,7 @@ private struct PlaybackProgressObserver: View {
 
     var body: some View {
         Color.clear
-            .onChange(of: playbackClock.currentTime) { _ in
+            .onChange(of: playbackClock.currentTime) {
                 onTick()
             }
     }

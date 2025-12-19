@@ -57,12 +57,12 @@ struct TranscriptViewerSheet: View {
             queueInitialAutoFocus()
             refreshJumpButtonVisibility()
         }
-        .onChange(of: segmentIDs) { _ in
+        .onChange(of: segmentIDs) {
             lastAutoScrolledSegmentID = nil
             focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
             refreshJumpButtonVisibility()
         }
-        .onChange(of: audioPlayer.currentTrack?.id) { _ in
+        .onChange(of: audioPlayer.currentTrack?.id) {
             lastAutoScrolledSegmentID = nil
             focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
             refreshJumpButtonVisibility()
@@ -99,11 +99,11 @@ struct TranscriptViewerSheet: View {
         } message: {
             Text(playbackAlertMessage ?? "")
         }
-        .onChange(of: aiGenerationManager.recentJobs) { _ in
+        .onChange(of: aiGenerationManager.recentJobs) {
             handleRepairJobUpdates()
             handleTrackSummaryJobUpdates()
         }
-        .onChange(of: aiGenerationManager.activeJobs) { _ in
+        .onChange(of: aiGenerationManager.activeJobs) {
             handleRepairJobUpdates()
             handleTrackSummaryJobUpdates()
         }
@@ -232,7 +232,6 @@ struct TranscriptViewerSheet: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                     } else {
                         ForEach(displayedSegments, id: \.index) { item in
-                            let index = item.index
                             let segment = item.segment
                             TranscriptSegmentRowView(
                                 segment: segment,

@@ -115,13 +115,12 @@ class BackgroundTranscriptionManager: NSObject, URLSessionDelegate, URLSessionTa
         didFinishEventsForBackgroundURLSession: URLSession
     ) {
         DispatchQueue.main.async {
-            if let appDelegate = UIApplication.shared.delegate as? UIApplicationDelegate,
-               let completionHandler = appDelegate.application?(
-                UIApplication.shared,
-                handleEventsForBackgroundURLSession: self.backgroundSessionIdentifier,
-                completionHandler: { }
-            ) {
-                // Call completion handler to notify system that background work is complete
+            if let appDelegate = UIApplication.shared.delegate as? UIApplicationDelegate {
+                _ = appDelegate.application?(
+                    UIApplication.shared,
+                    handleEventsForBackgroundURLSession: self.backgroundSessionIdentifier,
+                    completionHandler: { }
+                )
             }
         }
     }

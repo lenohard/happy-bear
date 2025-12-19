@@ -425,9 +425,7 @@ final class UserDataBackupManager {
             try fileManager.removeItem(at: destinationURL)
         }
 
-        guard let archive = Archive(url: destinationURL, accessMode: .create) else {
-            throw BackupError.archiveCorrupt("Unable to create archive at \(destinationURL.lastPathComponent).")
-        }
+        let archive = try Archive(url: destinationURL, accessMode: .create)
 
         let keys: Set<URLResourceKey> = [.isRegularFileKey, .isDirectoryKey]
         guard let enumerator = fileManager.enumerator(at: sourceURL, includingPropertiesForKeys: Array(keys)) else {
@@ -459,9 +457,7 @@ final class UserDataBackupManager {
     private func unzipItem(at sourceURL: URL, to destinationURL: URL) throws {
         try fileManager.createDirectory(at: destinationURL, withIntermediateDirectories: true)
 
-        guard let archive = Archive(url: sourceURL, accessMode: .read) else {
-            throw BackupError.archiveCorrupt("Unable to read archive at \(sourceURL.lastPathComponent).")
-        }
+        let archive = try Archive(url: sourceURL, accessMode: .read)
 
         for entry in archive {
             let outputURL = destinationURL.appendingPathComponent(entry.path)

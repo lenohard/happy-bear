@@ -102,7 +102,7 @@ final class CacheProgressTracker: ObservableObject {
                 }
             }
 
-            await MainActor.run {
+            _ = await MainActor.run {
                 self?.downloadTasks.removeValue(forKey: trackId)
             }
         }

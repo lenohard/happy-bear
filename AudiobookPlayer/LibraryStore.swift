@@ -1277,7 +1277,7 @@ actor CollectionCoverImageStore {
 
     static let shared = CollectionCoverImageStore()
     static let directoryName = "CollectionCovers"
-    nonisolated static let cache: NSCache<NSString, UIImage> = {
+    nonisolated(unsafe) static let cache: NSCache<NSString, UIImage> = {
         let cache = NSCache<NSString, UIImage>()
         cache.countLimit = 200
         return cache

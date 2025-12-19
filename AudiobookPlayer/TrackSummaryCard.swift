@@ -94,10 +94,10 @@ struct TrackSummaryCard: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(uiColor: .secondarySystemBackground))
         )
-        .onChange(of: viewModel.activeJob?.status) { _ in
+        .onChange(of: viewModel.activeJob?.status) {
             actionError = nil
         }
-        .onChange(of: viewModel.summary?.id) { _ in
+        .onChange(of: viewModel.summary?.id) {
             handleSummaryContentChange()
         }
         .task {

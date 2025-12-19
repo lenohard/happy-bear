@@ -94,36 +94,40 @@ struct StorageManagementView: View {
                     ProgressView()
                     Spacer()
                 }
-            } else if library.collections.isEmpty {
-                Text("No collections found")
-                    .foregroundStyle(.secondary)
             } else {
-                ForEach(library.collections) { collection in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(collection.title)
-                                .font(.headline)
-                            Text("\(collection.tracks.count) tracks")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                let filteredCollections = library.collections.filter { (collectionSizes[$0.id] ?? 0) > 0 }
+                
+                if filteredCollections.isEmpty {
+                    Text("No collections using storage")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(filteredCollections) { collection in
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(collection.title)
+                                    .font(.headline)
+                                Text("\(collection.tracks.count) tracks")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            if let size = collectionSizes[collection.id] {
+                                Text(formatBytes(size))
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text("--")
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                        
-                        Spacer()
-                        
-                        if let size = collectionSizes[collection.id] {
-                            Text(formatBytes(size))
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("--")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            collectionToDelete = collection
-                            showDeleteConfirmation = true
-                        } label: {
-                            Image(systemName: "trash")
+                        .swipeActions {
+                            Button(role: .destructive) {
+                                collectionToDelete = collection
+                                showDeleteConfirmation = true
+                            } label: {
+                                Image(systemName: "trash")
+                            }
                         }
                     }
                 }
@@ -132,17 +136,20 @@ struct StorageManagementView: View {
     }
     
     private func calculateSizes() {
-        isLoadingSizes = true
-        Task.detached {
+        Task {
+            await MainActor.run {
+                isLoadingSizes = true
+            }
+
             var sizes: [UUID: Int64] = [:]
-            
+
             for collection in await library.collections {
                 // Calculate size:
                 // 1. Local files (if source is local) - usually just track file sizes
                 // 2. Cached files (if source is Baidu/External/Ebook) - query cache manager
-                
+
                 var size: Int64 = 0
-                
+
                 // For local collections, track.fileSize is the actual size on disk
                 if case .local = collection.source {
                     size = collection.tracks.reduce(0) { $0 + $1.fileSize }
@@ -151,13 +158,13 @@ struct StorageManagementView: View {
                     let trackIds = collection.tracks.map { $0.id.uuidString }
                     size = await audioPlayer.getCollectionCacheSize(trackIds: trackIds)
                 }
-                
+
                 sizes[collection.id] = size
             }
-            
+
             await MainActor.run {
-                self.collectionSizes = sizes
-                self.isLoadingSizes = false
+                collectionSizes = sizes
+                isLoadingSizes = false
             }
         }
     }

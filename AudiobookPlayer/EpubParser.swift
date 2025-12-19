@@ -44,11 +44,9 @@ final class EpubParser: NSObject, XMLParserDelegate {
         let tempDir = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try fileManager.createDirectory(at: tempDir, withIntermediateDirectories: true)
         defer { try? fileManager.removeItem(at: tempDir) }
-        
-        guard let archive = Archive(url: epubURL, accessMode: .read) else {
-            throw EpubParserError.invalidArchive
-        }
-        
+
+        let archive = try Archive(url: epubURL, accessMode: .read)
+
         for entry in archive {
             let destination = tempDir.appendingPathComponent(entry.path)
             try fileManager.createDirectory(at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)

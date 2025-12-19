@@ -180,7 +180,7 @@ private enum FavoriteTracksPreviewData {
             title: "Fiction Classics"
         )
         fiction.author = "Curated Library"
-        var sciFi = makeTrack(
+        let sciFi = makeTrack(
             title: "Beyond the Stars",
             number: 1,
             minutes: 42,
@@ -303,5 +303,4 @@ private struct FavoriteTracksPreviewHarness: View {
         }
     }
     .padding()
-    .previewLayout(.sizeThatFits)
 }

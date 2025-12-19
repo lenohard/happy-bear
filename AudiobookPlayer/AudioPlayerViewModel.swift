@@ -1016,7 +1016,9 @@ final class AudioPlayerViewModel: ObservableObject {
         case .time(let duration):
             sleepTimerRemaining = duration
             sleepTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
-                self?.handleSleepTimerTick()
+                Task { @MainActor [weak self] in
+                    self?.handleSleepTimerTick()
+                }
             }
         case .endOfTrack:
             break
@@ -1037,11 +1039,13 @@ final class AudioPlayerViewModel: ObservableObject {
         guard let player else { return }
         let target = CMTime(seconds: time, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         player.seek(to: target) { [weak self] _ in
-            guard let self else { return }
-            self.publishCurrentTime(time, force: true)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.publishCurrentTime(time, force: true)
 #if os(iOS)
-            self.updateNowPlayingElapsedTime()
+                self.updateNowPlayingElapsedTime()
 #endif
+            }
         }
     }
 
@@ -1415,13 +1419,15 @@ final class AudioPlayerViewModel: ObservableObject {
         if let initialPosition {
             let target = CMTime(seconds: initialPosition, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
             player?.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
-                guard let self else { return }
-                self.publishCurrentTime(initialPosition, force: true)
-                if autoPlay {
-                    self.startPlaybackImmediately()
-                    self.isPlaying = true
-                    self.applyPlaybackRateToPlayer()
-                    self.startListeningSession()
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.publishCurrentTime(initialPosition, force: true)
+                    if autoPlay {
+                        self.startPlaybackImmediately()
+                        self.isPlaying = true
+                        self.applyPlaybackRateToPlayer()
+                        self.startListeningSession()
+                    }
                 }
             }
             if !autoPlay {
@@ -1948,11 +1954,13 @@ private extension AudioPlayerViewModel {
 
         let target = CMTime(seconds: clampedTime, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         player.seek(to: target, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
-            guard let self else { return }
-            self.publishCurrentTime(clampedTime, force: true)
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.publishCurrentTime(clampedTime, force: true)
 #if os(iOS)
-            self.updateNowPlayingElapsedTime()
+                self.updateNowPlayingElapsedTime()
 #endif
+            }
         }
         return .success
     }
@@ -2150,26 +2158,28 @@ private extension AudioPlayerViewModel {
     
     private func observeTimeControlStatus() {
         timeControlStatusObserver = player?.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
-            guard let self else { return }
-            switch player.timeControlStatus {
-            case .paused:
-                if self.isPlaying {
-                    print("[AudioPlayer] Detected external pause, updating state")
-                    self.isPlaying = false
-                    self.flushListeningSession()
-                    // We don't need to set rate to 0 here as pause implies it, 
-                    // but we should ensure UI reflects state.
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                switch player.timeControlStatus {
+                case .paused:
+                    if self.isPlaying {
+                        print("[AudioPlayer] Detected external pause, updating state")
+                        self.isPlaying = false
+                        self.flushListeningSession()
+                        // We don't need to set rate to 0 here as pause implies it,
+                        // but we should ensure UI reflects state.
+                    }
+                case .playing:
+                    if !self.isPlaying {
+                        print("[AudioPlayer] Detected external play, updating state")
+                        self.isPlaying = true
+                        self.startListeningSession()
+                    }
+                case .waitingToPlayAtSpecifiedRate:
+                    break
+                @unknown default:
+                    break
                 }
-            case .playing:
-                if !self.isPlaying {
-                    print("[AudioPlayer] Detected external play, updating state")
-                    self.isPlaying = true
-                    self.startListeningSession()
-                }
-            case .waitingToPlayAtSpecifiedRate:
-                break
-            @unknown default:
-                break
             }
         }
     }

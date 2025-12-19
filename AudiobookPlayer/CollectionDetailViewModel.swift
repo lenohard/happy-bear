@@ -352,7 +352,7 @@ final class CollectionDetailViewModel: ObservableObject {
         if totalPages > 0, page >= totalPages { return }
         guard let collection else { return }
 
-        await MainActor.run { loadingPages.insert(page) }
+        _ = await MainActor.run { loadingPages.insert(page) }
 
         do {
             let offset = page * pageSize
@@ -412,7 +412,7 @@ final class CollectionDetailViewModel: ObservableObject {
             isListLoading = true
         }
 
-        await resetPagingState(clearCaches: false)
+        resetPagingState(clearCaches: false)
         currentQuery = searchText
         currentFilterKey = selectedFilter
         currentSortCriterion = selectedCriterion
@@ -426,12 +426,6 @@ final class CollectionDetailViewModel: ObservableObject {
             pendingAutoFocusTrackId = isPagedMode ? nil : focusTarget
             didAutoFocusTrack = false
             isListLoading = false
-        }
-
-        if !isPagedMode, focusTarget != nil {
-            await MainActor.run {
-                // attemptAutoFocusIfNeeded(using: nil) // This needs proxy, handled in View
-            }
         }
     }
     

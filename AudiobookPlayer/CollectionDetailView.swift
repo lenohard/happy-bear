@@ -289,7 +289,7 @@ struct CollectionDetailView: View {
                     viewModel.collectionDescriptionDraft = ""
                 }
             }
-            .onChange(of: viewModel.collectionID) { _ in
+            .onChange(of: viewModel.collectionID) {
                 viewModel.resetAutoFocusState()
                 viewModel.loadTranscriptStatus()
                 viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
@@ -332,12 +332,12 @@ struct CollectionDetailView: View {
                     }
                 }
             }
-            .onChange(of: viewModel.collection?.tracks.map(\.id) ?? []) { _ in
+            .onChange(of: viewModel.collection?.tracks.map(\.id) ?? []) {
                 viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
                 viewModel.refreshTrackSummaryIndicators(for: viewModel.collection)
                 viewModel.refreshPlaybackStateSnapshot(for: viewModel.collection)
             }
-            .onChange(of: audioPlayer.activeCollection?.id) { _ in
+            .onChange(of: audioPlayer.activeCollection?.id) {
                 viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
             }
             .onChange(of: viewModel.coverPhotoItem) { newItem in
@@ -376,8 +376,8 @@ struct CollectionDetailView: View {
                     await viewModel.reloadFromDatabase(startingPage: 0, focusTarget: viewModel.pendingAutoFocusTrackId)
                 }
             }
-            .onChange(of: viewModel.collection?.tracks) { _ in viewModel.scheduleSortedTracksUpdate() }
-            .onChange(of: viewModel.searchText) { _ in
+            .onChange(of: viewModel.collection?.tracks) { viewModel.scheduleSortedTracksUpdate() }
+            .onChange(of: viewModel.searchText) {
                 // Debounce search to avoid hammering DB per keystroke
                 viewModel.searchDebounceTask?.cancel()
                 viewModel.searchDebounceTask = Task {
@@ -390,8 +390,8 @@ struct CollectionDetailView: View {
                 viewModel.searchDebounceTask?.cancel()
                 viewModel.scheduleFilteredTracksUpdate()
             }
-            .onChange(of: viewModel.selectedFilter) { _ in viewModel.scheduleFilteredTracksUpdate() }
-            .onChange(of: viewModel.selectedCriterion) { _ in
+            .onChange(of: viewModel.selectedFilter) { viewModel.scheduleFilteredTracksUpdate() }
+            .onChange(of: viewModel.selectedCriterion) {
                 viewModel.scheduleSortedTracksUpdate()
                 // Persist sort preference to collection
                 if let collection = viewModel.collection {
@@ -399,7 +399,7 @@ struct CollectionDetailView: View {
                     library.updatePreferredSortOrder(sortString, for: collection.id)
                 }
             }
-            .onChange(of: viewModel.selectedOrder) { _ in
+            .onChange(of: viewModel.selectedOrder) {
                 viewModel.scheduleSortedTracksUpdate()
                 // Persist sort preference to collection
                 if let collection = viewModel.collection {
@@ -407,8 +407,8 @@ struct CollectionDetailView: View {
                     library.updatePreferredSortOrder(sortString, for: collection.id)
                 }
             }
-            .onChange(of: viewModel.transcriptStatusCache) { _ in viewModel.scheduleFilteredTracksUpdate() }
-            .onChange(of: viewModel.tracksWithSummaries) { _ in viewModel.scheduleFilteredTracksUpdate() }
+            .onChange(of: viewModel.transcriptStatusCache) { viewModel.scheduleFilteredTracksUpdate() }
+            .onChange(of: viewModel.tracksWithSummaries) { viewModel.scheduleFilteredTracksUpdate() }
             .onReceive(transcriptionManager.$activeJobs) { jobs in
                 viewModel.refreshSttTranscribingTrackIds(from: jobs)
                 viewModel.refreshTTSGeneratingTrackIds(from: jobs)
@@ -495,10 +495,10 @@ struct CollectionDetailView: View {
                     viewModel.prepareAutoFocusTargetIfNeeded(for: collection)
                     attemptAutoFocusIfNeeded(using: proxy)
                 }
-                .onChange(of: viewModel.pendingAutoFocusTrackId) { _ in
+                .onChange(of: viewModel.pendingAutoFocusTrackId) {
                     attemptAutoFocusIfNeeded(using: proxy)
                 }
-                .onChange(of: viewModel.filteredTracks.map(\.id)) { _ in
+                .onChange(of: viewModel.filteredTracks.map(\.id)) {
                     attemptAutoFocusIfNeeded(using: proxy)
                     viewModel.isLastTrackVisible = false
                 }
@@ -651,10 +651,10 @@ struct CollectionDetailView: View {
             }
             .padding(.vertical, 4)
         }
-        .onChange(of: collection.id) { _ in
+        .onChange(of: collection.id) {
             viewModel.isDescriptionExpanded = false
         }
-        .onChange(of: collection.description ?? "") { _ in
+        .onChange(of: collection.description ?? "") {
             viewModel.isDescriptionExpanded = false
         }
         .onAppear {

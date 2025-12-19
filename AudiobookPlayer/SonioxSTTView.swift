@@ -108,7 +108,7 @@ struct SonioxSTTView: View {
         .onChange(of: sonioxViewModel.keyExists) { exists in
             isEditingSonioxKey = !exists
         }
-        .onChange(of: sonioxViewModel.statusMessage) { _ in
+        .onChange(of: sonioxViewModel.statusMessage) {
             if sonioxViewModel.isSuccess {
                 isEditingSonioxKey = false
                 showSonioxKey = false

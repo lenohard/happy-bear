@@ -398,7 +398,7 @@ struct CollectionCoverArtView: View {
     @State private var loadTask: Task<Void, Never>?
 
     // Cache for small thumbnails to avoid repeated resizing - shared for preloading
-    static let thumbnailCache: NSCache<NSString, UIImage> = {
+    nonisolated(unsafe) static let thumbnailCache: NSCache<NSString, UIImage> = {
         let cache = NSCache<NSString, UIImage>()
         cache.countLimit = 200
         return cache
@@ -439,7 +439,7 @@ struct CollectionCoverArtView: View {
         .frame(width: size, height: size)
         .clipped()
         .onAppear { refreshImageIfNeeded(force: false) }
-        .onChange(of: cover) { _ in refreshImageIfNeeded(force: true) }
+        .onChange(of: cover) { refreshImageIfNeeded(force: true) }
         .onDisappear {
             loadTask?.cancel()
             loadTask = nil
