@@ -120,19 +120,17 @@ final class AudioCacheDownloadManager {
         let request = URLRequest(url: url)
 
         let task = session.downloadTask(with: request) { [weak self] tempURL, response, error in
-            Task {
-                await self?.handleDownloadResponse(
-                    tempURL: tempURL,
-                    response: response,
-                    error: error,
-                    destinationURL: destinationURL,
-                    trackId: trackId,
-                    baiduFileId: baiduFileId,
-                    totalBytes: totalBytes,
-                    progressCallback: progressCallback,
-                    completion: completion
-                )
-            }
+            self?.handleDownloadResponse(
+                tempURL: tempURL,
+                response: response,
+                error: error,
+                destinationURL: destinationURL,
+                trackId: trackId,
+                baiduFileId: baiduFileId,
+                totalBytes: totalBytes,
+                progressCallback: progressCallback,
+                completion: completion
+            )
         }
 
         return task
@@ -148,7 +146,7 @@ final class AudioCacheDownloadManager {
         totalBytes: Int,
         progressCallback: @escaping ProgressCallback,
         completion: ((Result<URL, Error>) -> Void)?
-    ) async {
+    ) {
         defer {
             activeDownloads.removeValue(forKey: trackId)
             progressObservers[trackId]?.invalidate()
