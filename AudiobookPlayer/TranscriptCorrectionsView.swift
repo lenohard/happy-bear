@@ -6,14 +6,11 @@ struct TranscriptCorrectionsView: View {
     let trackName: String
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.editMode) private var editMode
     @StateObject private var viewModel = TranscriptCorrectionViewModel()
-    @State private var selectedIDs: Set<String> = []
     @State private var showAddForm = false
-    @State private var showDeleteConfirmation = false
 
     var body: some View {
-        List(selection: $selectedIDs) {
+        List {
             // Add correction section
             Section {
                 if showAddForm {
@@ -58,26 +55,6 @@ struct TranscriptCorrectionsView: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
-                            .labelStyle(.iconOnly)
-                        }
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            if correction.isApplied {
-                                Button {
-                                    Task { await viewModel.unapplyCorrection(correctionId: correction.id) }
-                                } label: {
-                                    Label("Undo", systemImage: "arrow.uturn.backward")
-                                }
-                                .labelStyle(.iconOnly)
-                                .tint(.orange)
-                            } else {
-                                Button {
-                                    Task { await viewModel.applyCorrection(correctionId: correction.id) }
-                                } label: {
-                                    Label("Apply", systemImage: "checkmark")
-                                }
-                                .labelStyle(.iconOnly)
-                                .tint(.green)
-                            }
                         }
                     }
                 }
@@ -92,50 +69,16 @@ struct TranscriptCorrectionsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                if !viewModel.corrections.isEmpty {
-                    HStack(spacing: 8) {
-                        // Apply All button - only show if there are unapplied corrections
-                        if viewModel.corrections.contains(where: { !$0.isApplied }) {
-                            Button {
-                                Task { await viewModel.applyAllCorrections() }
-                            } label: {
-                                Label("Apply All", systemImage: "checkmark.circle.fill")
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.small)
-                            .tint(.green)
-                        }
-
-                        EditButton()
-                    }
-                }
-            }
-
-            ToolbarItem(placement: .bottomBar) {
-                if editMode?.wrappedValue.isEditing == true && !selectedIDs.isEmpty {
-                    Button(role: .destructive) {
-                        showDeleteConfirmation = true
+                if !viewModel.corrections.isEmpty && viewModel.corrections.contains(where: { !$0.isApplied }) {
+                    Button {
+                        Task { await viewModel.applyAllCorrections() }
                     } label: {
-                        Label("Delete \(selectedIDs.count)", systemImage: "trash")
+                        Text("Apply All")
+                            .bold()
                     }
+                    .tint(.green)
                 }
             }
-        }
-        .confirmationDialog(
-            "Delete \(selectedIDs.count) corrections?",
-            isPresented: $showDeleteConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                Task {
-                    for id in selectedIDs {
-                        await viewModel.deleteCorrection(correctionId: id)
-                    }
-                    selectedIDs.removeAll()
-                    editMode?.wrappedValue = .inactive
-                }
-            }
-            Button("Cancel", role: .cancel) {}
         }
         .alert("Error", isPresented: Binding(
             get: { viewModel.errorMessage != nil },

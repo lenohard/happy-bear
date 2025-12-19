@@ -58,15 +58,11 @@ final class TranscriptCorrectionViewModel: ObservableObject {
         errorMessage = nil
         
         do {
-            // Apply the correction to transcript segments
-            try await applyCorrection(
+            // Apply the correction to transcript segments and mark as applied
+            try await dbManager.applyTranscriptCorrectionsBatch(
                 trackId: trackId,
-                incorrectText: correction.incorrectText,
-                correctText: correction.correctText
+                corrections: [(id: correction.id, incorrect: correction.incorrectText, correct: correction.correctText)]
             )
-            
-            // Mark correction as applied
-            try await dbManager.updateTranscriptCorrectionStatus(id: correctionId, isApplied: true)
             
             // Reload corrections to update UI
             await loadCorrections(showLoading: false)
@@ -88,10 +84,9 @@ final class TranscriptCorrectionViewModel: ObservableObject {
         
         do {
             // Reverse the correction: swap incorrect/correct
-            try await applyCorrection(
+            try await dbManager.applyTextReplacements(
                 trackId: trackId,
-                incorrectText: correction.correctText,  // Swap
-                correctText: correction.incorrectText   // Swap
+                replacements: [(from: correction.correctText, to: correction.incorrectText)]
             )
             
             // Mark correction as not applied
@@ -147,18 +142,41 @@ final class TranscriptCorrectionViewModel: ObservableObject {
     /// Apply all unapplied corrections
     func applyAllCorrections() async {
         let unappliedCorrections = corrections.filter { !$0.isApplied }
-        guard !unappliedCorrections.isEmpty else { return }
+        guard !unappliedCorrections.isEmpty, let trackId = currentTrackId else { return }
 
         isLoading = true
         errorMessage = nil
 
-        for correction in unappliedCorrections {
-            await applyCorrection(correctionId: correction.id)
+        do {
+            let batch = unappliedCorrections.map { ($0.id, $0.incorrectText, $0.correctText) }
+            try await dbManager.applyTranscriptCorrectionsBatch(trackId: trackId, corrections: batch)
+            
+            await loadCorrections(showLoading: false)
+        } catch {
+            errorMessage = "Failed to apply corrections: \(error.localizedDescription)"
+        }
 
-            // Break if there was an error
-            if errorMessage != nil {
-                break
-            }
+        isLoading = false
+    }
+
+    /// Apply a specific set of corrections (by ID)
+    func applyCorrections(ids: Set<String>) async {
+        guard !ids.isEmpty, let trackId = currentTrackId else { return }
+        
+        // Filter for corrections that exist, match IDs, and are NOT already applied
+        let targets = corrections.filter { ids.contains($0.id) && !$0.isApplied }
+        guard !targets.isEmpty else { return }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            let batch = targets.map { ($0.id, $0.incorrectText, $0.correctText) }
+            try await dbManager.applyTranscriptCorrectionsBatch(trackId: trackId, corrections: batch)
+            
+            await loadCorrections(showLoading: false)
+        } catch {
+            errorMessage = "Failed to apply selected corrections: \(error.localizedDescription)"
         }
 
         isLoading = false
@@ -169,49 +187,6 @@ final class TranscriptCorrectionViewModel: ObservableObject {
         incorrectText = ""
         correctText = ""
         showAddForm = false
-    }
-    
-    // MARK: - Private Helpers
-    
-    /// Apply a text correction to all transcript segments for a track
-    private func applyCorrection(
-        trackId: String,
-        incorrectText: String,
-        correctText: String
-    ) async throws {
-        try await dbManager.initializeDatabase()
-        
-        // Load all segments for this track
-        guard let transcript = try await dbManager.loadTranscript(forTrackId: trackId) else {
-            throw TranscriptCorrectionError.transcriptNotFound
-        }
-        
-        let segments = try await dbManager.loadSortedTranscriptSegments(transcriptId: transcript.id)
-        
-        var updatedCount = 0
-        
-        // Update segments that contain the incorrect text
-        for segment in segments {
-            if segment.text.contains(incorrectText) {
-                let updatedText = segment.text.replacingOccurrences(
-                    of: incorrectText,
-                    with: correctText
-                )
-                
-                // Update segment in database
-                try await dbManager.updateTranscriptSegmentText(
-                    segmentId: segment.id,
-                    newText: updatedText
-                )
-                
-                updatedCount += 1
-            }
-        }
-        
-        // Update the full_text in the transcript record
-        if updatedCount > 0 {
-            try await dbManager.rebuildTranscriptFullText(transcriptId: transcript.id)
-        }
     }
 }
 
