@@ -6,6 +6,7 @@
 **Note**: The `./local/` folder is **NOT** ignored by git for this repository.
 
 ## Recent Progress (Dec 2025)
+- **VLC Playback Controls Fix (Dec 20)**: Fixed four interrelated VLC playback issues: (1) Play button now calls `openVideoPlayer(for:)` for VLC-only tracks instead of `togglePlayback()`; (2) Added `toggleVideoPlayback()` method for controlling minimized VLC sessions from Playing tab; (3) Fixed black screen on reopening VLC sheet by creating `VLCHostView` that rebinds drawable in `layoutSubviews()` and adds binding check in `updateUIView()`; (4) Native AVPlayer PiP already delegates to sheet via `isPresented` binding. Added `VideoPresentationMode` enum (hidden/fullscreen/mini) and `setVideoPresentationMode()` to track video state.
 - **VLC Video Support (Dec 18)**: Integrated MobileVLCKit v3.7.0 via CocoaPods for MKV/WebM playback. Added `VLCVideoPlayerView` wrapper with custom controls. Format detection blocks AVPlayer from attempting unsupported formats. Current limitation: MKV audio-only playback unavailable (AVPlayer cannot extract audio from MKV container).
 - **MVVM & Performance (Dec 12-15)**: Refactored `CollectionDetailView` to MVVM to fix actor isolation. Implemented background thumbnail generation (320px) + NSCache for smooth library scrolling. Moved heavy model grouping to background tasks.
 - **RSS Support (Dec 7)**: Added `.rss` source support, feed import, and remote cover caching. Covers are now prefetched and stored locally.
@@ -41,8 +42,14 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 ### Video Playback & Format Support
 - **MKV/WebM Streaming**: AVPlayer cannot handle MKV/WebM containers. Use MobileVLCKit (v3.7.0+) for these formats.
 - **Format Detection**: Use `PlayableMediaFormat.requiresVLC()` to check if a file needs VLC before passing to AVPlayer. Always block unsupported formats from AVPlayer to prevent crashes.
-- **Audio Extraction Limitation**: AVPlayer cannot extract audio from MKV containers. MKV files are video-only (requires "Show Video" button). MP4/MOV support both audio-only and full video playback.
-- **Future Improvement**: MKV audio-only playback requires either (1) FFmpeg audio extraction with caching, or (2) VLC audio mode in AudioPlayerViewModel. Current implementation uses video-only to prevent AVPlayer crashes.
+- **Play Button Behavior**: `handlePlayButtonPress()` (ContentView.swift:1080) checks `canPlayAudioOnly(track:)` and calls `openVideoPlayer(for:)` for VLC-only tracks. This ensures the video sheet opens instead of trying audio playback.
+- **VLC Drawable Rebinding**: When reopening a minimized VLC sheet, the drawable must be rebound. `VLCHostView` custom UIView stores weak player reference and rebinds drawable in `layoutSubviews()`. `VLCVideoPlayerView.updateUIView()` also checks/rebinds drawable to handle layout timing.
+- **VLC Playback Control**: `toggleVideoPlayback()` in AudioPlayerViewModel controls VLC player pause/play state, allowing minimized VLC to be controlled from Playing tab.
+- **Video Presentation State**: `VideoPresentationMode` enum tracks state (hidden/fullscreen/mini) and `setVideoPresentationMode()` manages state transitions.
+- **Playback Behavior**: `AudioPlayerViewModel.play` bails out for VLC-required tracks after setting `statusMessage`, so `audioPlayer.sharedVideoPlayer` stays `nil`. UI must call `openVideoPlayer(for:)` to surface the video sheet.
+- **Minimize/Restore Flow**: VLC sheet dismisses on minimize (`showingVLCPlayer = false`) but player continues. On reopen, `getOrCreateVLCPlayer(url:)` reuses existing player and `updateUIView()` rebinds drawable.
+- **Audio Extraction Limitation**: AVPlayer cannot extract audio from MKV containers. MKV files are video-only. MP4/MOV support both audio-only and full video playback.
+- **PiP Restore**: `AVPlayerViewControllerRepresentable` delegates to sheet via `restoreUserInterfaceForPictureInPictureWithCompletionHandler`, reopening the sheet when restoring from PiP.
 
 ### Build & Xcode
 - **Database Locked**: If `xcodebuild` fails with "database is locked", wait/retry or run `killall xcodebuild` and clear DerivedData.

@@ -2,6 +2,21 @@ import SwiftUI
 #if canImport(MobileVLCKit)
 import MobileVLCKit
 
+/// Custom UIView that ensures VLC drawable is properly updated on layout.
+class VLCHostView: UIView {
+    weak var vlcPlayer: VLCMediaPlayer?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // Re-bind drawable when the view is laid out to ensure video renders
+        if let player = vlcPlayer, bounds.size != .zero {
+            if player.drawable as? UIView !== self {
+                player.drawable = self
+            }
+        }
+    }
+}
+
 /// A SwiftUI wrapper around VLCMediaPlayer for playing video formats not supported by AVPlayer (e.g., MKV).
 struct VLCVideoPlayerView: UIViewRepresentable {
     let player: VLCMediaPlayer
@@ -21,14 +36,19 @@ struct VLCVideoPlayerView: UIViewRepresentable {
         self.duration = duration
     }
 
-    func makeUIView(context: Context) -> UIView {
-        let view = UIView()
+    func makeUIView(context: Context) -> VLCHostView {
+        let view = VLCHostView()
         view.backgroundColor = .black
         context.coordinator.setupPlayer(in: view, player: player)
         return view
     }
 
-    func updateUIView(_ uiView: UIView, context: Context) {
+    func updateUIView(_ uiView: VLCHostView, context: Context) {
+        // Ensure drawable is always properly bound when view updates
+        if player.drawable as? UIView !== uiView {
+            player.drawable = uiView
+        }
+
         if isPlaying.wrappedValue && player.state != .playing {
             player.play()
         } else if !isPlaying.wrappedValue && player.state == .playing {
@@ -40,7 +60,7 @@ struct VLCVideoPlayerView: UIViewRepresentable {
         Coordinator(self)
     }
 
-    static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) {
+    static func dismantleUIView(_ uiView: VLCHostView, coordinator: Coordinator) {
         coordinator.cleanup()
     }
 
@@ -53,11 +73,12 @@ struct VLCVideoPlayerView: UIViewRepresentable {
             super.init()
         }
 
-        func setupPlayer(in view: UIView, player: VLCMediaPlayer) {
+        func setupPlayer(in view: VLCHostView, player: VLCMediaPlayer) {
             self.player = player
+            view.vlcPlayer = player
             player.delegate = self
             player.drawable = view
-            
+
             if player.state == .stopped || player.state == .ended {
                 player.play()
             }
@@ -66,6 +87,9 @@ struct VLCVideoPlayerView: UIViewRepresentable {
         func cleanup() {
             // Do NOT stop the player here to allow background playback (minimize)
             // Just detach the view
+            if let currentView = player?.drawable as? VLCHostView {
+                currentView.vlcPlayer = nil
+            }
             player?.drawable = nil
             player?.delegate = nil
             player = nil
@@ -115,6 +139,7 @@ struct VLCVideoPlayerSheet: View {
     let title: String
     let onMinimize: () -> Void
     let onClose: () -> Void
+    let onPlayPauseToggle: () -> Void
 
     @State private var isPlaying = true
     @State private var currentTime: Double = 0
@@ -142,6 +167,12 @@ struct VLCVideoPlayerSheet: View {
                 controlsOverlay
             }
         }
+        .onAppear {
+            if !player.isPlaying {
+                player.play()
+            }
+            isPlaying = player.isPlaying
+        }
     }
 
     private var controlsOverlay: some View {
@@ -162,7 +193,7 @@ struct VLCVideoPlayerSheet: View {
                     .lineLimit(1)
 
                 Spacer()
-                
+
                 Button {
                     onMinimize()
                 } label: {
@@ -221,6 +252,8 @@ struct VLCVideoPlayerSheet: View {
                         } else {
                             player.play()
                         }
+                        isPlaying = player.isPlaying
+                        onPlayPauseToggle()
                     } label: {
                         Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                             .font(.system(size: 50))

@@ -1,0 +1,21 @@
+# Audiobook Player Project - Ripgrep Configuration
+# This config is loaded when RIPGREP_CONFIG_PATH points to this file
+
+# Don't let ripgrep vomit really long lines to my terminal, and show a preview.
+--max-columns=150
+--max-columns-preview
+
+# Common exclusions for iOS/Swift projects
+--glob=!git/*
+--glob=!Pods/*
+--glob=!build/*
+--glob=!DerivedData/*
+--glob=!*.xcworkspace/*
+--glob=!*.xcodeproj/*
+
+# Set the colors.
+--colors=line:none
+--colors=line:style:bold
+
+# Case insensitive by default
+--smart-case

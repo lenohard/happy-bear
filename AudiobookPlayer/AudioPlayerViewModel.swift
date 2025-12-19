@@ -29,6 +29,13 @@ final class AudioPlayerViewModel: ObservableObject {
     @Published var showGenerateAudioConfirmation = false
     @Published var trackToGenerateAudio: AudiobookTrack?
     @Published private(set) var isShuffleEnabled: Bool
+    @Published private(set) var videoPresentationMode: VideoPresentationMode = .hidden
+
+    enum VideoPresentationMode: Equatable {
+        case hidden      // Video sheet not showing
+        case fullscreen  // Video sheet showing in fullscreen
+        case mini        // Video minimized (playing in background)
+    }
 
     enum SleepTimerMode: Equatable {
         case off
@@ -163,6 +170,20 @@ final class AudioPlayerViewModel: ObservableObject {
     func releaseVLCPlayer() {
         vlcPlayer?.stop()
         vlcPlayer = nil
+        videoPresentationMode = .hidden
+    }
+
+    func setVideoPresentationMode(_ mode: VideoPresentationMode) {
+        videoPresentationMode = mode
+    }
+
+    func toggleVideoPlayback() {
+        guard let player = vlcPlayer else { return }
+        if player.isPlaying {
+            player.pause()
+        } else {
+            player.play()
+        }
     }
     #endif
 
@@ -961,12 +982,16 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func togglePlayback() {
+        handlePlayPauseRequest()
+    }
+
+    func handlePlayPauseRequest(forcePlay: Bool = false) {
         guard let player else {
             statusMessage = "Player is not ready. Select a track to start playback."
             return
         }
 
-        if isPlaying {
+        if isPlaying && !forcePlay {
             player.pause()
             isPlaying = false
             flushListeningSession()
@@ -976,6 +1001,11 @@ final class AudioPlayerViewModel: ObservableObject {
             startListeningSession()
         }
         applyPlaybackRateToPlayer()
+    }
+
+    func canPlayAudioOnly(track: AudiobookTrack) -> Bool {
+        guard track.isVideoTrack else { return true }
+        return PlayableMediaFormat.supportsAudioOnlyPlayback(forFilename: track.filename)
     }
 
     func skipForward(by seconds: Double = 30) {

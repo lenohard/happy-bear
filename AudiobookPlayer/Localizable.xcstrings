@@ -2378,10 +2378,8 @@
         }
       }
     },
-    "Delete %lld" : {
-
-    },
     "Delete %lld corrections?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

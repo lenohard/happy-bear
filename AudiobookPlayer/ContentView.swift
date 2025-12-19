@@ -346,17 +346,21 @@ struct PlayingView: View {
                     title: vlcPlayerTitle,
                     onMinimize: {
                         showingVLCPlayer = false
+                        audioPlayer.setVideoPresentationMode(.mini)
                     },
                     onClose: {
                         audioPlayer.releaseVLCPlayer()
                         showingVLCPlayer = false
+                    },
+                    onPlayPauseToggle: {
+                        audioPlayer.toggleVideoPlayback()
                     }
                 )
             }
         }
         #endif
         .fullScreenCover(isPresented: $showingNativePlayer) {
-            NativeVideoPlayerSheet(audioPlayer: audioPlayer)
+            NativeVideoPlayerSheet(audioPlayer: audioPlayer, isPresented: $showingNativePlayer)
         }
     }
 
@@ -1074,9 +1078,11 @@ struct PlayingView: View {
     // MARK: - Video Player Helpers
 
     private func handlePlayButtonPress(track: AudiobookTrack) {
-        // Play/pause always controls audio playback only
-        // Use "Show Video" button to open video player
-        audioPlayer.togglePlayback()
+        if track.isVideoTrack && !audioPlayer.canPlayAudioOnly(track: track) {
+            openVideoPlayer(for: track)
+        } else {
+            audioPlayer.togglePlayback()
+        }
     }
 
     private func openVideoPlayer(for track: AudiobookTrack) {
@@ -1106,24 +1112,15 @@ struct PlayingView: View {
 
 struct NativeVideoPlayerSheet: View {
     @ObservedObject var audioPlayer: AudioPlayerViewModel
-    @Environment(\.dismiss) private var dismiss
+    @Binding var isPresented: Bool
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
             if let player = audioPlayer.sharedVideoPlayer {
-                AVPlayerViewControllerRepresentable(player: player)
+                AVPlayerViewControllerRepresentable(player: player, isPresented: $isPresented)
                     .ignoresSafeArea()
             } else {
                 Color.black.ignoresSafeArea()
-            }
-
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.title)
-                    .foregroundStyle(.white)
-                    .padding()
             }
         }
     }
