@@ -49,8 +49,15 @@ struct LibraryView: View {
                                     .buttonStyle(.plain)
                                     .accessibilityLabel(String(format: NSLocalizedString("play_collection_accessibility", comment: "Play collection accessibility label"), collection.title))
                                 }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        library.delete(collection)
+                                    } label: {
+                                        Label(NSLocalizedString("delete_button", comment: "Delete button"), systemImage: "trash")
+                                    }
+                                    .labelStyle(.iconOnly)
+                                }
                             }
-                            .onDelete(perform: delete)
                         }
                     }
                     .listStyle(.insetGrouped)
