@@ -6,8 +6,10 @@
 **Note**: The `./local/` folder is **NOT** ignored by git for this repository.
 
 ## Recent Progress (Dec 2025)
+- **VLC Audio-Only Playback (Dec 20)**: Implemented VLC audio-only support for MKV/WebM files. When playing MKV/WebM, VLC handles audio without showing video UI (treating them like regular audio files). Updated `play(track:)` to call `startVLCAudioPlayback()` instead of bailing out. All playback controls (play/pause, seek, skip, speed, sleep timer) now work with VLC audio. Added `usingVLCAudio` flag, `vlcTimeUpdateTimer` (250ms polling), and time/state tracking. Fixed VLC drawable operations with main thread dispatch (resolves "Modifying properties off main thread" crashes). Simplified `handlePlayButtonPress()` to always call `togglePlayback()`.
+- **VLC Threading Fix (Dec 20)**: Fixed VLC OpenGL crashes by wrapping all `player.drawable` operations in main thread checks. VLC requires drawable operations on main thread for OpenGL initialization/teardown. Added checks to `VLCHostView.layoutSubviews()`, `updateUIView()`, `setupPlayer()`, and `cleanup()` with `Thread.isMainThread` guards and `DispatchQueue.main.async` fallbacks.
 - **VLC Playback Controls Fix (Dec 20)**: Fixed four interrelated VLC playback issues: (1) Play button now calls `openVideoPlayer(for:)` for VLC-only tracks instead of `togglePlayback()`; (2) Added `toggleVideoPlayback()` method for controlling minimized VLC sessions from Playing tab; (3) Fixed black screen on reopening VLC sheet by creating `VLCHostView` that rebinds drawable in `layoutSubviews()` and adds binding check in `updateUIView()`; (4) Native AVPlayer PiP already delegates to sheet via `isPresented` binding. Added `VideoPresentationMode` enum (hidden/fullscreen/mini) and `setVideoPresentationMode()` to track video state.
-- **VLC Video Support (Dec 18)**: Integrated MobileVLCKit v3.7.0 via CocoaPods for MKV/WebM playback. Added `VLCVideoPlayerView` wrapper with custom controls. Format detection blocks AVPlayer from attempting unsupported formats. Current limitation: MKV audio-only playback unavailable (AVPlayer cannot extract audio from MKV container).
+- **VLC Video Support (Dec 18)**: Integrated MobileVLCKit v3.7.0 via CocoaPods for MKV/WebM playback. Added `VLCVideoPlayerView` wrapper with custom controls. Format detection blocks AVPlayer from attempting unsupported formats.
 - **MVVM & Performance (Dec 12-15)**: Refactored `CollectionDetailView` to MVVM to fix actor isolation. Implemented background thumbnail generation (320px) + NSCache for smooth library scrolling. Moved heavy model grouping to background tasks.
 - **RSS Support (Dec 7)**: Added `.rss` source support, feed import, and remote cover caching. Covers are now prefetched and stored locally.
 - **Playback Features (Dec 8)**: Added Random Play (shuffle), fixed Play button token guard (offline play), and improved Floating Bubble visibility using a separate `UIWindow` (level `.alert + 1`).
@@ -40,16 +42,15 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Streaming**: Baidu Netdisk does not natively support WebM streaming.
 
 ### Video Playback & Format Support
-- **MKV/WebM Streaming**: AVPlayer cannot handle MKV/WebM containers. Use MobileVLCKit (v3.7.0+) for these formats.
-- **Format Detection**: Use `PlayableMediaFormat.requiresVLC()` to check if a file needs VLC before passing to AVPlayer. Always block unsupported formats from AVPlayer to prevent crashes.
-- **Play Button Behavior**: `handlePlayButtonPress()` (ContentView.swift:1080) checks `canPlayAudioOnly(track:)` and calls `openVideoPlayer(for:)` for VLC-only tracks. This ensures the video sheet opens instead of trying audio playback.
-- **VLC Drawable Rebinding**: When reopening a minimized VLC sheet, the drawable must be rebound. `VLCHostView` custom UIView stores weak player reference and rebinds drawable in `layoutSubviews()`. `VLCVideoPlayerView.updateUIView()` also checks/rebinds drawable to handle layout timing.
-- **VLC Playback Control**: `toggleVideoPlayback()` in AudioPlayerViewModel controls VLC player pause/play state, allowing minimized VLC to be controlled from Playing tab.
-- **Video Presentation State**: `VideoPresentationMode` enum tracks state (hidden/fullscreen/mini) and `setVideoPresentationMode()` manages state transitions.
-- **Playback Behavior**: `AudioPlayerViewModel.play` bails out for VLC-required tracks after setting `statusMessage`, so `audioPlayer.sharedVideoPlayer` stays `nil`. UI must call `openVideoPlayer(for:)` to surface the video sheet.
-- **Minimize/Restore Flow**: VLC sheet dismisses on minimize (`showingVLCPlayer = false`) but player continues. On reopen, `getOrCreateVLCPlayer(url:)` reuses existing player and `updateUIView()` rebinds drawable.
-- **Audio Extraction Limitation**: AVPlayer cannot extract audio from MKV containers. MKV files are video-only. MP4/MOV support both audio-only and full video playback.
-- **PiP Restore**: `AVPlayerViewControllerRepresentable` delegates to sheet via `restoreUserInterfaceForPictureInPictureWithCompletionHandler`, reopening the sheet when restoring from PiP.
+- **MKV/WebM Audio-Only**: MKV/WebM files are played as audio-only (no video UI). VLC is used as an audio engine via `startVLCAudioPlayback()`. All standard playback controls work (play/pause, seek, skip, speed, sleep timer, remote commands). Time updates polled every 250ms via `vlcTimeUpdateTimer`. Track auto-advances when finished.
+- **MP4/MOV Support**: MP4/MOV files support both audio-only playback and optional full-screen video. Click play for audio. Optional video sheet available via `openVideoPlayer()`.
+- **Format Detection**: Use `PlayableMediaFormat.requiresVLC()` to check if MKV/WebM. Always block unsupported formats from AVPlayer.
+- **VLC Audio Implementation**: `usingVLCAudio` flag tracks VLC audio mode. `startVLCAudioPlayback()` sets up resume position, duration, and starts polling. `handleVLCTrackEnded()` detects end-of-track and triggers `playNextTrack()` or respects sleep timer.
+- **VLC Threading**: All `player.drawable` operations require main thread dispatch. `VLCHostView.layoutSubviews()`, `updateUIView()`, `setupPlayer()`, and `cleanup()` check `Thread.isMainThread` and use `DispatchQueue.main.async` when needed. Fixes "Modifying properties off main thread" crashes from VLC's OpenGL initialization.
+- **Playback Controls**: `handlePlayPauseRequest()`, `seek()`, and `skip()` check `usingVLCAudio` and delegate to VLC methods when active. Maintains unified interface across audio and VLC playback.
+- **VLC Drawable Rebinding**: When reopening minimized VLC session, drawable must be rebound. `VLCHostView` stores weak player reference and rebinds in `layoutSubviews()`. `updateUIView()` also checks/rebinds drawable.
+- **Video Presentation State**: `VideoPresentationMode` enum tracks state (hidden/fullscreen/mini) for MP4/MOV video sheets. Managed via `setVideoPresentationMode()`.
+- **PiP Restore**: `AVPlayerViewControllerRepresentable` delegates to sheet via `restoreUserInterfaceForPictureInPictureWithCompletionHandler`, reopening sheet when restoring from PiP.
 
 ### Build & Xcode
 - **Database Locked**: If `xcodebuild` fails with "database is locked", wait/retry or run `killall xcodebuild` and clear DerivedData.

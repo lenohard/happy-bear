@@ -57,6 +57,8 @@ final class AudioPlayerViewModel: ObservableObject {
     private var player: AVPlayer?
     #if canImport(MobileVLCKit)
     private var vlcPlayer: VLCMediaPlayer?
+    /// Indicates VLC is being used for audio-only playback (MKV/WebM files)
+    private var usingVLCAudio: Bool = false
     #endif
     private var timeObserverToken: Any?
     private var endPlaybackObserver: NSObjectProtocol?
@@ -72,6 +74,9 @@ final class AudioPlayerViewModel: ObservableObject {
     private var cancellables: Set<AnyCancellable> = []
     private let defaults: UserDefaults
     private var sleepTimer: Timer?
+    #if canImport(MobileVLCKit)
+    private var vlcTimeUpdateTimer: Timer?
+    #endif
     private var currentSessionStartTime: Date?
     private let sessionDurationThreshold: TimeInterval = 2.0
     private weak var library: LibraryStore?
@@ -184,6 +189,124 @@ final class AudioPlayerViewModel: ObservableObject {
         } else {
             player.play()
         }
+    }
+
+    /// Start VLC audio-only playback for MKV/WebM files
+    private func startVLCAudioPlayback(url: URL, track: AudiobookTrack, collection: AudiobookCollection) {
+        // Stop any existing AVPlayer
+        stopAVPlayer()
+
+        // Get or create VLC player
+        let player = getOrCreateVLCPlayer(url: url)
+        usingVLCAudio = true
+
+        // Set up resume position
+        let resumeState = collection.playbackStates[track.id]
+        if !collection.isMusic, let resumePosition = resumeState?.position, resumePosition > 1 {
+            pendingInitialSeek = resumePosition
+            publishCurrentTime(resumePosition, force: true)
+        } else {
+            pendingInitialSeek = nil
+            publishCurrentTime(0, force: true)
+        }
+
+        if let recordedDuration = resumeState?.duration {
+            duration = max(duration, recordedDuration)
+        }
+
+        currentTrack = track
+        statusMessage = "Playing \"\(track.displayName)\"."
+
+        // Start VLC time update timer
+        startVLCTimeUpdateTimer()
+
+        // Start playback
+        player.play()
+
+        // Apply pending seek after a short delay to allow VLC to initialize
+        if let seekPosition = pendingInitialSeek {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak player] in
+                guard let player = player else { return }
+                player.time = VLCTime(int: Int32(seekPosition * 1000))
+                self?.pendingInitialSeek = nil
+            }
+        }
+
+        isPlaying = true
+        startListeningSession()
+#if os(iOS)
+        updateNowPlayingInfo()
+#endif
+        refreshActiveCacheStatus()
+    }
+
+    private func startVLCTimeUpdateTimer() {
+        vlcTimeUpdateTimer?.invalidate()
+        vlcTimeUpdateTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.updateVLCTimeInfo()
+            }
+        }
+    }
+
+    private func stopVLCTimeUpdateTimer() {
+        vlcTimeUpdateTimer?.invalidate()
+        vlcTimeUpdateTimer = nil
+    }
+
+    private func updateVLCTimeInfo() {
+        guard usingVLCAudio, let player = vlcPlayer else { return }
+
+        // Update time from VLC
+        let currentTimeMs = player.time.intValue
+        let durationMs = player.media?.length.intValue ?? 0
+
+        let newTime = Double(currentTimeMs) / 1000.0
+        if durationMs > 0 {
+            duration = Double(durationMs) / 1000.0
+        }
+
+        publishCurrentTime(newTime, force: false)
+
+        // Update isPlaying state based on VLC state
+        let vlcIsPlaying = player.isPlaying
+        if isPlaying != vlcIsPlaying {
+            isPlaying = vlcIsPlaying
+            if !vlcIsPlaying {
+                flushListeningSession()
+            }
+        }
+
+        // Check for end of track
+        if player.state == .ended || player.state == .stopped {
+            handleVLCTrackEnded()
+        }
+    }
+
+    private func handleVLCTrackEnded() {
+        // Handle sleep timer end of track
+        if case .endOfTrack = sleepTimerMode {
+            stopPlayback(clearQueue: false)
+            setSleepTimer(.off)
+            return
+        }
+
+        // Play next track
+        playNextTrack()
+    }
+
+    private func stopVLCAudio() {
+        stopVLCTimeUpdateTimer()
+        vlcPlayer?.stop()
+        vlcPlayer = nil
+        usingVLCAudio = false
+    }
+
+    private func stopAVPlayer() {
+        removeObservers()
+        player?.pause()
+        player?.replaceCurrentItem(with: nil)
+        player = nil
     }
     #endif
 
@@ -316,14 +439,18 @@ final class AudioPlayerViewModel: ObservableObject {
             progressTracker.stopTracking(for: existingTrack.id.uuidString)
         }
 
-        // Check if track requires VLC (MKV/WebM)
+        // Check if track requires VLC (MKV/WebM) - use VLC for audio-only playback
+        #if canImport(MobileVLCKit)
         if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
-            currentTrack = track
-            statusMessage = NSLocalizedString("video_vlc_required", comment: "Video requires VLC player")
-            // Don't prepare AVPlayer for VLC-required formats
-            // User must tap "Show Video" button to play in VLC
+            do {
+                let url = try streamURL(for: track, token: token)
+                startVLCAudioPlayback(url: url, track: track, collection: collection)
+            } catch {
+                statusMessage = "Playback error: \(error.localizedDescription)"
+            }
             return
         }
+        #endif
 
         // Check for ebook track and missing audio
         if track.isTextTrack {
@@ -917,14 +1044,18 @@ final class AudioPlayerViewModel: ObservableObject {
             progressTracker.stopTracking(for: existingTrack.id.uuidString)
         }
 
-        // Check if track requires VLC (MKV/WebM)
+        // Check if track requires VLC (MKV/WebM) - use VLC for audio-only playback
+        #if canImport(MobileVLCKit)
         if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
-            currentTrack = track
-            statusMessage = NSLocalizedString("video_vlc_required", comment: "Video requires VLC player")
-            // Don't prepare AVPlayer for VLC-required formats
-            // User must tap "Show Video" button to play in VLC
+            do {
+                let url = try streamURL(for: track, token: token)
+                startVLCAudioPlayback(url: url, track: track, collection: context.collection)
+            } catch {
+                statusMessage = "Playback error: \(error.localizedDescription)"
+            }
             return
         }
+        #endif
 
         do {
             let url = try streamURL(for: track, token: token)
@@ -986,6 +1117,22 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func handlePlayPauseRequest(forcePlay: Bool = false) {
+        #if canImport(MobileVLCKit)
+        // Handle VLC audio playback
+        if usingVLCAudio, let vlcPlayer = vlcPlayer {
+            if isPlaying && !forcePlay {
+                vlcPlayer.pause()
+                isPlaying = false
+                flushListeningSession()
+            } else {
+                vlcPlayer.play()
+                isPlaying = true
+                startListeningSession()
+            }
+            return
+        }
+        #endif
+
         guard let player else {
             statusMessage = "Player is not ready. Select a track to start playback."
             return
@@ -1066,6 +1213,17 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func seek(to time: Double) {
+        #if canImport(MobileVLCKit)
+        if usingVLCAudio, let vlcPlayer = vlcPlayer {
+            vlcPlayer.time = VLCTime(int: Int32(time * 1000))
+            publishCurrentTime(time, force: true)
+#if os(iOS)
+            updateNowPlayingElapsedTime()
+#endif
+            return
+        }
+        #endif
+
         guard let player else { return }
         let target = CMTime(seconds: time, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         player.seek(to: target) { [weak self] _ in
@@ -1625,6 +1783,18 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func skip(by delta: Double) {
+        #if canImport(MobileVLCKit)
+        if usingVLCAudio, let vlcPlayer = vlcPlayer {
+            let currentSeconds = Double(vlcPlayer.time.intValue) / 1000.0
+            let vlcDuration = Double(vlcPlayer.media?.length.intValue ?? 0) / 1000.0
+            let itemDuration = vlcDuration > 0 ? vlcDuration : duration
+            guard currentSeconds.isFinite, itemDuration.isFinite, itemDuration > 0 else { return }
+            let clamped = max(0, min(currentSeconds + delta, itemDuration))
+            seek(to: clamped)
+            return
+        }
+        #endif
+
         guard let player, let currentItem = player.currentItem else { return }
         let currentSeconds = player.currentTime().seconds
 
@@ -1649,7 +1819,7 @@ final class AudioPlayerViewModel: ObservableObject {
         if let currentTrack {
             progressTracker.stopTracking(for: currentTrack.id.uuidString)
         }
-        
+
         flushListeningSession()
 
         sleepTimer?.invalidate()
@@ -1657,6 +1827,13 @@ final class AudioPlayerViewModel: ObservableObject {
         if case .time = sleepTimerMode {
             setSleepTimer(.off)
         }
+
+        #if canImport(MobileVLCKit)
+        // Stop VLC audio if active
+        if usingVLCAudio {
+            stopVLCAudio()
+        }
+        #endif
 
         player?.pause()
         removeObservers()

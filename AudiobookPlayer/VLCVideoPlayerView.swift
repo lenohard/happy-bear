@@ -9,9 +9,17 @@ class VLCHostView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         // Re-bind drawable when the view is laid out to ensure video renders
+        // VLC requires drawable operations on main thread for OpenGL
         if let player = vlcPlayer, bounds.size != .zero {
             if player.drawable as? UIView !== self {
-                player.drawable = self
+                if Thread.isMainThread {
+                    player.drawable = self
+                } else {
+                    DispatchQueue.main.async { [weak self, weak player] in
+                        guard let self = self, let player = player else { return }
+                        player.drawable = self
+                    }
+                }
             }
         }
     }
@@ -45,8 +53,16 @@ struct VLCVideoPlayerView: UIViewRepresentable {
 
     func updateUIView(_ uiView: VLCHostView, context: Context) {
         // Ensure drawable is always properly bound when view updates
+        // VLC requires drawable operations on main thread for OpenGL
         if player.drawable as? UIView !== uiView {
-            player.drawable = uiView
+            if Thread.isMainThread {
+                player.drawable = uiView
+            } else {
+                DispatchQueue.main.async { [player, weak uiView] in
+                    guard let uiView = uiView else { return }
+                    player.drawable = uiView
+                }
+            }
         }
 
         if isPlaying.wrappedValue && player.state != .playing {
@@ -77,7 +93,14 @@ struct VLCVideoPlayerView: UIViewRepresentable {
             self.player = player
             view.vlcPlayer = player
             player.delegate = self
-            player.drawable = view
+            // VLC requires drawable operations on main thread for OpenGL
+            if Thread.isMainThread {
+                player.drawable = view
+            } else {
+                DispatchQueue.main.async {
+                    player.drawable = view
+                }
+            }
 
             if player.state == .stopped || player.state == .ended {
                 player.play()
@@ -87,10 +110,23 @@ struct VLCVideoPlayerView: UIViewRepresentable {
         func cleanup() {
             // Do NOT stop the player here to allow background playback (minimize)
             // Just detach the view
-            if let currentView = player?.drawable as? VLCHostView {
-                currentView.vlcPlayer = nil
+            // VLC requires drawable operations on main thread for OpenGL
+            let playerRef = player
+            let currentView = playerRef?.drawable as? VLCHostView
+
+            let cleanupWork = {
+                currentView?.vlcPlayer = nil
+                playerRef?.drawable = nil
             }
-            player?.drawable = nil
+
+            if Thread.isMainThread {
+                cleanupWork()
+            } else {
+                DispatchQueue.main.async {
+                    cleanupWork()
+                }
+            }
+
             player?.delegate = nil
             player = nil
         }

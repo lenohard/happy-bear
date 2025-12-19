@@ -1078,24 +1078,16 @@ struct PlayingView: View {
     // MARK: - Video Player Helpers
 
     private func handlePlayButtonPress(track: AudiobookTrack) {
-        if track.isVideoTrack && !audioPlayer.canPlayAudioOnly(track: track) {
-            openVideoPlayer(for: track)
-        } else {
-            audioPlayer.togglePlayback()
-        }
+        // For all tracks, use togglePlayback() - VLC handles MKV/WebM audio-only
+        // Video UI is only available for MP4/MOV via openVideoPlayer()
+        audioPlayer.togglePlayback()
     }
 
     private func openVideoPlayer(for track: AudiobookTrack) {
         guard track.isVideoTrack else { return }
 
-        if PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
-            // MKV/WebM -> Use VLC Sheet
-            if let url = audioPlayer.currentVLCStreamingURL {
-                vlcPlayerURL = url
-                vlcPlayerTitle = track.displayName
-                showingVLCPlayer = true
-            }
-        } else {
+        // Only MP4/MOV support video playback - MKV/WebM are audio-only
+        if !PlayableMediaFormat.requiresVLC(forFilename: track.filename) {
             // MP4/MOV -> Use Native AVPlayer Sheet (supports PiP)
             showingNativePlayer = true
         }

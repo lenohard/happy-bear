@@ -2409,6 +2409,9 @@
         }
       }
     },
+    "delete_button" : {
+      "comment" : "Delete button"
+    },
     "delete_cache_confirm" : {
       "comment" : "Delete cached track button",
       "localizations" : {
@@ -6479,9 +6482,6 @@
           }
         }
       }
-    },
-    "video_vlc_required" : {
-      "comment" : "Video requires VLC player"
     },
     "View TTS progress" : {
 
