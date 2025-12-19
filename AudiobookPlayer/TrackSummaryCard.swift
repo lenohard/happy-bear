@@ -391,18 +391,17 @@ struct TrackSummaryCard: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(items, id: \.self) { item in
-                        Text(item)
-                            .font(.caption)
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 8)
-                            .background(
-                                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                                    .fill(Color(uiColor: .tertiarySystemFill))
-                            )
-                    }
+            VStack(alignment: .leading, spacing: 6) {
+                ForEach(items, id: \.self) { item in
+                    Text(item)
+                        .font(.caption)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(Color(uiColor: .tertiarySystemFill))
+                        )
                 }
             }
         }
