@@ -1697,6 +1697,23 @@
         }
       }
     },
+    "baidu_netdisk_source_header" : {
+      "comment" : "Baidu Netdisk Source",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Baidu Netdisk Source"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "百度网盘来源"
+          }
+        }
+      }
+    },
     "Batch Rename" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3495,6 +3512,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "名称"
+          }
+        }
+      }
+    },
+    "folder_path_field_label" : {
+      "comment" : "Folder path field label",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Folder Path"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文件夹路径"
+          }
+        }
+      }
+    },
+    "folder_path_footer" : {
+      "comment" : "The folder path in Baidu Netdisk used for refreshing.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The folder path in Baidu Netdisk used for refreshing the collection."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用于刷新集合的百度网盘文件夹路径"
           }
         }
       }

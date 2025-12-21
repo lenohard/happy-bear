@@ -188,6 +188,7 @@ struct CollectionDetailView: View {
                     name: $viewModel.collectionTitleDraft,
                     description: $viewModel.collectionDescriptionDraft,
                     isMusic: $viewModel.collectionIsMusicDraft,
+                    folderPath: $viewModel.collectionFolderPathDraft,
                     onSubmit: viewModel.applyCollectionDetailsUpdate,
                     onCancel: viewModel.cancelCollectionDetailsEdit
                 )
@@ -1067,16 +1068,19 @@ private struct CollectionInfoEditorView: View {
     @Binding var name: String
     @Binding var description: String
     @Binding var isMusic: Bool
+    @Binding var folderPath: String?
     let onSubmit: () -> Void
     let onCancel: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
     @State private var didComplete = false
+    @State private var localFolderPath: String = ""
 
     private enum Field {
         case name
         case description
+        case folderPath
     }
 
     var body: some View {
@@ -1104,8 +1108,25 @@ private struct CollectionInfoEditorView: View {
                             }
                         }
                         .textInputAutocapitalization(.sentences)
-                        
+
                     Toggle("Music Collection", isOn: $isMusic)
+                }
+
+                if folderPath != nil {
+                    Section {
+                        TextField(
+                            NSLocalizedString("folder_path_field_label", comment: "Folder path field label"),
+                            text: $localFolderPath
+                        )
+                        .focused($focusedField, equals: .folderPath)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(.system(.body, design: .monospaced))
+                    } header: {
+                        Text(NSLocalizedString("baidu_netdisk_source_header", comment: "Baidu Netdisk Source"))
+                    } footer: {
+                        Text(NSLocalizedString("folder_path_footer", comment: "The folder path in Baidu Netdisk used for refreshing."))
+                    }
                 }
             }
             .navigationTitle(title)
@@ -1121,6 +1142,10 @@ private struct CollectionInfoEditorView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button(NSLocalizedString("ok_button", comment: "OK button")) {
                         didComplete = true
+                        // Sync local folder path back to binding before submit
+                        if folderPath != nil {
+                            folderPath = localFolderPath.isEmpty ? nil : localFolderPath
+                        }
                         onSubmit()
                         dismiss()
                     }
@@ -1129,6 +1154,10 @@ private struct CollectionInfoEditorView: View {
             }
             .onAppear {
                 didComplete = false
+                // Initialize local folder path from binding
+                if let path = folderPath {
+                    localFolderPath = path
+                }
             }
             .onDisappear {
                 if !didComplete {

@@ -27,6 +27,7 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var collectionTitleDraft = ""
     @Published var collectionDescriptionDraft = ""
     @Published var collectionIsMusicDraft = false
+    @Published var collectionFolderPathDraft: String? = nil
     @Published var trackForTranscription: AudiobookTrack?
     @Published var trackForViewing: AudiobookTrack?
     @Published var trackForReading: AudiobookTrack?
@@ -913,6 +914,14 @@ final class CollectionDetailViewModel: ObservableObject {
         collectionTitleDraft = String(collection.title.prefix(256))
         collectionDescriptionDraft = String((collection.description ?? "").prefix(1024))
         collectionIsMusicDraft = collection.isMusic
+
+        // Extract folder path if this is a Baidu Netdisk collection
+        if case let .baiduNetdisk(folderPath, _) = collection.source {
+            collectionFolderPathDraft = folderPath
+        } else {
+            collectionFolderPathDraft = nil
+        }
+
         showCollectionInfoSheet = true
     }
 
@@ -920,6 +929,7 @@ final class CollectionDetailViewModel: ObservableObject {
         showCollectionInfoSheet = false
         collectionTitleDraft = ""
         collectionDescriptionDraft = ""
+        collectionFolderPathDraft = nil
     }
 
     func applyCollectionDetailsUpdate() {
@@ -930,9 +940,11 @@ final class CollectionDetailViewModel: ObservableObject {
 
         let trimmedTitle = collectionTitleDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedDescription = collectionDescriptionDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let folderPathDraft = collectionFolderPathDraft
 
         collectionTitleDraft = ""
         collectionDescriptionDraft = ""
+        collectionFolderPathDraft = nil
         showCollectionInfoSheet = false
 
         guard !trimmedTitle.isEmpty else { return }
@@ -940,14 +952,24 @@ final class CollectionDetailViewModel: ObservableObject {
         let clampedTitle = String(trimmedTitle.prefix(256))
         let clampedDescription = trimmedDescription.isEmpty ? nil : String(trimmedDescription.prefix(1024))
 
-        guard clampedTitle != collection.title || clampedDescription != collection.description || collectionIsMusicDraft != collection.isMusic else { return }
+        // Determine if folder path changed (for Baidu Netdisk collections)
+        var newSource: AudiobookCollection.Source? = nil
+        if case let .baiduNetdisk(oldPath, tokenScope) = collection.source,
+           let newPath = folderPathDraft?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !newPath.isEmpty,
+           newPath != oldPath {
+            newSource = .baiduNetdisk(folderPath: newPath, tokenScope: tokenScope)
+        }
+
+        guard clampedTitle != collection.title || clampedDescription != collection.description || collectionIsMusicDraft != collection.isMusic || newSource != nil else { return }
 
         library?.updateCollectionDetails(
             collectionID: collectionID,
             newTitle: clampedTitle,
             newDescription: clampedDescription,
             shouldUpdateDescription: true,
-            isMusic: collectionIsMusicDraft
+            isMusic: collectionIsMusicDraft,
+            newSource: newSource
         )
     }
 

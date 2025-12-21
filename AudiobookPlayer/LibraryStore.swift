@@ -703,7 +703,8 @@ final class LibraryStore: ObservableObject {
         newTitle: String,
         newDescription: String?,
         shouldUpdateDescription: Bool,
-        isMusic: Bool? = nil
+        isMusic: Bool? = nil,
+        newSource: AudiobookCollection.Source? = nil
     ) {
         guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
             return
@@ -736,9 +737,14 @@ final class LibraryStore: ObservableObject {
             collection.description = normalizedDescription
             didChange = true
         }
-        
+
         if let isMusic, collection.isMusic != isMusic {
             collection.isMusic = isMusic
+            didChange = true
+        }
+
+        if let newSource, collection.source != newSource {
+            collection.source = newSource
             didChange = true
         }
 
