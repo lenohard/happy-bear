@@ -8,20 +8,20 @@ struct BaiduNetdiskBrowserView: View {
 
     var onSelectFile: ((BaiduNetdiskEntry) -> Void)?
     var onSelectFolder: ((String) -> Void)?
-    var selectedEntryIDs: Set<Int64>
+    @Binding private var selectedEntryIDs: Set<Int64>
     var onToggleSelection: ((BaiduNetdiskEntry) -> Void)?
 
     init(
         tokenProvider: @escaping () -> BaiduOAuthToken?,
         onSelectFile: ((BaiduNetdiskEntry) -> Void)? = nil,
         onSelectFolder: ((String) -> Void)? = nil,
-        selectedEntryIDs: Set<Int64> = [],
+        selectedEntryIDs: Binding<Set<Int64>> = .constant([]),
         onToggleSelection: ((BaiduNetdiskEntry) -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: BaiduNetdiskBrowserViewModel(tokenProvider: tokenProvider))
         self.onSelectFile = onSelectFile
         self.onSelectFolder = onSelectFolder
-        self.selectedEntryIDs = selectedEntryIDs
+        _selectedEntryIDs = selectedEntryIDs
         self.onToggleSelection = onToggleSelection
     }
 

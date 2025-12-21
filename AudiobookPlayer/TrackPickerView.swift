@@ -73,14 +73,17 @@ struct TrackPickerView: View {
                 NavigationStack {
                     BaiduNetdiskBrowserView(
                         tokenProvider: { authViewModel.token },
-                        selectedEntryIDs: Set(selectedEntries.map(\.fsId)),
+                        selectedEntryIDs: Binding(
+                            get: { Set(selectedEntries.map(\.fsId)) },
+                            set: { newIDs in
+                                synchronizeSelection(with: newIDs)
+                            }
+                        ),
                         onToggleSelection: toggleSelection
                     )
                 }
             }
-        }
-        .onAppear(perform: validateState)
-        .navigationDestination(isPresented: $isPresentingReview) {
+            .navigationDestination(isPresented: $isPresentingReview) {
             CollectionReviewView(
                 tracks: reviewTracks,
                 selectedTrackIds: $reviewSelectedTrackIds,
@@ -118,6 +121,8 @@ struct TrackPickerView: View {
             }
             .navigationTitle(NSLocalizedString("review_new_tracks_title", value: "New Tracks", comment: "Review new tracks title"))
         }
+        }
+        .onAppear(perform: validateState)
     }
 
     private var emptyState: some View {
@@ -275,6 +280,11 @@ struct TrackPickerView: View {
 
     private func reorder(from offsets: IndexSet, to destination: Int) {
         selectedEntries.move(fromOffsets: offsets, toOffset: destination)
+    }
+
+    private func synchronizeSelection(with newIDs: Set<Int64>) {
+        // Keep only entries that are still in the new selection
+        selectedEntries = OrderedSet(selectedEntries.filter { newIDs.contains($0.fsId) })
     }
 
     private func addSelectedTracks() {
