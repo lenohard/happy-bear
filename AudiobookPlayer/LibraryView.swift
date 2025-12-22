@@ -4,6 +4,11 @@ import UIKit
 #endif
 import UniformTypeIdentifiers
 
+// MARK: - UTType Extension for Drag & Drop
+extension UTType {
+    static let audiobookCollectionID = UTType(exportedAs: "com.audiobook.collectionID")
+}
+
 struct LibraryView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
@@ -16,6 +21,7 @@ struct LibraryView: View {
     @State private var duplicateImport: DuplicateImportAlert?
     @State private var isCreatingFolder = false
     @State private var newFolderName = ""
+    @State private var hoveringFolder: UUID?
 
     private var selectedCollectionID: Binding<UUID?> {
         Binding(
@@ -28,137 +34,138 @@ struct LibraryView: View {
         library.collections.filter { $0.folderId == nil }
     }
 
+    private var importMenu: some View {
+        Menu {
+            Button {
+                guard authViewModel.token != nil else {
+                    tabSelection.selectedTab = .personal
+                    authViewModel.signIn()
+                    return
+                }
+                activeSource = .baidu
+            } label: {
+                Label(NSLocalizedString("baidu_netdisk", comment: "Baidu netdisk source"), systemImage: "icloud")
+            }
+
+            Button {
+                activeSource = .ebook
+            } label: {
+                Label(NSLocalizedString("import_ebook_button", value: "Import Ebook", comment: "Import ebook file"), systemImage: "book")
+            }
+
+            Button {
+                activeSource = .rss
+            } label: {
+                Label(NSLocalizedString("import_rss_feed_button", value: "Import RSS Feed", comment: "Import RSS feed button"), systemImage: "antenna.radiowaves.left.and.right")
+            }
+
+            Button {
+                newFolderName = ""
+                isCreatingFolder = true
+            } label: {
+                Label("New Folder", systemImage: "folder.badge.plus")
+            }
+        } label: {
+            Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "plus.circle.fill")
+                .labelStyle(.titleAndIcon)
+        }
+        .menuStyle(.button)
+    }
+
+    private var favoritesButton: some View {
+        NavigationLink {
+            FavoriteTracksView()
+        } label: {
+            Label(NSLocalizedString("favorite_tracks_title", comment: "Favorite tracks view title"), systemImage: "heart.fill")
+        }
+        .tint(.red)
+    }
+
+    private var reloadButton: some View {
+        Button {
+            Task { await library.load() }
+        } label: {
+            Label(NSLocalizedString("reload_button", comment: "Reload button"), systemImage: "arrow.clockwise")
+        }
+    }
+
+    @ViewBuilder
+    private var mainContent: some View {
+        if library.isLoading {
+            LoadingLibraryView()
+        } else if library.collections.isEmpty && library.folders.isEmpty {
+            EmptyLibraryView()
+        } else {
+            libraryList
+        }
+    }
+
+    private var libraryList: some View {
+        List {
+            Section(NSLocalizedString("collections_section", comment: "Collections section title")) {
+                folderRows
+                collectionRows
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationDestination(isPresented: Binding(
+            get: { selectedCollectionID.wrappedValue != nil },
+            set: { if !$0 { selectedCollectionID.wrappedValue = nil } }
+        )) {
+            if let collectionID = selectedCollectionID.wrappedValue {
+                CollectionDetailView(collectionID: collectionID)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var folderRows: some View {
+        ForEach(library.folders) { folder in
+            FolderListRow(
+                folder: folder,
+                library: library,
+                hoveringFolder: $hoveringFolder,
+                onDrop: { providers in handleFolderDrop(providers, into: folder) }
+            )
+        }
+    }
+
+    @ViewBuilder
+    private var collectionRows: some View {
+        ForEach(rootCollections) { collection in
+            CollectionListRow(
+                collection: collection,
+                selectedCollectionID: selectedCollectionID,
+                onResume: { resumeCollectionPlayback(collection) },
+                onDelete: { library.delete(collection) },
+                folders: library.folders,
+                onMoveToFolder: { folder in library.moveCollection(collection, to: folder) }
+            )
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            Group {
-                if library.isLoading {
-                    LoadingLibraryView()
-                } else if library.collections.isEmpty && library.folders.isEmpty {
-                    EmptyLibraryView()
-                } else {
-                    List {
-                        Section(NSLocalizedString("collections_section", comment: "Collections section title")) {
-                            // Folders
-                            ForEach(library.folders) { folder in
-                                NavigationLink(destination: FolderDetailView(folder: folder)) {
-                                    FolderGridItemView(folder: folder, count: library.collections.filter { $0.folderId == folder.id }.count)
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                    Button(role: .destructive) {
-                                        library.deleteFolder(folder)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
-                            }
-
-                            // Collections
-                            ForEach(rootCollections) { collection in
-                                HStack(spacing: 12) {
-                                    LibraryCollectionRow(collection: collection)
-                                        .contentShape(Rectangle())
-                                        .onTapGesture {
-                                            selectedCollectionID.wrappedValue = collection.id
-                                        }
-
-                                    Button {
-                                        resumeCollectionPlayback(collection)
-                                    } label: {
-                                        Image(systemName: "play.circle.fill")
-                                            .font(.title3)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityLabel(String(format: NSLocalizedString("play_collection_accessibility", comment: "Play collection accessibility label"), collection.title))
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        library.delete(collection)
-                                    } label: {
-                                        Label(NSLocalizedString("delete_button", comment: "Delete button"), systemImage: "trash")
-                                    }
-                                    .labelStyle(.iconOnly)
-                                }
-                                .contextMenu {
-                                    Menu("Move to Folder") {
-                                        ForEach(library.folders) { folder in
-                                            Button(folder.name) {
-                                                library.moveCollection(collection, to: folder)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .listStyle(.insetGrouped)
-                    .navigationDestination(isPresented: Binding(
-                        get: { selectedCollectionID.wrappedValue != nil },
-                        set: { if !$0 { selectedCollectionID.wrappedValue = nil } }
-                    )) {
-                        if let collectionID = selectedCollectionID.wrappedValue {
-                            CollectionDetailView(collectionID: collectionID)
-                        }
+            mainContent
+                .navigationTitle(NSLocalizedString("library_title", comment: "Library view title"))
+                .toolbar {
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        importMenu
+                        favoritesButton
+                        reloadButton
                     }
                 }
-            }
-            .navigationTitle(NSLocalizedString("library_title", comment: "Library view title"))
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Menu {
-                        Button(NSLocalizedString("baidu_netdisk", comment: "Baidu netdisk source")) {
-                            guard authViewModel.token != nil else {
-                                tabSelection.selectedTab = .personal
-                                authViewModel.signIn()
-                                return
-                            }
-                            activeSource = .baidu
-                        }
-
-                        Button(NSLocalizedString("import_ebook_button", value: "Import Ebook", comment: "Import ebook file")) {
-                            activeSource = .ebook
-                        }
-
-                        Button(NSLocalizedString("import_rss_feed_button", value: "Import RSS Feed", comment: "Import RSS feed button")) {
-                            activeSource = .rss
-                        }
-
-                        Button {
-                            newFolderName = ""
-                            isCreatingFolder = true
-                        } label: {
-                            Label("New Folder", systemImage: "folder.badge.plus")
-                        }
-                    } label: {
-                        Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "plus.circle.fill")
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .menuStyle(.button)
-
-                    NavigationLink {
-                        FavoriteTracksView()
-                    } label: {
-                        Label(NSLocalizedString("favorite_tracks_title", comment: "Favorite tracks view title"), systemImage: "heart.fill")
-                    }
-                    .tint(.red)
-
-                    Button {
-                        Task { await library.load() }
-                    } label: {
-                        Label(NSLocalizedString("reload_button", comment: "Reload button"), systemImage: "arrow.clockwise")
+                .overlay(alignment: .bottom) {
+                    if let message = libraryErrorMessage {
+                        Text(message)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity)
+                            .background(Color(uiColor: .systemBackground))
+                            .overlay(Divider(), alignment: .top)
                     }
                 }
-            }
-            .overlay(alignment: .bottom) {
-                if let message = libraryErrorMessage {
-                    Text(message)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
-                        .padding(.vertical, 8)
-                        .frame(maxWidth: .infinity)
-                        .background(Color(uiColor: .systemBackground))
-                        .overlay(Divider(), alignment: .top)
-                }
-            }
         }
         .alert("New Folder", isPresented: $isCreatingFolder) {
             TextField("Folder Name", text: $newFolderName)
@@ -296,6 +303,24 @@ struct LibraryView: View {
             library.delete(collection)
         }
     }
+
+    private func handleFolderDrop(_ providers: [NSItemProvider], into folder: CollectionFolder) -> Bool {
+        guard let provider = providers.first else { return false }
+
+        provider.loadDataRepresentation(forTypeIdentifier: UTType.audiobookCollectionID.identifier) { data, error in
+            guard let data = data,
+                  let dragItem = try? JSONDecoder().decode(CollectionDragItem.self, from: data),
+                  let collection = library.collections.first(where: { $0.id == dragItem.collectionID }) else {
+                return
+            }
+
+            DispatchQueue.main.async {
+                library.moveCollection(collection, to: folder)
+            }
+        }
+
+        return true
+    }
     
     private func playTrack(_ track: AudiobookTrack, in collection: AudiobookCollection) {
         if case .baiduNetdisk(_, _) = collection.source {
@@ -312,6 +337,85 @@ struct LibraryView: View {
         tabSelection.switchToPlayingTab()
     }
 }
+
+// MARK: - Folder Row
+private struct FolderListRow: View {
+    let folder: CollectionFolder
+    @ObservedObject var library: LibraryStore
+    @Binding var hoveringFolder: UUID?
+    let onDrop: ([NSItemProvider]) -> Bool
+
+    var body: some View {
+        NavigationLink(destination: FolderDetailView(folder: folder)) {
+            FolderGridItemView(
+                folder: folder,
+                count: library.collections.filter { $0.folderId == folder.id }.count,
+                isDropTarget: hoveringFolder == folder.id
+            )
+        }
+        .onDrop(of: [UTType.audiobookCollectionID], isTargeted: Binding(
+            get: { hoveringFolder == folder.id },
+            set: { isTargeted in hoveringFolder = isTargeted ? folder.id : nil }
+        )) { providers in
+            onDrop(providers)
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                library.deleteFolder(folder)
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+}
+
+// MARK: - Collection Row
+private struct CollectionListRow: View {
+    let collection: AudiobookCollection
+    let selectedCollectionID: Binding<UUID?>
+    let onResume: () -> Void
+    let onDelete: () -> Void
+    let folders: [CollectionFolder]
+    let onMoveToFolder: (CollectionFolder) -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            LibraryCollectionRow(collection: collection)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    selectedCollectionID.wrappedValue = collection.id
+                }
+
+            Button {
+                onResume()
+            } label: {
+                Image(systemName: "play.circle.fill")
+                    .font(.title3)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(String(format: NSLocalizedString("play_collection_accessibility", comment: "Play collection accessibility label"), collection.title))
+        }
+        .draggable(CollectionDragItem(collection: collection))
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                onDelete()
+            } label: {
+                Label(NSLocalizedString("delete_button", comment: "Delete button"), systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+        }
+        .contextMenu {
+            Menu("Move to Folder") {
+                ForEach(folders) { folder in
+                    Button(folder.name) {
+                        onMoveToFolder(folder)
+                    }
+                }
+            }
+        }
+    }
+}
+
 private struct EmptyLibraryView: View {
     var body: some View {
         VStack(spacing: 16) {
@@ -346,162 +450,6 @@ private struct LoadingLibraryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(uiColor: .secondarySystemBackground))
-    }
-}
-
-struct CollectionCoverArtView: View {
-    let cover: CollectionCover
-    let title: String
-    var size: CGFloat = 56
-    var cornerRadius: CGFloat = 8
-
-    @State private var localImage: UIImage?
-    @State private var cachedRelativePath: String?
-    @State private var loadTask: Task<Void, Never>?
-
-    // Cache for small thumbnails to avoid repeated resizing - shared for preloading
-    nonisolated(unsafe) static let thumbnailCache: NSCache<NSString, UIImage> = {
-        let cache = NSCache<NSString, UIImage>()
-        cache.countLimit = 200
-        return cache
-    }()
-
-    var body: some View {
-        ZStack {
-            switch cover.kind {
-            case .solid(let colorHex):
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color(hexString: colorHex))
-                    .overlay(initialsOverlay)
-            case .image:
-                imageOverlay
-            case .remote(let url):
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        placeholder(symbol: "icloud.and.arrow.down", tint: Color.blue.opacity(0.3))
-                    case .success(let image):
-                        image
-                            .resizable()
-                            .scaledToFill()
-                            .frame(width: size, height: size)
-                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                    .strokeBorder(Color.black.opacity(0.1))
-                            )
-                    case .failure:
-                        placeholder(symbol: "exclamationmark.triangle", tint: Color.red.opacity(0.3))
-                    @unknown default:
-                        placeholder(symbol: "questionmark", tint: Color.gray.opacity(0.3))
-                    }
-                }
-            }
-        }
-        .frame(width: size, height: size)
-        .clipped()
-        .onAppear { refreshImageIfNeeded(force: false) }
-        .onChange(of: cover) { refreshImageIfNeeded(force: true) }
-        .onDisappear {
-            loadTask?.cancel()
-            loadTask = nil
-        }
-    }
-
-    private var initialsOverlay: some View {
-        Text(makeInitials(from: title))
-            .font(.headline)
-            .foregroundStyle(.white)
-    }
-
-    private var imageOverlay: some View {
-        Group {
-            if let localImage {
-                Image(uiImage: localImage)
-                    .resizable()
-                    .scaledToFill()
-            } else {
-                placeholder(symbol: "photo", tint: Color.gray.opacity(0.25))
-            }
-        }
-        .frame(width: size, height: size)
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .strokeBorder(Color.black.opacity(0.1))
-        )
-    }
-
-    private func placeholder(symbol: String, tint: Color) -> some View {
-        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-            .fill(tint)
-            .overlay(
-                Image(systemName: symbol)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-            )
-    }
-
-    private func refreshImageIfNeeded(force: Bool = false) {
-        guard case let .image(relativePath) = cover.kind else {
-            localImage = nil
-            cachedRelativePath = nil
-            return
-        }
-
-        // If we already have this image loaded, skip
-        guard force || cachedRelativePath != relativePath || localImage == nil else { return }
-
-        let cacheKey = relativePath as NSString
-        cachedRelativePath = relativePath
-
-        // 1. Check thumbnail cache first (fastest) - this is the hot path during scroll
-        if size <= 160, let cachedThumbnail = Self.thumbnailCache.object(forKey: cacheKey) {
-            localImage = cachedThumbnail
-            return
-        }
-
-        // 2. Check main cache - also fast, no disk I/O
-        if let cached = CollectionCoverImageStore.cache.object(forKey: cacheKey) {
-            localImage = cached
-            // Generate thumbnail in background for next time (non-blocking)
-            if size <= 160 {
-                generateThumbnail(from: cached, key: cacheKey)
-            }
-            return
-        }
-
-        // 3. Disk load - defer to background, don't block scroll
-        // Only spawn task if we don't already have one running for this path
-        loadTask?.cancel()
-
-        loadTask = Task.detached(priority: .utility) {
-            let url = CollectionCoverImageStore.fileURL(for: relativePath)
-            guard let image = UIImage(contentsOfFile: url.path) else { return }
-
-            // Cache full image
-            CollectionCoverImageStore.cache.setObject(image, forKey: cacheKey)
-
-            // Generate and cache thumbnail
-            let thumbnail = image.redraw(to: CGSize(width: 320, height: 320))
-            Self.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
-
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                if self.cachedRelativePath == relativePath {
-                    self.localImage = self.size <= 160 ? thumbnail : image
-                }
-            }
-        }
-    }
-
-    private func generateThumbnail(from image: UIImage, key: NSString) {
-        Task.detached(priority: .background) {
-            let targetSize = CGSize(width: 320, height: 320)
-            let thumbnail = image.redraw(to: targetSize)
-            Self.thumbnailCache.setObject(thumbnail, forKey: key)
-        }
     }
 }
 
@@ -541,9 +489,24 @@ private struct PendingEbookImport: Identifiable {
 
 // MARK: - Folder Views
 
+// MARK: - Drag & Drop support
+
+private struct CollectionDragItem: Codable, Transferable {
+    let collectionID: UUID
+
+    init(collection: AudiobookCollection) {
+        self.collectionID = collection.id
+    }
+
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: .audiobookCollectionID)
+    }
+}
+
 struct FolderGridItemView: View {
     let folder: CollectionFolder
     let count: Int
+    var isDropTarget: Bool = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -568,11 +531,17 @@ struct FolderGridItemView: View {
             }
 
             Spacer()
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.tertiary)
         }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isDropTarget ? Color.accentColor.opacity(0.08) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(isDropTarget ? Color.accentColor : Color.clear, lineWidth: 1)
+        )
         .contentShape(Rectangle())
     }
 }
