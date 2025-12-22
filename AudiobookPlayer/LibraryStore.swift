@@ -10,6 +10,7 @@ protocol LibrarySyncing: AnyObject {
 @MainActor
 final class LibraryStore: ObservableObject {
     @Published private(set) var collections: [AudiobookCollection] = []
+    @Published private(set) var folders: [CollectionFolder] = []
     @Published private(set) var lastError: Error?
     @Published private(set) var isLoading = false
 
@@ -108,6 +109,10 @@ final class LibraryStore: ObservableObject {
             // Load from SQLite database
             let dbCollections = try await dbManager.loadAllCollections()
             collections = dbCollections.sorted { $0.updatedAt > $1.updatedAt }
+
+            let dbFolders = try await dbManager.loadFolders()
+            folders = dbFolders
+
             migrateShuffleDefaultsIfNeeded(globalShuffleDefault: audioPlayerDefaultsBool())
 
             // Debug: print favorite count
@@ -293,6 +298,63 @@ final class LibraryStore: ObservableObject {
                 try? await syncEngine.deleteRemoteCollection(withID: collection.id)
             }
         }
+    }
+
+    // MARK: - Folder Management
+
+    func createFolder(name: String) {
+        let folder = CollectionFolder(name: name)
+        folders.append(folder)
+        folders.sort { $0.name < $1.name }
+
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                try? await dbManager.saveFolder(folder)
+            }
+        }
+    }
+
+    func deleteFolder(_ folder: CollectionFolder) {
+        folders.removeAll { $0.id == folder.id }
+
+        // Move collections back to root in memory
+        for i in 0..<collections.count {
+            if collections[i].folderId == folder.id {
+                collections[i].folderId = nil
+            }
+        }
+
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                try? await dbManager.deleteFolder(id: folder.id)
+            }
+        }
+    }
+
+    func renameFolder(_ folder: CollectionFolder, to newName: String) {
+        guard let index = folders.firstIndex(where: { $0.id == folder.id }) else { return }
+        var updated = folder
+        updated.name = newName
+        updated.updatedAt = Date()
+        folders[index] = updated
+        folders.sort { $0.name < $1.name }
+
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                try? await dbManager.saveFolder(updated)
+            }
+        }
+    }
+
+    func moveCollection(_ collection: AudiobookCollection, to folder: CollectionFolder?) {
+        guard let index = collections.firstIndex(where: { $0.id == collection.id }) else { return }
+        var updated = collection
+        updated.folderId = folder?.id
+        updated.updatedAt = Date()
+        collections[index] = updated
+
+        // Persist
+        save(updated)
     }
 
     func collection(forPath path: String) -> AudiobookCollection? {

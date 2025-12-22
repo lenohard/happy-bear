@@ -14,7 +14,9 @@ struct LibraryView: View {
     @State private var pendingImport: PendingImport?
     @State private var pendingEbookImport: PendingEbookImport?
     @State private var duplicateImport: DuplicateImportAlert?
-    
+    @State private var isCreatingFolder = false
+    @State private var newFolderName = ""
+
     private var selectedCollectionID: Binding<UUID?> {
         Binding(
             get: { tabSelection.libraryNavigationTarget },
@@ -22,17 +24,36 @@ struct LibraryView: View {
         )
     }
 
+    private var rootCollections: [AudiobookCollection] {
+        library.collections.filter { $0.folderId == nil }
+    }
+
     var body: some View {
         NavigationStack {
             Group {
                 if library.isLoading {
                     LoadingLibraryView()
-                } else if library.collections.isEmpty {
+                } else if library.collections.isEmpty && library.folders.isEmpty {
                     EmptyLibraryView()
                 } else {
                     List {
                         Section(NSLocalizedString("collections_section", comment: "Collections section title")) {
-                            ForEach(library.collections) { collection in
+                            // Folders
+                            ForEach(library.folders) { folder in
+                                NavigationLink(destination: FolderDetailView(folder: folder)) {
+                                    FolderGridItemView(folder: folder, count: library.collections.filter { $0.folderId == folder.id }.count)
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        library.deleteFolder(folder)
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                            }
+
+                            // Collections
+                            ForEach(rootCollections) { collection in
                                 HStack(spacing: 12) {
                                     LibraryCollectionRow(collection: collection)
                                         .contentShape(Rectangle())
@@ -56,6 +77,15 @@ struct LibraryView: View {
                                         Label(NSLocalizedString("delete_button", comment: "Delete button"), systemImage: "trash")
                                     }
                                     .labelStyle(.iconOnly)
+                                }
+                                .contextMenu {
+                                    Menu("Move to Folder") {
+                                        ForEach(library.folders) { folder in
+                                            Button(folder.name) {
+                                                library.moveCollection(collection, to: folder)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -83,13 +113,20 @@ struct LibraryView: View {
                             }
                             activeSource = .baidu
                         }
-                        
+
                         Button(NSLocalizedString("import_ebook_button", value: "Import Ebook", comment: "Import ebook file")) {
                             activeSource = .ebook
                         }
-                        
+
                         Button(NSLocalizedString("import_rss_feed_button", value: "Import RSS Feed", comment: "Import RSS feed button")) {
                             activeSource = .rss
+                        }
+
+                        Button {
+                            newFolderName = ""
+                            isCreatingFolder = true
+                        } label: {
+                            Label("New Folder", systemImage: "folder.badge.plus")
                         }
                     } label: {
                         Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "plus.circle.fill")
@@ -121,6 +158,13 @@ struct LibraryView: View {
                         .background(Color(uiColor: .systemBackground))
                         .overlay(Divider(), alignment: .top)
                 }
+            }
+        }
+        .alert("New Folder", isPresented: $isCreatingFolder) {
+            TextField("Folder Name", text: $newFolderName)
+            Button("Cancel", role: .cancel) { }
+            Button("Create") {
+                library.createFolder(name: newFolderName)
             }
         }
         .alert(item: $duplicateImport) { duplicate in
@@ -305,7 +349,366 @@ private struct LoadingLibraryView: View {
     }
 }
 
-private struct LibraryCollectionRow: View {
+struct CollectionCoverArtView: View {
+    let cover: CollectionCover
+    let title: String
+    var size: CGFloat = 56
+    var cornerRadius: CGFloat = 8
+
+    @State private var localImage: UIImage?
+    @State private var cachedRelativePath: String?
+    @State private var loadTask: Task<Void, Never>?
+
+    // Cache for small thumbnails to avoid repeated resizing - shared for preloading
+    nonisolated(unsafe) static let thumbnailCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 200
+        return cache
+    }()
+
+    var body: some View {
+        ZStack {
+            switch cover.kind {
+            case .solid(let colorHex):
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(Color(hexString: colorHex))
+                    .overlay(initialsOverlay)
+            case .image:
+                imageOverlay
+            case .remote(let url):
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .empty:
+                        placeholder(symbol: "icloud.and.arrow.down", tint: Color.blue.opacity(0.3))
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: size, height: size)
+                            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                                    .strokeBorder(Color.black.opacity(0.1))
+                            )
+                    case .failure:
+                        placeholder(symbol: "exclamationmark.triangle", tint: Color.red.opacity(0.3))
+                    @unknown default:
+                        placeholder(symbol: "questionmark", tint: Color.gray.opacity(0.3))
+                    }
+                }
+            }
+        }
+        .frame(width: size, height: size)
+        .clipped()
+        .onAppear { refreshImageIfNeeded(force: false) }
+        .onChange(of: cover) { refreshImageIfNeeded(force: true) }
+        .onDisappear {
+            loadTask?.cancel()
+            loadTask = nil
+        }
+    }
+
+    private var initialsOverlay: some View {
+        Text(makeInitials(from: title))
+            .font(.headline)
+            .foregroundStyle(.white)
+    }
+
+    private var imageOverlay: some View {
+        Group {
+            if let localImage {
+                Image(uiImage: localImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                placeholder(symbol: "photo", tint: Color.gray.opacity(0.25))
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                .strokeBorder(Color.black.opacity(0.1))
+        )
+    }
+
+    private func placeholder(symbol: String, tint: Color) -> some View {
+        RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(tint)
+            .overlay(
+                Image(systemName: symbol)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            )
+    }
+
+    private func refreshImageIfNeeded(force: Bool = false) {
+        guard case let .image(relativePath) = cover.kind else {
+            localImage = nil
+            cachedRelativePath = nil
+            return
+        }
+
+        // If we already have this image loaded, skip
+        guard force || cachedRelativePath != relativePath || localImage == nil else { return }
+
+        let cacheKey = relativePath as NSString
+        cachedRelativePath = relativePath
+
+        // 1. Check thumbnail cache first (fastest) - this is the hot path during scroll
+        if size <= 160, let cachedThumbnail = Self.thumbnailCache.object(forKey: cacheKey) {
+            localImage = cachedThumbnail
+            return
+        }
+
+        // 2. Check main cache - also fast, no disk I/O
+        if let cached = CollectionCoverImageStore.cache.object(forKey: cacheKey) {
+            localImage = cached
+            // Generate thumbnail in background for next time (non-blocking)
+            if size <= 160 {
+                generateThumbnail(from: cached, key: cacheKey)
+            }
+            return
+        }
+
+        // 3. Disk load - defer to background, don't block scroll
+        // Only spawn task if we don't already have one running for this path
+        loadTask?.cancel()
+
+        loadTask = Task.detached(priority: .utility) {
+            let url = CollectionCoverImageStore.fileURL(for: relativePath)
+            guard let image = UIImage(contentsOfFile: url.path) else { return }
+
+            // Cache full image
+            CollectionCoverImageStore.cache.setObject(image, forKey: cacheKey)
+
+            // Generate and cache thumbnail
+            let thumbnail = image.redraw(to: CGSize(width: 320, height: 320))
+            Self.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
+
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                if self.cachedRelativePath == relativePath {
+                    self.localImage = self.size <= 160 ? thumbnail : image
+                }
+            }
+        }
+    }
+
+    private func generateThumbnail(from image: UIImage, key: NSString) {
+        Task.detached(priority: .background) {
+            let targetSize = CGSize(width: 320, height: 320)
+            let thumbnail = image.redraw(to: targetSize)
+            Self.thumbnailCache.setObject(thumbnail, forKey: key)
+        }
+    }
+}
+
+private enum ImportSource: Identifiable {
+    case baidu
+    case ebook
+    case rss
+
+    var id: String {
+        switch self {
+        case .baidu:
+            return "baidu"
+        case .ebook:
+            return "ebook"
+        case .rss:
+            return "rss"
+        }
+    }
+}
+
+private struct DuplicateImportAlert: Identifiable {
+    let path: String
+    let collection: AudiobookCollection
+
+    var id: UUID { collection.id }
+}
+
+private struct PendingImport: Identifiable {
+    let path: String
+    var id: String { path }
+}
+
+private struct PendingEbookImport: Identifiable {
+    let url: URL
+    var id: String { url.absoluteString }
+}
+
+// MARK: - Folder Views
+
+struct FolderGridItemView: View {
+    let folder: CollectionFolder
+    let count: Int
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color.blue.opacity(0.1))
+                    .frame(width: 56, height: 56)
+
+                Image(systemName: "folder.fill")
+                    .font(.title)
+                    .foregroundStyle(.blue)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(folder.name)
+                    .font(.headline)
+                    .lineLimit(1)
+
+                Text("\(count) items")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+struct FolderDetailView: View {
+    let folder: CollectionFolder
+    @EnvironmentObject private var library: LibraryStore
+    @EnvironmentObject private var tabSelection: TabSelectionManager
+    @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
+    @EnvironmentObject private var authViewModel: BaiduAuthViewModel
+
+    @State private var isRenaming = false
+    @State private var newName = ""
+    @State private var showDeleteConfirmation = false
+    @Environment(\.dismiss) private var dismiss
+
+    private var folderCollections: [AudiobookCollection] {
+        library.collections.filter { $0.folderId == folder.id }
+    }
+
+    var body: some View {
+        List {
+            ForEach(folderCollections) { collection in
+                HStack(spacing: 12) {
+                    LibraryCollectionRow(collection: collection)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            tabSelection.libraryNavigationTarget = collection.id
+                        }
+
+                    Button {
+                        resumeCollectionPlayback(collection)
+                    } label: {
+                        Image(systemName: "play.circle.fill")
+                            .font(.title3)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        library.delete(collection)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .labelStyle(.iconOnly)
+
+                    Button {
+                        library.moveCollection(collection, to: nil) // Move to root
+                    } label: {
+                        Label("Move Out", systemImage: "arrow.turn.up.left")
+                    }
+                    .tint(.orange)
+                }
+            }
+        }
+        .listStyle(.insetGrouped)
+        .navigationTitle(folder.name)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        newName = folder.name
+                        isRenaming = true
+                    } label: {
+                        Label("Rename Folder", systemImage: "pencil")
+                    }
+
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Delete Folder", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
+        .alert("Rename Folder", isPresented: $isRenaming) {
+            TextField("Folder Name", text: $newName)
+            Button("Cancel", role: .cancel) { }
+            Button("Rename") {
+                library.renameFolder(folder, to: newName)
+            }
+        }
+        .alert("Delete Folder", isPresented: $showDeleteConfirmation) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                library.deleteFolder(folder)
+                dismiss()
+            }
+        } message: {
+            Text("Are you sure you want to delete this folder? Collections inside will be moved to the main library.")
+        }
+    }
+
+    private func resumeCollectionPlayback(_ collection: AudiobookCollection) {
+        Task {
+            await library.ensureCollectionLoaded(collection.id)
+            await MainActor.run {
+                guard let updatedCollection = library.collections.first(where: { $0.id == collection.id }) else { return }
+                guard !updatedCollection.tracks.isEmpty else { return }
+
+                if updatedCollection.isMusic {
+                    var collectionToPlay = updatedCollection
+                    if !collectionToPlay.shuffleEnabled {
+                        library.updateShuffle(true, for: collectionToPlay.id)
+                        collectionToPlay.shuffleEnabled = true
+                    }
+                    guard let randomTrack = collectionToPlay.tracks.randomElement() else { return }
+                    playTrack(randomTrack, in: collectionToPlay)
+                } else {
+                    guard let track = updatedCollection.resumeTrack() else { return }
+                    playTrack(track, in: updatedCollection)
+                }
+            }
+        }
+    }
+
+    private func playTrack(_ track: AudiobookTrack, in collection: AudiobookCollection) {
+        if case .baiduNetdisk(_, _) = collection.source {
+            guard let token = authViewModel.token else {
+                tabSelection.selectedTab = .personal
+                authViewModel.signIn()
+                return
+            }
+            audioPlayer.play(track: track, in: collection, token: token)
+        } else {
+            audioPlayer.play(track: track, in: collection, token: nil)
+        }
+        tabSelection.switchToPlayingTab()
+    }
+}
+
+// MARK: - Shared Views
+
+struct LibraryCollectionRow: View {
     let collection: AudiobookCollection
 
     private static let dateFormatter: DateFormatter = {
@@ -378,19 +781,6 @@ private struct LibraryCollectionRow: View {
             size: 56,
             cornerRadius: 8
         )
-    }
-}
-
-
-
-private extension AudiobookCollection {
-    var initials: String {
-        let words = title.split(separator: " ")
-        let firstLetters = words.prefix(2).compactMap { $0.first }
-        if firstLetters.isEmpty {
-            return "AB"
-        }
-        return firstLetters.map(String.init).joined().uppercased()
     }
 }
 
@@ -540,7 +930,7 @@ struct CollectionCoverArtView: View {
             }
         }
     }
-    
+
     private func generateThumbnail(from image: UIImage, key: NSString) {
         Task.detached(priority: .background) {
             let targetSize = CGSize(width: 320, height: 320)
@@ -557,62 +947,5 @@ struct CollectionCoverArtView: View {
         }
         return firstLetters.map(String.init).joined().uppercased()
     }
-}
-
-// Preview disabled - complex initialization conflicts with type inference
-// Re-enable when GRDBDatabaseManager preview support is added
-/*
-#Preview("LibraryView") {
-    let sample = AudiobookCollection.makeEmptyDraft(
-        for: .baiduNetdisk(folderPath: "/audiobooks", tokenScope: "netdisk"),
-        title: "Sample Collection"
-    )
-
-    let store = LibraryStore(
-        dbManager: .shared,
-        jsonPersistence: LibraryPersistence(fileURL: FileManager.default.temporaryDirectory.appendingPathComponent("library-preview.json")),
-        autoLoadOnInit: false
-    )
-    store.save(sample)
-
-    LibraryView()
-        .environmentObject(AudioPlayerViewModel())
-        .environmentObject(store)
-        .environmentObject(BaiduAuthViewModel())
-}
-*/
-
-private enum ImportSource: Identifiable {
-    case baidu
-    case ebook
-    case rss
-
-    var id: String {
-        switch self {
-        case .baidu:
-            return "baidu"
-        case .ebook:
-            return "ebook"
-        case .rss:
-            return "rss"
-        }
-    }
-}
-
-private struct DuplicateImportAlert: Identifiable {
-    let path: String
-    let collection: AudiobookCollection
-
-    var id: UUID { collection.id }
-}
-
-private struct PendingImport: Identifiable {
-    let path: String
-    var id: String { path }
-}
-
-private struct PendingEbookImport: Identifiable {
-    let url: URL
-    var id: String { url.absoluteString }
 }
 

@@ -7,6 +7,17 @@ enum DatabaseSchema {
 
     /// SQL for creating tables
     static let createTableSQL = """
+    -- Collection Folders table
+    CREATE TABLE IF NOT EXISTS collection_folders (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        cover_kind TEXT,
+        cover_data TEXT,
+        cover_dominant_color TEXT
+    );
+
     -- Collections table
     CREATE TABLE IF NOT EXISTS collections (
         id TEXT PRIMARY KEY,
@@ -22,7 +33,9 @@ enum DatabaseSchema {
         source_payload TEXT NOT NULL,
         last_played_track_id TEXT,
         shuffle_enabled INTEGER NOT NULL DEFAULT 0,
-        preferred_sort_order TEXT
+        preferred_sort_order TEXT,
+        folder_id TEXT,
+        FOREIGN KEY (folder_id) REFERENCES collection_folders(id)
     );
 
     -- Tracks table
@@ -90,6 +103,7 @@ enum DatabaseSchema {
     CREATE INDEX IF NOT EXISTS idx_listening_statistics_collection_id ON listening_statistics(collection_id);
     CREATE INDEX IF NOT EXISTS idx_listening_statistics_track_id ON listening_statistics(track_id);
     CREATE INDEX IF NOT EXISTS idx_listening_statistics_created_at ON listening_statistics(created_at);
+    CREATE INDEX IF NOT EXISTS idx_collections_folder_id ON collections(folder_id);
     """
 
     /// Create and initialize the database

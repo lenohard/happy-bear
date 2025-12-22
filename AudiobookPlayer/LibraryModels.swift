@@ -6,6 +6,22 @@ struct TrackPlaybackState: Codable, Equatable {
     var updatedAt: Date
 }
 
+struct CollectionFolder: Identifiable, Codable, Equatable {
+    let id: UUID
+    var name: String
+    var createdAt: Date
+    var updatedAt: Date
+    var coverAsset: CollectionCover? // Optional, if nil, UI should generate a composite or use a default icon
+
+    init(id: UUID = UUID(), name: String, createdAt: Date = Date(), updatedAt: Date = Date(), coverAsset: CollectionCover? = nil) {
+        self.id = id
+        self.name = name
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.coverAsset = coverAsset
+    }
+}
+
 struct AudiobookCollection: Identifiable, Codable, Equatable {
     enum Source: Codable, Equatable {
         case baiduNetdisk(folderPath: String, tokenScope: String)
@@ -108,6 +124,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
     var shuffleEnabled: Bool
     var isMusic: Bool
     var preferredSortOrder: String?
+    var folderId: UUID?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -127,6 +144,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case shuffleEnabled
         case isMusic
         case preferredSortOrder
+        case folderId
     }
 
     init(
@@ -145,7 +163,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         trackCount: Int? = nil, // Optional for backward compatibility in init, defaults to tracks.count
         shuffleEnabled: Bool = false,
         isMusic: Bool = false,
-        preferredSortOrder: String? = nil
+        preferredSortOrder: String? = nil,
+        folderId: UUID? = nil
     ) {
         self.id = id
         self.title = title
@@ -163,6 +182,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         self.shuffleEnabled = shuffleEnabled
         self.isMusic = isMusic
         self.preferredSortOrder = preferredSortOrder
+        self.folderId = folderId
     }
 
     init(from decoder: Decoder) throws {
@@ -190,6 +210,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         shuffleEnabled = try container.decodeIfPresent(Bool.self, forKey: .shuffleEnabled) ?? false
         isMusic = try container.decodeIfPresent(Bool.self, forKey: .isMusic) ?? false
         preferredSortOrder = try container.decodeIfPresent(String.self, forKey: .preferredSortOrder)
+        folderId = try container.decodeIfPresent(UUID.self, forKey: .folderId)
 
         let decodedStates = try container.decodeIfPresent([UUID: TrackPlaybackState].self, forKey: .playbackStates) ?? [:]
         if decodedStates.isEmpty,
@@ -225,6 +246,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         try container.encode(shuffleEnabled, forKey: .shuffleEnabled)
         try container.encode(isMusic, forKey: .isMusic)
         try container.encodeIfPresent(preferredSortOrder, forKey: .preferredSortOrder)
+        try container.encodeIfPresent(folderId, forKey: .folderId)
     }
     func playbackState(for trackId: UUID) -> TrackPlaybackState? {
         playbackStates[trackId]
@@ -467,7 +489,8 @@ extension AudiobookCollection {
             tags: [],
             trackCount: 0,
             shuffleEnabled: false,
-            isMusic: false
+            isMusic: false,
+            folderId: nil
         )
     }
 }

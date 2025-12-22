@@ -48,6 +48,8 @@ actor GRDBDatabaseManager {
             try addCollectionShuffleColumnIfNeeded(in: db)
             try addCollectionIsMusicColumnIfNeeded(in: db)
             try addCollectionPreferredSortColumnIfNeeded(in: db)
+            try addCollectionFoldersTableIfNeeded(in: db)
+            try addCollectionFolderIdColumnIfNeeded(in: db)
             print("[GRDB] Schema tables created")
 
             // Create transcription tables
@@ -126,7 +128,8 @@ actor GRDBDatabaseManager {
                         source_type = ?, source_payload = ?,
                         last_played_track_id = ?,
                         is_music = ?,
-                        preferred_sort_order = ?
+                        preferred_sort_order = ?,
+                        folder_id = ?
                     WHERE id = ?
                     """,
                     arguments: [
@@ -142,6 +145,7 @@ actor GRDBDatabaseManager {
                         collection.lastPlayedTrackId?.uuidString,
                         collection.isMusic ? 1 : 0,
                         collection.preferredSortOrder,
+                        collection.folderId?.uuidString,
                         collection.id.uuidString
                     ]
                 )
@@ -176,8 +180,9 @@ actor GRDBDatabaseManager {
                     last_played_track_id,
                     shuffle_enabled,
                     is_music,
-                    preferred_sort_order
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    preferred_sort_order,
+                    folder_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     collection.id.uuidString,
@@ -194,7 +199,8 @@ actor GRDBDatabaseManager {
                     collection.lastPlayedTrackId?.uuidString,
                     collection.shuffleEnabled ? 1 : 0,
                     collection.isMusic ? 1 : 0,
-                    collection.preferredSortOrder
+                    collection.preferredSortOrder,
+                    collection.folderId?.uuidString
                 ]
             )
 
@@ -553,6 +559,103 @@ actor GRDBDatabaseManager {
             try db.execute(sql: "DELETE FROM tags WHERE collection_id = ?", arguments: [id.uuidString])
             try db.execute(sql: "DELETE FROM collections WHERE id = ?", arguments: [id.uuidString])
         }
+    }
+
+    // MARK: - Folder Operations
+
+    func saveFolder(_ folder: CollectionFolder) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            try db.execute(sql:
+                """
+                INSERT OR REPLACE INTO collection_folders (
+                    id, name, created_at, updated_at,
+                    cover_kind, cover_data, cover_dominant_color
+                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                arguments: [
+                    folder.id.uuidString,
+                    folder.name,
+                    folder.createdAt,
+                    folder.updatedAt,
+                    folder.coverAsset?.kind.typeString,
+                    folder.coverAsset?.kind.dataJSON(),
+                    folder.coverAsset?.dominantColorHex
+                ]
+            )
+        }
+    }
+
+    func loadFolders() throws -> [CollectionFolder] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            let rows = try Row.fetchAll(db, sql: "SELECT * FROM collection_folders ORDER BY name")
+            var folders: [CollectionFolder] = []
+            for row in rows {
+                if let folder = try reconstructFolder(row: row) {
+                    folders.append(folder)
+                }
+            }
+            return folders
+        }
+    }
+
+    func deleteFolder(id: UUID) throws {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        try db.write { db in
+            // Move collections in this folder back to root (folder_id = NULL)
+            try db.execute(sql: "UPDATE collections SET folder_id = NULL WHERE folder_id = ?", arguments: [id.uuidString])
+            // Delete the folder
+            try db.execute(sql: "DELETE FROM collection_folders WHERE id = ?", arguments: [id.uuidString])
+        }
+    }
+
+    private func reconstructFolder(row: Row) throws -> CollectionFolder? {
+        guard let idStr = row["id"] as? String,
+              let id = UUID(uuidString: idStr),
+              let name = row["name"] as? String else {
+            return nil
+        }
+
+        let createdAt: Date
+        if let date = row["created_at"] as Date? {
+            createdAt = date
+        } else if let dateString = row["created_at"] as String?,
+                  let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
+            createdAt = parsedDate
+        } else {
+            return nil
+        }
+
+        let updatedAt: Date
+        if let date = row["updated_at"] as Date? {
+            updatedAt = date
+        } else if let dateString = row["updated_at"] as String?,
+                  let parsedDate = Self.sqliteDateFormatter.date(from: dateString) {
+            updatedAt = parsedDate
+        } else {
+            return nil
+        }
+
+        var cover: CollectionCover? = nil
+        if let coverKindStr = row["cover_kind"] as? String {
+            let coverData = row["cover_data"] as? String
+            let coverDominant = row["cover_dominant_color"] as? String
+            if let kind = try? decodeCoverKind(type: coverKindStr, data: coverData) {
+                cover = CollectionCover(kind: kind, dominantColorHex: coverDominant)
+            }
+        }
+
+        return CollectionFolder(
+            id: id,
+            name: name,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            coverAsset: cover
+        )
     }
 
     // MARK: - Track Operations
@@ -1052,6 +1155,8 @@ actor GRDBDatabaseManager {
         let isMusicValue: Int? = collectionRow["is_music"]
         let isMusic = (isMusicValue ?? 0) == 1
         let preferredSortOrder = collectionRow["preferred_sort_order"] as? String
+        let folderIdStr = collectionRow["folder_id"] as? String
+        let folderId = folderIdStr.flatMap(UUID.init)
 
         return AudiobookCollection(
             id: uuid,
@@ -1069,7 +1174,8 @@ actor GRDBDatabaseManager {
             trackCount: trackCount,
             shuffleEnabled: shuffleEnabled,
             isMusic: isMusic,
-            preferredSortOrder: preferredSortOrder
+            preferredSortOrder: preferredSortOrder,
+            folderId: folderId
         )
     }
 
@@ -1932,6 +2038,34 @@ actor GRDBDatabaseManager {
 
         if !existingColumns.contains("preferred_sort_order") {
             try database.execute(sql: "ALTER TABLE collections ADD COLUMN preferred_sort_order TEXT")
+        }
+    }
+
+    private func addCollectionFoldersTableIfNeeded(in database: Database) throws {
+        // Check if table exists
+        let tableExists = try database.tableExists("collection_folders")
+        if !tableExists {
+            try database.execute(sql: """
+            CREATE TABLE collection_folders (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL,
+                cover_kind TEXT,
+                cover_data TEXT,
+                cover_dominant_color TEXT
+            )
+            """)
+        }
+    }
+
+    private func addCollectionFolderIdColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(collections)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("folder_id") {
+            try database.execute(sql: "ALTER TABLE collections ADD COLUMN folder_id TEXT REFERENCES collection_folders(id)")
+            try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_collections_folder_id ON collections(folder_id)")
         }
     }
 
