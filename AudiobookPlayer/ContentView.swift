@@ -452,7 +452,11 @@ struct PlayingView: View {
 
             savedProgressView(state: snapshot.state)
 
-            resumeButton(collection: snapshot.collection, track: snapshot.track)
+            HStack(spacing: 12) {
+                resumeButton(collection: snapshot.collection, track: snapshot.track)
+
+                randomCollectionButton(excluding: snapshot.collection.id)
+            }
 
             Button {
                 tabSelection.navigateToCollection(snapshot.collection.id)
@@ -797,6 +801,30 @@ struct PlayingView: View {
         }
         .buttonStyle(.borderedProminent)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func randomCollectionButton(excluding currentCollectionID: UUID) -> some View {
+        // Get collections with playback progress (excluding current one)
+        let eligibleCollections = library.collections.filter { collection in
+            collection.id != currentCollectionID && collection.resumeTrack() != nil
+        }
+
+        if !eligibleCollections.isEmpty {
+            Button {
+                playRandomCollection(from: eligibleCollections)
+            } label: {
+                Image(systemName: "dice")
+            }
+            .buttonStyle(.bordered)
+            .accessibilityLabel(Text("Random collection"))
+        }
+    }
+
+    private func playRandomCollection(from collections: [AudiobookCollection]) {
+        guard let randomCollection = collections.randomElement(),
+              let track = randomCollection.resumeTrack() else { return }
+        resumePlayback(collection: randomCollection, track: track)
     }
 
     private func seekAndPlay(to time: TimeInterval) {
