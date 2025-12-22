@@ -452,11 +452,9 @@ struct PlayingView: View {
 
             savedProgressView(state: snapshot.state)
 
-            HStack(spacing: 12) {
-                resumeButton(collection: snapshot.collection, track: snapshot.track)
+            resumeButton(collection: snapshot.collection, track: snapshot.track)
 
-                randomCollectionButton(excluding: snapshot.collection.id)
-            }
+            randomCollectionButton(excluding: snapshot.collection.id)
 
             Button {
                 tabSelection.navigateToCollection(snapshot.collection.id)
@@ -814,10 +812,9 @@ struct PlayingView: View {
             Button {
                 playRandomCollection(from: eligibleCollections)
             } label: {
-                Image(systemName: "dice")
+                Label(NSLocalizedString("random_collection", comment: "Random collection button"), systemImage: "dice")
             }
             .buttonStyle(.bordered)
-            .accessibilityLabel(Text("Random collection"))
         }
     }
 

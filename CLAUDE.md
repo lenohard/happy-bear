@@ -56,8 +56,9 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Database Locked**: If `xcodebuild` fails with "database is locked", wait/retry or run `killall xcodebuild` and clear DerivedData.
 - **Duplicate Body**: "Declaration only valid at file scope" often means a duplicate `var body: some View` line.
 - **Catalyst**: Enable **Keychain Sharing** capability for Mac Catalyst builds to allow Keychain writes in unsigned DMGs.
-- **Build Filters**: Use `xcodebuild ... | grep -E "error:|warning:|BUILD"` to reduce noise.
+- **Build Filters**: Use `xcodebuild ... | grep -E "error:|BUILD"` to reduce noise.
 - **CocoaPods Workspace**: Always open `.xcworkspace` (not `.xcodeproj`) when CocoaPods dependencies are present. Run `pod install` after Podfile changes. Use `pod deintegrate && pod install` to reset if framework linking issues occur.
+- Beacues Current there are many warnings, so then you build to fix the errors filter out the warnning ones by default !
 
 ## Main Views & Workflows
 
@@ -202,3 +203,6 @@ Run `./scripts/generate-app-icons.sh <source-image-path>` to generate all sizes.
 ### Xcode Project
 - **Do not edit `project.pbxproj` manually.** Use Xcode UI to add files.
 - **Schemes**: Shared scheme `AudiobookPlayer` is in the repo.
+
+## Docs
+local/feat/*.md include some detailed refrences docs for some of the features. You can always refer to them firstly to quickly become familiar with them. And remember that when you made some changes, you shoud decide if the related doc should be updated once I have confirm it.

@@ -103,7 +103,6 @@ enum DatabaseSchema {
     CREATE INDEX IF NOT EXISTS idx_listening_statistics_collection_id ON listening_statistics(collection_id);
     CREATE INDEX IF NOT EXISTS idx_listening_statistics_track_id ON listening_statistics(track_id);
     CREATE INDEX IF NOT EXISTS idx_listening_statistics_created_at ON listening_statistics(created_at);
-    CREATE INDEX IF NOT EXISTS idx_collections_folder_id ON collections(folder_id);
     """
 
     /// Create and initialize the database

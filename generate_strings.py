@@ -28,7 +28,8 @@ STRINGS = {
     "listening_history": ("Listening History", "收听历史"),
     "nothing_playing_yet": ("Nothing playing yet", "还没有播放任何内容"),
     "nothing_playing_message": ("Select an audiobook from your library to start listening. Your most recent progress will appear here.", "从您的图书馆中选择有声书开始收听。您最近的进度将显示在此处。"),
-    "open_collection": ("Open Collection", "打开藏书集合"),
+    "open_collection": ("Open Collection", "打开合集"),
+    "random_collection": ("Random Collection", "随机播放合集"),
     "last_position": ("Last position: %@", "上次位置：%@"),
     "no_listening_progress": ("No listening progress recorded yet.", "尚未记录任何收听进度。"),
 
