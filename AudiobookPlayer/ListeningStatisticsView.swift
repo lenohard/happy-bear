@@ -42,21 +42,23 @@ class StatisticsViewModel: ObservableObject {
     @Published var collectionDurations: [UUID: TimeInterval] = [:]
     @Published var topCollectionsTotal: [(collection: AudiobookCollection, duration: TimeInterval)] = []
     @Published var topCollectionsRecentPeriod: [(collection: AudiobookCollection, duration: TimeInterval)] = []
+    @Published var recentPeriodTotalDuration: TimeInterval = 0
     @Published var earliestDate: Date?
-    
+
     private let databaseManager = GRDBDatabaseManager.shared
     
-    func loadStatistics() async {
+    func loadStatistics(period: StatisticsPeriod = .weekly) async {
         do {
             let summary = try await databaseManager.loadListeningStatisticsSummary()
             let earliest = try await databaseManager.getEarliestListeningDate()
-            
+
             self.dailyDurations = summary.dailyDurations
             self.collectionDurations = summary.collectionDurations
             self.earliestDate = earliest
-            
-            await loadTopCollections(recentDays: 7)
-            
+
+            let days = period == .daily ? 7 : 42
+            await loadTopCollections(recentDays: days)
+
         } catch {
             print("Error loading statistics: \(error)")
         }
@@ -67,22 +69,23 @@ class StatisticsViewModel: ObservableObject {
             let calendar = Calendar.current
             let now = Date()
             let startDate = calendar.date(byAdding: .day, value: -recentDays, to: now) ?? now
-            
+
             let recentCollectionDurations = try await databaseManager.loadListeningDurationsByCollection(from: startDate, to: now)
             let allCollections = try await databaseManager.loadAllCollections()
-            
+
             let total = allCollections.compactMap { collection -> (collection: AudiobookCollection, duration: TimeInterval)? in
                 guard let duration = collectionDurations[collection.id], duration > 0 else { return nil }
                 return (collection: collection, duration: duration)
             }.sorted { $0.duration > $1.duration }
-            
+
             let recent = allCollections.compactMap { collection -> (collection: AudiobookCollection, duration: TimeInterval)? in
                 guard let duration = recentCollectionDurations[collection.id], duration > 0 else { return nil }
                 return (collection: collection, duration: duration)
             }.sorted { $0.duration > $1.duration }
-            
-            self.topCollectionsTotal = Array(total.prefix(10))
-            self.topCollectionsRecentPeriod = Array(recent.prefix(10))
+
+            self.topCollectionsTotal = total
+            self.topCollectionsRecentPeriod = recent
+            self.recentPeriodTotalDuration = recent.reduce(0) { $0 + $1.duration }
         } catch {
             print("Error loading collections for stats: \(error)")
         }
@@ -223,18 +226,25 @@ struct ListeningStatisticsView: View {
                 }
             } header: {
                 let headerKey = selectedPeriod == .daily ? "listening_statistics_week_top_collections" : "listening_statistics_top_collections_header"
-                Text(NSLocalizedString(headerKey, comment: "Top collections header"))
+                HStack {
+                    Text(NSLocalizedString(headerKey, comment: "Top collections header"))
+                    Spacer()
+                    Text(viewModel.formatDuration(viewModel.recentPeriodTotalDuration))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .textCase(nil)
             }
         }
         .navigationTitle("Listening Statistics")
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await viewModel.loadStatistics()
+            await viewModel.loadStatistics(period: selectedPeriod)
         }
         .onChange(of: scenePhase) { newPhase in
             if newPhase == .active {
                 Task {
-                    await viewModel.loadStatistics()
+                    await viewModel.loadStatistics(period: selectedPeriod)
                 }
             }
         }
