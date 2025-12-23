@@ -345,14 +345,34 @@ private struct FolderListRow: View {
     @Binding var hoveringFolder: UUID?
     let onDrop: ([NSItemProvider]) -> Bool
 
+    @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
+    @EnvironmentObject private var authViewModel: BaiduAuthViewModel
+    @EnvironmentObject private var tabSelection: TabSelectionManager
+
+    @State private var isNavigating = false
+
+    private var folderCollections: [AudiobookCollection] {
+        library.collections.filter { $0.folderId == folder.id }
+    }
+
     var body: some View {
-        NavigationLink(destination: FolderDetailView(folder: folder)) {
-            FolderGridItemView(
-                folder: folder,
-                count: library.collections.filter { $0.folderId == folder.id }.count,
-                isDropTarget: hoveringFolder == folder.id
-            )
+        FolderGridItemView(
+            folder: folder,
+            collections: folderCollections,
+            isDropTarget: hoveringFolder == folder.id,
+            onPlayLast: playLastCollection,
+            onPlayRandom: playRandomCollection
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isNavigating = true
         }
+        .background(
+            NavigationLink(destination: FolderDetailView(folder: folder), isActive: $isNavigating) {
+                EmptyView()
+            }
+            .opacity(0)
+        )
         .onDrop(of: [UTType.audiobookCollectionID], isTargeted: Binding(
             get: { hoveringFolder == folder.id },
             set: { isTargeted in hoveringFolder = isTargeted ? folder.id : nil }
@@ -366,6 +386,54 @@ private struct FolderListRow: View {
                 Label("Delete", systemImage: "trash")
             }
         }
+    }
+
+    private func playLastCollection() {
+        guard let lastCollection = folderCollections.max(by: { $0.updatedAt < $1.updatedAt }) else { return }
+        resumeCollectionPlayback(lastCollection)
+    }
+
+    private func playRandomCollection() {
+        guard let randomCollection = folderCollections.randomElement() else { return }
+        resumeCollectionPlayback(randomCollection)
+    }
+
+    private func resumeCollectionPlayback(_ collection: AudiobookCollection) {
+        Task {
+            await library.ensureCollectionLoaded(collection.id)
+
+            await MainActor.run {
+                guard let updatedCollection = library.collections.first(where: { $0.id == collection.id }) else { return }
+                guard !updatedCollection.tracks.isEmpty else { return }
+
+                if updatedCollection.isMusic {
+                    var collectionToPlay = updatedCollection
+                    if !collectionToPlay.shuffleEnabled {
+                        library.updateShuffle(true, for: collectionToPlay.id)
+                        collectionToPlay.shuffleEnabled = true
+                    }
+                    guard let randomTrack = collectionToPlay.tracks.randomElement() else { return }
+                    playTrack(randomTrack, in: collectionToPlay)
+                } else {
+                    guard let track = updatedCollection.resumeTrack() else { return }
+                    playTrack(track, in: updatedCollection)
+                }
+            }
+        }
+    }
+
+    private func playTrack(_ track: AudiobookTrack, in collection: AudiobookCollection) {
+        if case .baiduNetdisk(_, _) = collection.source {
+            guard let token = authViewModel.token else {
+                tabSelection.selectedTab = .personal
+                authViewModel.signIn()
+                return
+            }
+            audioPlayer.play(track: track, in: collection, token: token)
+        } else {
+            audioPlayer.play(track: track, in: collection, token: nil)
+        }
+        tabSelection.switchToPlayingTab()
     }
 }
 
@@ -394,6 +462,7 @@ private struct CollectionListRow: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(String(format: NSLocalizedString("play_collection_accessibility", comment: "Play collection accessibility label"), collection.title))
+            .frame(width: 56, alignment: .trailing)
         }
         .draggable(CollectionDragItem(collection: collection))
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -505,35 +574,68 @@ private struct CollectionDragItem: Codable, Transferable {
 
 struct FolderGridItemView: View {
     let folder: CollectionFolder
-    let count: Int
+    let collections: [AudiobookCollection]
     var isDropTarget: Bool = false
+    let onPlayLast: () -> Void
+    let onPlayRandom: () -> Void
+
+    private var collectionCount: Int {
+        collections.count
+    }
+
+    private var countText: String {
+        let collectionText = collectionCount == 1 ? "collection" : "collections"
+        return "\(collectionCount) \(collectionText)"
+    }
 
     var body: some View {
         HStack(spacing: 12) {
+            // Folder icon
             ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .fill(Color.blue.opacity(0.1))
-                    .frame(width: 56, height: 56)
+                    .frame(width: 44, height: 44)
 
                 Image(systemName: "folder.fill")
-                    .font(.title)
+                    .font(.title2)
                     .foregroundStyle(.blue)
             }
 
-            VStack(alignment: .leading, spacing: 4) {
+            // Title and count
+            VStack(alignment: .leading, spacing: 2) {
                 Text(folder.name)
                     .font(.headline)
                     .lineLimit(1)
 
-                Text("\(count) items")
+                Text(countText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
+
+            // Action buttons - fixed width to align with collection rows
+            HStack(spacing: 8) {
+                Button {
+                    onPlayRandom()
+                } label: {
+                    Image(systemName: "shuffle")
+                        .font(.body)
+                }
+                .buttonStyle(.plain)
+                .disabled(collections.isEmpty)
+
+                Button {
+                    onPlayLast()
+                } label: {
+                    Image(systemName: "play.circle.fill")
+                        .font(.title3)
+                }
+                .buttonStyle(.plain)
+                .disabled(collections.isEmpty)
+            }
+            .frame(width: 56, alignment: .trailing)
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 4)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(isDropTarget ? Color.accentColor.opacity(0.08) : Color.clear)
@@ -918,3 +1020,165 @@ struct CollectionCoverArtView: View {
     }
 }
 
+// MARK: - Previews
+
+#Preview("Folder Grid Item") {
+    let folder = CollectionFolder(
+        id: UUID(),
+        name: "Podcasts",
+        createdAt: Date(),
+        updatedAt: Date()
+    )
+
+    let sampleCollections = [
+        AudiobookCollection(
+            id: UUID(),
+            title: "Sample Book 1",
+            author: "Author Name",
+            description: nil,
+            coverAsset: CollectionCover.generatedCover(for: "Sample Book 1"),
+            createdAt: Date(),
+            updatedAt: Date(),
+            source: .external(description: "Preview"),
+            tracks: [],
+            lastPlayedTrackId: nil,
+            playbackStates: [:],
+            tags: [],
+            trackCount: 12,
+            folderId: folder.id
+        ),
+        AudiobookCollection(
+            id: UUID(),
+            title: "Sample Book 2",
+            author: "Another Author",
+            description: nil,
+            coverAsset: CollectionCover.generatedCover(for: "Sample Book 2"),
+            createdAt: Date(),
+            updatedAt: Date(),
+            source: .external(description: "Preview"),
+            tracks: [],
+            lastPlayedTrackId: nil,
+            playbackStates: [:],
+            tags: [],
+            trackCount: 8,
+            folderId: folder.id
+        )
+    ]
+
+    List {
+        FolderGridItemView(
+            folder: folder,
+            collections: sampleCollections,
+            isDropTarget: false,
+            onPlayLast: {},
+            onPlayRandom: {}
+        )
+
+        FolderGridItemView(
+            folder: CollectionFolder(name: "Empty Folder"),
+            collections: [],
+            isDropTarget: false,
+            onPlayLast: {},
+            onPlayRandom: {}
+        )
+
+        FolderGridItemView(
+            folder: CollectionFolder(name: "Drop Target"),
+            collections: sampleCollections,
+            isDropTarget: true,
+            onPlayLast: {},
+            onPlayRandom: {}
+        )
+    }
+    .listStyle(.insetGrouped)
+}
+
+#Preview("Library View") {
+    let library = LibraryStore(autoLoadOnInit: false)
+    let audioPlayer = AudioPlayerViewModel()
+    let authViewModel = BaiduAuthViewModel()
+    let tabSelection = TabSelectionManager()
+
+    // Create sample folders
+    let _ = library.createFolder(name: "Podcasts")
+    let _ = library.createFolder(name: "Music Albums")
+
+    let podcastFolder = library.folders.first { $0.name == "Podcasts" }!
+    let musicFolder = library.folders.first { $0.name == "Music Albums" }!
+
+    // Create sample collections
+    let _ = library.save(AudiobookCollection(
+        id: UUID(),
+        title: "The Hobbit",
+        author: "J.R.R. Tolkien",
+        description: "A fantasy adventure novel",
+        coverAsset: CollectionCover.generatedCover(for: "The Hobbit"),
+        createdAt: Date().addingTimeInterval(-86400 * 10),
+        updatedAt: Date().addingTimeInterval(-86400 * 2),
+        source: .external(description: "Library"),
+        tracks: [],
+        lastPlayedTrackId: nil,
+        playbackStates: [:],
+        tags: ["fantasy"],
+        trackCount: 19,
+        folderId: nil
+    ))
+
+    let _ = library.save(AudiobookCollection(
+        id: UUID(),
+        title: "1984",
+        author: "George Orwell",
+        description: "Dystopian social science fiction",
+        coverAsset: CollectionCover.generatedCover(for: "1984"),
+        createdAt: Date().addingTimeInterval(-86400 * 20),
+        updatedAt: Date().addingTimeInterval(-86400 * 1),
+        source: .external(description: "Library"),
+        tracks: [],
+        lastPlayedTrackId: nil,
+        playbackStates: [:],
+        tags: ["scifi"],
+        trackCount: 12,
+        folderId: nil
+    ))
+
+    let _ = library.save(AudiobookCollection(
+        id: UUID(),
+        title: "Podcast Episode 42",
+        author: "Tech Talk",
+        description: nil,
+        coverAsset: CollectionCover.generatedCover(for: "Tech Talk"),
+        createdAt: Date().addingTimeInterval(-86400 * 15),
+        updatedAt: Date().addingTimeInterval(-86400 * 3),
+        source: .rss(feedUrl: URL(string: "https://example.com/feed")!),
+        tracks: [],
+        lastPlayedTrackId: nil,
+        playbackStates: [:],
+        tags: [],
+        trackCount: 1,
+        folderId: podcastFolder.id
+    ))
+
+    let _ = library.save(AudiobookCollection(
+        id: UUID(),
+        title: "Album - Greatest Hits",
+        author: "Sample Artist",
+        description: nil,
+        coverAsset: CollectionCover.generatedCover(for: "Greatest Hits"),
+        createdAt: Date().addingTimeInterval(-86400 * 45),
+        updatedAt: Date().addingTimeInterval(-86400 * 7),
+        source: .external(description: "Music"),
+        tracks: [],
+        lastPlayedTrackId: nil,
+        playbackStates: [:],
+        tags: [],
+        trackCount: 15,
+        isMusic: true,
+        folderId: musicFolder.id
+    ))
+
+    LibraryView()
+        .environmentObject(library)
+        .environmentObject(audioPlayer)
+        .environmentObject(authViewModel)
+        .environmentObject(tabSelection)
+}
