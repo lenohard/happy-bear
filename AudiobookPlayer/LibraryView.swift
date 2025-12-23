@@ -474,10 +474,14 @@ private struct CollectionListRow: View {
             .labelStyle(.iconOnly)
         }
         .contextMenu {
-            Menu("Move to Folder") {
-                ForEach(folders) { folder in
-                    Button(folder.name) {
-                        onMoveToFolder(folder)
+            if !folders.isEmpty {
+                Section("Move to Folder") {
+                    ForEach(folders) { folder in
+                        Button {
+                            onMoveToFolder(folder)
+                        } label: {
+                            Label(folder.name, systemImage: "folder")
+                        }
                     }
                 }
             }
