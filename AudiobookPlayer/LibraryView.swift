@@ -395,6 +395,7 @@ private struct FolderListRow: View {
             } label: {
                 Label("Delete", systemImage: "trash")
             }
+            .labelStyle(.iconOnly)
         }
     }
 
