@@ -766,7 +766,8 @@ final class LibraryStore: ObservableObject {
         newDescription: String?,
         shouldUpdateDescription: Bool,
         isMusic: Bool? = nil,
-        newSource: AudiobookCollection.Source? = nil
+        newSource: AudiobookCollection.Source? = nil,
+        isArchived: Bool? = nil
     ) {
         guard let index = collections.firstIndex(where: { $0.id == collectionID }) else {
             return
@@ -807,6 +808,11 @@ final class LibraryStore: ObservableObject {
 
         if let newSource, collection.source != newSource {
             collection.source = newSource
+            didChange = true
+        }
+
+        if let isArchived, collection.isArchived != isArchived {
+            collection.isArchived = isArchived
             didChange = true
         }
 
@@ -1049,6 +1055,42 @@ final class LibraryStore: ObservableObject {
             return true
         case .external, .ephemeralBaidu:
             return false
+        }
+    }
+
+    // MARK: - Archive Management
+
+    func archiveCollection(_ collection: AudiobookCollection) {
+        updateArchiveStatus(collection: collection, isArchived: true)
+    }
+
+    func unarchiveCollection(_ collection: AudiobookCollection) {
+        updateArchiveStatus(collection: collection, isArchived: false)
+    }
+
+    private func updateArchiveStatus(collection: AudiobookCollection, isArchived: Bool) {
+        guard let index = collections.firstIndex(where: { $0.id == collection.id }) else { return }
+        
+        var updated = collections[index]
+        updated.isArchived = isArchived
+        updated.updatedAt = Date()
+        collections[index] = updated
+        
+        // If unarchiving, re-sort
+        if !isArchived {
+            collections.sort { $0.updatedAt > $1.updatedAt }
+        }
+        
+        if !useFallbackJSON {
+            persistToDatabase(updated)
+        } else {
+            persistCurrentSnapshot()
+        }
+        
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(updated)
+            }
         }
     }
     

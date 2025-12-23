@@ -114,7 +114,7 @@ struct ContentView: View {
         } else if let recent = library.mostRecentPlayback() {
             playFromShortcut(collection: recent.collection, track: recent.track)
         } else {
-            for collection in library.collections {
+            for collection in library.collections where !collection.isArchived {
                 if let track = collection.resumeTrack() {
                     playFromShortcut(collection: collection, track: track)
                     break
@@ -805,7 +805,7 @@ struct PlayingView: View {
     private func randomCollectionButton(excluding currentCollectionID: UUID) -> some View {
         // Get collections with playback progress (excluding current one)
         let eligibleCollections = library.collections.filter { collection in
-            collection.id != currentCollectionID && collection.resumeTrack() != nil
+            !collection.isArchived && collection.id != currentCollectionID && collection.resumeTrack() != nil
         }
 
         if !eligibleCollections.isEmpty {

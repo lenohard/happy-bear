@@ -125,6 +125,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
     var isMusic: Bool
     var preferredSortOrder: String?
     var folderId: UUID?
+    var isArchived: Bool
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -145,6 +146,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case isMusic
         case preferredSortOrder
         case folderId
+        case isArchived
     }
 
     init(
@@ -164,7 +166,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         shuffleEnabled: Bool = false,
         isMusic: Bool = false,
         preferredSortOrder: String? = nil,
-        folderId: UUID? = nil
+        folderId: UUID? = nil,
+        isArchived: Bool = false
     ) {
         self.id = id
         self.title = title
@@ -183,6 +186,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         self.isMusic = isMusic
         self.preferredSortOrder = preferredSortOrder
         self.folderId = folderId
+        self.isArchived = isArchived
     }
 
     init(from decoder: Decoder) throws {
@@ -211,6 +215,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         isMusic = try container.decodeIfPresent(Bool.self, forKey: .isMusic) ?? false
         preferredSortOrder = try container.decodeIfPresent(String.self, forKey: .preferredSortOrder)
         folderId = try container.decodeIfPresent(UUID.self, forKey: .folderId)
+        isArchived = try container.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
 
         let decodedStates = try container.decodeIfPresent([UUID: TrackPlaybackState].self, forKey: .playbackStates) ?? [:]
         if decodedStates.isEmpty,
@@ -247,6 +252,7 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         try container.encode(isMusic, forKey: .isMusic)
         try container.encodeIfPresent(preferredSortOrder, forKey: .preferredSortOrder)
         try container.encodeIfPresent(folderId, forKey: .folderId)
+        try container.encode(isArchived, forKey: .isArchived)
     }
     func playbackState(for trackId: UUID) -> TrackPlaybackState? {
         playbackStates[trackId]
@@ -490,7 +496,8 @@ extension AudiobookCollection {
             trackCount: 0,
             shuffleEnabled: false,
             isMusic: false,
-            folderId: nil
+            folderId: nil,
+            isArchived: false
         )
     }
 }

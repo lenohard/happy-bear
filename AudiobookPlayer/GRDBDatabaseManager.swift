@@ -50,6 +50,7 @@ actor GRDBDatabaseManager {
             try addCollectionPreferredSortColumnIfNeeded(in: db)
             try addCollectionFoldersTableIfNeeded(in: db)
             try addCollectionFolderIdColumnIfNeeded(in: db)
+            try addCollectionIsArchivedColumnIfNeeded(in: db)
             print("[GRDB] Schema tables created")
 
             // Create transcription tables
@@ -129,7 +130,8 @@ actor GRDBDatabaseManager {
                         last_played_track_id = ?,
                         is_music = ?,
                         preferred_sort_order = ?,
-                        folder_id = ?
+                        folder_id = ?,
+                        is_archived = ?
                     WHERE id = ?
                     """,
                     arguments: [
@@ -146,6 +148,7 @@ actor GRDBDatabaseManager {
                         collection.isMusic ? 1 : 0,
                         collection.preferredSortOrder,
                         collection.folderId?.uuidString,
+                        collection.isArchived ? 1 : 0,
                         collection.id.uuidString
                     ]
                 )
@@ -181,8 +184,9 @@ actor GRDBDatabaseManager {
                     shuffle_enabled,
                     is_music,
                     preferred_sort_order,
-                    folder_id
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    folder_id,
+                    is_archived
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     collection.id.uuidString,
@@ -200,7 +204,8 @@ actor GRDBDatabaseManager {
                     collection.shuffleEnabled ? 1 : 0,
                     collection.isMusic ? 1 : 0,
                     collection.preferredSortOrder,
-                    collection.folderId?.uuidString
+                    collection.folderId?.uuidString,
+                    collection.isArchived ? 1 : 0
                 ]
             )
 
@@ -1157,6 +1162,8 @@ actor GRDBDatabaseManager {
         let preferredSortOrder = collectionRow["preferred_sort_order"] as? String
         let folderIdStr = collectionRow["folder_id"] as? String
         let folderId = folderIdStr.flatMap(UUID.init)
+        let isArchivedValue: Int? = collectionRow["is_archived"]
+        let isArchived = (isArchivedValue ?? 0) == 1
 
         return AudiobookCollection(
             id: uuid,
@@ -1175,7 +1182,8 @@ actor GRDBDatabaseManager {
             shuffleEnabled: shuffleEnabled,
             isMusic: isMusic,
             preferredSortOrder: preferredSortOrder,
-            folderId: folderId
+            folderId: folderId,
+            isArchived: isArchived
         )
     }
 
@@ -2067,6 +2075,17 @@ actor GRDBDatabaseManager {
             try database.execute(sql: "ALTER TABLE collections ADD COLUMN folder_id TEXT REFERENCES collection_folders(id)")
             try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_collections_folder_id ON collections(folder_id)")
         }
+    }
+
+    private func addCollectionIsArchivedColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(collections)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("is_archived") {
+            try database.execute(sql: "ALTER TABLE collections ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
+        }
+        
+        try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_collections_is_archived ON collections(is_archived)")
     }
 
     private func addTranscriptRepairColumnsIfNeeded(in database: Database) throws {

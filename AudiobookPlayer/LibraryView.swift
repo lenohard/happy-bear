@@ -31,7 +31,7 @@ struct LibraryView: View {
     }
 
     private var rootCollections: [AudiobookCollection] {
-        library.collections.filter { $0.folderId == nil }
+        library.collections.filter { $0.folderId == nil && !$0.isArchived }
     }
 
     private var importMenu: some View {
@@ -70,6 +70,14 @@ struct LibraryView: View {
                 .labelStyle(.titleAndIcon)
         }
         .menuStyle(.button)
+    }
+
+    private var archivedButton: some View {
+        NavigationLink {
+            ArchivedCollectionsView()
+        } label: {
+            Label(NSLocalizedString("archived_collections_title", value: "Archived", comment: "Archived collections view title"), systemImage: "archivebox")
+        }
     }
 
     private var favoritesButton: some View {
@@ -138,6 +146,7 @@ struct LibraryView: View {
                 selectedCollectionID: selectedCollectionID,
                 onResume: { resumeCollectionPlayback(collection) },
                 onDelete: { library.delete(collection) },
+                onArchive: { withAnimation { library.archiveCollection(collection) } },
                 folders: library.folders,
                 onMoveToFolder: { folder in library.moveCollection(collection, to: folder) }
             )
@@ -151,6 +160,7 @@ struct LibraryView: View {
                 .toolbar {
                     ToolbarItemGroup(placement: .topBarTrailing) {
                         importMenu
+                        archivedButton
                         favoritesButton
                         reloadButton
                     }
@@ -352,7 +362,7 @@ private struct FolderListRow: View {
     @State private var isNavigating = false
 
     private var folderCollections: [AudiobookCollection] {
-        library.collections.filter { $0.folderId == folder.id }
+        library.collections.filter { $0.folderId == folder.id && !$0.isArchived }
     }
 
     var body: some View {
@@ -394,7 +404,7 @@ private struct FolderListRow: View {
     }
 
     private func playRandomCollection() {
-        guard let randomCollection = folderCollections.randomElement() else { return }
+        guard let randomCollection = folderCollections.filter({ !$0.isArchived }).randomElement() else { return }
         resumeCollectionPlayback(randomCollection)
     }
 
@@ -443,6 +453,7 @@ private struct CollectionListRow: View {
     let selectedCollectionID: Binding<UUID?>
     let onResume: () -> Void
     let onDelete: () -> Void
+    let onArchive: () -> Void
     let folders: [CollectionFolder]
     let onMoveToFolder: (CollectionFolder) -> Void
 
@@ -472,6 +483,13 @@ private struct CollectionListRow: View {
                 Label(NSLocalizedString("delete_button", comment: "Delete button"), systemImage: "trash")
             }
             .labelStyle(.iconOnly)
+            
+            Button {
+                onArchive()
+            } label: {
+                Image(systemName: "archivebox")
+            }
+            .tint(.orange)
         }
         .contextMenu {
             if !folders.isEmpty {
@@ -665,7 +683,7 @@ struct FolderDetailView: View {
     @Environment(\.dismiss) private var dismiss
 
     private var folderCollections: [AudiobookCollection] {
-        library.collections.filter { $0.folderId == folder.id }
+        library.collections.filter { $0.folderId == folder.id && !$0.isArchived }
     }
 
     var body: some View {
@@ -695,11 +713,20 @@ struct FolderDetailView: View {
                     .labelStyle(.iconOnly)
 
                     Button {
-                        library.moveCollection(collection, to: nil) // Move to root
+                        withAnimation {
+                            library.archiveCollection(collection)
+                        }
                     } label: {
-                        Label("Move Out", systemImage: "arrow.turn.up.left")
+                        Image(systemName: "archivebox")
                     }
                     .tint(.orange)
+
+                    Button {
+                        library.moveCollection(collection, to: nil) // Move to root
+                    } label: {
+                        Image(systemName: "arrow.turn.up.left")
+                    }
+                    .tint(.blue)
                 }
             }
         }
