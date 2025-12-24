@@ -44,8 +44,40 @@ struct ThemeColors {
 }
 
 class ThemeManager: ObservableObject {
-    @AppStorage("selectedTheme") var currentTheme: AppTheme = .system
-    
+    @AppStorage("selectedTheme") var currentTheme: AppTheme = .system {
+        didSet {
+            // When theme changes, mark that user has explicitly set a theme
+            if oldValue != currentTheme {
+                UserDefaults.standard.set(true, forKey: "hasUserSetTheme")
+            }
+        }
+    }
+
+    @Published var showFestiveDecorations: Bool = true {
+        didSet {
+            UserDefaults.standard.set(showFestiveDecorations, forKey: "showFestiveDecorations")
+        }
+    }
+
+    init() {
+        self.showFestiveDecorations = UserDefaults.standard.object(forKey: "showFestiveDecorations") as? Bool ?? true
+        checkSeasonalTheme()
+    }
+
+    private func checkSeasonalTheme() {
+        let calendar = Calendar.current
+        let now = Date()
+        let month = calendar.component(.month, from: now)
+        let day = calendar.component(.day, from: now)
+
+        // Auto-enable Christmas theme Dec 20-26 if no user preference
+        if month == 12 && (20...26).contains(day) {
+            if !UserDefaults.standard.bool(forKey: "hasUserSetTheme") {
+                currentTheme = .christmas
+            }
+        }
+    }
+
     var colors: ThemeColors {
         switch currentTheme {
         case .christmas:

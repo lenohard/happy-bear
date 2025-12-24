@@ -239,8 +239,9 @@ struct PlayingView: View {
         NavigationStack {
             Group {
                 if libraryLoaded, let snapshot = fallbackPlayback {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
+                    ZStack {
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 20) {
                             primaryCard(for: snapshot)
 
                             if snapshot.isLive {
@@ -259,14 +260,21 @@ struct PlayingView: View {
                         .padding(.vertical, 24)
                         .padding(.horizontal, 20)
                     }
-                } else if libraryLoaded {
+                }
+            } else if libraryLoaded {
                     EmptyPlayingView()
                 } else {
                     // Show a loading state while library is loading
                     EmptyPlayingView()
                 }
             }
-            .navigationTitle(NSLocalizedString("playing_title", comment: "Playing tab title"))
+            .navigationTitle(themeManager.colors.isFestive ? "🎅🎁 " + NSLocalizedString("playing_title", comment: "Playing tab title") : NSLocalizedString("playing_title", comment: "Playing tab title"))
+        }
+        .overlay {
+            if themeManager.currentTheme == .christmas && themeManager.showFestiveDecorations {
+                SnowfallView()
+                    .allowsHitTesting(false)
+            }
         }
         .alert(NSLocalizedString("connect_baidu_first", comment: "Alert title"), isPresented: $missingAuthAlert) {
             Button(NSLocalizedString("ok_button", comment: "OK button"), role: .cancel) { }
@@ -506,23 +514,6 @@ struct PlayingView: View {
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
                             .fill(themeManager.colors.secondaryBackground.opacity(0.3))
                     )
-
-                if themeManager.colors.isFestive {
-                    // Ribbon Corner
-                    Path { path in
-                        path.move(to: CGPoint(x: 0, y: 0))
-                        path.addLine(to: CGPoint(x: 40, y: 0))
-                        path.addLine(to: CGPoint(x: 40, y: 40))
-                        path.closeSubpath()
-                    }
-                    .fill(themeManager.colors.festiveRed)
-                    .frame(width: 40, height: 40)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                    // Only clip top right corner effectively by masking or just placing it
-                    .mask(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    )
-                }
             }
         )
     }

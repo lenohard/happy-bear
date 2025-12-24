@@ -36,6 +36,14 @@ struct ThemeSelectionView: View {
                     Text(NSLocalizedString("christmas_theme_footer", value: "Enjoy the festive spirit with our special Christmas theme! 🎄", comment: "Christmas theme footer"))
                 }
             }
+
+            if themeManager.currentTheme == .christmas {
+                Section {
+                    Toggle("Show Festive Decorations", isOn: $themeManager.showFestiveDecorations)
+                } footer: {
+                    Text("Enable animated snowfall and other festive decorations.")
+                }
+            }
         }
         .navigationTitle(NSLocalizedString("theme_title", value: "Theme", comment: "Theme view title"))
     }
