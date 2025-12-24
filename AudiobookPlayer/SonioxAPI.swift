@@ -171,30 +171,84 @@ class SonioxAPI {
     /// - Returns: File ID for use in transcription request
     func uploadFile(fileURL: URL) async throws -> String {
         let endpoint = baseURL.appendingPathComponent("v1/files")
-
-        let fileData = try Data(contentsOf: fileURL)
+        let boundary = UUID().uuidString
         let fileName = fileURL.lastPathComponent
 
-        var request = try self.makeMultipartRequest(
-            url: endpoint,
-            fileData: fileData,
-            fileName: fileName
-        )
+        // Create a temporary file for the multipart body to avoid loading the whole file into memory
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempFileURL = tempDir.appendingPathComponent(UUID().uuidString)
 
-        let (data, response) = try await session.data(for: request)
+        do {
+            // 1. Create the multipart header
+            var headerData = Data()
+            headerData.append("--\(boundary)\r\n".data(using: .utf8)!)
+            headerData.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
+            headerData.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
+            // Write header to temp file
+            try headerData.write(to: tempFileURL)
+
+            // 2. Append audio file content using FileHandle to stream it
+            let fileHandle = try FileHandle(forWritingTo: tempFileURL)
+            try fileHandle.seekToEnd()
+
+            let sourceHandle = try FileHandle(forReadingFrom: fileURL)
+            let chunkSize = 1024 * 1024 // 1MB chunks
+
+            // Get file size for loop limit
+            let fileSize = (try? FileManager.default.attributesOfItem(atPath: fileURL.path)[.size] as? Int64) ?? 0
+            var offset: Int64 = 0
+
+            while offset < fileSize {
+                // Read chunk
+                let data = try sourceHandle.read(upToCount: chunkSize) ?? Data()
+                if data.isEmpty { break }
+
+                // Write chunk
+                try fileHandle.write(contentsOf: data)
+                offset += Int64(data.count)
+            }
+
+            try sourceHandle.close()
+
+            // 3. Append multipart footer
+            var footerData = Data()
+            footerData.append("\r\n".data(using: .utf8)!)
+            footerData.append("--\(boundary)--\r\n".data(using: .utf8)!)
+
+            try fileHandle.write(contentsOf: footerData)
+            try fileHandle.close()
+
+            // 4. Create request
+            var request = URLRequest(url: endpoint)
+            request.httpMethod = "POST"
+            request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+            request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+
+            // 5. Upload using the temp file (streaming upload)
+            let (data, response) = try await session.upload(for: request, fromFile: tempFileURL)
+
+            // Cleanup temp file
+            try? FileManager.default.removeItem(at: tempFileURL)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+
+            // Accept both 200 and 201 (Created) as successful responses
+            guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
+                throw APIError.serverError(statusCode: httpResponse.statusCode, message: "File upload failed")
+            }
+
+            let decoder = JSONDecoder()
+            let fileResponse = try decoder.decode(SonioxFileResponse.self, from: data)
+            return fileResponse.id
+
+        } catch {
+            // Ensure cleanup on error
+            try? FileManager.default.removeItem(at: tempFileURL)
+            throw error
         }
-
-        // Accept both 200 and 201 (Created) as successful responses
-        guard httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
-            throw APIError.serverError(statusCode: httpResponse.statusCode, message: "File upload failed")
-        }
-
-        let decoder = JSONDecoder()
-        let fileResponse = try decoder.decode(SonioxFileResponse.self, from: data)
-        return fileResponse.id
     }
 
     /// Create transcription job
@@ -372,29 +426,4 @@ class SonioxAPI {
 
     // MARK: - Private Helpers
 
-    private func makeMultipartRequest(
-        url: URL,
-        fileData: Data,
-        fileName: String
-    ) throws -> URLRequest {
-        let boundary = UUID().uuidString
-
-        var body = Data()
-
-        // Add file part
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(fileName)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: application/octet-stream\r\n\r\n".data(using: .utf8)!)
-        body.append(fileData)
-        body.append("\r\n".data(using: .utf8)!)
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        request.httpBody = body
-
-        return request
-    }
 }
