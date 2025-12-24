@@ -12,6 +12,7 @@ struct AudiobookPlayerApp: App {
     @StateObject private var transcriptionManager = TranscriptionManager()
     @StateObject private var aiGenerationManager = AIGenerationManager()
     @StateObject private var bubbleWindowManager = FloatingBubbleWindowManager(viewModel: FloatingPlaybackBubbleViewModel())
+    @StateObject private var themeManager = ThemeManager()
     @State private var showSplash = true
     @State private var pendingEbookURL: URL?
 
@@ -30,6 +31,8 @@ struct AudiobookPlayerApp: App {
                     .environmentObject(aiGateway)
                     .environmentObject(transcriptionManager)
                     .environmentObject(aiGenerationManager)
+                    .environmentObject(themeManager)
+                    .preferredColorScheme(themeManager.colorScheme)
 
                 if showSplash {
                     SplashScreenView {
@@ -66,7 +69,7 @@ struct AudiobookPlayerApp: App {
             }
             .onAppear {
                 audioPlayer.bindLibrary(libraryStore)
-                bubbleWindowManager.show(audioPlayer: audioPlayer, tabSelection: tabSelection)
+                bubbleWindowManager.show(audioPlayer: audioPlayer, tabSelection: tabSelection, themeManager: themeManager)
             }
             .sheet(item: Binding(
                 get: { pendingEbookURL.map { PendingEbookImport(url: $0) } },

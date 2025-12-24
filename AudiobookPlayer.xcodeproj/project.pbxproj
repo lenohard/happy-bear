@@ -71,6 +71,8 @@
 		8637370F2EBCF7120002CD46 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 8637370E2EBCF7120002CD46 /* GRDB */; };
 		864BF08E2EEBFE2A00F9179C /* PlaybackIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864BF08D2EEBFE2A00F9179C /* PlaybackIntents.swift */; };
 		864C259C2EFA900A005ECA64 /* ArchivedCollectionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864C259B2EFA900A005ECA64 /* ArchivedCollectionsView.swift */; };
+		864C25A12EFBE15A005ECA64 /* ThemeSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864C25A02EFBE15A005ECA64 /* ThemeSelectionView.swift */; };
+		864C25A22EFBE15A005ECA64 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864C259F2EFBE15A005ECA64 /* ThemeManager.swift */; };
 		867C6FC92EF3A71200A8FE74 /* VLCVideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867C6FC82EF3A71200A8FE74 /* VLCVideoPlayerView.swift */; };
 		8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */; };
 		8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */; };
@@ -200,6 +202,8 @@
 		8629570F2EE80C41006ABE75 /* AliyunTokenStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliyunTokenStore.swift; sourceTree = "<group>"; };
 		864BF08D2EEBFE2A00F9179C /* PlaybackIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackIntents.swift; sourceTree = "<group>"; };
 		864C259B2EFA900A005ECA64 /* ArchivedCollectionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivedCollectionsView.swift; sourceTree = "<group>"; };
+		864C259F2EFBE15A005ECA64 /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		864C25A02EFBE15A005ECA64 /* ThemeSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeSelectionView.swift; sourceTree = "<group>"; };
 		867C6FC82EF3A71200A8FE74 /* VLCVideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VLCVideoPlayerView.swift; sourceTree = "<group>"; };
 		8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeychainStore.swift; sourceTree = "<group>"; };
 		8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeyViewModel.swift; sourceTree = "<group>"; };
@@ -345,6 +349,8 @@
 				86E5CFFB2ED0458600CE62A1 /* AIJobsListView.swift */,
 				86E5CFFC2ED0458600CE62A1 /* AIModelsListView.swift */,
 				86E5CFF32ECEB76F00CE62A1 /* FloatingPlaybackBubbleView.swift */,
+				864C259F2EFBE15A005ECA64 /* ThemeManager.swift */,
+				864C25A02EFBE15A005ECA64 /* ThemeSelectionView.swift */,
 				8685F3642EBF3607003D8173 /* TranscriptionJobManager.swift */,
 				8685F3652EBF3607003D8173 /* TranscriptionProgressOverlay.swift */,
 				8685F3662EBF3607003D8173 /* TranscriptionRetryManager.swift */,
@@ -626,6 +632,8 @@
 				86FE17602EC2531500027E93 /* ProviderIconView.swift in Sources */,
 				86E5CFF62ECEB8CA00CE62A1 /* Color+Hex.swift in Sources */,
 				8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */,
+				864C25A12EFBE15A005ECA64 /* ThemeSelectionView.swift in Sources */,
+				864C25A22EFBE15A005ECA64 /* ThemeManager.swift in Sources */,
 				8617DDEB2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift in Sources */,
 				8617DDEC2EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift in Sources */,
 				C5E631AC2F1B000100AA0001 /* AIGenerationDatabaseSchema.swift in Sources */,

@@ -68,6 +68,7 @@ struct TrackSummaryCard: View {
 
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
+    @EnvironmentObject private var themeManager: ThemeManager
     @State private var actionError: String?
     @State private var isExpanded = false
     @State private var hasAnimatedExpansion = false
@@ -92,7 +93,7 @@ struct TrackSummaryCard: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(themeManager.colors.isFestive ? themeManager.colors.background : Color(uiColor: .secondarySystemBackground))
         )
         .onChange(of: viewModel.activeJob?.status) {
             actionError = nil
@@ -120,9 +121,10 @@ struct TrackSummaryCard: View {
                     HStack(spacing: 6) {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.accentColor)
+                            .foregroundStyle(themeManager.colors.isFestive ? themeManager.colors.primary : Color.accentColor)
                         Label(NSLocalizedString("track_summary_card_title", comment: "Track summary card title"), systemImage: "text.book.closed")
                             .font(.headline)
+                            .foregroundStyle(themeManager.colors.isFestive ? themeManager.colors.primary : .primary)
                     }
                 }
                 .buttonStyle(.plain)
@@ -131,6 +133,7 @@ struct TrackSummaryCard: View {
             } else {
                 Label(NSLocalizedString("track_summary_card_title", comment: "Track summary card title"), systemImage: "text.book.closed")
                     .font(.headline)
+                    .foregroundStyle(themeManager.colors.isFestive ? themeManager.colors.primary : .primary)
             }
 
             Spacer()
@@ -162,6 +165,7 @@ struct TrackSummaryCard: View {
                     } label: {
                         Label(actionButtonTitle, systemImage: "sparkles")
                             .labelStyle(.titleAndIcon)
+                            .foregroundStyle(themeManager.colors.isFestive ? themeManager.colors.festiveGold : .accentColor)
                     }
                     .accessibilityIdentifier("trackSummaryActionMenu")
                     .menuStyle(.button)
@@ -341,7 +345,7 @@ struct TrackSummaryCard: View {
                 HStack {
                     Text(section.startTimeLabel)
                         .font(.caption.monospacedDigit())
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(themeManager.colors.isFestive ? themeManager.colors.primary : Color.accentColor)
                     if let title = section.title {
                         Text(title)
                             .font(.subheadline)
@@ -360,7 +364,7 @@ struct TrackSummaryCard: View {
             .padding(8)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color(uiColor: .tertiarySystemFill))
+                    .fill(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground : Color(uiColor: .tertiarySystemFill))
             )
         }
         .buttonStyle(.plain)

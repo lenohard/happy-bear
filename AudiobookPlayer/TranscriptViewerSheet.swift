@@ -14,6 +14,7 @@ struct TranscriptViewerSheet: View {
     @EnvironmentObject private var baiduAuth: BaiduAuthViewModel
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
+    @EnvironmentObject private var themeManager: ThemeManager
     @StateObject private var viewModel: TranscriptViewModel
     @StateObject private var trackSummaryViewModel = TrackSummaryViewModel()
     @State private var selectedSegment: TranscriptSegment?
@@ -43,6 +44,7 @@ struct TranscriptViewerSheet: View {
                 .navigationTitle(trackName)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar { toolbarItems() }
+                .background(themeManager.colors.isFestive ? themeManager.colors.background : Color(uiColor: .systemBackground))
         }
         .task {
             await viewModel.loadTranscript()
@@ -240,7 +242,8 @@ struct TranscriptViewerSheet: View {
                                 onTap: {
                                     selectedSegment = segment
                                     jumpToSegment(segment)
-                                }
+                                },
+                                themeManager: themeManager
                             )
                             .id(segment.id)
                         }
@@ -526,6 +529,7 @@ struct TranscriptSegmentRowView: View {
     let translation: TrackSummaryTranslation?
     let isSelected: Bool
     let onTap: () -> Void
+    var themeManager: ThemeManager?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -569,11 +573,20 @@ struct TranscriptSegmentRowView: View {
         .padding(.horizontal, 6)
         .background(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(isSelected ? Color.accentColor.opacity(0.12) : Color(.systemBackground))
+                .fill(
+                    isSelected ?
+                        (themeManager?.colors.isFestive == true ? (themeManager?.colors.festiveGold.opacity(0.2) ?? Color.accentColor.opacity(0.12)) : Color.accentColor.opacity(0.12))
+                        : (themeManager?.colors.isFestive == true ? (themeManager?.colors.background ?? Color(.systemBackground)) : Color(.systemBackground))
+                )
         )
         .overlay(
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 1)
+                .stroke(
+                    isSelected ?
+                        (themeManager?.colors.isFestive == true ? (themeManager?.colors.festiveGold ?? Color.accentColor) : Color.accentColor)
+                        : Color.clear,
+                    lineWidth: 1
+                )
         )
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)

@@ -1401,6 +1401,18 @@
         }
       }
     },
+    "appearance_header" : {
+      "comment" : "Appearance section header",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Appearance"
+          }
+        }
+      }
+    },
     "Applied" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2004,6 +2016,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "取消"
+          }
+        }
+      }
+    },
+    "christmas_theme_footer" : {
+      "comment" : "Christmas theme footer",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Enjoy the festive spirit with our special Christmas theme! 🎄"
           }
         }
       }
@@ -5161,6 +5185,78 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目标字符串"
+          }
+        }
+      }
+    },
+    "theme_christmas" : {
+      "comment" : "Christmas theme",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Christmas"
+          }
+        }
+      }
+    },
+    "theme_dark" : {
+      "comment" : "Dark theme",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Dark"
+          }
+        }
+      }
+    },
+    "theme_light" : {
+      "comment" : "Light theme",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Light"
+          }
+        }
+      }
+    },
+    "theme_row_title" : {
+      "comment" : "Theme row in Settings",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Theme"
+          }
+        }
+      }
+    },
+    "theme_system" : {
+      "comment" : "System theme",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "System"
+          }
+        }
+      }
+    },
+    "theme_title" : {
+      "comment" : "Theme view title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Theme"
           }
         }
       }

@@ -14,6 +14,7 @@ struct LibraryView: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var tabSelection: TabSelectionManager
+    @EnvironmentObject private var themeManager: ThemeManager
 
     @State private var activeSource: ImportSource?
     @State private var pendingImport: PendingImport?
@@ -68,6 +69,7 @@ struct LibraryView: View {
         } label: {
             Label(NSLocalizedString("import_button", comment: "Import button"), systemImage: "plus.circle.fill")
                 .labelStyle(.titleAndIcon)
+                .foregroundStyle(themeManager.colors.isFestive ? themeManager.colors.festiveRed : .accentColor)
         }
         .menuStyle(.button)
     }
@@ -110,7 +112,10 @@ struct LibraryView: View {
 
     private var libraryList: some View {
         List {
-            Section(NSLocalizedString("collections_section", comment: "Collections section title")) {
+            Section(header:
+                Text(NSLocalizedString("collections_section", comment: "Collections section title"))
+                    .foregroundStyle(themeManager.colors.isFestive ? themeManager.colors.festiveRed : .secondary)
+            ) {
                 folderRows
                 collectionRows
             }
@@ -156,7 +161,7 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             mainContent
-                .navigationTitle(NSLocalizedString("library_title", comment: "Library view title"))
+                .navigationTitle(themeManager.colors.isFestive ? "❄️ " + NSLocalizedString("library_title", comment: "Library view title") : NSLocalizedString("library_title", comment: "Library view title"))
                 .toolbar {
                     ToolbarItemGroup(placement: .topBarTrailing) {
                         importMenu
@@ -358,6 +363,7 @@ private struct FolderListRow: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var tabSelection: TabSelectionManager
+    @EnvironmentObject private var themeManager: ThemeManager
 
     @State private var isNavigating = false
 
@@ -371,7 +377,8 @@ private struct FolderListRow: View {
             collections: folderCollections,
             isDropTarget: hoveringFolder == folder.id,
             onPlayLast: playLastCollection,
-            onPlayRandom: playRandomCollection
+            onPlayRandom: playRandomCollection,
+            themeManager: themeManager
         )
         .contentShape(Rectangle())
         .onTapGesture {
@@ -601,6 +608,7 @@ struct FolderGridItemView: View {
     var isDropTarget: Bool = false
     let onPlayLast: () -> Void
     let onPlayRandom: () -> Void
+    var themeManager: ThemeManager?
 
     private var collectionCount: Int {
         collections.count
@@ -616,12 +624,16 @@ struct FolderGridItemView: View {
             // Folder icon
             ZStack {
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.blue.opacity(0.1))
+                    .fill(
+                        (themeManager?.colors.isFestive == true ? themeManager?.colors.festiveRed.opacity(0.1) : Color.blue.opacity(0.1)) ?? Color.blue.opacity(0.1)
+                    )
                     .frame(width: 44, height: 44)
 
                 Image(systemName: "folder.fill")
                     .font(.title2)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(
+                        (themeManager?.colors.isFestive == true ? themeManager?.colors.festiveRed : .blue) ?? .blue
+                    )
             }
 
             // Title and count

@@ -59,6 +59,7 @@ struct ContentView: View {
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
+    @EnvironmentObject private var themeManager: ThemeManager
 
     @State private var pendingResumeShortcutAfterLoad = false
 
@@ -68,29 +69,42 @@ struct ContentView: View {
                 TabView(selection: tabSelectionBinding) {
                     LibraryView()
                         .tabItem {
-                            Label(NSLocalizedString("library_tab", comment: "Tab for library"), systemImage: "books.vertical")
+                            Label(
+                                NSLocalizedString("library_tab", comment: "Tab for library"),
+                                systemImage: themeManager.colors.isFestive ? "gift.fill" : "books.vertical"
+                            )
                         }
                         .tag(TabSelectionManager.Tab.library)
 
                     PlayingView()
                         .tabItem {
-                            Label(NSLocalizedString("playing_tab", comment: "Tab for now playing"), systemImage: "play.circle")
+                            Label(
+                                NSLocalizedString("playing_tab", comment: "Tab for now playing"),
+                                systemImage: themeManager.colors.isFestive ? "star.circle.fill" : "play.circle"
+                            )
                         }
                         .tag(TabSelectionManager.Tab.playing)
 
                     SmartView()
                         .tabItem {
-                            Label("智能", systemImage: "sparkles")
+                            Label(
+                                "智能",
+                                systemImage: themeManager.colors.isFestive ? "wand.and.stars" : "sparkles"
+                            )
                         }
                         .badge(transcriptionManager.activeJobs.count + aiGenerationManager.activeJobs.count)
                         .tag(TabSelectionManager.Tab.smart)
 
                     PersonalView()
                         .tabItem {
-                            Label("Personal", systemImage: "person")
+                            Label(
+                                "Personal",
+                                systemImage: themeManager.colors.isFestive ? "snowflake" : "person"
+                            )
                         }
                         .tag(TabSelectionManager.Tab.personal)
                 }
+                .tint(themeManager.colors.isFestive ? themeManager.colors.festiveRed : .accentColor)
             }
             }
             .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
@@ -154,6 +168,7 @@ struct PlayingView: View {
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
+    @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
     @AppStorage("autoSummaryEnforceDurationLimit") private var autoSummaryEnforceDurationLimit = true
 
@@ -387,7 +402,7 @@ struct PlayingView: View {
                         .font(.headline)
                         .lineLimit(2)
                         .foregroundStyle(.secondary)
-                    
+
                     if snapshot.track.isVideoTrack {
                         Button {
                             openVideoPlayer(for: snapshot.track)
@@ -416,8 +431,22 @@ struct PlayingView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+            ZStack {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(themeManager.colors.secondaryBackground)
+
+                if themeManager.colors.isFestive {
+                    // Snowflake Watermark
+                    Image(systemName: "snowflake")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 120, height: 120)
+                        .foregroundStyle(Color.white.opacity(0.2))
+                        .offset(x: 100, y: 40)
+                        .clipped()
+                        .mask(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                }
+            }
         )
     }
 
@@ -439,11 +468,11 @@ struct PlayingView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(2)
                 }
-                
+
                 Spacer()
 
 
-                
+
                 FavoriteToggleButton(isFavorite: snapshot.track.isFavorite) {
                     library.toggleFavorite(for: snapshot.track.id, in: snapshot.collection.id)
                     audioPlayer.notifyFavoriteToggle(for: snapshot.track.id)
@@ -470,8 +499,31 @@ struct PlayingView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(Color.accentColor.opacity(0.2))
+            ZStack(alignment: .topTrailing) {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(themeManager.colors.isFestive ? themeManager.colors.secondary : Color.accentColor.opacity(0.2))
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(themeManager.colors.secondaryBackground.opacity(0.3))
+                    )
+
+                if themeManager.colors.isFestive {
+                    // Ribbon Corner
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: 0))
+                        path.addLine(to: CGPoint(x: 40, y: 0))
+                        path.addLine(to: CGPoint(x: 40, y: 40))
+                        path.closeSubpath()
+                    }
+                    .fill(themeManager.colors.festiveRed)
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    // Only clip top right corner effectively by masking or just placing it
+                    .mask(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
+                }
+            }
         )
     }
 
@@ -489,7 +541,7 @@ struct PlayingView: View {
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color(uiColor: .secondarySystemBackground))
+                .fill(themeManager.colors.secondaryBackground)
         )
     }
 

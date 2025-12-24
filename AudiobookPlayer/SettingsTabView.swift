@@ -39,6 +39,14 @@ struct SettingsTabView: View {
     var body: some View {
         List {
             Section {
+                NavigationLink(destination: ThemeSelectionView()) {
+                    HStack {
+                        Image(systemName: "paintpalette")
+                            .foregroundStyle(.tint)
+                        Text(NSLocalizedString("theme_row_title", value: "Theme", comment: "Theme row in Settings"))
+                    }
+                }
+
                 NavigationLink(destination: StorageManagementView()) {
                     HStack {
                         Image(systemName: "internaldrive")

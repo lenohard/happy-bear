@@ -42,23 +42,24 @@ class FloatingBubbleWindowManager: ObservableObject {
     
     func show(
         audioPlayer: AudioPlayerViewModel,
-        tabSelection: TabSelectionManager
+        tabSelection: TabSelectionManager,
+        themeManager: ThemeManager
     ) {
         guard bubbleWindow == nil else { return }
-        
+
         // Get the main window scene
         guard let windowScene = UIApplication.shared.connectedScenes
             .compactMap({ $0 as? UIWindowScene })
             .first else {
             return
         }
-        
+
         // Create a new pass-through window at a higher level
         let window = PassThroughWindow(windowScene: windowScene)
         window.windowLevel = .alert + 1 // Above sheets and alerts
         window.backgroundColor = .clear
         window.isUserInteractionEnabled = true
-        
+
         // Define hit test logic: only capture touches within the bubble's frame
         window.shouldHandleTouch = { [weak self] point in
             guard let self = self else { return false }
@@ -71,30 +72,31 @@ class FloatingBubbleWindowManager: ObservableObject {
             let size: CGFloat = 60
             // Add some padding for easier touch
             let touchPadding: CGFloat = 10
-            
+
             let bubbleRect = CGRect(
                 x: position.x - size/2 - touchPadding,
                 y: position.y - size/2 - touchPadding,
                 width: size + touchPadding*2,
                 height: size + touchPadding*2
             )
-            
+
             return bubbleRect.contains(point)
         }
-        
+
         // Create the hosting controller with the bubble view
         let bubbleView = FloatingPlaybackBubbleView(viewModel: self.viewModel)
             .environmentObject(audioPlayer)
             .environmentObject(audioPlayer.playbackClock)
             .environmentObject(tabSelection)
+            .environmentObject(themeManager)
             .ignoresSafeArea()
-        
+
         let hostingController = UIHostingController(rootView: bubbleView)
         hostingController.view.backgroundColor = UIColor.clear
-        
+
         window.rootViewController = hostingController
         window.isHidden = false
-        
+
         self.bubbleWindow = window
     }
     
