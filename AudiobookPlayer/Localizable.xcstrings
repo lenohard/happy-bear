@@ -1424,6 +1424,53 @@
     "Apply All" : {
 
     },
+    "Archive" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "归档"
+          }
+        }
+      }
+    },
+    "archived_collections_hint" : {
+      "comment" : "Empty state hint for archived collections",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Swipe left on a collection in your library to archive it."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "图书馆界面向左滑动来归档已完成合集吧"
+          }
+        }
+      }
+    },
+    "archived_collections_title" : {
+      "comment" : "Archived collections view title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Archived"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已归档"
+          }
+        }
+      }
+    },
     "Are you sure you want to delete all downloaded/cached audio for '%@'? This action cannot be undone." : {
       "localizations" : {
         "zh-Hans" : {
@@ -3581,10 +3628,25 @@
       }
     },
     "Move Out" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除"
+          }
+        }
+      }
     },
     "Move to Folder" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移动到文件夹"
+          }
+        }
+      }
     },
     "Music Collection" : {
 
@@ -3672,6 +3734,24 @@
     },
     "no_active_transcriptions" : {
 
+    },
+    "no_archived_collections" : {
+      "comment" : "Empty state title for archived collections",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No Archived Collections"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无已归档内容"
+          }
+        }
+      }
     },
     "no_audio_tracks" : {
       "comment" : "No audio tracks",
@@ -6521,6 +6601,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法加载文件夹"
+          }
+        }
+      }
+    },
+    "unarchive_button" : {
+      "comment" : "Unarchive button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Unarchive"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消归档"
           }
         }
       }

@@ -554,6 +554,7 @@ final class LibraryStore: ObservableObject {
         let clampedPosition = max(0, position)
         let didChangePosition = abs(state.position - clampedPosition) >= 5
         let didChangeDuration: Bool
+        let didChangeTrack = collection.lastPlayedTrackId != trackID
 
         if let duration {
             if let existingDuration = state.duration {
@@ -566,7 +567,7 @@ final class LibraryStore: ObservableObject {
             didChangeDuration = false
         }
 
-        if !didChangePosition && !didChangeDuration && collection.lastPlayedTrackId == trackID {
+        if !didChangePosition && !didChangeDuration && !didChangeTrack {
             return
         }
 
@@ -582,6 +583,12 @@ final class LibraryStore: ObservableObject {
         if !useFallbackJSON {
             Task(priority: .utility) {
                 do {
+                    // CRITICAL: Immediately persist lastPlayedTrackId when track changes
+                    // This ensures "Resume Card" shows correct track even if app is killed immediately
+                    if didChangeTrack {
+                        try await dbManager.updateLastPlayedTrack(collectionId: collectionID, trackId: trackID)
+                    }
+
                     // OPTIMIZATION: Only save playback state, not entire collection
                     // Avoid expensive DELETE+INSERT of all tracks/tags when only playback position changed
                     try await dbManager.savePlaybackState(
@@ -590,8 +597,6 @@ final class LibraryStore: ObservableObject {
                         position: clampedPosition,
                         duration: duration
                     )
-                    // Note: collection.updatedAt and lastPlayedTrackId updates are kept in memory
-                    // but deferred from database to avoid high-frequency full collection saves
                 } catch {
                     await MainActor.run {
                         self.lastError = error
