@@ -142,6 +142,7 @@ struct LibraryView: View {
                 hoveringFolder: $hoveringFolder,
                 onDrop: { providers in handleFolderDrop(providers, into: folder) }
             )
+            .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
         }
     }
 
@@ -157,6 +158,7 @@ struct LibraryView: View {
                 folders: library.folders,
                 onMoveToFolder: { folder in library.moveCollection(collection, to: folder) }
             )
+            .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
         }
     }
 
@@ -691,6 +693,7 @@ struct FolderDetailView: View {
     @EnvironmentObject private var tabSelection: TabSelectionManager
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
+    @EnvironmentObject private var themeManager: ThemeManager
 
     @State private var isRenaming = false
     @State private var newName = ""
@@ -743,9 +746,12 @@ struct FolderDetailView: View {
                     }
                     .tint(.blue)
                 }
+                .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(themeManager.colors.isFestive ? .hidden : .visible)
+        .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
         .navigationTitle(folder.name)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

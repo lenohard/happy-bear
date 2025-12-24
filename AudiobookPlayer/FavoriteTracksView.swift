@@ -6,13 +6,14 @@ struct FavoriteTracksView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
-    
+    @EnvironmentObject private var themeManager: ThemeManager
+
     @State private var missingAuthAlert = false
-    
+
     private var entries: [LibraryStore.FavoriteTrackEntry] {
         library.favoriteTrackEntries()
     }
-    
+
     var body: some View {
         List {
             if entries.isEmpty {
@@ -29,10 +30,13 @@ struct FavoriteTracksView: View {
                         onToggleFavorite: { toggleFavorite(entry) }
                     )
                 }
+                .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
                 .animation(.default, value: entries)
             }
         }
         .listStyle(.plain)
+        .scrollContentBackground(themeManager.colors.isFestive ? .hidden : .visible)
+        .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemBackground))
         .navigationTitle(Text(NSLocalizedString("favorite_tracks_title", comment: "Favorite tracks view title")))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

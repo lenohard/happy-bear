@@ -5,12 +5,13 @@ struct ArchivedCollectionsView: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var tabSelection: TabSelectionManager
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
-    
+    @EnvironmentObject private var themeManager: ThemeManager
+
     private var archivedCollections: [AudiobookCollection] {
         library.collections.filter { $0.isArchived }
             .sorted { $0.updatedAt > $1.updatedAt }
     }
-    
+
     var body: some View {
         List {
             if archivedCollections.isEmpty {
@@ -28,7 +29,7 @@ struct ArchivedCollectionsView: View {
                                 // Navigate to detail
                                 tabSelection.libraryNavigationTarget = collection.id
                             }
-                        
+
                         Button {
                             resumeCollectionPlayback(collection)
                         } label: {
@@ -48,7 +49,7 @@ struct ArchivedCollectionsView: View {
                         }
                         .tint(.blue)
                         .labelStyle(.iconOnly)
-                        
+
                         Button(role: .destructive) {
                             library.delete(collection)
                         } label: {
@@ -56,10 +57,13 @@ struct ArchivedCollectionsView: View {
                         }
                         .labelStyle(.iconOnly)
                     }
+                    .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
                 }
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(themeManager.colors.isFestive ? .hidden : .visible)
+        .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
         .navigationTitle(NSLocalizedString("archived_collections_title", value: "Archived", comment: "Archived collections view title"))
         .navigationDestination(isPresented: Binding(
             get: { tabSelection.libraryNavigationTarget != nil && library.collections.first(where: { $0.id == tabSelection.libraryNavigationTarget })?.isArchived == true },

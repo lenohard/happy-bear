@@ -54,7 +54,7 @@ struct SnowfallView: View {
                 initialY: CGFloat.random(in: 0...1000),
                 size: CGFloat.random(in: 10...24), // Larger flakes
                 speed: CGFloat.random(in: 0.5...1.5),
-                opacity: Double.random(in: 0.2...0.7),
+                opacity: Double.random(in: 0.6...0.95),
                 swaySpeed: Double.random(in: 1.0...3.0),
                 swayAmplitude: CGFloat.random(in: 5...20)
             )

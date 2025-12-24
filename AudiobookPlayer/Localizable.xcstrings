@@ -2707,6 +2707,7 @@
     },
     "done_button" : {
       "comment" : "Done button",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

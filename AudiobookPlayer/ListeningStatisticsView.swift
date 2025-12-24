@@ -186,15 +186,16 @@ class StatisticsViewModel: ObservableObject {
 
 struct ListeningStatisticsView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @EnvironmentObject private var themeManager: ThemeManager
     @StateObject private var viewModel = StatisticsViewModel()
     @State private var selectedPeriod: StatisticsPeriod = .weekly
-    
+
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "MM.dd"
         return formatter
     }()
-    
+
     var body: some View {
         List {
             Section {
@@ -206,9 +207,10 @@ struct ListeningStatisticsView: View {
                 }
                 .pickerStyle(.segmented)
                 .padding(.bottom, 12)
-                
+
                 chartView(for: selectedPeriod)
             }
+            .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
 
             Section {
                 ForEach(viewModel.topCollectionsRecentPeriod, id: \.collection.id) { item in
@@ -223,6 +225,7 @@ struct ListeningStatisticsView: View {
                             }
                             .labelStyle(.iconOnly)
                         }
+                        .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
                 }
             } header: {
                 let headerKey = selectedPeriod == .daily ? "listening_statistics_week_top_collections" : "listening_statistics_top_collections_header"
@@ -236,6 +239,8 @@ struct ListeningStatisticsView: View {
                 .textCase(nil)
             }
         }
+        .scrollContentBackground(themeManager.colors.isFestive ? .hidden : .visible)
+        .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
         .navigationTitle("Listening Statistics")
         .navigationBarTitleDisplayMode(.inline)
         .task {
