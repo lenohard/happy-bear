@@ -124,6 +124,9 @@
     "•" : {
 
     },
+    "❄️ 智能" : {
+
+    },
     "about_app_section_title" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2846,6 +2849,9 @@
         }
       }
     },
+    "Enable animated snowfall and other festive decorations." : {
+
+    },
     "Enter text to see preview" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4814,6 +4820,9 @@
           }
         }
       }
+    },
+    "Show Festive Decorations" : {
+
     },
     "Show Video" : {
       "localizations" : {

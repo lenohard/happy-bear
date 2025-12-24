@@ -5,13 +5,14 @@ struct PersonalView: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var tabSelection: TabSelectionManager
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
+    @EnvironmentObject private var themeManager: ThemeManager
 
     @State private var showHistorySheet = false
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(uiColor: .systemGroupedBackground)
+                (themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
                     .ignoresSafeArea()
 
                 ScrollView(showsIndicators: false) {
@@ -159,6 +160,7 @@ private struct ListeningHistorySheet: View {
 }
 
 private struct PersonalCard<Content: View>: View {
+    @EnvironmentObject private var themeManager: ThemeManager
     private let content: Content
 
     init(@ViewBuilder content: () -> Content) {
@@ -172,9 +174,17 @@ private struct PersonalCard<Content: View>: View {
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(shape.fill(Color(.secondarySystemGroupedBackground)))
+        .background(shape.fill(
+            themeManager.colors.isFestive ?
+            themeManager.colors.secondaryBackground.opacity(0.9) :
+            Color(.secondarySystemGroupedBackground)
+        ))
         .clipShape(shape)
-        .overlay(shape.stroke(Color(.separator).opacity(0.2)))
+        .overlay(shape.stroke(
+            themeManager.colors.isFestive ?
+            themeManager.colors.festiveGold.opacity(0.5) :
+            Color(.separator).opacity(0.2)
+        ))
         .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
     }
 }

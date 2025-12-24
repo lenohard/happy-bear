@@ -277,6 +277,7 @@ struct PlayingView: View {
                 }
             }
             .navigationTitle(themeManager.colors.isFestive ? "🎁 " + NSLocalizedString("playing_title", comment: "Playing tab title") : NSLocalizedString("playing_title", comment: "Playing tab title"))
+            .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemBackground))
         }
         .overlay {
             if themeManager.currentTheme == .christmas && themeManager.showFestiveDecorations {

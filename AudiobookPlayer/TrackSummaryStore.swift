@@ -163,7 +163,8 @@ extension GRDBDatabaseManager {
         translations: [TrackSummaryTranslation] = [],
         sections: [TrackSummarySection],
         modelIdentifier: String?,
-        jobId: String?
+        jobId: String?,
+        translationOnly: Bool = false
     ) throws -> TrackSummary {
         try initializeDatabase()
         guard let db else { throw DatabaseError.initializationFailed("Database not initialized") }

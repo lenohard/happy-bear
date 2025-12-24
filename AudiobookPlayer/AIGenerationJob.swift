@@ -192,19 +192,23 @@ struct TrackSummaryJobPayload: Codable, Equatable {
     let targetSectionCount: Int?
     let includeKeywords: Bool
     let requestTranslations: Bool
+    /// When true, the job should only generate translations (one per transcript segment) and must not overwrite existing summaries.
+    let translationOnly: Bool
 
     init(
         transcriptId: String,
         trackId: String,
         targetSectionCount: Int?,
         includeKeywords: Bool,
-        requestTranslations: Bool
+        requestTranslations: Bool,
+        translationOnly: Bool = false
     ) {
         self.transcriptId = transcriptId
         self.trackId = trackId
         self.targetSectionCount = targetSectionCount
         self.includeKeywords = includeKeywords
         self.requestTranslations = requestTranslations
+        self.translationOnly = translationOnly
     }
 
     init(from decoder: Decoder) throws {
@@ -214,6 +218,7 @@ struct TrackSummaryJobPayload: Codable, Equatable {
         targetSectionCount = try container.decodeIfPresent(Int.self, forKey: .targetSectionCount)
         includeKeywords = try container.decodeIfPresent(Bool.self, forKey: .includeKeywords) ?? true
         requestTranslations = try container.decodeIfPresent(Bool.self, forKey: .requestTranslations) ?? false
+        translationOnly = try container.decodeIfPresent(Bool.self, forKey: .translationOnly) ?? false
     }
 }
 

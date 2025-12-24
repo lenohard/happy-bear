@@ -127,7 +127,8 @@ final class TrackSummaryViewModel: ObservableObject {
         modelId: String,
         targetSections: Int? = nil,
         includeKeywords: Bool = true,
-        requestTranslations: Bool = false
+        requestTranslations: Bool = false,
+        translationOnly: Bool = false
     ) async throws {
         guard let trackId = currentTrackId else {
             throw AIGatewayRequestError(message: NSLocalizedString("track_summary_missing_track", comment: ""))
@@ -141,6 +142,7 @@ final class TrackSummaryViewModel: ObservableObject {
             targetSectionCount: targetSections,
             includeKeywords: includeKeywords,
             requestTranslations: requestTranslations,
+            translationOnly: translationOnly,
             modelId: modelId
         )
         activeJob = job

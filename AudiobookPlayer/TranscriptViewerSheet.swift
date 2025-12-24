@@ -717,8 +717,9 @@ private extension TranscriptViewerSheet {
             try await trackSummaryViewModel.startGeneration(
                 using: aiGenerationManager,
                 modelId: modelId,
-                includeKeywords: true,
-                requestTranslations: true
+                includeKeywords: false,
+                requestTranslations: true,
+                translationOnly: true
             )
         } catch {
             await MainActor.run {

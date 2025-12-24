@@ -29,6 +29,7 @@ struct SmartView: View {
                             }
                         }
                     }
+                    .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
 
                     NavigationLink {
                         SonioxSTTView()
@@ -41,7 +42,8 @@ struct SmartView: View {
                             }
                         }
                     }
-                    
+                    .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
+
                     NavigationLink {
                         EdgeTTSView()
                     } label: {
@@ -53,8 +55,11 @@ struct SmartView: View {
                             }
                         }
                     }
+                    .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
                 }
             }
+            .scrollContentBackground(themeManager.colors.isFestive ? .hidden : .visible)
+            .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
             .navigationTitle(themeManager.colors.isFestive ? "❄️ 智能" : "智能")
         }
     }

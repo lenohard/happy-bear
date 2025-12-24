@@ -94,6 +94,7 @@ final class AIGenerationManager: ObservableObject {
         targetSectionCount: Int? = nil,
         includeKeywords: Bool = true,
         requestTranslations: Bool = false,
+        translationOnly: Bool = false,
         modelId: String
     ) async throws -> AIGenerationJob {
         guard !trackId.isEmpty else {
@@ -124,7 +125,8 @@ final class AIGenerationManager: ObservableObject {
             trackId: trackId,
             targetSectionCount: targetSectionCount,
             includeKeywords: includeKeywords,
-            requestTranslations: requestTranslations
+            requestTranslations: requestTranslations,
+            translationOnly: translationOnly
         )
         let payloadJSON = try encodeJSON(payload)
 

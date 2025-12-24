@@ -72,6 +72,10 @@ enum TrackSummaryGenerationError: LocalizedError {
 final class TrackSummaryGenerator {
 
     func makePrompts(from context: TrackSummaryPromptContext) -> TrackSummaryPrompts {
+        if context.requestTranslations {
+            return makeTranslationOnlyPrompts(from: context)
+        }
+
         let systemPrompt = """
         You are an audiobook editor. Produce accurate summaries and outlines of narrated recordings.
         The transcript may have some typos, try to fix them use the correct ones in your summary.
@@ -179,6 +183,74 @@ final class TrackSummaryGenerator {
         - Use the corrected spellings in your summary and section texts.
         - Output ONLY JSON, no prose, matching this schema exactly:
         - Always use Chinese for the result no matter what the input language is.
+
+        \(schema)
+
+        Transcript segments (format: [HH:MM:SS | start_ms=NNN] text):
+        \(excerpt)
+        """
+
+        return TrackSummaryPrompts(systemPrompt: systemPrompt, userPrompt: userPrompt)
+    }
+
+    private func makeTranslationOnlyPrompts(from context: TrackSummaryPromptContext) -> TrackSummaryPrompts {
+        let systemPrompt = """
+        You are a professional translator. Translate transcript segments into Chinese.
+        Output strictly valid JSON using the schema provided. No prose.
+        The JSON must remain compatible with the existing parser.
+        """
+
+        var metadata: [String] = []
+        metadata.append("Track title: \(context.trackTitle)")
+
+        if let author = context.trackAuthor, !author.isEmpty {
+            metadata.append("Author/Narrator: \(author)")
+        }
+        if let collection = context.collectionTitle {
+            metadata.append("Collection: \(collection)")
+        }
+        if let duration = context.trackDuration {
+            metadata.append("Duration: \(Self.formatDuration(duration))")
+        }
+
+        let excerpt = transcriptExcerpt(for: context.segments)
+
+        let schema = """
+        {
+          "summary": {
+            "suggested_corrections": {},
+            "title": "optional short title",
+            "overview": "non-empty placeholder (required by parser)",
+            "keywords": [],
+            "mentioned_items": []
+          },
+          "sections": [],
+          "translations": [
+            {
+              "order": 1,
+              "start_ms": 0,
+              "translation": "..."
+            }
+          ]
+        }
+        """
+
+        let userPrompt = """
+        You will receive ordered transcript segments with timestamps.
+
+        Metadata:
+        \(metadata.joined(separator: "\n"))
+
+        Requirements:
+        - Translate EVERY transcript segment into Chinese.
+        - Return exactly one `translations` entry per input segment.
+        - Each `translations[i].start_ms` MUST exactly match the segment's provided start_ms.
+        - Keep the same ordering as input.
+        - Do NOT summarize. Leave `sections` as an empty array.
+        - `summary.overview` MUST be non-empty, but should be a short fixed placeholder like "Translations only".
+        - Set `summary.keywords` and `summary.mentioned_items` to empty arrays.
+        - Set `summary.suggested_corrections` to an empty object.
+        - Output ONLY JSON matching this schema exactly:
 
         \(schema)
 

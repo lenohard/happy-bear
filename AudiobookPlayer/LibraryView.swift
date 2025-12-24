@@ -121,6 +121,8 @@ struct LibraryView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .scrollContentBackground(themeManager.colors.isFestive ? .hidden : .visible)
+        .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
         .navigationDestination(isPresented: Binding(
             get: { selectedCollectionID.wrappedValue != nil },
             set: { if !$0 { selectedCollectionID.wrappedValue = nil } }
