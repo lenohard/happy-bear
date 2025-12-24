@@ -164,14 +164,9 @@ struct TTSJobProgressSheet: View {
             .padding(.vertical, 32)
             .navigationTitle("TTS Job Progress")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("done_button") {
-                        audioPlayer.refreshActiveCacheStatus()
-                        dismiss()
-                    }
-                }
-            }
+        }
+        .onDisappear {
+            audioPlayer.refreshActiveCacheStatus()
         }
     }
 }

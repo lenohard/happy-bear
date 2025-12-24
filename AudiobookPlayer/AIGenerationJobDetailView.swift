@@ -54,13 +54,6 @@ struct AIGenerationJobDetailView: View {
                 }
             }
             .navigationTitle(Text(NSLocalizedString("ai_job_detail_title", comment: "AI job detail title")))
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(NSLocalizedString("done_button", comment: "Done button")) {
-                        dismiss()
-                    }
-                }
-            }
         }
     }
 

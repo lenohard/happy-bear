@@ -176,13 +176,6 @@ struct TranscriptionProgressSheet: View {
             .listStyle(.plain)
             .navigationTitle("transcription_progress_title")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("done_button") {
-                        dismiss()
-                    }
-                }
-            }
         }
         .onAppear {
             startRefreshTimer()

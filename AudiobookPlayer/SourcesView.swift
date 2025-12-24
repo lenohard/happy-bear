@@ -43,13 +43,6 @@ struct SourcesView: View {
                     }
                 )
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(NSLocalizedString("done_button", comment: "Done button")) {
-                            selectedNetdiskEntry = nil
-                        }
-                    }
-                }
             }
             .presentationDetents([.fraction(0.7), .large])
         }

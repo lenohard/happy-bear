@@ -25,6 +25,7 @@ struct PersonalView: View {
                 }
             }
             .navigationTitle("Personal")
+            .toolbarBackground(themeManager.colors.isFestive ? .hidden : .visible, for: .navigationBar)
             .sheet(isPresented: $showHistorySheet) {
                 ListeningHistorySheet(
                     entries: historySheetEntries,
@@ -35,6 +36,7 @@ struct PersonalView: View {
                 )
             }
         }
+        .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
     }
 
     private var historyAndStatisticsCard: some View {
@@ -139,13 +141,6 @@ private struct ListeningHistorySheet: View {
                 .buttonStyle(.plain)
             }
             .navigationTitle(NSLocalizedString("listening_history", comment: "Listening history section title"))
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(NSLocalizedString("close_button", comment: "Close button")) {
-                        dismiss()
-                    }
-                }
-            }
         }
     }
 

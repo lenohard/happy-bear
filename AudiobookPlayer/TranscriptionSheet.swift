@@ -192,15 +192,6 @@ struct TranscriptionSheet: View {
             }
             .navigationTitle("transcribe_track_title")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    if transcriptionCompleted || !isTranscribing {
-                        Button("close_button") {
-                            dismiss()
-                        }
-                    }
-                }
-            }
             .alert("transcription_error_title", isPresented: $showError) {
                 Button("ok_button", role: .cancel) {
                     showError = false

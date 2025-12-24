@@ -146,16 +146,12 @@ struct SettingsTabView: View {
                     },
                     onSaveParent: {
                         presentSaveFlow(for: entry)
+                    },
+                    onDismiss: {
+                        selectedNetdiskEntry = nil
                     }
                 )
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(NSLocalizedString("done_button", comment: "Done button")) {
-                            selectedNetdiskEntry = nil
-                        }
-                    }
-                }
             }
             .presentationDetents([.fraction(0.7), .large])
         }
@@ -672,6 +668,7 @@ private struct SettingsNetdiskEntryDetailSheet: View {
     let canStream: Bool
     let onPlay: () -> Void
     let onSaveParent: () -> Void
+    let onDismiss: () -> Void
 
     var body: some View {
         ScrollView {
