@@ -161,7 +161,7 @@ struct LibraryView: View {
     var body: some View {
         NavigationStack {
             mainContent
-                .navigationTitle(themeManager.colors.isFestive ? "🎄🔔 " + NSLocalizedString("library_title", comment: "Library view title") : NSLocalizedString("library_title", comment: "Library view title"))
+                .navigationTitle(themeManager.colors.isFestive ? "🎄 " + NSLocalizedString("library_title", comment: "Library view title") : NSLocalizedString("library_title", comment: "Library view title"))
                 .toolbar {
                     ToolbarItemGroup(placement: .topBarTrailing) {
                         importMenu

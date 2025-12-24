@@ -52,7 +52,7 @@ struct SnowfallView: View {
             Snowflake(
                 initialX: CGFloat.random(in: 0...1000), // Wide range to cover rotation/sway
                 initialY: CGFloat.random(in: 0...1000),
-                size: CGFloat.random(in: 2...6), // Smaller, more realistic sizes
+                size: CGFloat.random(in: 10...24), // Larger flakes
                 speed: CGFloat.random(in: 0.5...1.5),
                 opacity: Double.random(in: 0.2...0.7),
                 swaySpeed: Double.random(in: 1.0...3.0),

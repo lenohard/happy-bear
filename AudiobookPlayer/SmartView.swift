@@ -3,6 +3,7 @@ import SwiftUI
 struct SmartView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
+    @EnvironmentObject private var themeManager: ThemeManager
 
     // Separate job counts for STT and TTS
     private var sttJobCount: Int {
@@ -54,7 +55,7 @@ struct SmartView: View {
                     }
                 }
             }
-            .navigationTitle("智能")
+            .navigationTitle(themeManager.colors.isFestive ? "❄️ 智能" : "智能")
         }
     }
 }

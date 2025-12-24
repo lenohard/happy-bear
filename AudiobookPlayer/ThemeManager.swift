@@ -41,6 +41,7 @@ struct ThemeColors {
     let festiveGreen: Color
     let festiveGold: Color
     let isFestive: Bool
+    let backgroundImageName: String?
 }
 
 class ThemeManager: ObservableObject {
@@ -92,7 +93,8 @@ class ThemeManager: ObservableObject {
                 festiveRed: Color(hex: "D42426") ?? .red,
                 festiveGreen: Color(hex: "165B33") ?? .green,
                 festiveGold: Color(hex: "F8B229") ?? .yellow,
-                isFestive: true
+                isFestive: true,
+                backgroundImageName: "xmas_bg"
             )
         case .light:
             return ThemeColors(
@@ -106,7 +108,8 @@ class ThemeManager: ObservableObject {
                 festiveRed: .red,
                 festiveGreen: .green,
                 festiveGold: .yellow,
-                isFestive: false
+                isFestive: false,
+                backgroundImageName: nil
             )
         case .dark:
             return ThemeColors(
@@ -120,7 +123,8 @@ class ThemeManager: ObservableObject {
                 festiveRed: .red,
                 festiveGreen: .green,
                 festiveGold: .yellow,
-                isFestive: false
+                isFestive: false,
+                backgroundImageName: nil
             )
         case .system:
             return ThemeColors(
@@ -134,7 +138,8 @@ class ThemeManager: ObservableObject {
                 festiveRed: .red,
                 festiveGreen: .green,
                 festiveGold: .yellow,
-                isFestive: false
+                isFestive: false,
+                backgroundImageName: nil
             )
         }
     }

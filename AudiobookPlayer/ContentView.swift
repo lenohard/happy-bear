@@ -66,6 +66,14 @@ struct ContentView: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
+                if let bgImage = themeManager.colors.backgroundImageName {
+                    Image(bgImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .ignoresSafeArea()
+                }
+
                 TabView(selection: tabSelectionBinding) {
                     LibraryView()
                         .tabItem {
@@ -268,7 +276,7 @@ struct PlayingView: View {
                     EmptyPlayingView()
                 }
             }
-            .navigationTitle(themeManager.colors.isFestive ? "🎅🎁 " + NSLocalizedString("playing_title", comment: "Playing tab title") : NSLocalizedString("playing_title", comment: "Playing tab title"))
+            .navigationTitle(themeManager.colors.isFestive ? "🎁 " + NSLocalizedString("playing_title", comment: "Playing tab title") : NSLocalizedString("playing_title", comment: "Playing tab title"))
         }
         .overlay {
             if themeManager.currentTheme == .christmas && themeManager.showFestiveDecorations {
