@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SnowfallView: View {
-    @State private var snowflakes: [Snowflake] = []
+    @State private var snowflakes: [Snowflake]
     
     struct Snowflake: Identifiable {
         let id = UUID()
@@ -12,6 +12,10 @@ struct SnowfallView: View {
         let opacity: Double
         let swaySpeed: Double
         let swayAmplitude: CGFloat
+    }
+
+    init() {
+        _snowflakes = State(initialValue: Self.makeSnowflakes())
     }
 
     var body: some View {
@@ -39,16 +43,13 @@ struct SnowfallView: View {
                 }
             }
         }
-        .onAppear {
-            initializeSnowflakes()
-        }
         .allowsHitTesting(false)
         .ignoresSafeArea()
     }
 
-    private func initializeSnowflakes() {
+    private static func makeSnowflakes() -> [Snowflake] {
         // Create a dense, varied field of snow
-        snowflakes = (0..<80).map { _ in
+        (0..<80).map { _ in
             Snowflake(
                 initialX: CGFloat.random(in: 0...1000), // Wide range to cover rotation/sway
                 initialY: CGFloat.random(in: 0...1000),

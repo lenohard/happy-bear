@@ -22,7 +22,12 @@ struct SmartView: View {
                         AITabView()
                     } label: {
                         HStack {
-                            Label(NSLocalizedString("ai_tab", comment: "AI tab"), systemImage: "sparkles")
+                            Label {
+                                Text(NSLocalizedString("ai_tab", comment: "AI tab"))
+                            } icon: {
+                                Image(systemName: "sparkles")
+                                    .foregroundStyle(festiveIconColor)
+                            }
                             Spacer()
                             if !aiGenerationManager.activeJobs.isEmpty {
                                 BadgeView(count: aiGenerationManager.activeJobs.count)
@@ -35,7 +40,12 @@ struct SmartView: View {
                         SonioxSTTView()
                     } label: {
                         HStack {
-                            Label("STT (Soniox)", systemImage: "waveform")
+                            Label {
+                                Text("STT (Soniox)")
+                            } icon: {
+                                Image(systemName: "waveform")
+                                    .foregroundStyle(festiveIconColor)
+                            }
                             Spacer()
                             if sttJobCount > 0 {
                                 BadgeView(count: sttJobCount)
@@ -48,7 +58,12 @@ struct SmartView: View {
                         EdgeTTSView()
                     } label: {
                         HStack {
-                            Label("TTS (Edge)", systemImage: "speaker.wave.2")
+                            Label {
+                                Text("TTS (Edge)")
+                            } icon: {
+                                Image(systemName: "speaker.wave.2")
+                                    .foregroundStyle(festiveIconColor)
+                            }
                             Spacer()
                             if ttsJobCount > 0 {
                                 BadgeView(count: ttsJobCount)
@@ -62,6 +77,10 @@ struct SmartView: View {
             .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
             .navigationTitle(themeManager.colors.isFestive ? "❄️ 智能" : "智能")
         }
+    }
+
+    private var festiveIconColor: Color {
+        themeManager.colors.isFestive ? themeManager.colors.festiveRed : .accentColor
     }
 }
 

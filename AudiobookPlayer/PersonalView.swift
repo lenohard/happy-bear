@@ -24,7 +24,7 @@ struct PersonalView: View {
                     .padding(.horizontal, 20)
                 }
             }
-            .navigationTitle("Personal")
+            .navigationTitle(themeManager.colors.isFestive ? "⛄ 个人" : "个人")
             .toolbarBackground(themeManager.colors.isFestive ? .hidden : .visible, for: .navigationBar)
             .sheet(isPresented: $showHistorySheet) {
                 ListeningHistorySheet(
@@ -175,11 +175,6 @@ private struct PersonalCard<Content: View>: View {
             Color(.secondarySystemGroupedBackground)
         ))
         .clipShape(shape)
-        .overlay(shape.stroke(
-            themeManager.colors.isFestive ?
-            themeManager.colors.festiveGold.opacity(0.5) :
-            Color(.separator).opacity(0.2)
-        ))
         .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 4)
     }
 }
@@ -192,14 +187,16 @@ private struct PersonalCardRow: View {
     let icon: String
     let title: String
 
+    @EnvironmentObject private var themeManager: ThemeManager
+
     var body: some View {
         HStack(spacing: Self.contentSpacing) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.accentColor.opacity(0.12))
+                    .fill(themeManager.colors.isFestive ? Color(uiColor: .systemGray5) : Color.accentColor.opacity(0.12))
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(themeManager.colors.isFestive ? themeManager.colors.festiveRed : Color.accentColor)
             }
             .frame(width: Self.iconContainerSize, height: Self.iconContainerSize)
 
