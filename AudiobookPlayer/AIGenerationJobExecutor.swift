@@ -276,6 +276,10 @@ actor AIGenerationJobExecutor {
             let prompts = trackSummaryGenerator.makePrompts(from: context)
             var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
 
+            if payload.translationOnly {
+                logger.info("[TrackSummaryTranslationOnly] Input: \(prompts.userPrompt, privacy: .public)")
+            }
+
             try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: 0.2)
 
             let response = try await gatewayClient.sendChat(
@@ -303,6 +307,10 @@ actor AIGenerationJobExecutor {
 
             let rawText = response.choices.first?.message.content ?? currentContentBuffer(for: job.id)
             try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
+
+            if payload.translationOnly {
+                logger.info("[TrackSummaryTranslationOnly] Output: \(rawText, privacy: .public)")
+            }
 
             if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
                 metadata = metadata.updatingReasoning(snapshot)
@@ -340,7 +348,8 @@ actor AIGenerationJobExecutor {
                 translations: translations,
                 sections: sections,
                 modelIdentifier: modelId,
-                jobId: job.id
+                jobId: job.id,
+                translationOnly: payload.translationOnly
             )
 
             if let json = encodeMetadata(metadata) {
@@ -371,7 +380,8 @@ actor AIGenerationJobExecutor {
                 transcriptId: transcriptId,
                 language: language,
                 message: error.localizedDescription,
-                jobId: job.id
+                jobId: job.id,
+                translationOnly: payload.translationOnly
             )
             throw error
         }

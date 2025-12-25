@@ -142,15 +142,20 @@ final class AIGenerationManager: ObservableObject {
             payloadJSON: payloadJSON
         )
 
-        _ = try await dbManager.upsertTrackSummaryState(
-            trackId: trackId,
-            transcriptId: transcript.id,
-            language: transcript.language,
-            status: .generating,
-            modelIdentifier: modelId,
-            jobId: job.id,
-            errorMessage: nil
-        )
+        let existingSummary = try await dbManager.fetchTrackSummary(forTrackId: trackId)
+        let shouldUpdateSummaryState = !(translationOnly && existingSummary?.summaryBody?.isEmpty == false)
+
+        if shouldUpdateSummaryState {
+            _ = try await dbManager.upsertTrackSummaryState(
+                trackId: trackId,
+                transcriptId: transcript.id,
+                language: transcript.language,
+                status: .generating,
+                modelIdentifier: modelId,
+                jobId: job.id,
+                errorMessage: nil
+            )
+        }
 
         await executor.scheduleProcessing()
         await refreshJobs()

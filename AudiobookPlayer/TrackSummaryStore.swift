@@ -170,6 +170,41 @@ extension GRDBDatabaseManager {
         guard let db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
         let existing = try fetchTrackSummary(forTrackId: trackId)
+
+        if translationOnly, existing != nil {
+            let now = Date()
+            let translationSegmentsJSON = encodeTranslations(translations)
+
+            try db.write { database in
+                try database.execute(
+                    sql: """
+                    UPDATE track_summaries
+                    SET translation_segments_json = ?,
+                        last_job_id = ?,
+                        model_identifier = COALESCE(?, model_identifier),
+                        updated_at = ?,
+                        generated_at = COALESCE(generated_at, ?)
+                    WHERE track_id = ?
+                    """,
+                    arguments: [
+                        translationSegmentsJSON,
+                        jobId,
+                        modelIdentifier,
+                        Self.sqliteDateFormatter.string(from: now),
+                        Self.sqliteDateFormatter.string(from: now),
+                        trackId
+                    ]
+                )
+            }
+
+            return try fetchTrackSummary(forTrackId: trackId) ?? existing ?? TrackSummary(
+                id: trackId,
+                trackId: trackId,
+                transcriptId: transcriptId,
+                language: language
+            )
+        }
+
         let summaryId = existing?.id ?? trackId
         let createdAt = existing?.createdAt ?? Date()
         let now = Date()
@@ -327,8 +362,33 @@ extension GRDBDatabaseManager {
         transcriptId: String,
         language: String,
         message: String,
-        jobId: String?
+        jobId: String?,
+        translationOnly: Bool = false
     ) throws {
+        try initializeDatabase()
+        guard let db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        if translationOnly, let existing = try fetchTrackSummary(forTrackId: trackId),
+           existing.summaryBody?.isEmpty == false {
+            let now = Date()
+            try db.write { database in
+                try database.execute(
+                    sql: """
+                    UPDATE track_summaries
+                    SET last_job_id = ?,
+                        updated_at = ?
+                    WHERE track_id = ?
+                    """,
+                    arguments: [
+                        jobId,
+                        Self.sqliteDateFormatter.string(from: now),
+                        trackId
+                    ]
+                )
+            }
+            return
+        }
+
         try _ = upsertTrackSummaryState(
             trackId: trackId,
             transcriptId: transcriptId,
