@@ -273,50 +273,133 @@ actor AIGenerationJobExecutor {
                 requestTranslations: payload.requestTranslations
             )
 
-            let prompts = trackSummaryGenerator.makePrompts(from: context)
             var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
-
-            if payload.translationOnly {
-                logger.info("[TrackSummaryTranslationOnly] Input: \(prompts.userPrompt, privacy: .public)")
-            }
 
             try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: 0.2)
 
-            let response = try await gatewayClient.sendChat(
-                apiKey: apiKey,
-                model: modelId,
-                systemPrompt: prompts.systemPrompt,
-                userPrompt: prompts.userPrompt,
-                temperature: 0.3,
-                onStreamDelta: { [weak self] delta in
-                    guard let self else { return }
-                    Task {
-                        await self.persistStreamDelta(delta, for: job.id)
-                    }
-                },
-                onStreamFallback: { [weak self] in
-                    guard let self else { return }
-                    Task {
-                        metadata = metadata.updatingFlag("stream_fallback", value: true)
-                        if let json = self.encodeMetadata(metadata) {
-                            try? await self.dbManager.updateAIGenerationJobMetadata(jobId: job.id, metadataJSON: json)
-                        }
-                    }
+            let onDelta: ((AIGatewayClient.StreamDelta) -> Void) = { [weak self] delta in
+                guard let self else { return }
+                Task {
+                    await self.persistStreamDelta(delta, for: job.id)
                 }
-            )
+            }
 
-            let rawText = response.choices.first?.message.content ?? currentContentBuffer(for: job.id)
-            try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
+            let parsed: TrackSummaryGenerationResult
+            let translations: [TrackSummaryTranslation]
+            var usageSnapshot: AIGenerationUsageSnapshot?
 
             if payload.translationOnly {
-                logger.info("[TrackSummaryTranslationOnly] Output: \(rawText, privacy: .public)")
+                let filteredSegments = filterTranslationSegments(segments)
+                guard !filteredSegments.isEmpty else {
+                    throw AIGatewayRequestError(message: "Transcript has no valid segments to translate.")
+                }
+                let chunkSize = 200
+                let chunks = filteredSegments.chunked(into: chunkSize)
+                var chunkTranslations: [TrackSummaryTranslationPayload] = []
+                var firstChunkResult: TrackSummaryGenerationResult?
+                var accumulatedUsage = UsageAccumulator()
+
+                for (index, chunk) in chunks.enumerated() {
+                    let chunkContext = TrackSummaryPromptContext(
+                        trackTitle: context.trackTitle,
+                        trackDuration: context.trackDuration,
+                        trackAuthor: context.trackAuthor,
+                        collectionTitle: context.collectionTitle,
+                        collectionDescription: context.collectionDescription,
+                        transcriptLanguage: context.transcriptLanguage,
+                        segments: chunk,
+                        targetSectionCount: context.targetSectionCount,
+                        includeKeywords: context.includeKeywords,
+                        requestTranslations: context.requestTranslations
+                    )
+
+                    let prompts = trackSummaryGenerator.makePrompts(from: chunkContext)
+                    logger.info("[TrackSummaryTranslationOnly] Input (chunk \(index + 1)/\(chunks.count)): \(prompts.userPrompt, privacy: .public)")
+
+                    setInitialStreamBuffer("", reasoning: "", for: job.id)
+
+                    let response = try await gatewayClient.sendChat(
+                        apiKey: apiKey,
+                        model: modelId,
+                        systemPrompt: prompts.systemPrompt,
+                        userPrompt: prompts.userPrompt,
+                        temperature: 0.3,
+                        onStreamDelta: onDelta
+                    )
+
+                    let rawText = response.choices.first?.message.content ?? currentContentBuffer(for: job.id)
+                    try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
+                    logger.info("[TrackSummaryTranslationOnly] Output (chunk \(index + 1)/\(chunks.count)): \(rawText, privacy: .public)")
+
+                    if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
+                        metadata = metadata.updatingReasoning(snapshot)
+                    }
+
+                    let chunkParsed = try trackSummaryGenerator.parseTranslationOnlyResponse(rawText, segments: chunk)
+                    if firstChunkResult == nil {
+                        firstChunkResult = chunkParsed
+                    }
+                    chunkTranslations.append(contentsOf: chunkParsed.translations)
+
+                    accumulatedUsage.merge(response.usage)
+
+                    let progress = 0.2 + (0.6 * Double(index + 1) / Double(chunks.count))
+                    try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: progress)
+                }
+
+                guard let result = firstChunkResult else {
+                    throw AIGatewayRequestError(message: "Translation request returned no output.")
+                }
+
+                parsed = result
+                translations = chunkTranslations
+                    .sorted { $0.startTimeMs < $1.startTimeMs }
+                    .enumerated()
+                    .map { index, payload in
+                        TrackSummaryTranslation(
+                            orderIndex: index,
+                            startTimeMs: payload.startTimeMs,
+                            translation: payload.translation
+                        )
+                    }
+                usageSnapshot = accumulatedUsage.snapshot
+            } else {
+                let prompts = trackSummaryGenerator.makePrompts(from: context)
+                let response = try await gatewayClient.sendChat(
+                    apiKey: apiKey,
+                    model: modelId,
+                    systemPrompt: prompts.systemPrompt,
+                    userPrompt: prompts.userPrompt,
+                    temperature: 0.3,
+                    onStreamDelta: onDelta
+                )
+
+                let rawText = response.choices.first?.message.content ?? currentContentBuffer(for: job.id)
+                try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
+
+                if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
+                    metadata = metadata.updatingReasoning(snapshot)
+                }
+
+                parsed = try trackSummaryGenerator.parseResponse(rawText)
+                translations = parsed.translations.enumerated().map { index, payload in
+                    TrackSummaryTranslation(
+                        orderIndex: index,
+                        startTimeMs: payload.startTimeMs,
+                        translation: payload.translation
+                    )
+                }
+                if let usage = response.usage {
+                    usageSnapshot = AIGenerationUsageSnapshot(
+                        promptTokens: usage.promptTokens,
+                        completionTokens: usage.completionTokens,
+                        totalTokens: usage.totalTokens,
+                        cost: usage.cost,
+                        reasoningTokens: usage.completionTokensDetails?.reasoningTokens
+                    )
+                }
             }
 
-            if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
-                metadata = metadata.updatingReasoning(snapshot)
-            }
-
-            let parsed = try trackSummaryGenerator.parseResponse(rawText)
             let sections = parsed.sections.enumerated().map { index, payload in
                 TrackSummarySection(
                     trackSummaryId: transcript.trackId,
@@ -326,13 +409,6 @@ actor AIGenerationJobExecutor {
                     title: payload.title,
                     summary: payload.summary,
                     keywords: payload.keywords
-                )
-            }
-            let translations = parsed.translations.enumerated().map { index, payload in
-                TrackSummaryTranslation(
-                    orderIndex: index,
-                    startTimeMs: payload.startTimeMs,
-                    translation: payload.translation
                 )
             }
 
@@ -356,13 +432,6 @@ actor AIGenerationJobExecutor {
                 try await dbManager.updateAIGenerationJobMetadata(jobId: job.id, metadataJSON: json)
             }
 
-            let usageSnapshot = AIGenerationUsageSnapshot(
-                promptTokens: response.usage?.promptTokens,
-                completionTokens: response.usage?.completionTokens,
-                totalTokens: response.usage?.totalTokens,
-                cost: response.usage?.cost,
-                reasoningTokens: response.usage?.completionTokensDetails?.reasoningTokens
-            )
             let usageJSON = encodeUsage(usageSnapshot)
 
             let preview = [
@@ -441,5 +510,64 @@ actor AIGenerationJobExecutor {
         } catch {
             logger.error("Failed updating stream buffer for job \(jobId, privacy: .public): \(error.localizedDescription, privacy: .public)")
         }
+    }
+}
+
+private extension AIGenerationJobExecutor {
+    func filterTranslationSegments(_ segments: [TranscriptSegment]) -> [TranscriptSegment] {
+        segments
+            .filter { segment in
+                let sanitized = segment.text
+                    .replacingOccurrences(of: "\n", with: " ")
+                    .replacingOccurrences(of: "\t", with: " ")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                return !sanitized.isEmpty
+            }
+            .sorted { $0.startTimeMs < $1.startTimeMs }
+    }
+}
+
+private struct UsageAccumulator {
+    private(set) var promptTokens: Int = 0
+    private(set) var completionTokens: Int = 0
+    private(set) var totalTokens: Int = 0
+    private(set) var cost: Double = 0
+    private(set) var reasoningTokens: Int = 0
+    private var hasData = false
+
+    mutating func merge(_ usage: ChatCompletionsResponse.Usage?) {
+        guard let usage else { return }
+        promptTokens += usage.promptTokens ?? 0
+        completionTokens += usage.completionTokens ?? 0
+        totalTokens += usage.totalTokens ?? 0
+        cost += usage.cost ?? 0
+        reasoningTokens += usage.completionTokensDetails?.reasoningTokens ?? 0
+        hasData = true
+    }
+
+    var snapshot: AIGenerationUsageSnapshot? {
+        guard hasData else { return nil }
+        return AIGenerationUsageSnapshot(
+            promptTokens: promptTokens,
+            completionTokens: completionTokens,
+            totalTokens: totalTokens,
+            cost: cost,
+            reasoningTokens: reasoningTokens
+        )
+    }
+}
+
+private extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        guard size > 0 else { return [] }
+        var chunks: [[Element]] = []
+        chunks.reserveCapacity((count + size - 1) / size)
+        var index = 0
+        while index < count {
+            let end = Swift.min(index + size, count)
+            chunks.append(Array(self[index..<end]))
+            index = end
+        }
+        return chunks
     }
 }

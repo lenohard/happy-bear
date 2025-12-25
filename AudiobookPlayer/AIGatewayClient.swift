@@ -10,7 +10,14 @@ final class AIGatewayClient {
     private let baseURL = URL(string: "https://ai-gateway.vercel.sh/v1")!
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    private static let defaultSession: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 360
+        configuration.timeoutIntervalForResource = 1200
+        return URLSession(configuration: configuration)
+    }()
+
+    init(session: URLSession = AIGatewayClient.defaultSession) {
         self.session = session
     }
 
@@ -61,25 +68,7 @@ final class AIGatewayClient {
             payload["reasoning"] = try encodeReasoningPayload(reasoning)
         }
 
-        do {
-            return try await streamChatCompletion(apiKey: apiKey, payload: payload, onDelta: onStreamDelta)
-        } catch {
-            if let urlError = error as? URLError, urlError.code == .secureConnectionFailed {
-                payload["stream"] = false
-                onStreamFallback?()
-                let fallback: ChatCompletionsResponse = try await request(
-                    endpoint: "chat/completions",
-                    method: "POST",
-                    apiKey: apiKey,
-                    jsonBody: payload
-                )
-                if let final = fallback.choices.first?.message.content, !final.isEmpty {
-                    onStreamDelta?(.content(final))
-                }
-                return fallback
-            }
-            throw error
-        }
+        return try await streamChatCompletion(apiKey: apiKey, payload: payload, onDelta: onStreamDelta)
     }
 
     private struct ChatStreamChunk: Decodable {

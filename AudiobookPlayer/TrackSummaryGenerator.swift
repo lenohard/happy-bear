@@ -213,7 +213,7 @@ final class TrackSummaryGenerator {
             metadata.append("Duration: \(Self.formatDuration(duration))")
         }
 
-        let excerpt = transcriptExcerpt(for: context.segments)
+        let excerpt = translationExcerpt(for: context.segments)
 
         let schema = """
         {
@@ -226,35 +226,32 @@ final class TrackSummaryGenerator {
           },
           "sections": [],
           "translations": [
-            {
-              "order": 1,
-              "start_ms": 0,
-              "translation": "..."
-            }
+            [1, "translation text"]
           ]
         }
         """
 
         let userPrompt = """
-        You will receive ordered transcript segments with timestamps.
+        You will receive ordered transcript segments without timestamps.
 
         Metadata:
         \(metadata.joined(separator: "\n"))
 
         Requirements:
         - Translate EVERY transcript segment into Chinese.
-        - Return exactly one `translations` entry per input segment.
-        - Each `translations[i].start_ms` MUST exactly match the segment's provided start_ms.
-        - Keep the same ordering as input.
+        - Return one `translations` entry per input segment when possible; if a line is unclear, you may return an empty string.
+        - Use the compact tuple format `[order, translation]` where `order` is a 1-based index matching the input line number.
+        - Keep tuples compact; translation text may omit quotes to save tokens.
+        - Do NOT include any timestamps or `start_ms` values.
         - Do NOT summarize. Leave `sections` as an empty array.
         - `summary.overview` MUST be non-empty, but should be a short fixed placeholder like "Translations only".
         - Set `summary.keywords` and `summary.mentioned_items` to empty arrays.
         - Set `summary.suggested_corrections` to an empty object.
-        - Output ONLY JSON matching this schema exactly:
+        - Output ONLY a JSON-like object matching this schema as closely as possible:
 
         \(schema)
 
-        Transcript segments (format: [HH:MM:SS | start_ms=NNN] text):
+        Transcript segments (format: "1. text"):
         \(excerpt)
         """
 
@@ -262,98 +259,171 @@ final class TrackSummaryGenerator {
     }
 
     func parseResponse(_ raw: String) throws -> TrackSummaryGenerationResult {
-        let cleaned = cleanedJSON(from: raw)
-        guard !cleaned.isEmpty else {
-            throw TrackSummaryGenerationError.emptyResponse
-        }
+        let payload = try decodeResponse(raw)
+        let summaryFields = try parseSummaryFields(from: payload)
 
-        guard let data = cleaned.data(using: .utf8) else {
-            throw TrackSummaryGenerationError.invalidJSONEnvelope
-        }
-
-        do {
-            let decoder = JSONDecoder()
-            // Keys already map via CodingKeys; enabling convertFromSnakeCase here
-            // caused nested values like `start_ms` to be skipped entirely.
-            let payload = try decoder.decode(TrackSummaryLLMResponse.self, from: data)
-            guard let overview = payload.summary.overview?.trimmedNonEmpty else {
-                throw TrackSummaryGenerationError.missingSummaryBody
+        let translations = payload.translations
+            .compactMap { entry -> TrackSummaryTranslationPayload? in
+                guard let startMs = entry.normalizedStartMs else { return nil }
+                guard let text = entry.translation?.trimmedNonEmpty else { return nil }
+                return TrackSummaryTranslationPayload(
+                    orderIndex: entry.order ?? 0,
+                    startTimeMs: max(0, startMs),
+                    translation: text
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.startTimeMs == rhs.startTimeMs {
+                    return lhs.orderIndex < rhs.orderIndex
+                }
+                return lhs.startTimeMs < rhs.startTimeMs
+            }
+            .enumerated()
+            .map { index, payload in
+                TrackSummaryTranslationPayload(
+                    orderIndex: index,
+                    startTimeMs: payload.startTimeMs,
+                    translation: payload.translation
+                )
             }
 
-            let keywords = payload.summary.keywords ?? []
-            let mentionedItems = payload.summary.mentionedItems ?? []
-            let suggestedCorrections = payload.summary.suggestedCorrections ?? [:]
-            let sections = payload.sections
-                .compactMap { section -> TrackSummarySectionPayload? in
-                    guard let startMs = section.normalizedStartMs else { return nil }
-                    guard let blurb = section.summary?.trimmedNonEmpty else { return nil }
-                    let title = section.title?.trimmedNonEmpty
-                    let keywords = section.keywords ?? []
-                    let endMs = section.normalizedEndMs
-                    return TrackSummarySectionPayload(
-                        orderIndex: section.order ?? 0,
-                        startTimeMs: max(0, startMs),
-                        endTimeMs: endMs,
-                        title: title,
-                        summary: blurb,
-                        keywords: keywords.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-                    )
-                }
-                .sorted { lhs, rhs in
-                    if lhs.startTimeMs == rhs.startTimeMs {
-                        return lhs.orderIndex < rhs.orderIndex
-                    }
-                    return lhs.startTimeMs < rhs.startTimeMs
-                }
-                .enumerated()
-                .map { index, payload in
-                    TrackSummarySectionPayload(
-                        orderIndex: index,
-                        startTimeMs: payload.startTimeMs,
-                        endTimeMs: payload.endTimeMs,
-                        title: payload.title,
-                        summary: payload.summary,
-                        keywords: payload.keywords
-                    )
-                }
+        return TrackSummaryGenerationResult(
+            summaryTitle: summaryFields.summaryTitle,
+            summaryBody: summaryFields.summaryBody,
+            keywords: summaryFields.keywords,
+            mentionedItems: summaryFields.mentionedItems,
+            suggestedCorrections: summaryFields.suggestedCorrections,
+            sections: summaryFields.sections,
+            translations: translations
+        )
+    }
 
-            let translations = payload.translations
-                .compactMap { entry -> TrackSummaryTranslationPayload? in
-                    guard let startMs = entry.normalizedStartMs else { return nil }
-                    guard let text = entry.translation?.trimmedNonEmpty else { return nil }
-                    return TrackSummaryTranslationPayload(
-                        orderIndex: entry.order ?? 0,
-                        startTimeMs: max(0, startMs),
-                        translation: text
-                    )
-                }
-                .sorted { lhs, rhs in
-                    if lhs.startTimeMs == rhs.startTimeMs {
-                        return lhs.orderIndex < rhs.orderIndex
-                    }
-                    return lhs.startTimeMs < rhs.startTimeMs
-                }
-                .enumerated()
-                .map { index, payload in
-                    TrackSummaryTranslationPayload(
-                        orderIndex: index,
-                        startTimeMs: payload.startTimeMs,
-                        translation: payload.translation
-                    )
-                }
+    func parseTranslationOnlyResponse(_ raw: String, segments: [TranscriptSegment]) throws -> TrackSummaryGenerationResult {
+        let orderedSegments = segments.sorted { $0.startTimeMs < $1.startTimeMs }
+
+        do {
+            let payload = try decodeResponse(raw)
+            let summaryFields = try parseSummaryFields(from: payload)
+            let translations = normalizeTranslationOnlyEntries(payload.translations, orderedSegments: orderedSegments)
 
             return TrackSummaryGenerationResult(
-                summaryTitle: payload.summary.title?.trimmedNonEmpty,
-                summaryBody: overview,
-                keywords: keywords,
-                mentionedItems: mentionedItems,
-                suggestedCorrections: suggestedCorrections,
-                sections: sections,
+                summaryTitle: summaryFields.summaryTitle,
+                summaryBody: summaryFields.summaryBody,
+                keywords: summaryFields.keywords,
+                mentionedItems: summaryFields.mentionedItems,
+                suggestedCorrections: summaryFields.suggestedCorrections,
+                sections: summaryFields.sections,
                 translations: translations
             )
         } catch {
-            throw TrackSummaryGenerationError.decodingFailed(error.localizedDescription)
+            return parseTranslationOnlyResponseLenient(raw, orderedSegments: orderedSegments)
         }
+    }
+
+    private func normalizeTranslationOnlyEntries(
+        _ entries: [TrackSummaryLLMResponse.Translation],
+        orderedSegments: [TranscriptSegment]
+    ) -> [TrackSummaryTranslationPayload] {
+        var translations: [TrackSummaryTranslationPayload] = []
+        translations.reserveCapacity(entries.count)
+
+        for (index, entry) in entries.enumerated() {
+            let text = entry.translation ?? ""
+            let orderValue = entry.order ?? (index + 1)
+            let segmentIndex = orderValue - 1
+            guard segmentIndex >= 0, segmentIndex < orderedSegments.count else {
+                continue
+            }
+            let startMs = orderedSegments[segmentIndex].startTimeMs
+            translations.append(
+                TrackSummaryTranslationPayload(
+                    orderIndex: segmentIndex,
+                    startTimeMs: max(0, startMs),
+                    translation: text
+                )
+            )
+        }
+
+        return normalizeTranslationOrder(translations)
+    }
+
+    private func normalizeTranslationOrder(_ translations: [TrackSummaryTranslationPayload]) -> [TrackSummaryTranslationPayload] {
+        translations
+            .sorted { lhs, rhs in
+                if lhs.startTimeMs == rhs.startTimeMs {
+                    return lhs.orderIndex < rhs.orderIndex
+                }
+                return lhs.startTimeMs < rhs.startTimeMs
+            }
+            .enumerated()
+            .map { index, payload in
+                TrackSummaryTranslationPayload(
+                    orderIndex: index,
+                    startTimeMs: payload.startTimeMs,
+                    translation: payload.translation
+                )
+            }
+    }
+
+    private func parseTranslationOnlyResponseLenient(
+        _ raw: String,
+        orderedSegments: [TranscriptSegment]
+    ) -> TrackSummaryGenerationResult {
+        let translations = parseTranslationTuples(from: raw, orderedSegments: orderedSegments)
+
+        return TrackSummaryGenerationResult(
+            summaryTitle: nil,
+            summaryBody: "Translations only",
+            keywords: [],
+            mentionedItems: [],
+            suggestedCorrections: [:],
+            sections: [],
+            translations: normalizeTranslationOrder(translations)
+        )
+    }
+
+    private func parseTranslationTuples(
+        from raw: String,
+        orderedSegments: [TranscriptSegment]
+    ) -> [TrackSummaryTranslationPayload] {
+        let pattern = #"\[\s*(\d+)\s*,\s*(?:"((?:[^"\\]|\\.)*)"|([^\]]+))\s*\]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: []) else {
+            return []
+        }
+
+        let range = NSRange(raw.startIndex..<raw.endIndex, in: raw)
+        let matches = regex.matches(in: raw, options: [], range: range)
+
+        var translations: [TrackSummaryTranslationPayload] = []
+        translations.reserveCapacity(matches.count)
+
+        for match in matches {
+            guard match.numberOfRanges >= 4,
+                  let orderRange = Range(match.range(at: 1), in: raw),
+                  let quotedRange = Range(match.range(at: 2), in: raw) ?? Range(match.range(at: 3), in: raw) else {
+                continue
+            }
+            let orderText = String(raw[orderRange])
+            guard let orderValue = Int(orderText) else { continue }
+            let segmentIndex = orderValue - 1
+            guard segmentIndex >= 0, segmentIndex < orderedSegments.count else {
+                continue
+            }
+
+            let rawText = String(raw[quotedRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+            let unquotedText = rawText.trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+            let decodedText = decodeJSONString(unquotedText) ?? unquotedText
+            let startMs = orderedSegments[segmentIndex].startTimeMs
+            translations.append(
+                TrackSummaryTranslationPayload(
+                    orderIndex: segmentIndex,
+                    startTimeMs: max(0, startMs),
+                    translation: decodedText
+                )
+            )
+        }
+
+        return translations
     }
 }
 
@@ -379,6 +449,104 @@ private extension TrackSummaryGenerator {
             .joined(separator: "\n")
     }
 
+    func translationExcerpt(for segments: [TranscriptSegment]) -> String {
+        guard !segments.isEmpty else { return "No transcript available." }
+
+        return segments
+            .sorted(by: { $0.startTimeMs < $1.startTimeMs })
+            .enumerated()
+            .compactMap { index, segment -> String? in
+                let sanitized = segment.text
+                    .replacingOccurrences(of: "\n", with: " ")
+                    .replacingOccurrences(of: "\t", with: " ")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+
+                guard !sanitized.isEmpty else { return nil }
+
+                return "\(index + 1). \(sanitized)"
+            }
+            .joined(separator: "\n")
+    }
+
+    func decodeResponse(_ raw: String) throws -> TrackSummaryLLMResponse {
+        let cleaned = cleanedJSON(from: raw)
+        guard !cleaned.isEmpty else {
+            throw TrackSummaryGenerationError.emptyResponse
+        }
+
+        guard let data = cleaned.data(using: .utf8) else {
+            throw TrackSummaryGenerationError.invalidJSONEnvelope
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            // Keys already map via CodingKeys; enabling convertFromSnakeCase here
+            // caused nested values like `start_ms` to be skipped entirely.
+            return try decoder.decode(TrackSummaryLLMResponse.self, from: data)
+        } catch {
+            throw TrackSummaryGenerationError.decodingFailed(error.localizedDescription)
+        }
+    }
+
+    func parseSummaryFields(from payload: TrackSummaryLLMResponse) throws -> (
+        summaryTitle: String?,
+        summaryBody: String,
+        keywords: [String],
+        mentionedItems: [String],
+        suggestedCorrections: [String: String],
+        sections: [TrackSummarySectionPayload]
+    ) {
+        guard let overview = payload.summary.overview?.trimmedNonEmpty else {
+            throw TrackSummaryGenerationError.missingSummaryBody
+        }
+
+        let keywords = payload.summary.keywords ?? []
+        let mentionedItems = payload.summary.mentionedItems ?? []
+        let suggestedCorrections = payload.summary.suggestedCorrections ?? [:]
+        let sections = payload.sections
+            .compactMap { section -> TrackSummarySectionPayload? in
+                guard let startMs = section.normalizedStartMs else { return nil }
+                guard let blurb = section.summary?.trimmedNonEmpty else { return nil }
+                let title = section.title?.trimmedNonEmpty
+                let keywords = section.keywords ?? []
+                let endMs = section.normalizedEndMs
+                return TrackSummarySectionPayload(
+                    orderIndex: section.order ?? 0,
+                    startTimeMs: max(0, startMs),
+                    endTimeMs: endMs,
+                    title: title,
+                    summary: blurb,
+                    keywords: keywords.filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                )
+            }
+            .sorted { lhs, rhs in
+                if lhs.startTimeMs == rhs.startTimeMs {
+                    return lhs.orderIndex < rhs.orderIndex
+                }
+                return lhs.startTimeMs < rhs.startTimeMs
+            }
+            .enumerated()
+            .map { index, payload in
+                TrackSummarySectionPayload(
+                    orderIndex: index,
+                    startTimeMs: payload.startTimeMs,
+                    endTimeMs: payload.endTimeMs,
+                    title: payload.title,
+                    summary: payload.summary,
+                    keywords: payload.keywords
+                )
+            }
+
+        return (
+            summaryTitle: payload.summary.title?.trimmedNonEmpty,
+            summaryBody: overview,
+            keywords: keywords,
+            mentionedItems: mentionedItems,
+            suggestedCorrections: suggestedCorrections,
+            sections: sections
+        )
+    }
+
     func cleanedJSON(from raw: String) -> String {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "" }
@@ -394,6 +562,16 @@ private extension TrackSummaryGenerator {
         }
 
         return extractJSON(from: trimmed)
+    }
+
+    func decodeJSONString(_ text: String) -> String? {
+        let wrapped = "\"\(text)\""
+        guard let data = wrapped.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data, options: []),
+              let string = object as? String else {
+            return nil
+        }
+        return string
     }
 
     func extractJSON(from text: String) -> String {
@@ -518,6 +696,26 @@ private struct TrackSummaryLLMResponse: Decodable {
             case startSeconds = "start_seconds"
             case startTime = "start_time"
             case translation
+        }
+
+        init(from decoder: Decoder) throws {
+            if var container = try? decoder.unkeyedContainer() {
+                order = try? container.decode(Int.self)
+                translation = try? container.decode(String.self)
+                startMs = nil
+                startTimeMs = nil
+                startSeconds = nil
+                startTime = nil
+                return
+            }
+
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            order = try container.decodeIfPresent(Int.self, forKey: .order)
+            startMs = try container.decodeIfPresent(Int.self, forKey: .startMs)
+            startTimeMs = try container.decodeIfPresent(Int.self, forKey: .startTimeMs)
+            startSeconds = try container.decodeIfPresent(Double.self, forKey: .startSeconds)
+            startTime = try container.decodeIfPresent(String.self, forKey: .startTime)
+            translation = try container.decodeIfPresent(String.self, forKey: .translation)
         }
 
         var normalizedStartMs: Int? {

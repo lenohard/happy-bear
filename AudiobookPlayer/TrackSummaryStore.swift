@@ -211,7 +211,11 @@ extension GRDBDatabaseManager {
         let keywordsJSON = encodeKeywords(keywords)
         let mentionedItemsJSON = encodeKeywords(mentionedItems)
         let suggestedCorrectionsJSON = encodeDictionary(suggestedCorrections)
-        let translationSegmentsJSON = encodeTranslations(translations)
+        let translationSegmentsJSON = resolveTranslationSegmentsJSON(
+            translations: translations,
+            existing: existing,
+            translationOnly: translationOnly
+        )
 
         // Ensure sections reference correct summary ID and remain ordered
         let normalizedSections = sections
@@ -570,5 +574,23 @@ extension GRDBDatabaseManager {
             return [:]
         }
         return decoded
+    }
+}
+
+private extension GRDBDatabaseManager {
+    func resolveTranslationSegmentsJSON(
+        translations: [TrackSummaryTranslation],
+        existing: TrackSummary?,
+        translationOnly: Bool
+    ) -> String? {
+        if translationOnly {
+            return encodeTranslations(translations)
+        }
+
+        if translations.isEmpty, let existing {
+            return encodeTranslations(existing.translations)
+        }
+
+        return encodeTranslations(translations)
     }
 }
