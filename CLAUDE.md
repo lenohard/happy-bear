@@ -5,6 +5,9 @@
 **Build Target**: iPhone 17 Pro simulator.  
 **Note**: The `./local/` folder is **NOT** ignored by git for this repository.
 
+# PROD.md
+@local/PROD.md
+
 ## Recent Progress (Dec 2025)
 - **VLC Audio-Only Playback (Dec 20)**: Implemented VLC audio-only support for MKV/WebM files. When playing MKV/WebM, VLC handles audio without showing video UI (treating them like regular audio files). Updated `play(track:)` to call `startVLCAudioPlayback()` instead of bailing out. All playback controls (play/pause, seek, skip, speed, sleep timer) now work with VLC audio. Added `usingVLCAudio` flag, `vlcTimeUpdateTimer` (250ms polling), and time/state tracking. Fixed VLC drawable operations with main thread dispatch (resolves "Modifying properties off main thread" crashes). Simplified `handlePlayButtonPress()` to always call `togglePlayback()`.
 - **VLC Threading Fix (Dec 20)**: Fixed VLC OpenGL crashes by wrapping all `player.drawable` operations in main thread checks. VLC requires drawable operations on main thread for OpenGL initialization/teardown. Added checks to `VLCHostView.layoutSubviews()`, `updateUIView()`, `setupPlayer()`, and `cleanup()` with `Thread.isMainThread` guards and `DispatchQueue.main.async` fallbacks.
