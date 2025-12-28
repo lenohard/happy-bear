@@ -236,7 +236,7 @@ struct AddRSSCollectionView: View {
                 dominantColorHex: nil
             )
         } catch {
-            print("[AddRSSCollectionView] Failed to download RSS cover: \(error.localizedDescription)")
+            AppLog.debug("[AddRSSCollectionView] Failed to download RSS cover: \(error.localizedDescription)")
             return CollectionCover(kind: .remote(url: imageURL), dominantColorHex: nil)
         }
     }

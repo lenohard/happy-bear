@@ -437,7 +437,7 @@ struct CollectionDetailView: View {
                 viewModel.totalPages = 0
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TranscriptionCompleted"))) { notification in
-                print("[CollectionDetailView] Received TranscriptionCompleted notification")
+                AppLog.debug("[CollectionDetailView] Received TranscriptionCompleted notification")
                 // Reload transcript status when a transcription completes
                 viewModel.loadTranscriptStatus()
             }
@@ -446,13 +446,13 @@ struct CollectionDetailView: View {
                 allowedContentTypes: [UTType.epub],
                 allowsMultipleSelection: false
             ) { result in
-                print("[CollectionDetailView] File importer completed")
+                AppLog.debug("[CollectionDetailView] File importer completed")
                 switch result {
                 case .success(let urls):
                     if let url = urls.first {
                         viewModel.handleEbookFileImport(.success(url))
                     } else {
-                        print("[CollectionDetailView] No file selected")
+                        AppLog.debug("[CollectionDetailView] No file selected")
                     }
                 case .failure(let error):
                     viewModel.handleEbookFileImport(.failure(error))

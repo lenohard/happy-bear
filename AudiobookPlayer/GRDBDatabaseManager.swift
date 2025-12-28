@@ -25,24 +25,24 @@ actor GRDBDatabaseManager {
             return
         }
 
-        print("[GRDB] initializeDatabase starting...")
+        AppLog.debug("[GRDB] initializeDatabase starting...")
         try DatabaseConfig.ensureDirectoryExists()
-        print("[GRDB] Directory exists")
+        AppLog.debug("[GRDB] Directory exists")
 
-        print("[GRDB] Creating DatabaseQueue with path: \(dbURL.path)")
+        AppLog.debug("[GRDB] Creating DatabaseQueue with path: \(dbURL.path)")
         var configuration = Configuration()
         // Disable foreign key constraints at the connection level
         // We'll handle deletion order manually in deleteCollection()
         configuration.foreignKeysEnabled = false
         let db = try DatabaseQueue(path: dbURL.path, configuration: configuration)
         self.db = db
-        print("[GRDB] DatabaseQueue created successfully")
+        AppLog.debug("[GRDB] DatabaseQueue created successfully")
 
         // Create schema
-        print("[GRDB] Creating schema...")
+        AppLog.debug("[GRDB] Creating schema...")
         try db.write { db in
             // Create all tables
-            print("[GRDB] Executing createTableSQL...")
+            AppLog.debug("[GRDB] Executing createTableSQL...")
             try db.execute(sql: DatabaseSchema.createTableSQL)
             try addMediaKindColumnIfNeeded(in: db)
             try addCollectionShuffleColumnIfNeeded(in: db)
@@ -51,35 +51,35 @@ actor GRDBDatabaseManager {
             try addCollectionFoldersTableIfNeeded(in: db)
             try addCollectionFolderIdColumnIfNeeded(in: db)
             try addCollectionIsArchivedColumnIfNeeded(in: db)
-            print("[GRDB] Schema tables created")
+            AppLog.debug("[GRDB] Schema tables created")
 
             // Create transcription tables
-            print("[GRDB] Executing transcription schema...")
+            AppLog.debug("[GRDB] Executing transcription schema...")
             try db.execute(sql: TranscriptionDatabaseSchema.createTableSQL)
-            print("[GRDB] Transcription tables created")
+            AppLog.debug("[GRDB] Transcription tables created")
             try addTranscriptRepairColumnsIfNeeded(in: db)
-            print("[GRDB] Transcript repair columns ensured")
+            AppLog.debug("[GRDB] Transcript repair columns ensured")
             try addTranscriptionJobParagraphColumnsIfNeeded(in: db)
-            print("[GRDB] Transcription job paragraph columns ensured")
+            AppLog.debug("[GRDB] Transcription job paragraph columns ensured")
             try addTranscriptionJobFileIdColumnIfNeeded(in: db)
-            print("[GRDB] Transcription job file_id column ensured")
+            AppLog.debug("[GRDB] Transcription job file_id column ensured")
 
             // Ensure new optional columns exist
             try addTrackCharacterCountColumnIfNeeded(in: db)
-            print("[GRDB] Track character_count column ensured")
+            AppLog.debug("[GRDB] Track character_count column ensured")
 
-            print("[GRDB] Executing track summary schema...")
+            AppLog.debug("[GRDB] Executing track summary schema...")
             try db.execute(sql: TrackSummaryDatabaseSchema.createTableSQL)
             try addMentionedItemsColumnIfNeeded(in: db)
-            print("[GRDB] Track summary tables created")
+            AppLog.debug("[GRDB] Track summary tables created")
 
-            print("[GRDB] Executing AI generation schema...")
+            AppLog.debug("[GRDB] Executing AI generation schema...")
             try db.execute(sql: AIGenerationDatabaseSchema.createTableSQL)
             try addStreamedReasoningColumnIfNeeded(in: db)
-            print("[GRDB] AI generation tables created")
+            AppLog.debug("[GRDB] AI generation tables created")
 
             // Create listening statistics table
-            print("[GRDB] Creating listening statistics table...")
+            AppLog.debug("[GRDB] Creating listening statistics table...")
             try db.execute(sql: """
                 CREATE TABLE IF NOT EXISTS listening_statistics (
                     id TEXT PRIMARY KEY,
@@ -92,16 +92,16 @@ actor GRDBDatabaseManager {
             """)
             try db.execute(sql: "CREATE INDEX IF NOT EXISTS index_listening_statistics_start_time ON listening_statistics(start_time)")
             try db.execute(sql: "CREATE INDEX IF NOT EXISTS index_listening_statistics_collection_id ON listening_statistics(collection_id)")
-            print("[GRDB] Listening statistics table created")
+            AppLog.debug("[GRDB] Listening statistics table created")
 
             // Insert schema version if not exists
-            print("[GRDB] Inserting schema version...")
+            AppLog.debug("[GRDB] Inserting schema version...")
             try db.execute(sql: """
                 INSERT OR IGNORE INTO schema_state (version) VALUES (1)
             """)
-            print("[GRDB] Schema version inserted")
+            AppLog.debug("[GRDB] Schema version inserted")
         }
-        print("[GRDB] Database initialization complete!")
+        AppLog.debug("[GRDB] Database initialization complete!")
     }
 
     // MARK: - Collection Operations
@@ -110,7 +110,7 @@ actor GRDBDatabaseManager {
     func saveCollection(_ collection: AudiobookCollection) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
-        print("[GRDB] Starting save for collection: \(collection.title)")
+        AppLog.debug("[GRDB] Starting save for collection: \(collection.title)")
 
         // Check if this is a lightweight collection (loaded without tracks)
         // If so, we MUST NOT delete existing tracks/tags/states.
@@ -118,7 +118,7 @@ actor GRDBDatabaseManager {
         let isLightweight = collection.tracks.isEmpty && collection.trackCount > 0
         
         if isLightweight {
-            print("[GRDB] Detected lightweight collection save. Updating metadata only.")
+            AppLog.debug("[GRDB] Detected lightweight collection save. Updating metadata only.")
             try db.write { db in
                 try db.execute(sql:
                     """
@@ -159,20 +159,20 @@ actor GRDBDatabaseManager {
         try db.write { db in
             // Delete existing data in CORRECT DEPENDENCY ORDER
             // (reverse of creation order to respect foreign keys)
-            print("[GRDB] Deleting playback states for collection: \(collection.id.uuidString)")
+            AppLog.debug("[GRDB] Deleting playback states for collection: \(collection.id.uuidString)")
             try db.execute(sql: "DELETE FROM playback_states WHERE collection_id = ?", arguments: [collection.id.uuidString])
 
-            print("[GRDB] Deleting tracks for collection: \(collection.id.uuidString)")
+            AppLog.debug("[GRDB] Deleting tracks for collection: \(collection.id.uuidString)")
             try db.execute(sql: "DELETE FROM tracks WHERE collection_id = ?", arguments: [collection.id.uuidString])
 
-            print("[GRDB] Deleting tags for collection: \(collection.id.uuidString)")
+            AppLog.debug("[GRDB] Deleting tags for collection: \(collection.id.uuidString)")
             try db.execute(sql: "DELETE FROM tags WHERE collection_id = ?", arguments: [collection.id.uuidString])
 
-            print("[GRDB] Deleting collection: \(collection.id.uuidString)")
+            AppLog.debug("[GRDB] Deleting collection: \(collection.id.uuidString)")
             try db.execute(sql: "DELETE FROM collections WHERE id = ?", arguments: [collection.id.uuidString])
 
             // Insert collection
-            print("[GRDB] Inserting collection: \(collection.title)")
+            AppLog.debug("[GRDB] Inserting collection: \(collection.title)")
             try db.execute(sql:
                 """
                 INSERT INTO collections (
@@ -210,11 +210,11 @@ actor GRDBDatabaseManager {
             )
 
             // Insert tracks
-            print("[GRDB] Inserting \(collection.tracks.count) tracks")
+            AppLog.debug("[GRDB] Inserting \(collection.tracks.count) tracks")
             for (idx, track) in collection.tracks.enumerated() {
                 let isFavStr = track.isFavorite ? "✓" : "✗"
                 if track.isFavorite {
-                    print("[FAVORITES-DB] Saving favorite track: \(track.displayName)")
+                    AppLog.debug("[FAVORITES-DB] Saving favorite track: \(track.displayName)")
                 }
                 try db.execute(sql:
                     """
@@ -250,7 +250,7 @@ actor GRDBDatabaseManager {
             }
 
             // Insert playback states
-            print("[GRDB] Inserting playback states")
+            AppLog.debug("[GRDB] Inserting playback states")
             for (trackId, state) in collection.playbackStates {
                 try db.execute(sql:
                     """
@@ -270,7 +270,7 @@ actor GRDBDatabaseManager {
             }
 
             // Insert tags
-            print("[GRDB] Inserting \(collection.tags.count) tags")
+            AppLog.debug("[GRDB] Inserting \(collection.tags.count) tags")
             for tag in collection.tags {
                 try db.execute(
                     sql: "INSERT INTO tags (collection_id, tag) VALUES (?, ?)",
@@ -279,7 +279,7 @@ actor GRDBDatabaseManager {
             }
         }
 
-        print("[GRDB] Successfully saved collection: \(collection.title)")
+        AppLog.debug("[GRDB] Successfully saved collection: \(collection.title)")
     }
 
     /// Load a collection by ID
@@ -332,7 +332,7 @@ actor GRDBDatabaseManager {
     func loadAllCollections() throws -> [AudiobookCollection] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
-        print("[GRDB] Starting loadAllCollections (Lightweight)")
+        AppLog.debug("[GRDB] Starting loadAllCollections (Lightweight)")
 
         return try db.read { db in
             // Fetch collections with track count
@@ -341,7 +341,7 @@ actor GRDBDatabaseManager {
             FROM collections c
             """
             let collectionRows = try Row.fetchAll(db, sql: sql)
-            print("[GRDB] Found \(collectionRows.count) collection rows")
+            AppLog.debug("[GRDB] Found \(collectionRows.count) collection rows")
 
             // Load all playback states to populate progress
             let playbackRows = try Row.fetchAll(db, sql: "SELECT * FROM playback_states")
@@ -368,7 +368,7 @@ actor GRDBDatabaseManager {
                 }
             }
 
-            print("[GRDB] Returning \(collections.count) lightweight collections")
+            AppLog.debug("[GRDB] Returning \(collections.count) lightweight collections")
             return collections
         }
     }
@@ -910,11 +910,11 @@ actor GRDBDatabaseManager {
     func setFavorite(_ isFavorite: Bool, for trackId: UUID) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
-        print("[FAVORITES-DB] setFavorite called: trackId=\(trackId.uuidString), isFavorite=\(isFavorite)")
+        AppLog.debug("[FAVORITES-DB] setFavorite called: trackId=\(trackId.uuidString), isFavorite=\(isFavorite)")
 
         try db.write { db in
             let intValue = isFavorite ? 1 : 0
-            print("[FAVORITES-DB] About to UPDATE with is_favorite=\(intValue)")
+            AppLog.debug("[FAVORITES-DB] About to UPDATE with is_favorite=\(intValue)")
 
             try db.execute(sql:
                 """
@@ -932,16 +932,16 @@ actor GRDBDatabaseManager {
 
             // Check how many rows were affected
             let changes = db.changesCount
-            print("[FAVORITES-DB] UPDATE executed, affected \(changes) row(s)")
+            AppLog.debug("[FAVORITES-DB] UPDATE executed, affected \(changes) row(s)")
 
             // Verify the update worked
             if let row = try Row.fetchOne(db, sql: "SELECT is_favorite FROM tracks WHERE id = ?", arguments: [trackId.uuidString]) {
                 // Use typed subscript to properly extract the Int value
                 let intValue: Int? = row["is_favorite"]
                 let savedFavorite = (intValue ?? 0) == 1
-                print("[FAVORITES-DB] ✓ Verification: track \(trackId.uuidString) has is_favorite=\(intValue as Any), bool=\(savedFavorite)")
+                AppLog.debug("[FAVORITES-DB] ✓ Verification: track \(trackId.uuidString) has is_favorite=\(intValue as Any), bool=\(savedFavorite)")
             } else {
-                print("[FAVORITES-DB] ❌ ERROR: Track \(trackId.uuidString) not found in database!")
+                AppLog.debug("[FAVORITES-DB] ❌ ERROR: Track \(trackId.uuidString) not found in database!")
             }
         }
     }
@@ -970,7 +970,7 @@ actor GRDBDatabaseManager {
     func updateCollectionTimestamp(_ collectionId: UUID, updatedAt: Date) throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
-        print("[FAVORITES-DB] Updating collection timestamp: \(collectionId.uuidString) to \(updatedAt)")
+        AppLog.debug("[FAVORITES-DB] Updating collection timestamp: \(collectionId.uuidString) to \(updatedAt)")
 
         try db.write { db in
             try db.execute(sql:
@@ -983,7 +983,7 @@ actor GRDBDatabaseManager {
             )
 
             let changes = db.changesCount
-            print("[FAVORITES-DB] Collection timestamp update affected \(changes) row(s)")
+            AppLog.debug("[FAVORITES-DB] Collection timestamp update affected \(changes) row(s)")
         }
     }
 
@@ -1548,7 +1548,7 @@ actor GRDBDatabaseManager {
     func loadTranscript(forTrackId trackId: String) throws -> Transcript? {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
-        print("[GRDB] Loading transcript for track: \(trackId)")
+        AppLog.debug("[GRDB] Loading transcript for track: \(trackId)")
 
         let transcript: Transcript? = try db.read { db in
             guard let row = try Row.fetchOne(
@@ -1556,16 +1556,16 @@ actor GRDBDatabaseManager {
                 sql: "SELECT * FROM transcripts WHERE track_id = ?",
                 arguments: [trackId]
             ) else {
-                print("[GRDB] No transcript found for track: \(trackId)")
+                AppLog.debug("[GRDB] No transcript found for track: \(trackId)")
                 return nil as Transcript?
             }
 
-            print("[GRDB] Found transcript row, reconstructing...")
+            AppLog.debug("[GRDB] Found transcript row, reconstructing...")
             return try reconstructTranscript(row: row)
         }
 
         if let t = transcript {
-            print("[GRDB] Successfully loaded transcript: \(t.id), status: \(t.jobStatus), text length: \(t.fullText.count)")
+            AppLog.debug("[GRDB] Successfully loaded transcript: \(t.id), status: \(t.jobStatus), text length: \(t.fullText.count)")
         }
 
         return transcript
@@ -1642,11 +1642,11 @@ actor GRDBDatabaseManager {
                 arguments: [transcriptId]
             )
 
-            print("[GRDB] Found \(rows.count) segment rows")
+            AppLog.debug("[GRDB] Found \(rows.count) segment rows")
             return try rows.compactMap { try reconstructTranscriptSegment(row: $0) }
         }
 
-        print("[GRDB] Successfully loaded \(segments.count) segments")
+        AppLog.debug("[GRDB] Successfully loaded \(segments.count) segments")
         return segments
     }
 

@@ -65,7 +65,7 @@ final class AudioCacheManager {
             try saveMetadata(metadata)
             return cachedURL
         } catch {
-            print("Failed to update cache metadata: \(error)")
+            AppLog.debug("Failed to update cache metadata: \(error)")
             // If metadata is missing or corrupt, don't assume cache is complete
             return nil
         }
@@ -94,7 +94,7 @@ final class AudioCacheManager {
         do {
             try saveMetadata(metadata)
         } catch {
-            print("Failed to save cache metadata: \(error)")
+            AppLog.debug("Failed to save cache metadata: \(error)")
         }
 
         return cachedURL
@@ -112,7 +112,7 @@ final class AudioCacheManager {
             metadata.lastAccessedAt = Date()
             try saveMetadata(metadata)
         } catch {
-            print("Failed to update cache metadata: \(error)")
+            AppLog.debug("Failed to update cache metadata: \(error)")
         }
     }
 
@@ -126,7 +126,7 @@ final class AudioCacheManager {
             }
             try saveMetadata(metadata)
         } catch {
-            print("Failed to mark cache as complete: \(error)")
+            AppLog.debug("Failed to mark cache as complete: \(error)")
         }
     }
 
@@ -161,7 +161,7 @@ final class AudioCacheManager {
                     try? fileManager.removeItem(at: metadataURL)
                 }
             } catch {
-                print("Failed to cleanup cache file \(file.lastPathComponent): \(error)")
+                AppLog.debug("Failed to cleanup cache file \(file.lastPathComponent): \(error)")
             }
         }
 
@@ -190,7 +190,7 @@ final class AudioCacheManager {
                 totalSize += size
                 fileInfos.append((url: file, size: size, accessDate: accessDate))
             } catch {
-                print("Failed to get file attributes: \(error)")
+                AppLog.debug("Failed to get file attributes: \(error)")
             }
         }
 
@@ -209,7 +209,7 @@ final class AudioCacheManager {
                 try? fileManager.removeItem(at: metadataURL)
                 currentSize -= fileInfo.size
             } catch {
-                print("Failed to remove LRU cache file: \(error)")
+                AppLog.debug("Failed to remove LRU cache file: \(error)")
             }
         }
     }
@@ -284,7 +284,7 @@ final class AudioCacheManager {
             metadata.lastAccessedAt = Date()
             try saveMetadata(metadata)
         } catch {
-            print("Failed to update cached ranges: \(error)")
+            AppLog.debug("Failed to update cached ranges: \(error)")
         }
     }
 

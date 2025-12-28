@@ -420,7 +420,7 @@ struct TranscriptionSheet: View {
                 baiduFileId: baiduFileId,
                 filename: track.filename
             ) {
-                print("[Transcription] Cache hit for external track \(track.id) -> \(cachedURL.lastPathComponent)")
+                AppLog.debug("[Transcription] Cache hit for external track \(track.id) -> \(cachedURL.lastPathComponent)")
                 return cachedURL
             }
             
@@ -530,11 +530,11 @@ struct TranscriptionSheet: View {
             baiduFileId: baiduFileId,
             filename: track.filename
         ) {
-            print("[Transcription] Cache hit for track \(track.id) fsId=\(fsId) -> \(cached.lastPathComponent)")
+            AppLog.debug("[Transcription] Cache hit for track \(track.id) fsId=\(fsId) -> \(cached.lastPathComponent)")
             return (cached, track.fileSize)
         }
 
-        print("[Transcription] Cache miss for track \(track.id) fsId=\(fsId); starting cache download")
+        AppLog.debug("[Transcription] Cache miss for track \(track.id) fsId=\(fsId); starting cache download")
 
         // Otherwise download via the cache download manager (same fast path as playback)
         let cacheURL = cacheManager.createCacheFile(
@@ -557,7 +557,7 @@ struct TranscriptionSheet: View {
             Task { await progressHandler(received, total) }
         }
 
-        print("[Transcription] Cache download complete for track \(track.id) fsId=\(fsId) -> \(downloadedURL.lastPathComponent)")
+        AppLog.debug("[Transcription] Cache download complete for track \(track.id) fsId=\(fsId) -> \(downloadedURL.lastPathComponent)")
 
         cacheManager.markCacheAsComplete(trackId: track.id.uuidString, baiduFileId: baiduFileId)
 
@@ -599,11 +599,11 @@ struct TranscriptionSheet: View {
             baiduFileId: baiduFileId,
             filename: track.filename
         ) {
-            print("[Transcription] Cache hit for external track \(track.id) -> \(cached.lastPathComponent)")
+            AppLog.debug("[Transcription] Cache hit for external track \(track.id) -> \(cached.lastPathComponent)")
             return (cached, track.fileSize)
         }
         
-        print("[Transcription] Cache miss for external track \(track.id); starting cache download")
+        AppLog.debug("[Transcription] Cache miss for external track \(track.id); starting cache download")
         
         // Prepare cache file
         let _ = cacheManager.createCacheFile(
@@ -626,7 +626,7 @@ struct TranscriptionSheet: View {
             Task { await progressHandler(received, total) }
         }
         
-        print("[Transcription] Cache download complete for external track \(track.id) -> \(downloadedURL.lastPathComponent)")
+        AppLog.debug("[Transcription] Cache download complete for external track \(track.id) -> \(downloadedURL.lastPathComponent)")
         
         cacheManager.markCacheAsComplete(trackId: track.id.uuidString, baiduFileId: baiduFileId)
         

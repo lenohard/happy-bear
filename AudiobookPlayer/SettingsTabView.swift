@@ -422,7 +422,7 @@ private extension SettingsTabView {
                         tokenProvider: { aliyunAuth.token },
                         onSelectFile: { entry in
                             // Playback not fully implemented yet
-                            print("Selected Aliyun file: \(entry.name)")
+                            AppLog.debug("Selected Aliyun file: \(entry.name)")
                         }
                     )
                 } label: {

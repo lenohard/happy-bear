@@ -50,7 +50,7 @@ final class AliyunNetdiskBrowserViewModel: ObservableObject {
                 // Ensure we have a drive_id first
                 if currentDriveId == nil {
                     let driveInfo = try await client.getDriveInfo(token: token)
-                    print("DEBUG: Fetched Drive Info: \(driveInfo)")
+                    AppLog.debug("DEBUG: Fetched Drive Info: \(driveInfo)")
                     // Prefer resource drive or backup drive? Usually default is backup_drive_id for user files?
                     // Documentation often points to default_drive_id or specific ones.
                     // Let's use default_drive_id.
@@ -60,7 +60,7 @@ final class AliyunNetdiskBrowserViewModel: ObservableObject {
                 guard let driveId = currentDriveId else {
                     throw AliyunNetdiskError.invalidRequest
                 }
-                print("DEBUG: Using Drive ID: \(driveId)")
+                AppLog.debug("DEBUG: Using Drive ID: \(driveId)")
 
                 let result = try await client.listDirectory(driveId: driveId, parentFileId: currentPath, token: token)
                 
@@ -70,7 +70,7 @@ final class AliyunNetdiskBrowserViewModel: ObservableObject {
                     }
                     return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
                 }
-                print("DEBUG: Found \(sorted.count) items in directory \(self.currentPath)")
+                AppLog.debug("DEBUG: Found \(sorted.count) items in directory \(self.currentPath)")
 
                 await MainActor.run {
                     self.entries = sorted

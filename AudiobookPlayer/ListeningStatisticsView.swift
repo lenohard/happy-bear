@@ -60,7 +60,7 @@ class StatisticsViewModel: ObservableObject {
             await loadTopCollections(recentDays: days)
 
         } catch {
-            print("Error loading statistics: \(error)")
+            AppLog.debug("Error loading statistics: \(error)")
         }
     }
     
@@ -87,7 +87,7 @@ class StatisticsViewModel: ObservableObject {
             self.topCollectionsRecentPeriod = recent
             self.recentPeriodTotalDuration = recent.reduce(0) { $0 + $1.duration }
         } catch {
-            print("Error loading collections for stats: \(error)")
+            AppLog.debug("Error loading collections for stats: \(error)")
         }
     }
     
@@ -177,7 +177,7 @@ class StatisticsViewModel: ObservableObject {
             try await databaseManager.deleteStatistics(for: collection.id)
             await loadStatistics()
         } catch {
-            print("Error deleting statistics: \(error)")
+            AppLog.debug("Error deleting statistics: \(error)")
         }
     }
 }

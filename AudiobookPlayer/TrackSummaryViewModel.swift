@@ -207,7 +207,7 @@ final class TrackSummaryViewModel: ObservableObject {
             )
             return true
         } catch {
-            print("TrackSummaryViewModel recovery failed: \(error.localizedDescription)")
+            AppLog.debug("TrackSummaryViewModel recovery failed: \(error.localizedDescription)")
             return false
         }
     }

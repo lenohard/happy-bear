@@ -386,7 +386,7 @@ final class CollectionDetailViewModel: ObservableObject {
                 refreshTrackSummaryIndicators(for: collection)
             }
         } catch {
-            print("[CollectionDetailViewModel] Failed to load page \(page): \(error)")
+            AppLog.debug("[CollectionDetailViewModel] Failed to load page \(page): \(error)")
             await MainActor.run {
                 loadingPages.remove(page)
                 if page == 0 {
@@ -742,7 +742,7 @@ final class CollectionDetailViewModel: ObservableObject {
                 }
                 readyTrackIds = Set(completedStrings.compactMap { UUID(uuidString: $0) })
             } catch {
-                print("[CollectionDetailViewModel] Failed to refresh summary indicators: \(error.localizedDescription)")
+                AppLog.debug("[CollectionDetailViewModel] Failed to refresh summary indicators: \(error.localizedDescription)")
             }
             
             if Task.isCancelled { return }
@@ -984,19 +984,19 @@ final class CollectionDetailViewModel: ObservableObject {
 
     func addTracksAction() {
         if let source = collection?.source {
-            print("[CollectionDetailViewModel] addTracksAction source: \(source)")
+            AppLog.debug("[CollectionDetailViewModel] addTracksAction source: \(source)")
             switch source {
             case .rss:
                 return // RSS does not support manual track addition
             case .ebook:
-                print("[CollectionDetailViewModel] Toggling showEbookFileImporter")
+                AppLog.debug("[CollectionDetailViewModel] Toggling showEbookFileImporter")
                 showEbookFileImporter = true
                 return
             default:
                 break
             }
         }
-        print("[CollectionDetailViewModel] Showing TrackPicker")
+        AppLog.debug("[CollectionDetailViewModel] Showing TrackPicker")
         showTrackPicker = true
     }
 

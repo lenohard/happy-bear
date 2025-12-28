@@ -250,7 +250,7 @@ struct LibraryView: View {
                 // Show preview sheet instead of importing directly
                 pendingEbookImport = PendingEbookImport(url: url)
             case .failure(let error):
-                print("File picker failed: \(error)")
+                AppLog.debug("File picker failed: \(error)")
             }
             activeSource = nil
         }

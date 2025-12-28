@@ -91,7 +91,7 @@ struct AudiobookPlayerApp: App {
     private func handleIncomingURL(_ url: URL) {
         // Check if it's an EPUB file
         guard url.pathExtension.lowercased() == "epub" else {
-            print("Unsupported file type: \(url.pathExtension)")
+            AppLog.debug("Unsupported file type: \(url.pathExtension)")
             return
         }
         
@@ -131,9 +131,9 @@ struct AudiobookPlayerApp: App {
                     tabSelection.selectedTab = .library
                 }
                 
-                print("Prepared EPUB for preview: \(url.lastPathComponent)")
+                AppLog.debug("Prepared EPUB for preview: \(url.lastPathComponent)")
             } catch {
-                print("Failed to prepare EPUB: \(error)")
+                AppLog.debug("Failed to prepare EPUB: \(error)")
             }
         }
     }

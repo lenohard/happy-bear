@@ -44,6 +44,7 @@
 		8603AC142EDCA72000889565 /* VideoPlayerSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC132EDCA72000889565 /* VideoPlayerSheet.swift */; };
 		8603AC162EDCA76200889565 /* PlayableMediaFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC152EDCA76200889565 /* PlayableMediaFormat.swift */; };
 		8603AC1A2EDDF0D100889565 /* TTSJobProgressSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC192EDDF0D100889565 /* TTSJobProgressSheet.swift */; };
+		86056E582EFEAE2E00A427F7 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86056E572EFEAE2E00A427F7 /* Logging.swift */; };
 		8617DDE82EBE0A26006E7CA7 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */; };
 		8617DDE92EBE0A26006E7CA7 /* DatabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDF2EBE0A26006E7CA7 /* DatabaseConfig.swift */; };
 		8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */; };
@@ -176,6 +177,7 @@
 		8603AC132EDCA72000889565 /* VideoPlayerSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerSheet.swift; sourceTree = "<group>"; };
 		8603AC152EDCA76200889565 /* PlayableMediaFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayableMediaFormat.swift; sourceTree = "<group>"; };
 		8603AC192EDDF0D100889565 /* TTSJobProgressSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSJobProgressSheet.swift; sourceTree = "<group>"; };
+		86056E572EFEAE2E00A427F7 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayClient.swift; sourceTree = "<group>"; };
 		8617DDDA2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayKeychainStore.swift; sourceTree = "<group>"; };
 		8617DDDB2EBE0A26006E7CA7 /* AIGatewayModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayModels.swift; sourceTree = "<group>"; };
@@ -300,6 +302,7 @@
 			isa = PBXGroup;
 			children = (
 				688ACB11D5A942F29EFB2321 /* CollectionDetailViewModel.swift */,
+				86056E572EFEAE2E00A427F7 /* Logging.swift */,
 				B1C5E09F2F12300000AAA001 /* InfoPlist.strings */,
 				86FDF2062EC8F1F300DB7430 /* AudiobookPlayer.entitlements */,
 				86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */,
@@ -681,6 +684,7 @@
 				869F06BA2ED5CF5200B79131 /* TranscriptCorrectionsCard.swift in Sources */,
 				8617DDF52EBE0A26006E7CA7 /* TranscriptionManager.swift in Sources */,
 				86E5D0042ED05DC800CE62A1 /* PreviewData.swift in Sources */,
+				86056E582EFEAE2E00A427F7 /* Logging.swift in Sources */,
 				8617DDF62EBE0A26006E7CA7 /* AIGatewayViewModel.swift in Sources */,
 				8603AC122EDC550000889565 /* STTJobsListView.swift in Sources */,
 				867C6FC92EF3A71200A8FE74 /* VLCVideoPlayerView.swift in Sources */,

@@ -76,7 +76,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                     return keyFromKeychain
                 }
             } catch {
-                print("Failed to load Soniox key from Keychain: \(error.localizedDescription)")
+                AppLog.debug("Failed to load Soniox key from Keychain: \(error.localizedDescription)")
             }
 
             // Fallback to Info.plist for backward compatibility
@@ -921,7 +921,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         do {
             try await dbManager.markTranscriptFailed(trackId: trackId, message: message)
         } catch {
-            print("Failed to mark transcript failure: \(error.localizedDescription)")
+            AppLog.debug("Failed to mark transcript failure: \(error.localizedDescription)")
         }
     }
 

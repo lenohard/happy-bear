@@ -35,23 +35,23 @@ extension TranscriptionManager {
             let activeJobs = try await dbManager.loadActiveTranscriptionJobs()
 
             guard !activeJobs.isEmpty else {
-                print("✅ No active transcription jobs to resume")
+                AppLog.debug("✅ No active transcription jobs to resume")
                 return
             }
 
-            print("🚀 Resuming \(activeJobs.count) active transcription job(s)")
+            AppLog.debug("🚀 Resuming \(activeJobs.count) active transcription job(s)")
 
             for job in activeJobs {
                 if job.isRunning {
                     do {
                         try await resumeTranscriptionJob(jobId: job.id)
                     } catch {
-                        print("⚠️ Failed to resume job \(job.id): \(error.localizedDescription)")
+                        AppLog.debug("⚠️ Failed to resume job \(job.id): \(error.localizedDescription)")
                     }
                 }
             }
         } catch {
-            print("❌ Error resuming active jobs: \(error.localizedDescription)")
+            AppLog.debug("❌ Error resuming active jobs: \(error.localizedDescription)")
         }
     }
 
@@ -70,7 +70,7 @@ extension TranscriptionManager {
             }
 
             let delay = calculateBackoffDelay(retryCount: job.retryCount)
-            print("🔄 Scheduling retry for job \(jobId) after \(String(format: "%.1f", delay))s (attempt \(job.retryCount + 1)/\(RetryConfig.maxRetries))")
+            AppLog.debug("🔄 Scheduling retry for job \(jobId) after \(String(format: "%.1f", delay))s (attempt \(job.retryCount + 1)/\(RetryConfig.maxRetries))")
             try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
         }
 
@@ -98,7 +98,7 @@ extension TranscriptionManager {
                 existingJobId: jobId
             )
         } catch {
-            print("⚠️ Retry for job \(jobId) failed: \(error.localizedDescription)")
+            AppLog.debug("⚠️ Retry for job \(jobId) failed: \(error.localizedDescription)")
             try? await dbManager.markJobFailed(jobId: jobId, errorMessage: error.localizedDescription)
             removeActiveJob(jobId: jobId)
             throw error
@@ -123,7 +123,7 @@ extension TranscriptionManager {
                 baiduFileId: String(fsId),
                 filename: track.filename
             ) {
-                print("[TranscriptionRetry] Cache hit for track \(track.id) fsId=\(fsId)")
+                AppLog.debug("[TranscriptionRetry] Cache hit for track \(track.id) fsId=\(fsId)")
                 return cachedURL
             }
 
@@ -136,7 +136,7 @@ extension TranscriptionManager {
             let downloadURL = try netdisk.downloadURL(forPath: path, token: token)
             let baiduFileId = String(fsId)
             let downloadManager = AudioCacheDownloadManager(cacheManager: cacheManager)
-            print("[TranscriptionRetry] Cache miss for track \(track.id) fsId=\(fsId); downloading")
+            AppLog.debug("[TranscriptionRetry] Cache miss for track \(track.id) fsId=\(fsId); downloading")
             let downloaded = try await downloadManager.downloadOnce(
                 trackId: track.id.uuidString,
                 baiduFileId: baiduFileId,
@@ -150,7 +150,7 @@ extension TranscriptionManager {
             }
 
             cacheManager.markCacheAsComplete(trackId: track.id.uuidString, baiduFileId: baiduFileId)
-            print("[TranscriptionRetry] Cache download complete for track \(track.id) fsId=\(fsId)")
+            AppLog.debug("[TranscriptionRetry] Cache download complete for track \(track.id) fsId=\(fsId)")
             return downloaded
         case let .local(bookmark):
             return try resolveLocalBookmark(bookmark)
@@ -175,11 +175,11 @@ extension TranscriptionManager {
                 baiduFileId: baiduFileId,
                 filename: track.filename
             ) {
-                print("[TranscriptionRetry] Cache hit for external track \(track.id) -> \(cachedURL.lastPathComponent)")
+                AppLog.debug("[TranscriptionRetry] Cache hit for external track \(track.id) -> \(cachedURL.lastPathComponent)")
                 return cachedURL
             }
             
-            print("[TranscriptionRetry] Cache miss for external track \(track.id); starting cache download")
+            AppLog.debug("[TranscriptionRetry] Cache miss for external track \(track.id); starting cache download")
             
             // Prepare cache file
             let _ = cacheManager.createCacheFile(
@@ -202,7 +202,7 @@ extension TranscriptionManager {
                 Task { await self.updateDownloadProgress(jobId: jobId, receivedBytes: received, totalBytes: total) }
             }
             
-            print("[TranscriptionRetry] Cache download complete for external track \(track.id) -> \(downloadedURL.lastPathComponent)")
+            AppLog.debug("[TranscriptionRetry] Cache download complete for external track \(track.id) -> \(downloadedURL.lastPathComponent)")
             cacheManager.markCacheAsComplete(trackId: track.id.uuidString, baiduFileId: baiduFileId)
             return downloadedURL
 

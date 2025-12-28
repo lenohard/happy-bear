@@ -1116,7 +1116,7 @@ struct PlayingView: View {
                    let result = try await dbManager.loadTrack(id: uuid) {
                     let duration = result.track.duration ?? 0
                     if duration < 600 {
-                        print("[AutoSummary] Skipping track \(trackId): duration \(duration)s < 600s")
+                        AppLog.debug("[AutoSummary] Skipping track \(trackId): duration \(duration)s < 600s")
                         return
                     }
                 }
@@ -1148,7 +1148,7 @@ struct PlayingView: View {
                 modelId: modelId
             )
         } catch {
-            print("[AutoSummary] Failed to queue summary for track \(trackId): \(error.localizedDescription)")
+            AppLog.debug("[AutoSummary] Failed to queue summary for track \(trackId): \(error.localizedDescription)")
         }
     }
 

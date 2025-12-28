@@ -43,7 +43,7 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
         self.isSocketOpen = false
         self.pendingMessages = []
         
-        print("[EdgeTTS] Starting generation for text length: \(text.count)")
+        AppLog.debug("[EdgeTTS] Starting generation for text length: \(text.count)")
         
         let connectId = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         let secMsGec = generateSecMsGec()
@@ -58,7 +58,7 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
         ]
         
         guard let url = components.url else {
-            print("[EdgeTTS] Failed to construct URL")
+            AppLog.debug("[EdgeTTS] Failed to construct URL")
             completion(.failure(EdgeTTSError.connectionFailed))
             return
         }
@@ -67,7 +67,7 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
         request.addValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0", forHTTPHeaderField: "User-Agent")
         request.addValue("https://www.bing.com", forHTTPHeaderField: "Origin")
         
-        print("[EdgeTTS] Connecting to WebSocket...")
+        AppLog.debug("[EdgeTTS] Connecting to WebSocket...")
         webSocketTask = session?.webSocketTask(with: request)
         webSocketTask?.resume()
         
@@ -97,10 +97,10 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
     
     private func queueOrSend(text: String) {
         if isSocketOpen {
-            print("[EdgeTTS] Sending message immediately (socket open)")
+            AppLog.debug("[EdgeTTS] Sending message immediately (socket open)")
             send(text: text)
         } else {
-            print("[EdgeTTS] Queueing message (socket connecting)")
+            AppLog.debug("[EdgeTTS] Queueing message (socket connecting)")
             pendingMessages.append(text)
         }
     }
@@ -108,10 +108,10 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
     // MARK: - URLSessionWebSocketDelegate
     
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
-        print("[EdgeTTS] WebSocket didOpenWithProtocol")
+        AppLog.debug("[EdgeTTS] WebSocket didOpenWithProtocol")
         isSocketOpen = true
         if !pendingMessages.isEmpty {
-            print("[EdgeTTS] Flushing \(pendingMessages.count) queued messages")
+            AppLog.debug("[EdgeTTS] Flushing \(pendingMessages.count) queued messages")
             for text in pendingMessages {
                 send(text: text)
             }
@@ -121,13 +121,13 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
     
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if let error = error {
-            print("[EdgeTTS] WebSocket didCompleteWithError: \(error)")
+            AppLog.debug("[EdgeTTS] WebSocket didCompleteWithError: \(error)")
             if !isCompleted {
                 isCompleted = true
                 completion?(.failure(EdgeTTSError.socketError(error)))
             }
         } else {
-            print("[EdgeTTS] WebSocket didComplete successfully")
+            AppLog.debug("[EdgeTTS] WebSocket didComplete successfully")
         }
     }
     
@@ -163,7 +163,7 @@ final class EdgeTTSClient: NSObject, URLSessionWebSocketDelegate {
         let message = URLSessionWebSocketTask.Message.string(text)
         webSocketTask?.send(message) { error in
             if let error = error {
-                print("WebSocket send error: \(error)")
+                AppLog.debug("WebSocket send error: \(error)")
             }
         }
     }

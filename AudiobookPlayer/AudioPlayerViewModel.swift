@@ -716,12 +716,12 @@ final class AudioPlayerViewModel: ObservableObject {
                 return try await generateAudioForParagraph(text: text, voice: voice, rate: rate, pitch: pitch)
             } catch {
                 lastError = error
-                print("[TTS] Attempt \(attempt)/\(maxRetries) failed: \(error.localizedDescription)")
+                AppLog.debug("[TTS] Attempt \(attempt)/\(maxRetries) failed: \(error.localizedDescription)")
 
                 if attempt < maxRetries {
                     // Exponential backoff: 2s, 4s (base 2s, doubles each attempt)
                     let delaySeconds = UInt64(2 * (1 << (attempt - 1)))
-                    print("[TTS] Waiting \(delaySeconds)s before retry...")
+                    AppLog.debug("[TTS] Waiting \(delaySeconds)s before retry...")
                     try await Task.sleep(nanoseconds: delaySeconds * 1_000_000_000)
                 }
             }
@@ -755,7 +755,7 @@ final class AudioPlayerViewModel: ObservableObject {
             do {
                 // Check for existing active TTS job for this track
                 if let existingJob = try? await GRDBDatabaseManager.shared.loadActiveTTSJob(forTrackId: trackId) {
-                    print("[TTS] Found existing active job \(existingJob.id) for track \(trackId) with status \(existingJob.status)")
+                    AppLog.debug("[TTS] Found existing active job \(existingJob.id) for track \(trackId) with status \(existingJob.status)")
                     await MainActor.run {
                         statusMessage = "Audio generation already in progress for \"\(track.displayName)\"."
                     }
@@ -770,7 +770,7 @@ final class AudioPlayerViewModel: ObservableObject {
                 let paragraphs = preprocessParagraphs(rawParagraphs)
                 let totalParagraphs = paragraphs.count
 
-                print("[TTS] Preprocessed \(rawParagraphs.count) raw paragraphs into \(totalParagraphs) chunks")
+                AppLog.debug("[TTS] Preprocessed \(rawParagraphs.count) raw paragraphs into \(totalParagraphs) chunks")
 
                 // 2. Setup temp directory for incremental saves
                 let tempDir = ttsTempDirectory(for: trackId)
@@ -781,7 +781,7 @@ final class AudioPlayerViewModel: ObservableObject {
                 let isResuming = resumeIndex > 0
 
                 if isResuming {
-                    print("[TTS] Resuming from paragraph \(resumeIndex) of \(totalParagraphs)")
+                    AppLog.debug("[TTS] Resuming from paragraph \(resumeIndex) of \(totalParagraphs)")
                 }
 
                 // Create Job
@@ -1675,7 +1675,7 @@ final class AudioPlayerViewModel: ObservableObject {
                     }
                 }
             } catch {
-                print("[AudioPlayer] Failed to inspect video track audio: \(error.localizedDescription)")
+                AppLog.debug("[AudioPlayer] Failed to inspect video track audio: \(error.localizedDescription)")
             }
         }
     }
@@ -1990,7 +1990,7 @@ final class AudioPlayerViewModel: ObservableObject {
                 duration: Int(track.duration ?? 0)
             )
         } catch {
-            print("Failed to start background caching: \(error.localizedDescription)")
+            AppLog.debug("Failed to start background caching: \(error.localizedDescription)")
         }
     }
 }
@@ -2275,7 +2275,7 @@ private extension AudioPlayerViewModel {
                 }
             } catch {
                 // Silently fail - artwork is optional
-                print("Failed to load remote artwork: \(error)")
+                AppLog.debug("Failed to load remote artwork: \(error)")
             }
         }
     }
@@ -2354,9 +2354,9 @@ private extension AudioPlayerViewModel {
         Task {
             do {
                 try await GRDBDatabaseManager.shared.saveListeningStatistic(statistic)
-                print("[STATS] Saved listening session: \\(duration)s for track \\(track.displayName)")
+                AppLog.debug("[STATS] Saved listening session: \\(duration)s for track \\(track.displayName)")
             } catch {
-                print("[STATS] Failed to save listening session: \\(error)")
+                AppLog.debug("[STATS] Failed to save listening session: \\(error)")
             }
         }
         
@@ -2370,7 +2370,7 @@ private extension AudioPlayerViewModel {
                 switch player.timeControlStatus {
                 case .paused:
                     if self.isPlaying {
-                        print("[AudioPlayer] Detected external pause, updating state")
+                        AppLog.debug("[AudioPlayer] Detected external pause, updating state")
                         self.isPlaying = false
                         self.flushListeningSession()
                         // We don't need to set rate to 0 here as pause implies it,
@@ -2378,7 +2378,7 @@ private extension AudioPlayerViewModel {
                     }
                 case .playing:
                     if !self.isPlaying {
-                        print("[AudioPlayer] Detected external play, updating state")
+                        AppLog.debug("[AudioPlayer] Detected external play, updating state")
                         self.isPlaying = true
                         self.startListeningSession()
                     }

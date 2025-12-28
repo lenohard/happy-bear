@@ -24,7 +24,6 @@ struct TranscriptViewerSheet: View {
     @State private var lastAutoScrolledSegmentID: String?
     @State private var hasQueuedInitialFocus = false
     @State private var isAutoFocusEnabled = true
-    @State private var showJumpToCurrentButton = false
 
     init(trackId: String, trackName: String, showTrackSummary: Bool = false) {
         self.trackId = trackId
@@ -57,22 +56,18 @@ struct TranscriptViewerSheet: View {
             }
 
             queueInitialAutoFocus()
-            refreshJumpButtonVisibility()
         }
         .onChange(of: segmentIDs) {
             lastAutoScrolledSegmentID = nil
             focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
-            refreshJumpButtonVisibility()
         }
         .onChange(of: audioPlayer.currentTrack?.id) {
             lastAutoScrolledSegmentID = nil
             focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: false)
-            refreshJumpButtonVisibility()
         }
         .onChange(of: viewModel.isLoading) { isLoading in
             if !isLoading {
                 queueInitialAutoFocus()
-                refreshJumpButtonVisibility()
             }
         }
         .background(PlaybackAutoFollowObserver { currentTime in
@@ -360,11 +355,10 @@ struct TranscriptViewerSheet: View {
                     }
                 }
                 .simultaneousGesture(
-                    DragGesture(minimumDistance: 10)
+                    DragGesture(minimumDistance: 1)
                         .onChanged { _ in
                             if isAutoFocusEnabled {
                                 isAutoFocusEnabled = false
-                                showJumpToCurrentButton = true
                             }
                         }
                 )
@@ -384,10 +378,9 @@ struct TranscriptViewerSheet: View {
                 }
 
                 // Floating button to jump to current segment and re-enable auto-focus
-                if showJumpToCurrentButton && isViewingCurrentTrack && !viewModel.segments.isEmpty {
+                if shouldShowJumpToCurrentButton {
                     Button {
                         isAutoFocusEnabled = true
-                        showJumpToCurrentButton = false
                         lastAutoScrolledSegmentID = nil
                         focusOnCurrentPlayback(currentTime: audioPlayer.currentTime, animated: true)
                     } label: {
@@ -395,7 +388,10 @@ struct TranscriptViewerSheet: View {
                             .font(.system(size: 18, weight: .medium))
                             .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
-                            .background(Circle().fill(Color.accentColor))
+                            .background(
+                                Circle()
+                                    .fill(themeManager.colors.isFestive ? themeManager.colors.festiveRed : Color.accentColor)
+                            )
                             .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
                     }
                     .padding(.trailing, 16)
@@ -493,6 +489,10 @@ struct TranscriptViewerSheet: View {
         viewModel.segments.map { $0.id }
     }
 
+    private var shouldShowJumpToCurrentButton: Bool {
+        isViewingCurrentTrack && !viewModel.segments.isEmpty && !isAutoFocusEnabled
+    }
+
     private var displayedSegments: [(index: Int, segment: TranscriptSegment)] {
         let indices = Array(viewModel.segments.indices)
         return indices.map { ($0, viewModel.segments[$0]) }
@@ -510,9 +510,6 @@ struct TranscriptViewerSheet: View {
         }
     }
 
-    private func refreshJumpButtonVisibility() {
-        showJumpToCurrentButton = isViewingCurrentTrack && !viewModel.segments.isEmpty
-    }
 }
 
 // MARK: - Segment Row Component

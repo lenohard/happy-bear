@@ -146,7 +146,7 @@ struct TTSJobsListView: View {
                 await transcriptionManager.refreshActiveJobsFromDatabase()
                 await transcriptionManager.refreshAllRecentJobs()
             } catch {
-                print("[TTS] Failed to resume job: \(error.localizedDescription)")
+                AppLog.debug("[TTS] Failed to resume job: \(error.localizedDescription)")
                 // Refresh even on error to show current state
                 await transcriptionManager.refreshActiveJobsFromDatabase()
                 await transcriptionManager.refreshAllRecentJobs()
@@ -163,7 +163,7 @@ struct TTSJobsListView: View {
                 await transcriptionManager.refreshActiveJobsFromDatabase()
                 await transcriptionManager.refreshAllRecentJobs()
             } catch {
-                print("[TTS] Failed to retry job: \(error.localizedDescription)")
+                AppLog.debug("[TTS] Failed to retry job: \(error.localizedDescription)")
                 // Refresh even on error to show current state
                 await transcriptionManager.refreshActiveJobsFromDatabase()
                 await transcriptionManager.refreshAllRecentJobs()

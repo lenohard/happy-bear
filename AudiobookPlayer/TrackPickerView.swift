@@ -352,7 +352,7 @@ struct TrackPickerView: View {
                     }
                 }
             } catch {
-                print("Failed to fetch contents of \(currentPath): \(error)")
+                AppLog.debug("Failed to fetch contents of \(currentPath): \(error)")
                 // Continue with other folders even if one fails
             }
         }

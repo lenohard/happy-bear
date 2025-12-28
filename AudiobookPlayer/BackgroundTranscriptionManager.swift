@@ -140,10 +140,10 @@ class BackgroundTranscriptionManager: NSObject, URLSessionDelegate, URLSessionTa
         didCompleteWithError error: Error?
     ) {
         if let error = error {
-            print("Background transcription task failed: \(error.localizedDescription)")
+            AppLog.debug("Background transcription task failed: \(error.localizedDescription)")
             postNotification(name: "BackgroundTranscriptionFailed", userInfo: ["error": error])
         } else {
-            print("Background transcription task completed successfully")
+            AppLog.debug("Background transcription task completed successfully")
             postNotification(name: "BackgroundTranscriptionSuccess", userInfo: nil)
         }
     }

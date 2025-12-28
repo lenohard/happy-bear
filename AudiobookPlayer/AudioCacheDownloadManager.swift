@@ -156,14 +156,14 @@ final class AudioCacheDownloadManager {
 
         if let error = error {
             if (error as NSError).code != NSURLErrorCancelled {
-                print("Download error for track \(trackId): \(error.localizedDescription)")
+                AppLog.debug("Download error for track \(trackId): \(error.localizedDescription)")
             }
             completion?(.failure(error))
             return
         }
 
         guard let tempURL = tempURL else {
-            print("No temp URL for downloaded track \(trackId)")
+            AppLog.debug("No temp URL for downloaded track \(trackId)")
             return
         }
 
@@ -190,7 +190,7 @@ final class AudioCacheDownloadManager {
 
             completion?(.success(destinationURL))
         } catch {
-            print("Failed to write cache file for track \(trackId): \(error.localizedDescription)")
+            AppLog.debug("Failed to write cache file for track \(trackId): \(error.localizedDescription)")
             completion?(.failure(error))
         }
     }
