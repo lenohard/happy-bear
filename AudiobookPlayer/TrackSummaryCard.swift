@@ -68,6 +68,7 @@ struct TrackSummaryCard: View {
 
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
+    @AppStorage("remoteJobsEnabled") private var remoteJobsEnabled = false
     @EnvironmentObject private var themeManager: ThemeManager
     @State private var actionError: String?
     @State private var isExpanded = false
@@ -195,7 +196,7 @@ struct TrackSummaryCard: View {
                     .font(.system(size: 12))
                 }
             }
-        } else if !aiGateway.hasValidKey {
+        } else if !hasAIBackend {
             Text(NSLocalizedString("track_summary_missing_key_hint", comment: "Track summary missing key message"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -498,7 +499,7 @@ struct TrackSummaryCard: View {
     }
 
     private var shouldShowActionButton: Bool {
-        isTranscriptAvailable && aiGateway.hasValidKey
+        isTranscriptAvailable && hasAIBackend
     }
 
     private var isActionInFlight: Bool {
@@ -539,7 +540,7 @@ struct TrackSummaryCard: View {
             actionError = NSLocalizedString("track_summary_requires_transcript", comment: "")
             return
         }
-        guard aiGateway.hasValidKey else {
+        guard hasAIBackend else {
             actionError = NSLocalizedString("track_summary_missing_key_hint", comment: "")
             return
         }
@@ -553,6 +554,10 @@ struct TrackSummaryCard: View {
         } catch {
             actionError = error.localizedDescription
         }
+    }
+
+    private var hasAIBackend: Bool {
+        aiGateway.hasValidKey || remoteJobsEnabled
     }
 }
 

@@ -179,6 +179,7 @@ struct PlayingView: View {
     @EnvironmentObject private var themeManager: ThemeManager
     @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
     @AppStorage("autoSummaryEnforceDurationLimit") private var autoSummaryEnforceDurationLimit = true
+    @AppStorage("remoteJobsEnabled") private var remoteJobsEnabled = false
 
     @State private var missingAuthAlert = false
     @State private var showingEphemeralSave = false
@@ -1094,7 +1095,7 @@ struct PlayingView: View {
     @MainActor
     private func autoGenerateSummaryIfNeeded(for trackId: String, transcriptId: String?) async {
         guard autoGenerateTrackSummaries else { return }
-        guard aiGateway.hasValidKey else { return }
+        guard aiGateway.hasValidKey || remoteJobsEnabled else { return }
 
         let modelId = aiGateway.selectedModelID.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !modelId.isEmpty else { return }

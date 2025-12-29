@@ -3,12 +3,13 @@ import SwiftUI
 struct AIJobsListView: View {
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @State private var selectedJobForDetail: AIGenerationJob?
+    private let remoteAIJobMetadataKey = "remote_job_id"
 
     var body: some View {
         List {
-            if !aiGenerationManager.activeJobs.isEmpty {
+            if !localActiveJobs.isEmpty {
                 Section(header: Text("Active Jobs")) {
-                    ForEach(aiGenerationManager.activeJobs) { job in
+                    ForEach(localActiveJobs) { job in
                         AIJobCardView(job: job, showDeleteButton: false)
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .listRowSeparator(.hidden)
@@ -65,7 +66,7 @@ struct AIJobsListView: View {
                 }
             }
             
-            if aiGenerationManager.activeJobs.isEmpty && aiJobHistory.isEmpty {
+            if localActiveJobs.isEmpty && aiJobHistory.isEmpty {
                 Section {
                     VStack(spacing: 12) {
                         Image(systemName: "list.clipboard")
@@ -92,7 +93,15 @@ struct AIJobsListView: View {
     }
 
     private var aiJobHistory: [AIGenerationJob] {
-        Array(aiGenerationManager.recentJobs.filter { $0.isTerminal }.prefix(20))
+        Array(aiGenerationManager.recentJobs.filter { $0.isTerminal && !isRemoteAIJob($0) }.prefix(20))
+    }
+
+    private var localActiveJobs: [AIGenerationJob] {
+        aiGenerationManager.activeJobs.filter { !isRemoteAIJob($0) }
+    }
+
+    private func isRemoteAIJob(_ job: AIGenerationJob) -> Bool {
+        job.decodedMetadata()?.extras?[remoteAIJobMetadataKey] != nil
     }
 }
 

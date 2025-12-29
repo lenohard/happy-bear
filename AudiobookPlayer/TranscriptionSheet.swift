@@ -24,6 +24,8 @@ struct TranscriptionSheet: View {
     @State private var contextText: String = ""
     @State private var mirroredJobId: String?
     @State private var downloadJobId: String?
+    @AppStorage("remoteJobsEnabled") private var remoteJobsEnabled = false
+    @AppStorage("remoteJobsFallbackToLocal") private var remoteJobsFallbackToLocal = true
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "TranscriptionSheet")
 
     private enum Stage {
@@ -76,6 +78,8 @@ struct TranscriptionSheet: View {
             case "transcribing", "processing": self = .transcribing
             case "completed": self = .completed
             case "failed": self = .processing
+            case "queued", "running": self = .transcribing
+            case "succeeded": self = .completed
             default: self = .idle
             }
         }
@@ -231,10 +235,59 @@ struct TranscriptionSheet: View {
         transcriptionCompleted = false
         downloadedBytes = 0
         totalBytes = max(track.fileSize, 0)
-        setStage(.downloading, reason: "User tapped Start; beginning cache download")
 
         Task {
             do {
+                if remoteJobsEnabled {
+                    let remoteInput = try await transcriptionManager.resolveRemoteSTTInput(
+                        track: track,
+                        collectionId: collectionID,
+                        baiduToken: authViewModel.token
+                    )
+                    if let remoteInput {
+                        await setStage(.transcribing, reason: "Remote jobs enabled; starting server-side transcription")
+                        if let placeholder = await transcriptionManager.beginRemoteJob(for: track.id) {
+                            await MainActor.run {
+                                downloadJobId = placeholder.id
+                                mirroredJobId = placeholder.id
+                            }
+                        }
+
+                        let existingJobId = await MainActor.run { downloadJobId ?? mirroredJobId }
+                        try await transcriptionManager.transcribeTrackRemote(
+                            trackId: track.id,
+                            collectionId: collectionID,
+                            input: remoteInput,
+                            languageHints: ["zh", "en"],
+                            context: contextText,
+                            existingJobId: existingJobId
+                        )
+
+                        await MainActor.run {
+                            isTranscribing = false
+                            progress = 1.0
+                            transcriptionCompleted = true
+                            setStage(.completed, reason: "Remote transcription finished successfully")
+                        }
+
+                        NotificationCenter.default.post(
+                            name: NSNotification.Name("TranscriptionCompleted"),
+                            object: nil,
+                            userInfo: ["trackId": track.id.uuidString, "collectionId": collectionID.uuidString]
+                        )
+
+                        try? await Task.sleep(nanoseconds: 2_000_000_000)
+                        await MainActor.run {
+                            downloadJobId = nil
+                            dismiss()
+                        }
+                        return
+                    } else if !remoteJobsFallbackToLocal {
+                        throw TranscriptionManager.TranscriptionError.transcriptionFailed("Remote jobs enabled but input is not supported.")
+                    }
+                }
+
+                await setStage(.downloading, reason: "User tapped Start; beginning cache download")
                 let hasDownloadJob = await MainActor.run { downloadJobId != nil }
                 if !hasDownloadJob {
                     if let placeholder = await transcriptionManager.beginDownloadJob(for: track.id) {

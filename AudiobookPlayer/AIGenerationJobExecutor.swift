@@ -8,6 +8,9 @@ actor AIGenerationJobExecutor {
     private let transcriptRepairManager: AITranscriptRepairManager
     private let trackSummaryGenerator: TrackSummaryGenerator
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGenerationExecutor")
+    private let remotePollingInterval: TimeInterval = 2.0
+    private let remoteMaxPollingDuration: TimeInterval = 3600
+    private let remoteJobMetadataKey = "remote_job_id"
     private var isProcessing = false
     
     private struct StreamBuffer {
@@ -106,17 +109,50 @@ actor AIGenerationJobExecutor {
         guard let modelId = job.modelId else {
             throw AIGatewayRequestError(message: "Model is not set.")
         }
-        guard let apiKey = try await keyStore.loadKey(), !apiKey.isEmpty else {
-            throw AIGatewayRequestError(message: NSLocalizedString("ai_tab_missing_key", comment: ""))
-        }
 
         let systemPrompt = job.systemPrompt ?? ""
         let payload = job.decodedPayload(ChatTesterJobPayload.self)
         let temperature = payload?.temperature ?? 0.7
         let reasoningConfig = payload?.reasoning
+        var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
+
+        let defaults = UserDefaults.standard
+        let remoteEnabled = defaults.bool(forKey: "remoteJobsEnabled")
+        let fallbackToLocal = defaults.bool(forKey: "remoteJobsFallbackToLocal")
+
+        if remoteEnabled {
+            do {
+                let config = try loadRemoteJobsConfig()
+                let client = RemoteJobsClient(config: config)
+                try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .running, progress: 0.1)
+                let remoteJob = try await client.createAIJob(
+                    inputText: prompt,
+                    modelId: modelId,
+                    systemPrompt: systemPrompt,
+                    temperature: temperature
+                )
+                try await persistRemoteJobId(remoteJob.id, jobId: job.id, metadata: &metadata)
+                let resultText = try await pollRemoteAIJob(
+                    client: client,
+                    remoteJob: remoteJob,
+                    jobId: job.id,
+                    progressRange: 0.1...0.9
+                )
+                try await dbManager.markAIGenerationJobCompleted(jobId: job.id, finalOutput: resultText, usageJSON: nil)
+                return
+            } catch {
+                if !fallbackToLocal {
+                    throw error
+                }
+            }
+        }
+
+        guard let apiKey = try await keyStore.loadKey(), !apiKey.isEmpty else {
+            throw AIGatewayRequestError(message: NSLocalizedString("ai_tab_missing_key", comment: ""))
+        }
+
         setInitialStreamBuffer(job.streamedOutput ?? "", reasoning: job.streamedReasoning ?? "", for: job.id)
         defer { clearStreamBuffer(for: job.id) }
-        var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
 
         try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: 0.05)
 
@@ -174,9 +210,9 @@ actor AIGenerationJobExecutor {
         guard let modelId = job.modelId else {
             throw AIGatewayRequestError(message: "Model is not set.")
         }
-        guard let apiKey = try await keyStore.loadKey(), !apiKey.isEmpty else {
-            throw AIGatewayRequestError(message: NSLocalizedString("ai_tab_missing_key", comment: ""))
-        }
+        let defaults = UserDefaults.standard
+        let remoteEnabled = defaults.bool(forKey: "remoteJobsEnabled")
+        let fallbackToLocal = defaults.bool(forKey: "remoteJobsFallbackToLocal")
 
         try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .running, progress: 0.1)
 
@@ -190,17 +226,94 @@ actor AIGenerationJobExecutor {
             throw AIGatewayRequestError(message: "No valid transcript segments were found for repair.")
         }
 
-        try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: 0.3)
+        var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
+        var results: [TranscriptRepairResult] = []
+        var didRunRemote = false
 
-        let results = try await transcriptRepairManager.repairSegments(
-            transcriptId: payload.transcriptId,
-            trackTitle: payload.trackTitle,
-            collectionTitle: payload.collectionTitle,
-            collectionDescription: payload.collectionDescription,
-            selections: selections,
-            model: modelId,
-            apiKey: apiKey
-        )
+        if remoteEnabled {
+            do {
+                let config = try loadRemoteJobsConfig()
+                let client = RemoteJobsClient(config: config)
+                let promptBuilder = TranscriptRepairPromptBuilder(
+                    trackTitle: payload.trackTitle,
+                    collectionTitle: payload.collectionTitle,
+                    collectionDescription: payload.collectionDescription,
+                    instructions: "Clean the transcript text while keeping timestamps and speaker order untouched."
+                )
+                let userPrompt = promptBuilder.makeUserPrompt(from: selections)
+                let remoteJob = try await client.createAIJob(
+                    inputText: userPrompt,
+                    modelId: modelId,
+                    systemPrompt: AITranscriptRepairManager.defaultSystemPrompt,
+                    temperature: 0.2
+                )
+                try await persistRemoteJobId(remoteJob.id, jobId: job.id, metadata: &metadata)
+                let content = try await pollRemoteAIJob(
+                    client: client,
+                    remoteJob: remoteJob,
+                    jobId: job.id,
+                    progressRange: 0.2...0.8
+                )
+
+                let parser = TranscriptRepairParser()
+                let parsed: TranscriptRepairResponse
+                do {
+                    parsed = try parser.parse(content)
+                } catch {
+                    throw AITranscriptRepairError.responseParseFailed
+                }
+
+                let indexMap = Dictionary(uniqueKeysWithValues: selections.map { ($0.displayIndex, $0.segment) })
+                var updates: [String: String] = [:]
+
+                for repair in parsed.repairs {
+                    guard let segment = indexMap[repair.index] else {
+                        throw AITranscriptRepairError.unmatchedIndexes
+                    }
+                    let trimmed = repair.editedText.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard trimmed != segment.text else { continue }
+                    updates[segment.id] = trimmed
+                    results.append(
+                        TranscriptRepairResult(
+                            segmentId: segment.id,
+                            originalText: segment.text,
+                            repairedText: trimmed,
+                            displayIndex: repair.index
+                        )
+                    )
+                }
+
+                if !updates.isEmpty {
+                    try await dbManager.applyTranscriptRepairs(
+                        transcriptId: payload.transcriptId,
+                        editedTextsBySegmentId: updates,
+                        model: modelId
+                    )
+                }
+                didRunRemote = true
+            } catch {
+                if !fallbackToLocal {
+                    throw error
+                }
+            }
+        }
+
+        if !didRunRemote {
+            guard let apiKey = try await keyStore.loadKey(), !apiKey.isEmpty else {
+                throw AIGatewayRequestError(message: NSLocalizedString("ai_tab_missing_key", comment: ""))
+            }
+
+            try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: 0.3)
+            results = try await transcriptRepairManager.repairSegments(
+                transcriptId: payload.transcriptId,
+                trackTitle: payload.trackTitle,
+                collectionTitle: payload.collectionTitle,
+                collectionDescription: payload.collectionDescription,
+                selections: selections,
+                model: modelId,
+                apiKey: apiKey
+            )
+        }
 
         let summaryText: String
         if results.isEmpty {
@@ -212,7 +325,6 @@ actor AIGenerationJobExecutor {
             summaryText = (payload.instructions?.appending("\n\n") ?? "") + summaryLines.joined(separator: "\n")
         }
 
-        var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
         metadata = metadata.updatingRepairResults(results)
         if let json = encodeMetadata(metadata) {
             try await dbManager.updateAIGenerationJobMetadata(jobId: job.id, metadataJSON: json)
@@ -230,9 +342,9 @@ actor AIGenerationJobExecutor {
         guard let modelId = job.modelId else {
             throw AIGatewayRequestError(message: "Model is not set.")
         }
-        guard let apiKey = try await keyStore.loadKey(), !apiKey.isEmpty else {
-            throw AIGatewayRequestError(message: NSLocalizedString("ai_tab_missing_key", comment: ""))
-        }
+        let defaults = UserDefaults.standard
+        let remoteEnabled = defaults.bool(forKey: "remoteJobsEnabled")
+        let fallbackToLocal = defaults.bool(forKey: "remoteJobsFallbackToLocal")
 
         try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .running, progress: 0.05)
 
@@ -274,13 +386,17 @@ actor AIGenerationJobExecutor {
             )
 
             var metadata = job.decodedMetadata() ?? AIGenerationJobMetadata()
-
-            try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: 0.2)
-
-            let onDelta: ((AIGatewayClient.StreamDelta) -> Void) = { [weak self] delta in
-                guard let self else { return }
-                Task {
-                    await self.persistStreamDelta(delta, for: job.id)
+            var useRemote = false
+            var remoteClient: RemoteJobsClient?
+            if remoteEnabled {
+                do {
+                    let config = try loadRemoteJobsConfig()
+                    remoteClient = RemoteJobsClient(config: config)
+                    useRemote = true
+                } catch {
+                    if !fallbackToLocal {
+                        throw error
+                    }
                 }
             }
 
@@ -288,36 +404,194 @@ actor AIGenerationJobExecutor {
             let translations: [TrackSummaryTranslation]
             var usageSnapshot: AIGenerationUsageSnapshot?
 
-            if payload.translationOnly {
-                let filteredSegments = filterTranslationSegments(segments)
-                guard !filteredSegments.isEmpty else {
-                    throw AIGatewayRequestError(message: "Transcript has no valid segments to translate.")
+            if useRemote {
+                guard let client = remoteClient else {
+                    throw AIGatewayRequestError(message: "Remote jobs are not configured.")
                 }
-                let chunkSize = 200
-                let chunks = filteredSegments.chunked(into: chunkSize)
-                var chunkTranslations: [TrackSummaryTranslationPayload] = []
-                var firstChunkResult: TrackSummaryGenerationResult?
-                var accumulatedUsage = UsageAccumulator()
+                try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .running, progress: 0.2)
 
-                for (index, chunk) in chunks.enumerated() {
-                    let chunkContext = TrackSummaryPromptContext(
-                        trackTitle: context.trackTitle,
-                        trackDuration: context.trackDuration,
-                        trackAuthor: context.trackAuthor,
-                        collectionTitle: context.collectionTitle,
-                        collectionDescription: context.collectionDescription,
-                        transcriptLanguage: context.transcriptLanguage,
-                        segments: chunk,
-                        targetSectionCount: context.targetSectionCount,
-                        includeKeywords: context.includeKeywords,
-                        requestTranslations: context.requestTranslations
+                if payload.translationOnly {
+                    let filteredSegments = filterTranslationSegments(segments)
+                    guard !filteredSegments.isEmpty else {
+                        throw AIGatewayRequestError(message: "Transcript has no valid segments to translate.")
+                    }
+                    let chunkSize = 200
+                    let chunks = filteredSegments.chunked(into: chunkSize)
+                    var chunkTranslations: [TrackSummaryTranslationPayload] = []
+                    var firstChunkResult: TrackSummaryGenerationResult?
+
+                    for (index, chunk) in chunks.enumerated() {
+                        let chunkContext = TrackSummaryPromptContext(
+                            trackTitle: context.trackTitle,
+                            trackDuration: context.trackDuration,
+                            trackAuthor: context.trackAuthor,
+                            collectionTitle: context.collectionTitle,
+                            collectionDescription: context.collectionDescription,
+                            transcriptLanguage: context.transcriptLanguage,
+                            segments: chunk,
+                            targetSectionCount: context.targetSectionCount,
+                            includeKeywords: context.includeKeywords,
+                            requestTranslations: context.requestTranslations
+                        )
+
+                        let prompts = trackSummaryGenerator.makePrompts(from: chunkContext)
+                        logger.info("[TrackSummaryTranslationOnly] Input (chunk \(index + 1)/\(chunks.count)): \(prompts.userPrompt, privacy: .public)")
+
+                        let remoteJob = try await client.createAIJob(
+                            inputText: prompts.userPrompt,
+                            modelId: modelId,
+                            systemPrompt: prompts.systemPrompt,
+                            temperature: 0.3
+                        )
+                        try await persistRemoteJobId(remoteJob.id, jobId: job.id, metadata: &metadata)
+
+                        let progressStart = 0.2 + (0.6 * Double(index) / Double(chunks.count))
+                        let progressEnd = 0.2 + (0.6 * Double(index + 1) / Double(chunks.count))
+                        let rawText = try await pollRemoteAIJob(
+                            client: client,
+                            remoteJob: remoteJob,
+                            jobId: job.id,
+                            progressRange: progressStart...progressEnd
+                        )
+
+                        let chunkParsed = try trackSummaryGenerator.parseTranslationOnlyResponse(rawText, segments: chunk)
+                        if firstChunkResult == nil {
+                            firstChunkResult = chunkParsed
+                        }
+                        chunkTranslations.append(contentsOf: chunkParsed.translations)
+                    }
+
+                    guard let result = firstChunkResult else {
+                        throw AIGatewayRequestError(message: "Translation request returned no output.")
+                    }
+
+                    parsed = result
+                    translations = chunkTranslations
+                        .sorted { $0.startTimeMs < $1.startTimeMs }
+                        .enumerated()
+                        .map { index, payload in
+                            TrackSummaryTranslation(
+                                orderIndex: index,
+                                startTimeMs: payload.startTimeMs,
+                                translation: payload.translation
+                            )
+                        }
+                } else {
+                    let prompts = trackSummaryGenerator.makePrompts(from: context)
+                    let remoteJob = try await client.createAIJob(
+                        inputText: prompts.userPrompt,
+                        modelId: modelId,
+                        systemPrompt: prompts.systemPrompt,
+                        temperature: 0.3
+                    )
+                    try await persistRemoteJobId(remoteJob.id, jobId: job.id, metadata: &metadata)
+                    let rawText = try await pollRemoteAIJob(
+                        client: client,
+                        remoteJob: remoteJob,
+                        jobId: job.id,
+                        progressRange: 0.3...0.8
                     )
 
-                    let prompts = trackSummaryGenerator.makePrompts(from: chunkContext)
-                    logger.info("[TrackSummaryTranslationOnly] Input (chunk \(index + 1)/\(chunks.count)): \(prompts.userPrompt, privacy: .public)")
+                    parsed = try trackSummaryGenerator.parseResponse(rawText)
+                    translations = parsed.translations.enumerated().map { index, payload in
+                        TrackSummaryTranslation(
+                            orderIndex: index,
+                            startTimeMs: payload.startTimeMs,
+                            translation: payload.translation
+                        )
+                    }
+                }
+            } else {
+                guard let apiKey = try await keyStore.loadKey(), !apiKey.isEmpty else {
+                    throw AIGatewayRequestError(message: NSLocalizedString("ai_tab_missing_key", comment: ""))
+                }
 
-                    setInitialStreamBuffer("", reasoning: "", for: job.id)
+                try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: 0.2)
 
+                let onDelta: ((AIGatewayClient.StreamDelta) -> Void) = { [weak self] delta in
+                    guard let self else { return }
+                    Task {
+                        await self.persistStreamDelta(delta, for: job.id)
+                    }
+                }
+
+                if payload.translationOnly {
+                    let filteredSegments = filterTranslationSegments(segments)
+                    guard !filteredSegments.isEmpty else {
+                        throw AIGatewayRequestError(message: "Transcript has no valid segments to translate.")
+                    }
+                    let chunkSize = 200
+                    let chunks = filteredSegments.chunked(into: chunkSize)
+                    var chunkTranslations: [TrackSummaryTranslationPayload] = []
+                    var firstChunkResult: TrackSummaryGenerationResult?
+                    var accumulatedUsage = UsageAccumulator()
+
+                    for (index, chunk) in chunks.enumerated() {
+                        let chunkContext = TrackSummaryPromptContext(
+                            trackTitle: context.trackTitle,
+                            trackDuration: context.trackDuration,
+                            trackAuthor: context.trackAuthor,
+                            collectionTitle: context.collectionTitle,
+                            collectionDescription: context.collectionDescription,
+                            transcriptLanguage: context.transcriptLanguage,
+                            segments: chunk,
+                            targetSectionCount: context.targetSectionCount,
+                            includeKeywords: context.includeKeywords,
+                            requestTranslations: context.requestTranslations
+                        )
+
+                        let prompts = trackSummaryGenerator.makePrompts(from: chunkContext)
+                        logger.info("[TrackSummaryTranslationOnly] Input (chunk \(index + 1)/\(chunks.count)): \(prompts.userPrompt, privacy: .public)")
+
+                        setInitialStreamBuffer("", reasoning: "", for: job.id)
+
+                        let response = try await gatewayClient.sendChat(
+                            apiKey: apiKey,
+                            model: modelId,
+                            systemPrompt: prompts.systemPrompt,
+                            userPrompt: prompts.userPrompt,
+                            temperature: 0.3,
+                            onStreamDelta: onDelta
+                        )
+
+                        let rawText = response.choices.first?.message.content ?? currentContentBuffer(for: job.id)
+                        try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
+                        logger.info("[TrackSummaryTranslationOnly] Output (chunk \(index + 1)/\(chunks.count)): \(rawText, privacy: .public)")
+
+                        if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
+                            metadata = metadata.updatingReasoning(snapshot)
+                        }
+
+                        let chunkParsed = try trackSummaryGenerator.parseTranslationOnlyResponse(rawText, segments: chunk)
+                        if firstChunkResult == nil {
+                            firstChunkResult = chunkParsed
+                        }
+                        chunkTranslations.append(contentsOf: chunkParsed.translations)
+
+                        accumulatedUsage.merge(response.usage)
+
+                        let progress = 0.2 + (0.6 * Double(index + 1) / Double(chunks.count))
+                        try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: progress)
+                    }
+
+                    guard let result = firstChunkResult else {
+                        throw AIGatewayRequestError(message: "Translation request returned no output.")
+                    }
+
+                    parsed = result
+                    translations = chunkTranslations
+                        .sorted { $0.startTimeMs < $1.startTimeMs }
+                        .enumerated()
+                        .map { index, payload in
+                            TrackSummaryTranslation(
+                                orderIndex: index,
+                                startTimeMs: payload.startTimeMs,
+                                translation: payload.translation
+                            )
+                        }
+                    usageSnapshot = accumulatedUsage.snapshot
+                } else {
+                    let prompts = trackSummaryGenerator.makePrompts(from: context)
                     let response = try await gatewayClient.sendChat(
                         apiKey: apiKey,
                         model: modelId,
@@ -329,74 +603,28 @@ actor AIGenerationJobExecutor {
 
                     let rawText = response.choices.first?.message.content ?? currentContentBuffer(for: job.id)
                     try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
-                    logger.info("[TrackSummaryTranslationOnly] Output (chunk \(index + 1)/\(chunks.count)): \(rawText, privacy: .public)")
 
                     if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
                         metadata = metadata.updatingReasoning(snapshot)
                     }
 
-                    let chunkParsed = try trackSummaryGenerator.parseTranslationOnlyResponse(rawText, segments: chunk)
-                    if firstChunkResult == nil {
-                        firstChunkResult = chunkParsed
-                    }
-                    chunkTranslations.append(contentsOf: chunkParsed.translations)
-
-                    accumulatedUsage.merge(response.usage)
-
-                    let progress = 0.2 + (0.6 * Double(index + 1) / Double(chunks.count))
-                    try await dbManager.updateAIGenerationJobStatus(jobId: job.id, status: .streaming, progress: progress)
-                }
-
-                guard let result = firstChunkResult else {
-                    throw AIGatewayRequestError(message: "Translation request returned no output.")
-                }
-
-                parsed = result
-                translations = chunkTranslations
-                    .sorted { $0.startTimeMs < $1.startTimeMs }
-                    .enumerated()
-                    .map { index, payload in
+                    parsed = try trackSummaryGenerator.parseResponse(rawText)
+                    translations = parsed.translations.enumerated().map { index, payload in
                         TrackSummaryTranslation(
                             orderIndex: index,
                             startTimeMs: payload.startTimeMs,
                             translation: payload.translation
                         )
                     }
-                usageSnapshot = accumulatedUsage.snapshot
-            } else {
-                let prompts = trackSummaryGenerator.makePrompts(from: context)
-                let response = try await gatewayClient.sendChat(
-                    apiKey: apiKey,
-                    model: modelId,
-                    systemPrompt: prompts.systemPrompt,
-                    userPrompt: prompts.userPrompt,
-                    temperature: 0.3,
-                    onStreamDelta: onDelta
-                )
-
-                let rawText = response.choices.first?.message.content ?? currentContentBuffer(for: job.id)
-                try await dbManager.updateAIGenerationJobStream(jobId: job.id, streamedOutput: rawText)
-
-                if let snapshot = reasoningSnapshot(from: response.choices.first?.message) {
-                    metadata = metadata.updatingReasoning(snapshot)
-                }
-
-                parsed = try trackSummaryGenerator.parseResponse(rawText)
-                translations = parsed.translations.enumerated().map { index, payload in
-                    TrackSummaryTranslation(
-                        orderIndex: index,
-                        startTimeMs: payload.startTimeMs,
-                        translation: payload.translation
-                    )
-                }
-                if let usage = response.usage {
-                    usageSnapshot = AIGenerationUsageSnapshot(
-                        promptTokens: usage.promptTokens,
-                        completionTokens: usage.completionTokens,
-                        totalTokens: usage.totalTokens,
-                        cost: usage.cost,
-                        reasoningTokens: usage.completionTokensDetails?.reasoningTokens
-                    )
+                    if let usage = response.usage {
+                        usageSnapshot = AIGenerationUsageSnapshot(
+                            promptTokens: usage.promptTokens,
+                            completionTokens: usage.completionTokens,
+                            totalTokens: usage.totalTokens,
+                            cost: usage.cost,
+                            reasoningTokens: usage.completionTokensDetails?.reasoningTokens
+                        )
+                    }
                 }
             }
 
@@ -457,6 +685,90 @@ actor AIGenerationJobExecutor {
     }
 
     // MARK: - Helpers
+
+    private func loadRemoteJobsConfig() throws -> RemoteJobsConfig {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: "remoteJobsEnabled") else {
+            throw AIGatewayRequestError(message: "Remote jobs are not configured.")
+        }
+        let baseURLString = (defaults.string(forKey: "remoteJobsBaseURL") ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let baseURL = URL(string: baseURLString), baseURL.scheme != nil else {
+            throw AIGatewayRequestError(message: "Remote jobs are not configured.")
+        }
+        let token = defaults.string(forKey: "remoteJobsAuthToken")
+        return RemoteJobsConfig(baseURL: baseURL, token: token)
+    }
+
+    private func persistRemoteJobId(
+        _ remoteJobId: String,
+        jobId: String,
+        metadata: inout AIGenerationJobMetadata
+    ) async throws {
+        metadata = metadata.updatingExtra(remoteJobMetadataKey, value: remoteJobId)
+        if let json = encodeMetadata(metadata) {
+            try await dbManager.updateAIGenerationJobMetadata(jobId: jobId, metadataJSON: json)
+        }
+    }
+
+    private func pollRemoteAIJob(
+        client: RemoteJobsClient,
+        remoteJob: RemoteJobDTO,
+        jobId: String,
+        progressRange: ClosedRange<Double>
+    ) async throws -> String {
+        let startTime = Date()
+        var latestStatus = remoteJob
+        var lastProgress = progressRange.lowerBound
+
+        while latestStatus.status == "queued" || latestStatus.status == "running" {
+            let mapped = mapRemoteProgress(
+                latestStatus.progress,
+                range: progressRange,
+                floor: lastProgress
+            )
+            if mapped > lastProgress {
+                lastProgress = mapped
+                try await dbManager.updateAIGenerationJobStatus(
+                    jobId: jobId,
+                    status: .running,
+                    progress: mapped
+                )
+            }
+
+            if Date().timeIntervalSince(startTime) > remoteMaxPollingDuration {
+                throw AIGatewayRequestError(message: "Remote AI job timed out.")
+            }
+
+            try await Task.sleep(nanoseconds: UInt64(remotePollingInterval * 1_000_000_000))
+            latestStatus = try await client.fetchJob(jobId: remoteJob.id)
+        }
+
+        guard latestStatus.status == "succeeded" else {
+            throw AIGatewayRequestError(message: "Remote job \(latestStatus.status)")
+        }
+
+        if lastProgress < progressRange.upperBound {
+            try await dbManager.updateAIGenerationJobStatus(
+                jobId: jobId,
+                status: .running,
+                progress: progressRange.upperBound
+            )
+        }
+
+        let result = try await client.fetchAIResult(jobId: remoteJob.id)
+        return result.text
+    }
+
+    private func mapRemoteProgress(
+        _ progress: Double?,
+        range: ClosedRange<Double>,
+        floor: Double
+    ) -> Double {
+        let raw = max(0.0, min(progress ?? 0.0, 1.0))
+        let mapped = range.lowerBound + raw * (range.upperBound - range.lowerBound)
+        return max(floor, min(mapped, range.upperBound))
+    }
 
     private func reasoningSnapshot(from message: AIGatewayChatChoice.ChoiceMessage?) -> AIGenerationReasoningSnapshot? {
         guard let message else { return nil }

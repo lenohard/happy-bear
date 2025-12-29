@@ -17,6 +17,7 @@
 - **RSS Support (Dec 7)**: Added `.rss` source support, feed import, and remote cover caching. Covers are now prefetched and stored locally.
 - **Playback Features (Dec 8)**: Added Random Play (shuffle), fixed Play button token guard (offline play), and improved Floating Bubble visibility using a separate `UIWindow` (level `.alert + 1`).
 - **Infrastructure**: Consolidated background DB writes, improved date parsing reliability, and fixed listening history resume stability.
+- **Remote Jobs UI (Dec 29)**: Remote STT jobs are stored locally (prefixed `remote:`) and shown in the Jobs screen. Smart tab badges now separate local vs remote counts: Jobs badge shows remote STT/AI running jobs; STT and AI badges only show local jobs. AI remote jobs are detected via `AIGenerationJob.metadata.extras["remote_job_id"]` and are excluded from the local AI jobs list.
 
 ## Project Overview
 An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云盘), with seamless integration for importing, managing, and playing audio files.
@@ -32,6 +33,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Scroll Performance**: Preload assets (images) to NSCache in background (`Task.detached`). View `onAppear` should check cache synchronously.
 - **High-Frequency State**: Don't publish playback ticks (`currentTime`) from main `EnvironmentObject`. Use a small, dedicated `ObservableObject` (`PlaybackClock`) for timeline views to avoid massive re-renders.
 - **Background Tasks**: iOS suspends polling/sockets in background. Check job status on foreground resume (`scenePhase`) instead of continuous polling.
+- **Backup/Restore Coverage**: Backup exports the full `library.sqlite`, so collection folders + archived state are included automatically. Restore replaces the DB and runs migrations, so older backups upgrade to the new schema.
 
 ### SwiftUI & UI
 - **Overlays vs Sheets**: `overlay()` doesn't render above sheets. For persistent UI (bubbles), use a separate `UIWindow` with `PassThroughWindow`.
@@ -136,6 +138,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - Workflow: Upload audio → Create job → Poll status (2s interval, 1hr max) → Store transcript
 - Job states: Queued, Uploading, Transcribing, Processing, Complete, Failed
 - Stores transcripts in GRDB with segments and metadata
+- **Remote Jobs**: Remote STT runs via remote server when enabled; jobs are stored locally with `sonioxJobId` prefixed by `remote:`. On app foreground, remote-running jobs resume polling via the remote API until success/failure.
 
 **AIGatewayViewModel.swift** - LLM integration
 - API key management (Keychain), model selection, credits tracking

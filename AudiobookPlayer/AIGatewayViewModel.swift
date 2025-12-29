@@ -206,13 +206,18 @@ final class AIGatewayViewModel: ObservableObject {
         }
     }
 
-    func enqueueChatTest(using manager: AIGenerationManager, temperature: Double = 0.2, reasoning: AIGatewayReasoningConfig? = nil) async {
+    func enqueueChatTest(
+        using manager: AIGenerationManager,
+        temperature: Double = 0.2,
+        reasoning: AIGatewayReasoningConfig? = nil,
+        allowWithoutKey: Bool = false
+    ) async {
         let trimmedPrompt = chatPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedPrompt.isEmpty else {
             chatTesterError = nil
             return
         }
-        guard hasStoredKey else {
+        guard hasStoredKey || allowWithoutKey else {
             chatTesterError = NSLocalizedString("ai_tab_missing_key", comment: "")
             return
         }

@@ -11,6 +11,7 @@ struct AudiobookPlayerApp: App {
     @StateObject private var aiGateway = AIGatewayViewModel()
     @StateObject private var transcriptionManager = TranscriptionManager()
     @StateObject private var aiGenerationManager = AIGenerationManager()
+    @StateObject private var remoteJobsStore = RemoteJobsStore()
     @StateObject private var bubbleWindowManager = FloatingBubbleWindowManager(viewModel: FloatingPlaybackBubbleViewModel())
     @StateObject private var themeManager = ThemeManager()
     @State private var showSplash = true
@@ -31,6 +32,7 @@ struct AudiobookPlayerApp: App {
                     .environmentObject(aiGateway)
                     .environmentObject(transcriptionManager)
                     .environmentObject(aiGenerationManager)
+                    .environmentObject(remoteJobsStore)
                     .environmentObject(themeManager)
                     .preferredColorScheme(themeManager.colorScheme)
 

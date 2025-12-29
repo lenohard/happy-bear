@@ -14,11 +14,18 @@ struct SettingsTabView: View {
     @EnvironmentObject private var library: LibraryStore
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
+    @EnvironmentObject private var remoteJobsStore: RemoteJobsStore
     @AppStorage("floatingBubbleOpacity") private var floatingBubbleOpacity: Double = 0.8
     @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
     @AppStorage("autoSummaryEnforceDurationLimit") private var autoSummaryEnforceDurationLimit = true
     @AppStorage("autoGenerateNextEbookAudio") private var autoGenerateNextEbookAudio = true
     @AppStorage("backupIncludeCredentials") private var includeCredentials = false
+    @AppStorage("remoteJobsEnabled") private var remoteJobsEnabled = false
+    @AppStorage("remoteJobsBaseURL") private var remoteJobsBaseURL = ""
+    @AppStorage("remoteJobsAuthToken") private var remoteJobsAuthToken = ""
+    @AppStorage("remoteJobsFallbackToLocal") private var remoteJobsFallbackToLocal = true
+    @AppStorage("remoteJobsNotifyOnCompletion") private var remoteJobsNotifyOnCompletion = true
+    @AppStorage("remoteJobsAllowInsecureHTTP") private var remoteJobsAllowInsecureHTTP = false
     @State private var selectedNetdiskEntry: BaiduNetdiskEntry?
     @State private var showingBaiduImport = false
     @State private var importFromPath: String?
@@ -115,6 +122,12 @@ struct SettingsTabView: View {
             }
 
             Section {
+                remoteJobsSettingsContent
+            } header: {
+                Label("Remote Jobs", systemImage: "antenna.radiowaves.left.and.right")
+            }
+
+            Section {
                 baiduSourcesContent
             }
 
@@ -133,6 +146,17 @@ struct SettingsTabView: View {
             }
         }
         .navigationTitle(NSLocalizedString("settings_tab", comment: "Settings tab"))
+        .onChange(of: remoteJobsBaseURL) { _ in
+            remoteJobsStore.connectionState = RemoteJobsConnectionState(status: .idle)
+        }
+        .onChange(of: remoteJobsAuthToken) { _ in
+            remoteJobsStore.connectionState = RemoteJobsConnectionState(status: .idle)
+        }
+        .onChange(of: remoteJobsEnabled) { newValue in
+            if !newValue {
+                remoteJobsStore.connectionState = RemoteJobsConnectionState(status: .idle)
+            }
+        }
         .sheet(item: $selectedNetdiskEntry) { entry in
             let canStream = isPlayable(entry)
             NavigationStack {
@@ -217,6 +241,64 @@ struct SettingsTabView: View {
 }
 
 private extension SettingsTabView {
+    @ViewBuilder
+    var remoteJobsSettingsContent: some View {
+        HStack {
+            Image(systemName: "antenna.radiowaves.left.and.right")
+                .foregroundStyle(.tint)
+            Toggle("Use Remote Server", isOn: $remoteJobsEnabled)
+        }
+
+        VStack(alignment: .leading, spacing: 10) {
+            TextField("Base URL (e.g. http://192.168.1.50:8080)", text: $remoteJobsBaseURL)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
+                .keyboardType(.URL)
+                .disabled(!remoteJobsEnabled)
+
+            SecureField("Auth Token (optional)", text: $remoteJobsAuthToken)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(true)
+                .disabled(!remoteJobsEnabled)
+
+            HStack(spacing: 12) {
+                Button {
+                    Task {
+                        await remoteJobsStore.testConnection(baseURL: remoteJobsBaseURL, token: remoteJobsAuthToken)
+                    }
+                } label: {
+                    if remoteJobsStore.connectionState.status == .testing {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                            Text("Testing...")
+                        }
+                    } else {
+                        Text("Test Connection")
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(!remoteJobsEnabled || remoteJobsBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                connectionStatusPill
+            }
+
+            Toggle("Use local jobs when offline", isOn: $remoteJobsFallbackToLocal)
+                .disabled(!remoteJobsEnabled)
+
+            Toggle("Notify me when remote jobs finish", isOn: $remoteJobsNotifyOnCompletion)
+                .disabled(!remoteJobsEnabled)
+
+            Toggle("Allow HTTP on LAN", isOn: $remoteJobsAllowInsecureHTTP)
+                .disabled(!remoteJobsEnabled)
+
+            if remoteJobsAllowInsecureHTTP {
+                Text("Requires ATS exception for local HTTP endpoints.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     @ViewBuilder
     var backupRestoreSection: some View {
         Section {
@@ -592,6 +674,51 @@ private extension SettingsTabView {
             dateString
         )
     }
+
+    private var connectionStatusPill: some View {
+        let status = remoteJobsStore.connectionState.status
+        let label: String
+        let color: Color
+
+        switch status {
+        case .idle:
+            label = "Not Tested"
+            color = .secondary
+        case .testing:
+            label = "Testing"
+            color = .blue
+        case .connected:
+            if let latency = remoteJobsStore.connectionState.latencyMs {
+                label = "Connected (\(latency)ms)"
+            } else {
+                label = "Connected"
+            }
+            color = .green
+        case .authFailed:
+            label = "Auth Failed"
+            color = .orange
+        case .unreachable:
+            if let message = remoteJobsStore.connectionState.message {
+                label = "Unreachable: \(message)"
+            } else {
+                label = "Unreachable"
+            }
+            color = .red
+        case .invalidURL:
+            label = "Invalid URL"
+            color = .red
+        }
+
+        return Text(label)
+            .font(.caption)
+            .foregroundStyle(color)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(
+                Capsule(style: .continuous)
+                    .fill(color.opacity(0.15))
+            )
+    }
 }
 
 #if swift(>=5.8)
@@ -792,4 +919,5 @@ private struct SettingsNetdiskEntryDetailSheet: View {
         .environmentObject(LibraryStore())
         .environmentObject(TranscriptionManager())
         .environmentObject(AIGatewayViewModel())
+        .environmentObject(RemoteJobsStore())
 }

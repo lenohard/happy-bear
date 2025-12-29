@@ -251,4 +251,12 @@ struct AIGenerationJobMetadata: Codable, Equatable {
         copy.reasoning = snapshot
         return copy
     }
+
+    func updatingExtra(_ key: String, value: String) -> AIGenerationJobMetadata {
+        var copy = self
+        var map = copy.extras ?? [:]
+        map[key] = value
+        copy.extras = map
+        return copy
+    }
 }

@@ -102,7 +102,7 @@ final class AITranscriptRepairManager {
     private let parser = TranscriptRepairParser()
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AITranscriptRepair")
 
-    private let systemPrompt = """
+    static let defaultSystemPrompt = """
     You repair audiobook transcripts. Return JSON only: {"repairs":[{"index":NUMBER,"edited_text":"TEXT"}]}.
     Keep timestamps and segment counts unchanged. Fix spelling/grammar while preserving meaning, names, and punctuation style.
     Only return entries for lines that changed. Avoid adding or removing dialogue quotes unless the original was clearly wrong.
@@ -151,7 +151,7 @@ final class AITranscriptRepairManager {
             response = try await client.sendChat(
                 apiKey: apiKey,
                 model: model,
-                systemPrompt: systemPrompt,
+                systemPrompt: Self.defaultSystemPrompt,
                 userPrompt: userPrompt,
                 temperature: 0.2
             )

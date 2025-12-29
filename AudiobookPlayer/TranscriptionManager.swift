@@ -17,6 +17,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         case missingBaiduToken
         case pollingTimeout
         case segmentingFailed
+        case remoteJobsUnavailable
 
         var errorDescription: String? {
             switch self {
@@ -38,6 +39,8 @@ class TranscriptionManager: NSObject, ObservableObject {
                 return "Transcription polling timeout"
             case .segmentingFailed:
                 return "Failed to segment transcript"
+            case .remoteJobsUnavailable:
+                return "Remote jobs are not configured."
             }
         }
     }
@@ -57,6 +60,7 @@ class TranscriptionManager: NSObject, ObservableObject {
     private var pollingTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "TranscriptionManager")
     private var downloadProgressMilestones: [String: Double] = [:]
+    private let remoteJobPrefix = "remote:"
 
     init(
         databaseManager: GRDBDatabaseManager = .shared,
@@ -181,13 +185,13 @@ class TranscriptionManager: NSObject, ObservableObject {
 
         do {
             // Create or reuse transcript record
-            let transcriptId = try await ensurePendingTranscript(
+            let ensuredTranscriptId = try await ensurePendingTranscript(
                 trackId: trackIdStr,
                 collectionId: collectionIdStr,
                 language: languageHints.first ?? "en"
             )
-            pendingTranscriptId = transcriptId
-            logger.debug("[TranscriptionManager] Ensured pending transcript \(transcriptId, privacy: .public) for track \(trackIdStr, privacy: .public)")
+            pendingTranscriptId = ensuredTranscriptId
+            logger.debug("[TranscriptionManager] Ensured pending transcript \(ensuredTranscriptId, privacy: .public) for track \(trackIdStr, privacy: .public)")
 
             // Create placeholder job if one was not registered during download
             if currentJobId == nil {
@@ -315,7 +319,7 @@ class TranscriptionManager: NSObject, ObservableObject {
             try await pollForCompletion(
                 transcriptionId: transcriptionId,
                 trackId: trackIdStr,
-                transcriptId: transcriptId,
+                transcriptId: ensuredTranscriptId,
                 fileId: validFileId,
                 sonioxAPI: api,
                 jobId: currentJobId
@@ -359,6 +363,177 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
     }
 
+    func transcribeTrackRemote(
+        trackId: UUID,
+        collectionId: UUID,
+        input: RemoteJobsInput,
+        languageHints: [String] = ["zh", "en"],
+        context: String? = nil,
+        existingJobId: String? = nil
+    ) async throws {
+        let config = try loadRemoteJobsConfig()
+        let client = RemoteJobsClient(config: config)
+
+        let trackIdStr = trackId.uuidString
+        let collectionIdStr = collectionId.uuidString
+
+        DispatchQueue.main.async {
+            self.isTranscribing = true
+            self.currentTrackId = trackIdStr
+            self.transcriptionProgress = 0.0
+            self.errorMessage = nil
+        }
+
+        var pendingTranscriptId: String?
+        var currentJobId: String? = existingJobId
+
+        do {
+            let ensuredTranscriptId = try await ensurePendingTranscript(
+                trackId: trackIdStr,
+                collectionId: collectionIdStr,
+                language: languageHints.first ?? "en"
+            )
+            pendingTranscriptId = ensuredTranscriptId
+
+            if currentJobId == nil {
+                let job = try await dbManager.createTranscriptionJob(
+                    trackId: trackIdStr,
+                    sonioxJobId: "\(remoteJobPrefix)pending-\(UUID().uuidString)",
+                    status: "transcribing",
+                    progress: 0.05
+                )
+                currentJobId = job.id
+                upsertActiveJob(job)
+                await refreshAllRecentJobs()
+            } else if let jobId = currentJobId, let job = try await dbManager.loadTranscriptionJob(jobId: jobId) {
+                upsertActiveJob(job)
+            }
+
+            DispatchQueue.main.async { self.transcriptionProgress = 0.15 }
+
+            let remoteJob = try await client.createSTTJob(input: input, languageHints: languageHints, context: context)
+            let storedRemoteId = "\(remoteJobPrefix)\(remoteJob.id)"
+
+            if let jobId = currentJobId {
+                try await dbManager.updateJobSonioxId(jobId: jobId, sonioxJobId: storedRemoteId)
+                try await dbManager.updateJobStatus(jobId: jobId, status: "transcribing", progress: 0.2)
+                updateActiveJob(jobId: jobId) { current in
+                    current.updating(status: "transcribing", progress: 0.2, lastAttemptAt: Date())
+                }
+            }
+
+            try await updateTranscriptJobId(trackId: trackIdStr, jobId: storedRemoteId, status: "processing")
+
+            let startTime = Date()
+            var latestStatus = remoteJob
+            while latestStatus.status == "queued" || latestStatus.status == "running" {
+                let elapsed = Date().timeIntervalSince(startTime)
+                if elapsed > maxPollingDuration {
+                    throw TranscriptionError.pollingTimeout
+                }
+                try await Task.sleep(nanoseconds: UInt64(pollingInterval * 1_000_000_000))
+                latestStatus = try await client.fetchJob(jobId: remoteJob.id)
+                let progress = latestStatus.progress ?? 0.4
+                DispatchQueue.main.async { self.transcriptionProgress = max(self.transcriptionProgress, progress) }
+                if let jobId = currentJobId {
+                    try await dbManager.updateJobStatus(jobId: jobId, status: "transcribing", progress: progress)
+                    updateActiveJob(jobId: jobId) { current in
+                        current.updating(status: "transcribing", progress: progress, lastAttemptAt: Date())
+                    }
+                }
+            }
+
+            guard latestStatus.status == "succeeded" else {
+                throw TranscriptionError.transcriptionFailed("Remote job \(latestStatus.status)")
+            }
+
+            let result = try await client.fetchSTTResult(jobId: remoteJob.id)
+            let srtText = result.srt ?? ""
+            let transcriptText = result.transcript ?? ""
+            let transcriptId = pendingTranscriptId ?? UUID().uuidString
+            let segments = parseSRTSegments(srtText, transcriptId: transcriptId)
+            let fullText = transcriptText.isEmpty ? segments.map { $0.text }.joined(separator: "\n") : transcriptText
+
+            let transcript = Transcript(
+                id: transcriptId,
+                trackId: trackIdStr,
+                collectionId: collectionIdStr,
+                language: languageHints.first ?? "en",
+                fullText: fullText,
+                createdAt: Date(),
+                updatedAt: Date(),
+                jobStatus: "complete",
+                jobId: storedRemoteId,
+                errorMessage: nil
+            )
+            try await dbManager.saveTranscript(transcript, segments: segments)
+
+            if let jobId = currentJobId {
+                try await dbManager.markJobCompleted(jobId: jobId)
+                updateActiveJob(jobId: jobId) { current in
+                    current.updating(status: "completed", progress: 1.0, lastAttemptAt: Date())
+                }
+                removeActiveJob(jobId: jobId)
+            }
+
+            DispatchQueue.main.async {
+                self.transcriptionProgress = 1.0
+                self.isTranscribing = false
+                self.currentTrackId = nil
+            }
+        } catch {
+            if let jobId = currentJobId {
+                try? await dbManager.markJobFailed(jobId: jobId, errorMessage: error.localizedDescription)
+                removeActiveJob(jobId: jobId)
+            }
+            if pendingTranscriptId != nil {
+                await markTranscriptFailure(trackId: trackIdStr, message: error.localizedDescription)
+            }
+            DispatchQueue.main.async {
+                self.isTranscribing = false
+                self.errorMessage = error.localizedDescription
+                self.currentTrackId = nil
+            }
+            throw error
+        }
+    }
+
+    func resolveRemoteSTTInput(
+        track: AudiobookTrack,
+        collectionId: UUID,
+        baiduToken: BaiduOAuthToken?
+    ) async throws -> RemoteJobsInput? {
+        switch track.location {
+        case let .baidu(_, path):
+            guard let token = baiduToken else {
+                throw TranscriptionError.missingBaiduToken
+            }
+            let netdiskClient = BaiduNetdiskClient()
+            let downloadURL = try netdiskClient.downloadURL(forPath: path, token: token)
+            return RemoteJobsInput(
+                url: downloadURL,
+                source: "baidu",
+                cookie: nil,
+                mime: nil
+            )
+        case let .external(url):
+            if url.isFileURL {
+                return nil
+            }
+            let source = try await resolveRemoteSource(for: collectionId)
+            return RemoteJobsInput(
+                url: url,
+                source: source,
+                cookie: nil,
+                mime: nil
+            )
+        case .local:
+            return nil
+        case .text, .cachedText:
+            throw TranscriptionError.invalidAudioFile
+        }
+    }
+
     /// Register a placeholder job so UI can show download state before the Soniox upload begins
     func beginDownloadJob(for trackId: UUID) async -> TranscriptionJob? {
         let trackIdStr = trackId.uuidString
@@ -381,6 +556,28 @@ class TranscriptionManager: NSObject, ObservableObject {
             return job
         } catch {
             logger.error("[TranscriptionManager] Failed to create download placeholder: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    func beginRemoteJob(for trackId: UUID) async -> TranscriptionJob? {
+        let trackIdStr = trackId.uuidString
+        if let existing = activeJobs.first(where: { $0.trackId == trackIdStr }) {
+            return existing
+        }
+
+        do {
+            let job = try await dbManager.createTranscriptionJob(
+                trackId: trackIdStr,
+                sonioxJobId: "\(remoteJobPrefix)pending-\(UUID().uuidString)",
+                status: "transcribing",
+                progress: 0.05
+            )
+            upsertActiveJob(job)
+            await refreshAllRecentJobs()
+            return job
+        } catch {
+            logger.error("[TranscriptionManager] Failed to create remote job placeholder: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
@@ -1034,17 +1231,27 @@ class TranscriptionManager: NSObject, ObservableObject {
         // TTS jobs use prefix "tts-", STT jobs use real Soniox IDs or "pending-download-"
         let sttJobs = activeJobs.filter { job in
             !job.sonioxJobId.hasPrefix("tts-") &&
+            !job.sonioxJobId.hasPrefix(remoteJobPrefix) &&
             job.status != "paused" &&
             job.status != "completed" &&
             job.status != "failed"
         }
 
-        guard !sttJobs.isEmpty else {
+        let remoteJobs = activeJobs.filter { job in
+            job.sonioxJobId.hasPrefix(remoteJobPrefix) &&
+            job.status != "paused" &&
+            job.status != "completed" &&
+            job.status != "failed"
+        }
+
+        guard !sttJobs.isEmpty || !remoteJobs.isEmpty else {
             logger.debug("[TranscriptionManager] No interrupted STT jobs to resume")
             return
         }
 
-        logger.info("[TranscriptionManager] Found \(sttJobs.count) interrupted STT job(s) to check")
+        if !sttJobs.isEmpty {
+            logger.info("[TranscriptionManager] Found \(sttJobs.count) interrupted STT job(s) to check")
+        }
 
         for job in sttJobs {
             // Check if job has a valid Soniox job ID (meaning upload completed)
@@ -1060,9 +1267,161 @@ class TranscriptionManager: NSObject, ObservableObject {
             }
         }
 
+        if !remoteJobs.isEmpty {
+            logger.info("[TranscriptionManager] Found \(remoteJobs.count) interrupted remote job(s) to check")
+        }
+
+        for job in remoteJobs {
+            await resumeRemoteJob(job: job)
+        }
+
         // Refresh UI after checking
         await refreshActiveJobsFromDatabase()
         await refreshAllRecentJobs()
+    }
+
+    private func resumeRemoteJob(job: TranscriptionJob) async {
+        guard let remoteJobId = remoteJobId(from: job.sonioxJobId) else {
+            logger.error("[TranscriptionManager] Remote job \(job.id, privacy: .public) missing remote ID; skip resume")
+            return
+        }
+
+        let trackIdStr = job.trackId
+        let config: RemoteJobsConfig
+        do {
+            config = try loadRemoteJobsConfig()
+        } catch {
+            logger.error("[TranscriptionManager] Remote jobs disabled or invalid config; skip resume for \(job.id, privacy: .public)")
+            return
+        }
+
+        let client = RemoteJobsClient(config: config)
+
+        do {
+            try await updateTranscriptJobId(trackId: trackIdStr, jobId: job.sonioxJobId, status: "processing")
+        } catch {
+            logger.error("[TranscriptionManager] Failed to update transcript metadata for remote job \(job.id, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
+
+        let startTime = Date()
+        var latestStatus = try? await client.fetchJob(jobId: remoteJobId)
+
+        while let status = latestStatus, isRemoteJobRunning(status.status) {
+            let progress = status.progress ?? 0.4
+            await updateRemoteJobProgress(jobId: job.id, status: status.status, progress: progress)
+
+            if Date().timeIntervalSince(startTime) > maxPollingDuration {
+                await markRemoteJobFailed(jobId: job.id, trackId: trackIdStr, message: "Remote polling timeout")
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: UInt64(pollingInterval * 1_000_000_000))
+            latestStatus = try? await client.fetchJob(jobId: remoteJobId)
+        }
+
+        guard let finalStatus = latestStatus else {
+            await markRemoteJobFailed(jobId: job.id, trackId: trackIdStr, message: "Remote job status unavailable")
+            return
+        }
+
+        if finalStatus.status == "succeeded" {
+            await finalizeRemoteJobSuccess(
+                jobId: job.id,
+                trackId: trackIdStr,
+                remoteJobId: remoteJobId,
+                client: client
+            )
+        } else {
+            await markRemoteJobFailed(
+                jobId: job.id,
+                trackId: trackIdStr,
+                message: "Remote job \(finalStatus.status)"
+            )
+        }
+    }
+
+    private func remoteJobId(from sonioxJobId: String) -> String? {
+        guard sonioxJobId.hasPrefix(remoteJobPrefix) else { return nil }
+        let rawId = String(sonioxJobId.dropFirst(remoteJobPrefix.count))
+        guard !rawId.isEmpty, !rawId.hasPrefix("pending-") else { return nil }
+        return rawId
+    }
+
+    private func isRemoteJobRunning(_ status: String) -> Bool {
+        status == "queued" || status == "running" || status == "processing"
+    }
+
+    private func updateRemoteJobProgress(jobId: String, status: String, progress: Double) async {
+        let localStatus = status == "queued" ? "queued" : "transcribing"
+        do {
+            try await dbManager.updateJobStatus(jobId: jobId, status: localStatus, progress: progress)
+            updateActiveJob(jobId: jobId) { current in
+                current.updating(status: localStatus, progress: progress, lastAttemptAt: Date())
+            }
+        } catch {
+            logger.error("[TranscriptionManager] Failed to update remote job \(jobId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func finalizeRemoteJobSuccess(
+        jobId: String,
+        trackId: String,
+        remoteJobId: String,
+        client: RemoteJobsClient
+    ) async {
+        do {
+            guard let trackUUID = UUID(uuidString: trackId),
+                  let trackBundle = try await dbManager.loadTrack(id: trackUUID) else {
+                throw TranscriptionError.trackNotFound
+            }
+
+            let collectionIdStr = trackBundle.collectionId.uuidString
+            let existingTranscript = try await dbManager.loadTranscript(forTrackId: trackId)
+            let transcriptId: String
+            if let existingTranscriptId = existingTranscript?.id {
+                transcriptId = existingTranscriptId
+            } else {
+                transcriptId = try await ensurePendingTranscript(
+                    trackId: trackId,
+                    collectionId: collectionIdStr,
+                    language: existingTranscript?.language ?? "en"
+                )
+            }
+
+            let result = try await client.fetchSTTResult(jobId: remoteJobId)
+            let srtText = result.srt ?? ""
+            let transcriptText = result.transcript ?? ""
+            let segments = parseSRTSegments(srtText, transcriptId: transcriptId)
+            let fullText = transcriptText.isEmpty ? segments.map { $0.text }.joined(separator: "\n") : transcriptText
+
+            let transcript = Transcript(
+                id: transcriptId,
+                trackId: trackId,
+                collectionId: collectionIdStr,
+                language: existingTranscript?.language ?? "en",
+                fullText: fullText,
+                createdAt: existingTranscript?.createdAt ?? Date(),
+                updatedAt: Date(),
+                jobStatus: "complete",
+                jobId: "\(remoteJobPrefix)\(remoteJobId)",
+                errorMessage: nil
+            )
+
+            try await dbManager.saveTranscript(transcript, segments: segments)
+            try await dbManager.markJobCompleted(jobId: jobId)
+            updateActiveJob(jobId: jobId) { current in
+                current.updating(status: "completed", progress: 1.0, lastAttemptAt: Date())
+            }
+            removeActiveJob(jobId: jobId)
+        } catch {
+            await markRemoteJobFailed(jobId: jobId, trackId: trackId, message: error.localizedDescription)
+        }
+    }
+
+    private func markRemoteJobFailed(jobId: String, trackId: String, message: String) async {
+        try? await dbManager.markJobFailed(jobId: jobId, errorMessage: message)
+        removeActiveJob(jobId: jobId)
+        await markTranscriptFailure(trackId: trackId, message: message)
     }
 
     /// Check the status of a Soniox job and update local state accordingly
@@ -1138,6 +1497,85 @@ class TranscriptionManager: NSObject, ObservableObject {
 
     func removeActiveJob(jobId: String) {
         activeJobs.removeAll { $0.id == jobId }
+    }
+
+    private func loadRemoteJobsConfig() throws -> RemoteJobsConfig {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: "remoteJobsEnabled") else {
+            throw TranscriptionError.remoteJobsUnavailable
+        }
+        let baseURLString = (defaults.string(forKey: "remoteJobsBaseURL") ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let baseURL = URL(string: baseURLString), baseURL.scheme != nil else {
+            throw TranscriptionError.remoteJobsUnavailable
+        }
+        let token = defaults.string(forKey: "remoteJobsAuthToken")
+        return RemoteJobsConfig(baseURL: baseURL, token: token)
+    }
+
+    private func resolveRemoteSource(for collectionId: UUID) async throws -> String {
+        if let collection = try await dbManager.loadCollection(id: collectionId) {
+            if case .rss = collection.source {
+                return "rss"
+            }
+        }
+        return "external"
+    }
+
+    private func parseSRTSegments(_ srtText: String, transcriptId: String) -> [TranscriptSegment] {
+        let blocks = srtText
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            .components(separatedBy: "\n\n")
+
+        var segments: [TranscriptSegment] = []
+
+        for block in blocks {
+            let lines = block.split(separator: "\n", omittingEmptySubsequences: true)
+            guard !lines.isEmpty else { continue }
+
+            let timeLineIndex: Int
+            if lines.count >= 2, lines[1].contains("-->") {
+                timeLineIndex = 1
+            } else if lines[0].contains("-->") {
+                timeLineIndex = 0
+            } else {
+                continue
+            }
+
+            let timeLine = String(lines[timeLineIndex])
+            let textLines = lines.dropFirst(timeLineIndex + 1)
+            let text = textLines.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+            if text.isEmpty { continue }
+
+            let parts = timeLine.components(separatedBy: "-->")
+            guard parts.count == 2,
+                  let startMs = parseSRTTime(parts[0]),
+                  let endMs = parseSRTTime(parts[1]) else { continue }
+
+            let segment = TranscriptSegment(
+                transcriptId: transcriptId,
+                text: text,
+                startTimeMs: startMs,
+                endTimeMs: endMs,
+                confidence: nil,
+                speaker: nil,
+                language: nil
+            )
+            segments.append(segment)
+        }
+
+        return segments
+    }
+
+    private func parseSRTTime(_ raw: String) -> Int? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let timeParts = trimmed.replacingOccurrences(of: ",", with: ".").split(separator: ":")
+        guard timeParts.count == 3 else { return nil }
+        let hours = Double(timeParts[0]) ?? 0
+        let minutes = Double(timeParts[1]) ?? 0
+        let seconds = Double(timeParts[2]) ?? 0
+        let totalSeconds = hours * 3600 + minutes * 60 + seconds
+        return Int(totalSeconds * 1000)
     }
 
     private func highlightMatch(in text: String, query: String) -> String {

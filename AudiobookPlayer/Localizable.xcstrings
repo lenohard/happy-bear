@@ -1395,6 +1395,9 @@
     "Aliyun Drive" : {
 
     },
+    "Allow HTTP on LAN" : {
+
+    },
     "and_more_files" : {
       "comment" : "More files count",
       "extractionState" : "extracted_with_value",
@@ -1511,6 +1514,9 @@
           }
         }
       }
+    },
+    "Auth Token (optional)" : {
+
     },
     "Author (optional)" : {
 
@@ -1781,6 +1787,9 @@
           }
         }
       }
+    },
+    "Base URL (e.g. http://192.168.1.50:8080)" : {
+
     },
     "Batch Rename" : {
       "localizations" : {
@@ -2856,6 +2865,9 @@
     "Enable animated snowfall and other festive decorations." : {
 
     },
+    "Enable Remote Jobs in Settings to see remote jobs." : {
+
+    },
     "Enter text to see preview" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3008,6 +3020,9 @@
           }
         }
       }
+    },
+    "Filter" : {
+
     },
     "filter_all" : {
       "comment" : "Filter option: All",
@@ -3378,6 +3393,9 @@
         }
       }
     },
+    "Jobs" : {
+
+    },
     "jobs_indicator_mixed" : {
       "comment" : "HUD label when multiple job types are active",
       "localizations" : {
@@ -3590,6 +3608,9 @@
     "Loading…" : {
 
     },
+    "Local jobs are listed in STT/TTS/AI screens." : {
+
+    },
     "local_files_coming_soon" : {
       "comment" : "Local files coming soon",
       "localizations" : {
@@ -3754,6 +3775,9 @@
     "No models match '%@'" : {
 
     },
+    "No remote jobs yet" : {
+
+    },
     "No Results" : {
 
     },
@@ -3913,6 +3937,9 @@
           }
         }
       }
+    },
+    "Notify me when remote jobs finish" : {
+
     },
     "OK" : {
 
@@ -4259,6 +4286,9 @@
         }
       }
     },
+    "Remote Jobs" : {
+
+    },
     "remove_from_favorites" : {
       "comment" : "Remove from favorites\nRemove from favorites button",
       "localizations" : {
@@ -4359,6 +4389,9 @@
           }
         }
       }
+    },
+    "Requires ATS exception for local HTTP endpoints." : {
+
     },
     "Restart" : {
 
@@ -4635,6 +4668,9 @@
           }
         }
       }
+    },
+    "Scope" : {
+
     },
     "scopes_label" : {
       "comment" : "Scopes label",
@@ -5142,6 +5178,9 @@
         }
       }
     },
+    "Test Connection" : {
+
+    },
     "Test Failed" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5191,6 +5230,9 @@
           }
         }
       }
+    },
+    "Testing..." : {
+
     },
     "Text to find..." : {
       "localizations" : {
@@ -6779,6 +6821,12 @@
           }
         }
       }
+    },
+    "Use local jobs when offline" : {
+
+    },
+    "Use Remote Server" : {
+
     },
     "Use This Folder" : {
       "localizations" : {

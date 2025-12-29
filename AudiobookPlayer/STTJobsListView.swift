@@ -5,10 +5,14 @@ struct STTJobsListView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var library: LibraryStore
     @State private var selectedJobForTranscript: TranscriptionJob?
+    private let remoteJobPrefix = "remote:"
 
     // Active jobs: non-terminal states (not completed, not failed)
     private var activeSTTJobs: [TranscriptionJob] {
-        transcriptionManager.activeJobs.filter { !$0.sonioxJobId.hasPrefix("tts-") }
+        transcriptionManager.activeJobs.filter {
+            !$0.sonioxJobId.hasPrefix("tts-") &&
+            !$0.sonioxJobId.hasPrefix(remoteJobPrefix)
+        }
     }
 
     // History jobs: terminal states only (completed or failed)
@@ -19,6 +23,7 @@ struct STTJobsListView: View {
             .filter {
                 ($0.status == "completed" || $0.status == "failed") &&
                 !$0.sonioxJobId.hasPrefix("tts-") &&
+                !$0.sonioxJobId.hasPrefix(remoteJobPrefix) &&
                 !activeJobIds.contains($0.id)
             }
     }

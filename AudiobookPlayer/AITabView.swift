@@ -11,6 +11,7 @@ struct AITabView: View {
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @FocusState private var focusedField: KeyField?
     @AppStorage("ai_tab_tester_reasoning_enabled_v1") private var isTesterReasoningEnabled = false
+    @AppStorage("remoteJobsEnabled") private var remoteJobsEnabled = false
     @State private var isCredentialSectionExpanded = false
     @State private var showAPIKey = false
     @State private var isEditingGatewayKey = false
@@ -20,8 +21,10 @@ struct AITabView: View {
             List {
                 credentialsSection
 
-                if gateway.hasValidKey {
-                    defaultModelSection
+                if aiFeaturesAvailable {
+                    if gateway.hasValidKey {
+                        defaultModelSection
+                    }
                     quickActionsSection
                     testerSection
                 }
@@ -323,7 +326,13 @@ struct AITabView: View {
                 let reasoningConfig = isTesterReasoningEnabled
                     ? AIGatewayReasoningConfig(enabled: true, maxTokens: nil, effort: nil, exclude: nil)
                     : nil
-                Task { await gateway.enqueueChatTest(using: aiGenerationManager, reasoning: reasoningConfig) }
+                Task {
+                    await gateway.enqueueChatTest(
+                        using: aiGenerationManager,
+                        reasoning: reasoningConfig,
+                        allowWithoutKey: remoteJobsEnabled
+                    )
+                }
             } label: {
                 if chatJobInProgress != nil {
                     HStack(spacing: 8) {
@@ -384,6 +393,10 @@ struct AITabView: View {
                 }
             }
         }
+    }
+
+    private var aiFeaturesAvailable: Bool {
+        gateway.hasValidKey || remoteJobsEnabled
     }
 
 }
@@ -556,4 +569,3 @@ private struct CredentialRowModifier: ViewModifier {
             .listRowInsets(.init(top: 8, leading: 16, bottom: 8, trailing: 16))
     }
 }
-

@@ -87,16 +87,45 @@ extension TranscriptionManager {
         }
 
         do {
-            let audioURL = try await resolveAudioForRetry(track: track, jobId: jobId)
+            let defaults = UserDefaults.standard
+            let remoteEnabled = defaults.bool(forKey: "remoteJobsEnabled")
+            let fallbackToLocal = defaults.bool(forKey: "remoteJobsFallbackToLocal")
 
-            try await transcribeTrack(
-                trackId: track.id,
-                collectionId: collectionId,
-                audioFileURL: audioURL,
-                languageHints: ["zh", "en"],
-                context: nil,
-                existingJobId: jobId
-            )
+            if remoteEnabled {
+                let tokenStore: BaiduOAuthTokenStore = KeychainBaiduOAuthTokenStore()
+                let baiduToken = try? tokenStore.loadToken()
+                do {
+                    if let input = try await resolveRemoteSTTInput(track: track, collectionId: collectionId, baiduToken: baiduToken) {
+                        try await transcribeTrackRemote(
+                            trackId: track.id,
+                            collectionId: collectionId,
+                            input: input,
+                            languageHints: ["zh", "en"],
+                            context: nil,
+                            existingJobId: jobId
+                        )
+                        return
+                    }
+                } catch {
+                    if !fallbackToLocal {
+                        throw error
+                    }
+                }
+            }
+
+            if !remoteEnabled || fallbackToLocal {
+                let audioURL = try await resolveAudioForRetry(track: track, jobId: jobId)
+                try await transcribeTrack(
+                    trackId: track.id,
+                    collectionId: collectionId,
+                    audioFileURL: audioURL,
+                    languageHints: ["zh", "en"],
+                    context: nil,
+                    existingJobId: jobId
+                )
+            } else {
+                throw TranscriptionError.transcriptionFailed("Remote jobs enabled but input is not supported.")
+            }
         } catch {
             AppLog.debug("⚠️ Retry for job \(jobId) failed: \(error.localizedDescription)")
             try? await dbManager.markJobFailed(jobId: jobId, errorMessage: error.localizedDescription)

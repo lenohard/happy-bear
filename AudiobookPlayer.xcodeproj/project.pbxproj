@@ -76,6 +76,9 @@
 		864C25A22EFBE15A005ECA64 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864C259F2EFBE15A005ECA64 /* ThemeManager.swift */; };
 		864C25A42EFBE546005ECA64 /* SnowfallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 864C25A32EFBE546005ECA64 /* SnowfallView.swift */; };
 		867C6FC92EF3A71200A8FE74 /* VLCVideoPlayerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 867C6FC82EF3A71200A8FE74 /* VLCVideoPlayerView.swift */; };
+		868447162F018E0700962FC4 /* RemoteJobsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868447142F018E0700962FC4 /* RemoteJobsStore.swift */; };
+		868447172F018E0700962FC4 /* RemoteJobsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868447152F018E0700962FC4 /* RemoteJobsView.swift */; };
+		868447192F02723700962FC4 /* RemoteJobsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868447182F02723700962FC4 /* RemoteJobsClient.swift */; };
 		8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */; };
 		8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */; };
 		8685F3632EBE204F003D8173 /* TemporaryPlaybackContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */; };
@@ -209,6 +212,9 @@
 		864C25A02EFBE15A005ECA64 /* ThemeSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeSelectionView.swift; sourceTree = "<group>"; };
 		864C25A32EFBE546005ECA64 /* SnowfallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SnowfallView.swift; sourceTree = "<group>"; };
 		867C6FC82EF3A71200A8FE74 /* VLCVideoPlayerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VLCVideoPlayerView.swift; sourceTree = "<group>"; };
+		868447142F018E0700962FC4 /* RemoteJobsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteJobsStore.swift; sourceTree = "<group>"; };
+		868447152F018E0700962FC4 /* RemoteJobsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteJobsView.swift; sourceTree = "<group>"; };
+		868447182F02723700962FC4 /* RemoteJobsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteJobsClient.swift; sourceTree = "<group>"; };
 		8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeychainStore.swift; sourceTree = "<group>"; };
 		8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeyViewModel.swift; sourceTree = "<group>"; };
 		8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryPlaybackContext.swift; sourceTree = "<group>"; };
@@ -307,6 +313,8 @@
 				86FDF2062EC8F1F300DB7430 /* AudiobookPlayer.entitlements */,
 				86FC75832EC7244600E7AEB8 /* UserDataBackupManager.swift */,
 				864C259B2EFA900A005ECA64 /* ArchivedCollectionsView.swift */,
+				868447142F018E0700962FC4 /* RemoteJobsStore.swift */,
+				868447152F018E0700962FC4 /* RemoteJobsView.swift */,
 				8603AC192EDDF0D100889565 /* TTSJobProgressSheet.swift */,
 				86AD83AA2EB9AD5100FAB6DF /* AudioCacheDownloadManager.swift */,
 				8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */,
@@ -368,6 +376,7 @@
 				8617DDE32EBE0A26006E7CA7 /* SonioxAPI.swift */,
 				8617DDE42EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift */,
 				8617DDE52EBE0A26006E7CA7 /* TranscriptionManager.swift */,
+				868447182F02723700962FC4 /* RemoteJobsClient.swift */,
 				8617DDE62EBE0A26006E7CA7 /* TranscriptionSheet.swift */,
 				8617DDE72EBE0A26006E7CA7 /* TranscriptModels.swift */,
 				C5E631A42F1B000100AA0001 /* AIGenerationDatabaseSchema.swift */,
@@ -633,6 +642,8 @@
 				8603AC1A2EDDF0D100889565 /* TTSJobProgressSheet.swift in Sources */,
 				8617DDE92EBE0A26006E7CA7 /* DatabaseConfig.swift in Sources */,
 				869F06B52ED5B2E100B79131 /* TranscriptSegmentManager.swift in Sources */,
+				868447162F018E0700962FC4 /* RemoteJobsStore.swift in Sources */,
+				868447172F018E0700962FC4 /* RemoteJobsView.swift in Sources */,
 				869F06B72ED5B2E100B79131 /* TranscriptCorrectionStore.swift in Sources */,
 				869F06B82ED5B2E100B79131 /* TranscriptCorrectionViewModel.swift in Sources */,
 				86FE17602EC2531500027E93 /* ProviderIconView.swift in Sources */,
@@ -697,6 +708,7 @@
 				8603AC0A2EDAF98D00889565 /* SonioxSTTView.swift in Sources */,
 				6FC010032C5B0C0000AA00AA /* LibraryStore.swift in Sources */,
 				6F99A0032C4C200000AA00AA /* BaiduNetdiskClient.swift in Sources */,
+				868447192F02723700962FC4 /* RemoteJobsClient.swift in Sources */,
 				6F6E7F712C4A9B0500AA00AA /* ContentView.swift in Sources */,
 				8685F3692EBF3607003D8173 /* TranscriptionProgressOverlay.swift in Sources */,
 				86FD8E012ED6E0AB002A2036 /* PersonalView.swift in Sources */,
