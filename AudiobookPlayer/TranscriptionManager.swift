@@ -498,6 +498,60 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
     }
 
+    func enqueueRemoteSTTJob(
+        trackId: UUID,
+        collectionId: UUID,
+        input: RemoteJobsInput,
+        languageHints: [String] = ["zh", "en"],
+        context: String? = nil,
+        existingJobId: String? = nil
+    ) async throws -> RemoteJobDTO {
+        let config = try loadRemoteJobsConfig()
+        let client = RemoteJobsClient(config: config)
+
+        let trackIdStr = trackId.uuidString
+        let collectionIdStr = collectionId.uuidString
+
+        _ = try await ensurePendingTranscript(
+            trackId: trackIdStr,
+            collectionId: collectionIdStr,
+            language: languageHints.first ?? "en"
+        )
+
+        var currentJobId: String? = existingJobId
+
+        if currentJobId == nil {
+            let job = try await dbManager.createTranscriptionJob(
+                trackId: trackIdStr,
+                sonioxJobId: "\(remoteJobPrefix)pending-\(UUID().uuidString)",
+                status: "queued",
+                progress: 0.05
+            )
+            currentJobId = job.id
+            upsertActiveJob(job)
+            await refreshAllRecentJobs()
+        } else if let jobId = currentJobId, let job = try await dbManager.loadTranscriptionJob(jobId: jobId) {
+            upsertActiveJob(job)
+        }
+
+        let remoteJob = try await client.createSTTJob(input: input, languageHints: languageHints, context: context)
+        let storedRemoteId = "\(remoteJobPrefix)\(remoteJob.id)"
+        let progress = max(remoteJob.progress ?? 0.1, 0.1)
+        let status = remoteJob.status == "queued" ? "queued" : "transcribing"
+
+        if let jobId = currentJobId {
+            try await dbManager.updateJobSonioxId(jobId: jobId, sonioxJobId: storedRemoteId)
+            try await dbManager.updateJobStatus(jobId: jobId, status: status, progress: progress)
+            updateActiveJob(jobId: jobId) { current in
+                current.updating(status: status, progress: progress, lastAttemptAt: Date())
+            }
+        }
+
+        try await updateTranscriptJobId(trackId: trackIdStr, jobId: storedRemoteId, status: "processing")
+        await refreshAllRecentJobs()
+        return remoteJob
+    }
+
     func resolveRemoteSTTInput(
         track: AudiobookTrack,
         collectionId: UUID,

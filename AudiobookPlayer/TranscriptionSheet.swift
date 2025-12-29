@@ -12,6 +12,7 @@ struct TranscriptionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
+    @EnvironmentObject private var tabSelection: TabSelectionManager
 
     @State private var isTranscribing = false
     @State private var progress: Double = 0.0
@@ -254,7 +255,7 @@ struct TranscriptionSheet: View {
                         }
 
                         let existingJobId = await MainActor.run { downloadJobId ?? mirroredJobId }
-                        try await transcriptionManager.transcribeTrackRemote(
+                        try await transcriptionManager.enqueueRemoteSTTJob(
                             trackId: track.id,
                             collectionId: collectionID,
                             input: remoteInput,
@@ -265,21 +266,16 @@ struct TranscriptionSheet: View {
 
                         await MainActor.run {
                             isTranscribing = false
-                            progress = 1.0
-                            transcriptionCompleted = true
-                            setStage(.completed, reason: "Remote transcription finished successfully")
+                            progress = 0.0
+                            transcriptionCompleted = false
+                            setStage(.transcribing, reason: "Remote job queued; switching to Jobs")
                         }
 
-                        NotificationCenter.default.post(
-                            name: NSNotification.Name("TranscriptionCompleted"),
-                            object: nil,
-                            userInfo: ["trackId": track.id.uuidString, "collectionId": collectionID.uuidString]
-                        )
-
-                        try? await Task.sleep(nanoseconds: 2_000_000_000)
                         await MainActor.run {
                             downloadJobId = nil
+                            mirroredJobId = nil
                             dismiss()
+                            tabSelection.navigateToSmartJobs()
                         }
                         return
                     } else if !remoteJobsFallbackToLocal {

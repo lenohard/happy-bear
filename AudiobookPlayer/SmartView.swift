@@ -4,9 +4,11 @@ struct SmartView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var tabSelection: TabSelectionManager
     @AppStorage("remoteJobsEnabled") private var remoteJobsEnabled = false
     private let remoteJobPrefix = "remote:"
     private let remoteAIJobMetadataKey = "remote_job_id"
+    @State private var showRemoteJobs = false
 
     // Separate job counts for STT and TTS
     private var sttJobCount: Int {
@@ -117,6 +119,19 @@ struct SmartView: View {
             .scrollContentBackground(themeManager.colors.isFestive ? .hidden : .visible)
             .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
             .navigationTitle(themeManager.colors.isFestive ? "❄️ 智能" : "智能")
+            .navigationDestination(isPresented: $showRemoteJobs) {
+                RemoteJobsView()
+            }
+            .onChange(of: tabSelection.smartNavigationTarget) { target in
+                guard target == .jobs else { return }
+                showRemoteJobs = true
+                tabSelection.smartNavigationTarget = nil
+            }
+            .onAppear {
+                guard tabSelection.smartNavigationTarget == .jobs else { return }
+                showRemoteJobs = true
+                tabSelection.smartNavigationTarget = nil
+            }
         }
     }
 

@@ -8,6 +8,11 @@ import MobileVLCKit
 final class TabSelectionManager: ObservableObject {
     @Published var selectedTab: Tab = .playing
     @Published var libraryNavigationTarget: UUID?
+    @Published var smartNavigationTarget: SmartDestination?
+
+    enum SmartDestination: Hashable {
+        case jobs
+    }
 
     enum Tab: Int, CaseIterable {
         case library = 0
@@ -49,6 +54,11 @@ final class TabSelectionManager: ObservableObject {
     func navigateToCollection(_ collectionID: UUID) {
         libraryNavigationTarget = collectionID
         selectedTab = .library
+    }
+
+    func navigateToSmartJobs() {
+        smartNavigationTarget = .jobs
+        selectedTab = .smart
     }
 }
 
