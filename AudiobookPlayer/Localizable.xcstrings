@@ -3394,7 +3394,14 @@
       }
     },
     "Jobs" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线任务"
+          }
+        }
+      }
     },
     "jobs_indicator_mixed" : {
       "comment" : "HUD label when multiple job types are active",
@@ -3939,7 +3946,14 @@
       }
     },
     "Notify me when remote jobs finish" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线任务完成后发送通知"
+          }
+        }
+      }
     },
     "OK" : {
 
@@ -4287,7 +4301,14 @@
       }
     },
     "Remote Jobs" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "离线任务"
+          }
+        }
+      }
     },
     "remove_from_favorites" : {
       "comment" : "Remove from favorites\nRemove from favorites button",

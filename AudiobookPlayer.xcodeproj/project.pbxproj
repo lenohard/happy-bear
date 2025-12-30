@@ -784,7 +784,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.happyBear;
 				PRODUCT_NAME = HappyBear;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -821,7 +821,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.5;
+				MARKETING_VERSION = 0.2.6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.wdh.happyBear;
 				PRODUCT_NAME = HappyBear;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

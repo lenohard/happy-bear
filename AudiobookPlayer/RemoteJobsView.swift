@@ -236,6 +236,22 @@ private struct RemoteJobRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+            HStack(spacing: 8) {
+                Text(job.type.badgeLabel)
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule().fill(Color(.secondarySystemFill))
+                    )
+                Text(job.id)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
             ProgressView(value: job.progress)
                 .progressViewStyle(.linear)
             Text(job.createdAt, style: .time)

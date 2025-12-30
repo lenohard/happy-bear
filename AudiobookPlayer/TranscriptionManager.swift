@@ -61,6 +61,7 @@ class TranscriptionManager: NSObject, ObservableObject {
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "TranscriptionManager")
     private var downloadProgressMilestones: [String: Double] = [:]
     private let remoteJobPrefix = "remote:"
+    private var remotePollingJobs: Set<String> = []
 
     init(
         databaseManager: GRDBDatabaseManager = .shared,
@@ -467,6 +468,14 @@ class TranscriptionManager: NSObject, ObservableObject {
                 errorMessage: nil
             )
             try await dbManager.saveTranscript(transcript, segments: segments)
+            NotificationCenter.default.post(
+                name: .transcriptDidFinalize,
+                object: nil,
+                userInfo: [
+                    "trackId": trackIdStr,
+                    "transcriptId": transcriptId
+                ]
+            )
 
             if let jobId = currentJobId {
                 try await dbManager.markJobCompleted(jobId: jobId)
@@ -549,6 +558,11 @@ class TranscriptionManager: NSObject, ObservableObject {
 
         try await updateTranscriptJobId(trackId: trackIdStr, jobId: storedRemoteId, status: "processing")
         await refreshAllRecentJobs()
+        if let jobId = currentJobId, let job = try await dbManager.loadTranscriptionJob(jobId: jobId) {
+            Task { @MainActor [weak self] in
+                await self?.startRemotePollingIfNeeded(job: job)
+            }
+        }
         return remoteJob
     }
 
@@ -1326,7 +1340,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         }
 
         for job in remoteJobs {
-            await resumeRemoteJob(job: job)
+            await startRemotePollingIfNeeded(job: job)
         }
 
         // Refresh UI after checking
@@ -1392,6 +1406,13 @@ class TranscriptionManager: NSObject, ObservableObject {
                 message: "Remote job \(finalStatus.status)"
             )
         }
+    }
+
+    private func startRemotePollingIfNeeded(job: TranscriptionJob) async {
+        let inserted = remotePollingJobs.insert(job.id).inserted
+        guard inserted else { return }
+        defer { remotePollingJobs.remove(job.id) }
+        await resumeRemoteJob(job: job)
     }
 
     private func remoteJobId(from sonioxJobId: String) -> String? {
@@ -1462,6 +1483,14 @@ class TranscriptionManager: NSObject, ObservableObject {
             )
 
             try await dbManager.saveTranscript(transcript, segments: segments)
+            NotificationCenter.default.post(
+                name: .transcriptDidFinalize,
+                object: nil,
+                userInfo: [
+                    "trackId": trackId,
+                    "transcriptId": transcriptId
+                ]
+            )
             try await dbManager.markJobCompleted(jobId: jobId)
             updateActiveJob(jobId: jobId) { current in
                 current.updating(status: "completed", progress: 1.0, lastAttemptAt: Date())

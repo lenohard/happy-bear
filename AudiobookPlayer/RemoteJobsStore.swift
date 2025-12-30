@@ -39,6 +39,19 @@ struct RemoteJob: Identifiable, Hashable {
     var createdAt: Date
 }
 
+extension RemoteJobType {
+    var badgeLabel: String {
+        switch self {
+        case .stt:
+            return "STT"
+        case .tts:
+            return "TTS"
+        case .ai:
+            return "AI"
+        }
+    }
+}
+
 @MainActor
 final class RemoteJobsStore: ObservableObject {
     @Published var connectionState = RemoteJobsConnectionState()

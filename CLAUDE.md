@@ -1,6 +1,7 @@
 # iOS Audiobook Player - Product Requirements & Architecture
 
 **Repo**: https://github.com/lenohard/happy-bear  
+BaiduNetdisk Doc: https://pan.baidu.com/union/doc/pksg0s9ns
 **Tools**: Use `deepwiki` for quick repo details.  
 **Build Target**: iPhone 17 Pro simulator.  
 **Note**: The `./local/` folder is **NOT** ignored by git for this repository.
