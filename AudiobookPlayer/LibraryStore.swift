@@ -24,6 +24,54 @@ final class LibraryStore: ObservableObject {
         UserDefaults.standard.object(forKey: "audio_player_shuffle_enabled") as? Bool ?? false
     }
 
+    private func fetchBaiduDescriptionEntries(
+        in folderPath: String,
+        token: BaiduOAuthToken,
+        client: BaiduNetdiskClient
+    ) async throws -> [BaiduNetdiskEntry] {
+        let results = try await client.search(
+            keyword: ".desc",
+            directory: folderPath,
+            recursive: true,
+            audioOnly: false,
+            token: token
+        )
+        return results.filter { entry in
+            guard !entry.isDir else { return false }
+            let ext = (entry.serverFilename as NSString).pathExtension.lowercased()
+            return ext == "desc"
+        }
+    }
+
+    private static func descEntriesByBaseName(
+        from entries: [BaiduNetdiskEntry]
+    ) -> [String: [BaiduNetdiskEntry]] {
+        Dictionary(grouping: entries) { entry in
+            normalizedBaseName(entry.serverFilename)
+        }
+    }
+
+    private static func normalizedBaseName(_ filename: String) -> String {
+        (filename as NSString).deletingPathExtension.lowercased()
+    }
+
+    private static func matchingDescEntry(
+        for trackPath: String?,
+        filename: String,
+        in descMap: [String: [BaiduNetdiskEntry]]
+    ) -> BaiduNetdiskEntry? {
+        let baseName = normalizedBaseName(filename)
+        guard let candidates = descMap[baseName], !candidates.isEmpty else {
+            return nil
+        }
+        guard let trackPath else { return candidates.first }
+        let trackDirectory = (trackPath as NSString).deletingLastPathComponent
+        if let match = candidates.first(where: { ($0.path as NSString).deletingLastPathComponent == trackDirectory }) {
+            return match
+        }
+        return candidates.first
+    }
+
     private func migrateShuffleDefaultsIfNeeded(globalShuffleDefault: Bool) {
         let hasMigratedKey = "has_migrated_shuffle_to_collections_v4"
         guard !UserDefaults.standard.bool(forKey: hasMigratedKey) else { return }
@@ -399,9 +447,29 @@ final class LibraryStore: ObservableObject {
         guard !newEntries.isEmpty else { return [] }
         
         let startTrackNumber = (collection.tracks.map(\.trackNumber).max() ?? 0) + 1
+        let descEntries = (try? await fetchBaiduDescriptionEntries(in: folderPath, token: token, client: client)) ?? []
+        let descMap = Self.descEntriesByBaseName(from: descEntries)
+        var descCache: [String: String] = [:]
         
-        return newEntries.enumerated().map { index, entry in
-            AudiobookTrack(
+        var tracks: [AudiobookTrack] = []
+        for (index, entry) in newEntries.enumerated() {
+            var metadata: [String: String] = [:]
+            if let descEntry = Self.matchingDescEntry(for: entry.path, filename: entry.serverFilename, in: descMap) {
+                if let cached = descCache[descEntry.path] {
+                    let trimmed = cached.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        metadata["description"] = trimmed
+                    }
+                } else if let text = try? await client.downloadTextFile(path: descEntry.path, token: token) {
+                    descCache[descEntry.path] = text
+                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        metadata["description"] = trimmed
+                    }
+                }
+            }
+
+            let track = AudiobookTrack(
                 id: UUID(),
                 displayName: entry.serverFilename,
                 filename: entry.serverFilename,
@@ -410,10 +478,13 @@ final class LibraryStore: ObservableObject {
                 duration: nil,
                 trackNumber: startTrackNumber + index,
                 checksum: entry.md5,
-                metadata: [:],
+                metadata: metadata,
                 mediaKind: PlayableMediaFormat.mediaKind(forFilename: entry.serverFilename)
             )
+            tracks.append(track)
         }
+
+        return tracks
     }
 
     func addTracks(to collectionId: UUID, tracks: [AudiobookTrack]) {
@@ -429,9 +500,101 @@ final class LibraryStore: ObservableObject {
     }
 
     func refreshBaiduCollection(collectionId: UUID, token: BaiduOAuthToken) async throws -> Int {
+        _ = try? await syncBaiduTrackDescriptions(collectionId: collectionId, token: token)
         let newTracks = try await scanNewTracksForBaiduCollection(collectionId: collectionId, token: token)
         addTracks(to: collectionId, tracks: newTracks)
         return newTracks.count
+    }
+
+    func syncBaiduTrackDescriptions(collectionId: UUID, token: BaiduOAuthToken) async throws -> Int {
+        await ensureCollectionLoaded(collectionId)
+
+        guard let index = collections.firstIndex(where: { $0.id == collectionId }) else {
+            throw LibraryStoreError.collectionNotFound
+        }
+
+        let collection = collections[index]
+        guard case let .baiduNetdisk(folderPath, _) = collection.source else {
+            return 0
+        }
+
+        let client = BaiduNetdiskClient()
+        let descEntries = try await fetchBaiduDescriptionEntries(in: folderPath, token: token, client: client)
+        let descMap = Self.descEntriesByBaseName(from: descEntries)
+        guard !descMap.isEmpty else { return 0 }
+
+        var updatedCollection = collection
+        var updatedTracks: [AudiobookTrack] = []
+        var descCache: [String: String] = [:]
+
+        for trackIndex in updatedCollection.tracks.indices {
+            let track = updatedCollection.tracks[trackIndex]
+            let trackPath: String?
+            if case let .baidu(_, path) = track.location {
+                trackPath = path
+            } else {
+                trackPath = nil
+            }
+
+            guard let descEntry = Self.matchingDescEntry(
+                for: trackPath,
+                filename: track.filename,
+                in: descMap
+            ) else { continue }
+
+            let descText: String
+            if let cached = descCache[descEntry.path] {
+                descText = cached
+            } else {
+                do {
+                    descText = try await client.downloadTextFile(path: descEntry.path, token: token)
+                    descCache[descEntry.path] = descText
+                } catch {
+                    continue
+                }
+            }
+
+            let trimmed = descText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let existing = track.metadata["description"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard existing != trimmed else { continue }
+
+            var updatedTrack = track
+            var metadata = updatedTrack.metadata
+            metadata["description"] = trimmed
+            updatedTrack.metadata = metadata
+            updatedCollection.tracks[trackIndex] = updatedTrack
+            updatedTracks.append(updatedTrack)
+        }
+
+        guard !updatedTracks.isEmpty else { return 0 }
+
+        updatedCollection.updatedAt = Date()
+        collections[index] = updatedCollection
+        collections.sort { $0.updatedAt > $1.updatedAt }
+
+        if !useFallbackJSON {
+            Task(priority: .utility) {
+                do {
+                    try await dbManager.updateTracks(updatedTracks, in: collectionId)
+                    try await dbManager.updateCollectionTimestamp(collectionId, updatedAt: updatedCollection.updatedAt)
+                } catch {
+                    await MainActor.run {
+                        self.lastError = error
+                    }
+                }
+            }
+        } else {
+            persistCurrentSnapshot()
+        }
+
+        if let syncEngine {
+            Task(priority: .utility) {
+                try? await syncEngine.saveRemoteCollection(updatedCollection)
+            }
+        }
+
+        return updatedTracks.count
     }
     
     func scanNewTracksForRSSCollection(collectionId: UUID) async throws -> [AudiobookTrack] {

@@ -221,6 +221,26 @@ final class BaiduNetdiskClient: BaiduNetdiskListing {
 
         return url
     }
+
+    func downloadTextFile(path: String, token: BaiduOAuthToken) async throws -> String {
+        let url = try downloadURL(forPath: path, token: token)
+        let (data, response) = try await urlSession.data(from: url)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NetdiskError.unexpectedResponse
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let body = String(data: data, encoding: .utf8) ?? ""
+            throw NetdiskError.httpStatus(httpResponse.statusCode, body: body)
+        }
+
+        if let text = String(data: data, encoding: .utf8) {
+            return text
+        }
+
+        throw NetdiskError.unexpectedResponse
+    }
 }
 
 enum NetdiskError: LocalizedError {

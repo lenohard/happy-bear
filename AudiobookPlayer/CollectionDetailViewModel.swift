@@ -32,6 +32,7 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var trackForViewing: AudiobookTrack?
     @Published var trackForReading: AudiobookTrack?
     @Published var trackForTTSProgress: AudiobookTrack?
+    @Published var trackForDetails: AudiobookTrack?
     @Published var transcriptStatusCache: [UUID: Bool] = [:]
     @Published var pendingAutoFocusTrackId: UUID?
     @Published var didAutoFocusTrack = false
@@ -52,6 +53,7 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var isLastTrackVisible = false
     @Published var refreshResult: String?
     @Published var showRefreshResult = false
+    @Published var isRefreshingCollection = false
     @Published var candidateTracks: [AudiobookTrack] = []
     @Published var selectedCandidateIds: Set<UUID> = []
     @Published var showRefreshReview = false
@@ -591,8 +593,14 @@ final class CollectionDetailViewModel: ObservableObject {
     
     func refreshCollectionAction() {
         guard let collection = self.collection else { return }
-        
+
+        isRefreshingCollection = true
         Task {
+            defer {
+                Task { @MainActor in
+                    self.isRefreshingCollection = false
+                }
+            }
             do {
                 let candidates: [AudiobookTrack]
                 switch collection.source {
@@ -603,6 +611,7 @@ final class CollectionDetailViewModel: ObservableObject {
                         }
                         return
                     }
+                    _ = try? await library?.syncBaiduTrackDescriptions(collectionId: collectionID, token: token)
                     candidates = try await library?.scanNewTracksForBaiduCollection(collectionId: collectionID, token: token) ?? []
                 case .rss:
                     candidates = try await library?.scanNewTracksForRSSCollection(collectionId: collectionID) ?? []

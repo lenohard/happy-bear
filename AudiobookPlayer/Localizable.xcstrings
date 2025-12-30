@@ -2662,6 +2662,9 @@
         }
       }
     },
+    "Description" : {
+
+    },
     "deselect_all_button" : {
       "comment" : "Deselect all items",
       "extractionState" : "extracted_with_value",
@@ -3773,6 +3776,9 @@
         }
       }
     },
+    "No description" : {
+
+    },
     "No matches found" : {
 
     },
@@ -3792,6 +3798,12 @@
 
     },
     "No STT Jobs" : {
+
+    },
+    "No summary" : {
+
+    },
+    "No summary body" : {
 
     },
     "No TTS Jobs" : {
@@ -4282,6 +4294,9 @@
           }
         }
       }
+    },
+    "Refreshing..." : {
+
     },
     "reload_button" : {
       "comment" : "Reload button",
@@ -5081,6 +5096,9 @@
         }
       }
     },
+    "Source Path" : {
+
+    },
     "sources_title" : {
       "comment" : "Sources view title",
       "localizations" : {
@@ -5188,6 +5206,12 @@
           }
         }
       }
+    },
+    "Summary" : {
+
+    },
+    "Summary generating..." : {
+
     },
     "Tap refresh to load available models." : {
       "localizations" : {
@@ -5421,6 +5445,9 @@
         }
       }
     },
+    "Title" : {
+
+    },
     "total_size_label" : {
       "comment" : "Total size label",
       "extractionState" : "extracted_with_value",
@@ -5432,6 +5459,9 @@
           }
         }
       }
+    },
+    "Track Details" : {
+
     },
     "track_count_and_size" : {
       "comment" : "Track count and size",

@@ -125,6 +125,14 @@ struct CollectionDetailView: View {
             } message: { error in
                 Text(error)
             }
+            .overlay {
+                if viewModel.isRefreshingCollection {
+                    ProgressView("Refreshing...")
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
+                }
+            }
             .alert(
                 "Generate Audio",
                 isPresented: $audioPlayer.showGenerateAudioConfirmation
@@ -206,6 +214,9 @@ struct CollectionDetailView: View {
             }
             .sheet(item: $viewModel.trackForViewing) { track in
                 TranscriptViewerSheet(trackId: track.id.uuidString, trackName: track.displayName, showTrackSummary: true)
+            }
+            .sheet(item: $viewModel.trackForDetails) { track in
+                TrackDetailsSheetView(track: track, collection: viewModel.collection)
             }
             .sheet(item: $viewModel.trackForReading) { track in
                 if let collection = viewModel.collection {
@@ -922,6 +933,12 @@ struct CollectionDetailView: View {
                         }
                     }
                     .contextMenu {
+                        Button {
+                            viewModel.trackForDetails = track
+                        } label: {
+                            Label("Track Details", systemImage: "info.circle")
+                        }
+
                         // Add Read option for text tracks
                         if case .text = track.location {
                             Button {
@@ -1165,6 +1182,96 @@ private struct CollectionInfoEditorView: View {
                 }
             }
         }
+    }
+}
+
+private struct TrackDetailsSheetView: View {
+    let track: AudiobookTrack
+    let collection: AudiobookCollection?
+
+    @StateObject private var summaryViewModel = TrackSummaryViewModel()
+    @State private var isTranscriptAvailable = false
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Title") {
+                    Text(track.displayName)
+                        .textSelection(.enabled)
+                }
+
+                if let sourcePath = sourcePathText(for: track) {
+                    Section("Source Path") {
+                        Text(sourcePath)
+                            .font(.footnote)
+                            .textSelection(.enabled)
+                    }
+                }
+
+                Section("Description") {
+                    if let description = trackDescription(for: track) {
+                        Text(description)
+                            .textSelection(.enabled)
+                    } else {
+                        Text("No description")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                TrackSummaryCard(
+                    track: track,
+                    isTranscriptAvailable: isTranscriptAvailable,
+                    viewModel: summaryViewModel,
+                    seekAndPlayAction: { _ in },
+                    onRequestTranscription: nil,
+                    onRequestTranslations: nil,
+                    isReadOnly: true
+                )
+            }
+            .navigationTitle("Track Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                summaryViewModel.setTrackId(track.id.uuidString)
+                Task { await refreshTranscriptAvailability(for: track.id) }
+            }
+            .onChange(of: track.id) { _, _ in
+                summaryViewModel.setTrackId(track.id.uuidString)
+                Task { await refreshTranscriptAvailability(for: track.id) }
+            }
+        }
+    }
+
+    private func trackDescription(for track: AudiobookTrack) -> String? {
+        let trimmed = track.metadata["description"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (trimmed?.isEmpty ?? true) ? nil : trimmed
+    }
+
+    private func sourcePathText(for track: AudiobookTrack) -> String? {
+        switch track.location {
+        case let .baidu(_, path):
+            return path
+        case let .external(url):
+            return url.absoluteString
+        case let .local(bookmark):
+            var isStale = false
+            if let url = try? URL(
+                resolvingBookmarkData: bookmark,
+                options: .withoutUI,
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) {
+                return url.path
+            }
+            return nil
+        case .text, .cachedText:
+            return nil
+        }
+    }
+
+    @MainActor
+    private func refreshTranscriptAvailability(for trackId: UUID) async {
+        let transcript = try? await GRDBDatabaseManager.shared.loadTranscript(forTrackId: trackId.uuidString)
+        isTranscriptAvailable = transcript != nil
     }
 }
 

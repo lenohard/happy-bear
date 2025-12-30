@@ -65,6 +65,7 @@ struct TrackSummaryCard: View {
     var seekAndPlayAction: (TimeInterval) -> Void
     var onRequestTranscription: (() -> Void)? = nil
     var onRequestTranslations: (() -> Void)? = nil
+    var isReadOnly: Bool = false
 
     @EnvironmentObject private var aiGateway: AIGatewayViewModel
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
@@ -185,7 +186,7 @@ struct TrackSummaryCard: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 
-                if let onRequestTranscription {
+                if let onRequestTranscription, !isReadOnly {
                     Button {
                         onRequestTranscription()
                     } label: {
@@ -238,7 +239,7 @@ struct TrackSummaryCard: View {
 
     private var idleView: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(NSLocalizedString("track_summary_generate_cta", comment: "Track summary description"))
+            Text(isReadOnly ? NSLocalizedString("No summary", comment: "") : NSLocalizedString("track_summary_generate_cta", comment: "Track summary description"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -499,7 +500,7 @@ struct TrackSummaryCard: View {
     }
 
     private var shouldShowActionButton: Bool {
-        isTranscriptAvailable && hasAIBackend
+        !isReadOnly && isTranscriptAvailable && hasAIBackend
     }
 
     private var isActionInFlight: Bool {

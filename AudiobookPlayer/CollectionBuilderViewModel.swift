@@ -130,6 +130,19 @@ final class CollectionBuilderViewModel: ObservableObject {
                     tracks.append(track)
                 }
 
+                let descEntries = allEntries.filter { entry in
+                    guard !entry.isDir else { return false }
+                    let ext = (entry.serverFilename as NSString).pathExtension.lowercased()
+                    return ext == "desc"
+                }
+                if !descEntries.isEmpty {
+                    tracks = await applyDescriptionFiles(
+                        to: tracks,
+                        descEntries: descEntries,
+                        token: token
+                    )
+                }
+
                 // Collect non-playable files for info
                 let nonPlayableFiles = allEntries
                     .filter { !$0.isDir && !PlayableMediaFormat.isPlayableExtension(($0.serverFilename as NSString).pathExtension.lowercased()) }
@@ -223,6 +236,79 @@ final class CollectionBuilderViewModel: ObservableObject {
 
         return allEntries
     }
+
+    private func applyDescriptionFiles(
+        to tracks: [AudiobookTrack],
+        descEntries: [BaiduNetdiskEntry],
+        token: BaiduOAuthToken
+    ) async -> [AudiobookTrack] {
+        let descMap = Self.descEntriesByBaseName(from: descEntries)
+        guard !descMap.isEmpty else { return tracks }
+
+        var updatedTracks = tracks
+        var descCache: [String: String] = [:]
+
+        for index in updatedTracks.indices {
+            let baseName = Self.normalizedBaseName(updatedTracks[index].filename)
+            guard let candidates = descMap[baseName] else { continue }
+
+            let trackPath: String?
+            if case let .baidu(_, path) = updatedTracks[index].location {
+                trackPath = path
+            } else {
+                trackPath = nil
+            }
+
+            guard let descEntry = Self.selectDescEntry(for: trackPath, from: candidates) else { continue }
+
+            let descText: String
+            if let cached = descCache[descEntry.path] {
+                descText = cached
+            } else {
+                do {
+                    descText = try await client.downloadTextFile(path: descEntry.path, token: token)
+                    descCache[descEntry.path] = descText
+                } catch {
+                    continue
+                }
+            }
+
+            let trimmed = descText.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+
+            var track = updatedTracks[index]
+            var metadata = track.metadata
+            metadata["description"] = trimmed
+            track.metadata = metadata
+            updatedTracks[index] = track
+        }
+
+        return updatedTracks
+    }
+
+    private static func normalizedBaseName(_ filename: String) -> String {
+        (filename as NSString).deletingPathExtension.lowercased()
+    }
+
+    private static func descEntriesByBaseName(
+        from entries: [BaiduNetdiskEntry]
+    ) -> [String: [BaiduNetdiskEntry]] {
+        Dictionary(grouping: entries) { entry in
+            normalizedBaseName(entry.serverFilename)
+        }
+    }
+
+    private static func selectDescEntry(
+        for trackPath: String?,
+        from candidates: [BaiduNetdiskEntry]
+    ) -> BaiduNetdiskEntry? {
+        guard let trackPath else { return candidates.first }
+        let trackDirectory = (trackPath as NSString).deletingLastPathComponent
+        if let match = candidates.first(where: { ($0.path as NSString).deletingLastPathComponent == trackDirectory }) {
+            return match
+        }
+        return candidates.first
+    }
 }
 
 // Extension to BaiduNetdiskClient
@@ -233,5 +319,4 @@ extension BaiduNetdiskClient {
         return try await listDirectory(path: path, token: token)
     }
 }
-
 
