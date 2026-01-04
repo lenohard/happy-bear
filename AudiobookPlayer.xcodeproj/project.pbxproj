@@ -85,6 +85,7 @@
 		868447232F04C6A700962FC4 /* TrackChatStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8684471D2F04C6A700962FC4 /* TrackChatStore.swift */; };
 		868447242F04C6A700962FC4 /* TrackChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8684471E2F04C6A700962FC4 /* TrackChatView.swift */; };
 		868447252F04C6A700962FC4 /* TrackChatModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8684471C2F04C6A700962FC4 /* TrackChatModels.swift */; };
+		868447272F0A669400962FC4 /* CoverPhotoCropPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868447262F0A669400962FC4 /* CoverPhotoCropPicker.swift */; };
 		8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */; };
 		8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */; };
 		8685F3632EBE204F003D8173 /* TemporaryPlaybackContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */; };
@@ -227,6 +228,7 @@
 		8684471D2F04C6A700962FC4 /* TrackChatStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackChatStore.swift; sourceTree = "<group>"; };
 		8684471E2F04C6A700962FC4 /* TrackChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackChatView.swift; sourceTree = "<group>"; };
 		8684471F2F04C6A700962FC4 /* TrackChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackChatViewModel.swift; sourceTree = "<group>"; };
+		868447262F0A669400962FC4 /* CoverPhotoCropPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoverPhotoCropPicker.swift; sourceTree = "<group>"; };
 		8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeychainStore.swift; sourceTree = "<group>"; };
 		8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeyViewModel.swift; sourceTree = "<group>"; };
 		8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryPlaybackContext.swift; sourceTree = "<group>"; };
@@ -342,6 +344,7 @@
 				8684471C2F04C6A700962FC4 /* TrackChatModels.swift */,
 				8684471D2F04C6A700962FC4 /* TrackChatStore.swift */,
 				8684471E2F04C6A700962FC4 /* TrackChatView.swift */,
+				868447262F0A669400962FC4 /* CoverPhotoCropPicker.swift */,
 				8684471F2F04C6A700962FC4 /* TrackChatViewModel.swift */,
 				86FE175F2EC2531500027E93 /* ProviderIconView.swift */,
 				86FE17592EC20F6400027E93 /* CacheManagementView.swift */,
@@ -742,6 +745,7 @@
 				8685F36B2EBF3607003D8173 /* TranscriptionRetryManager.swift in Sources */,
 				8603AC0C2EDB648F00889565 /* EbookReaderView.swift in Sources */,
 				8685F36C2EBF3607003D8173 /* TranscriptionJobManager.swift in Sources */,
+				868447272F0A669400962FC4 /* CoverPhotoCropPicker.swift in Sources */,
 				8685F36D2EBF3607003D8173 /* TranscriptViewModel.swift in Sources */,
 				6F99A0012C4C200000AA00AA /* BaiduTokenStore.swift in Sources */,
 				6F6E7F6F2C4A9B0500AA00AB /* BaiduOAuth.swift in Sources */,

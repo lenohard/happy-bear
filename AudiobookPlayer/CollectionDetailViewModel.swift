@@ -1,7 +1,7 @@
 import SwiftUI
 import Combine
 import GRDB
-import PhotosUI
+import UIKit
 
 @MainActor
 final class CollectionDetailViewModel: ObservableObject {
@@ -42,7 +42,6 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var transcriptDeletionError: String?
     @Published var showTranscriptDeletionError = false
     @Published var tracksWithSummaries: Set<UUID> = []
-    @Published var coverPhotoItem: PhotosPickerItem?
     @Published var showCoverFileImporter = false
     @Published var showCoverPhotosPicker = false
     @Published var isUpdatingCover = false
@@ -515,11 +514,11 @@ final class CollectionDetailViewModel: ObservableObject {
         }
     }
     
-    func handlePhotosPickerSelection(_ item: PhotosPickerItem) {
+    func handleCroppedCoverImage(_ image: UIImage) {
         Task {
             do {
-                guard let data = try await item.loadTransferable(type: Data.self) else {
-                    throw CollectionCoverImageStore.CoverError.invalidData
+                guard let data = image.jpegData(compressionQuality: 0.95) else {
+                    throw CollectionCoverImageStore.CoverError.encodingFailed
                 }
                 await applyCoverImageData(data)
             } catch {
@@ -527,9 +526,6 @@ final class CollectionDetailViewModel: ObservableObject {
                     coverUpdateError = error.localizedDescription
                     showCoverUpdateError = true
                 }
-            }
-            await MainActor.run {
-                coverPhotoItem = nil
             }
         }
     }

@@ -242,7 +242,11 @@ struct CollectionDetailView: View {
                     )
                 }
             }
-            .photosPicker(isPresented: $viewModel.showCoverPhotosPicker, selection: $viewModel.coverPhotoItem, matching: .images)
+            .sheet(isPresented: $viewModel.showCoverPhotosPicker) {
+                CoverPhotoCropPicker(isPresented: $viewModel.showCoverPhotosPicker) { image in
+                    viewModel.handleCroppedCoverImage(image)
+                }
+            }
             .fileImporter(isPresented: $viewModel.showCoverFileImporter, allowedContentTypes: [.image]) { result in
                 viewModel.handleCoverFileImport(result)
             }
@@ -354,10 +358,6 @@ struct CollectionDetailView: View {
             }
             .onChange(of: audioPlayer.activeCollection?.id) {
                 viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
-            }
-            .onChange(of: viewModel.coverPhotoItem) { newItem in
-                guard let newItem else { return }
-                viewModel.handlePhotosPickerSelection(newItem)
             }
 
         return viewWithStateEvents
