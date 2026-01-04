@@ -660,9 +660,9 @@ struct PlayingView: View {
                 // Centered Playback Buttons
                 HStack(spacing: 45) {
                     Button {
-                        audioPlayer.skipBackward(by: 15)
+                        audioPlayer.playPreviousTrack()
                     } label: {
-                        Image(systemName: "gobackward.15")
+                        Image(systemName: "backward.end.fill")
                             .font(.system(size: 28))
                     }
 
@@ -674,9 +674,9 @@ struct PlayingView: View {
                     }
 
                     Button {
-                        audioPlayer.skipForward(by: 30)
+                        audioPlayer.playNextTrack()
                     } label: {
-                        Image(systemName: "goforward.30")
+                        Image(systemName: "forward.end.fill")
                             .font(.system(size: 28))
                     }
                 }
