@@ -557,6 +557,28 @@ final class CollectionDetailViewModel: ObservableObject {
         }
     }
 
+    func updatePlaybackProgress(
+        trackID: UUID,
+        position: TimeInterval,
+        duration: TimeInterval?
+    ) {
+        let now = Date()
+        library?.recordPlaybackProgress(
+            collectionID: collectionID,
+            trackID: trackID,
+            position: position,
+            duration: duration
+        )
+
+        var state = playbackStateSnapshot[trackID] ?? TrackPlaybackState(position: position, duration: duration, updatedAt: now)
+        state.position = position
+        if let duration {
+            state.duration = duration
+        }
+        state.updatedAt = now
+        playbackStateSnapshot[trackID] = state
+    }
+
     func applyCoverImageData(_ data: Data) async {
         await MainActor.run {
             isUpdatingCover = true

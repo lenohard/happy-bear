@@ -891,6 +891,16 @@ struct CollectionDetailView: View {
                         onToggleFavorite: {
                             library.toggleFavorite(for: track.id, in: collection.id)
                             audioPlayer.notifyFavoriteToggle(for: track.id)
+                        },
+                        onSeek: { time in
+                            audioPlayer.seek(to: time)
+                        },
+                        onUpdateProgress: { position, duration in
+                            viewModel.updatePlaybackProgress(
+                                trackID: track.id,
+                                position: position,
+                                duration: duration
+                            )
                         }
                     )
                     .equatable()
@@ -1423,6 +1433,11 @@ private struct TrackDetailRow: View, Equatable {
     let isTranscribing: Bool
     let onSelect: () -> Void
     let onToggleFavorite: () -> Void
+    let onSeek: (TimeInterval) -> Void
+    let onUpdateProgress: (TimeInterval, TimeInterval?) -> Void
+
+    @State private var scrubValue: Double = 0
+    @State private var isScrubbing = false
 
     static func == (lhs: TrackDetailRow, rhs: TrackDetailRow) -> Bool {
         lhs.index == rhs.index &&
@@ -1473,6 +1488,15 @@ private struct TrackDetailRow: View, Equatable {
             }
         }
         .padding(.vertical, 2)
+        .onAppear {
+            syncScrubValueIfNeeded()
+        }
+        .onChange(of: playbackState?.position ?? 0) { _ in
+            syncScrubValueIfNeeded()
+        }
+        .onChange(of: playbackState?.duration ?? 0) { _ in
+            syncScrubValueIfNeeded()
+        }
     }
 
     private var playPauseButton: some View {
@@ -1580,14 +1604,14 @@ private struct TrackDetailRow: View, Equatable {
             if !collection.isMusic, let state = playbackState, state.position > 1 {
                 HStack(spacing: 8) {
                     if let duration = state.duration, duration > 0 {
-                        let clampedPosition = min(state.position, duration)
+                        let clampedPosition = min(effectivePosition ?? state.position, duration)
                         Text("\(clampedPosition.formattedTimestamp) / \(duration.formattedTimestamp)")
                     } else {
-                        Text("Last: \(state.position.formattedTimestamp)")
+                        Text("Last: \((effectivePosition ?? state.position).formattedTimestamp)")
                     }
 
                     if let duration = state.duration, duration > 0 {
-                        Text(percentString(position: min(state.position, duration), duration: duration))
+                        Text(percentString(position: min(effectivePosition ?? state.position, duration), duration: duration))
                     }
                 }
                 .font(.caption2.monospacedDigit())
@@ -1608,15 +1632,45 @@ private struct TrackDetailRow: View, Equatable {
     private var progressSummaryView: some View {
         if !collection.isMusic, let state = playbackState, state.position > 1 {
             if let duration = state.duration, duration > 0 {
-                let clampedPosition = min(state.position, duration)
-                ProgressView(value: clampedPosition, total: duration)
-                    .progressViewStyle(.linear)
+                let clampedPosition = min(effectivePosition ?? state.position, duration)
+                Slider(
+                    value: Binding(
+                        get: { clampedPosition },
+                        set: { newValue in
+                            scrubValue = newValue
+                            if isActive {
+                                onSeek(newValue)
+                            }
+                        }
+                    ),
+                    in: 0...max(duration, 1),
+                    onEditingChanged: { editing in
+                        if !editing, !isActive {
+                            onUpdateProgress(scrubValue, duration)
+                        }
+                        isScrubbing = editing
+                    }
+                )
+                .tint(Color.accentColor)
             } else {
                 Text("Last position: \(state.position.formattedTimestamp)")
                     .font(.caption2.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private var effectivePosition: TimeInterval? {
+        if isScrubbing {
+            return scrubValue
+        }
+        return playbackState?.position
+    }
+
+    private func syncScrubValueIfNeeded() {
+        guard !isScrubbing else { return }
+        guard let state = playbackState else { return }
+        scrubValue = state.position
     }
 
     private func percentString(position: TimeInterval, duration: TimeInterval) -> String {
