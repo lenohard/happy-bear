@@ -10,6 +10,9 @@
     "--" : {
 
     },
+    "(%@)" : {
+
+    },
     "%@" : {
 
     },
@@ -104,6 +107,9 @@
           }
         }
       }
+    },
+    "%lld tokens" : {
+
     },
     "%lld tracks" : {
 
@@ -1445,17 +1451,6 @@
     "Apply All" : {
 
     },
-    "Archive" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "归档"
-          }
-        }
-      }
-    },
     "archived_collections_hint" : {
       "comment" : "Empty state hint for archived collections",
       "extractionState" : "extracted_with_value",
@@ -2035,6 +2030,9 @@
         }
       }
     },
+    "Chat about this track" : {
+
+    },
     "christmas_theme_footer" : {
       "comment" : "Christmas theme footer",
       "extractionState" : "extracted_with_value",
@@ -2519,17 +2517,6 @@
         }
       }
     },
-    "Delete %lld corrections?" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除 %lld修改"
-          }
-        }
-      }
-    },
     "Delete Folder" : {
 
     },
@@ -2719,24 +2706,6 @@
     },
     "Done" : {
 
-    },
-    "done_button" : {
-      "comment" : "Done button",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Done"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "完成"
-          }
-        }
-      }
     },
     "download_button_downloaded" : {
       "comment" : "Downloaded button label",
@@ -3692,17 +3661,6 @@
         }
       }
     },
-    "Move Out" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "移除"
-          }
-        }
-      }
-    },
     "Move to Folder" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3801,9 +3759,6 @@
 
     },
     "No summary" : {
-
-    },
-    "No summary body" : {
 
     },
     "No TTS Jobs" : {
@@ -4522,24 +4477,6 @@
         }
       }
     },
-    "rss_collection_indicator_accessibility" : {
-      "comment" : "Indicator for RSS collection",
-      "extractionState" : "stale",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "RSS collection"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "RSS合集"
-          }
-        }
-      }
-    },
     "rss_collection_title_field" : {
       "comment" : "Title field",
       "extractionState" : "extracted_with_value",
@@ -5207,12 +5144,6 @@
         }
       }
     },
-    "Summary" : {
-
-    },
-    "Summary generating..." : {
-
-    },
     "Tap refresh to load available models." : {
       "localizations" : {
         "zh-Hans" : {
@@ -5462,6 +5393,436 @@
     },
     "Track Details" : {
 
+    },
+    "track_chat_apply" : {
+      "comment" : "Apply",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "应用"
+          }
+        }
+      }
+    },
+    "track_chat_close" : {
+      "comment" : "Close",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
+          }
+        }
+      }
+    },
+    "track_chat_context_sources" : {
+      "comment" : "Context Sources",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context Sources"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下文"
+          }
+        }
+      }
+    },
+    "track_chat_context_title" : {
+      "comment" : "Context",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Context"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上下文"
+          }
+        }
+      }
+    },
+    "track_chat_copy" : {
+      "comment" : "Copy",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "复制"
+          }
+        }
+      }
+    },
+    "track_chat_deep_thinking" : {
+      "comment" : "Deep Thinking",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deep Thinking"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "深度思考"
+          }
+        }
+      }
+    },
+    "track_chat_default_session_title" : {
+      "comment" : "Chat %@",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat %@"
+          }
+        }
+      }
+    },
+    "track_chat_done" : {
+      "comment" : "Done",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
+    },
+    "track_chat_history_sheet_title" : {
+      "comment" : "Chat History",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chat History"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "聊天历史"
+          }
+        }
+      }
+    },
+    "track_chat_history_title" : {
+      "comment" : "History",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "History"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "历史"
+          }
+        }
+      }
+    },
+    "track_chat_input_placeholder" : {
+      "comment" : "Ask about this track",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask about this track"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关于此音频理解更多"
+          }
+        }
+      }
+    },
+    "track_chat_no_context" : {
+      "comment" : "No context available.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No context available."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有上下文"
+          }
+        }
+      }
+    },
+    "track_chat_preview" : {
+      "comment" : "Preview",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preview"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "预览"
+          }
+        }
+      }
+    },
+    "track_chat_save_failed" : {
+      "comment" : "Failed to save message",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Failed to save message"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存失败"
+          }
+        }
+      }
+    },
+    "track_chat_scope_auto" : {
+      "comment" : "Auto",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动"
+          }
+        }
+      }
+    },
+    "track_chat_scope_full" : {
+      "comment" : "Full",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部"
+          }
+        }
+      }
+    },
+    "track_chat_scope_recent" : {
+      "comment" : "Recent",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recent"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最新"
+          }
+        }
+      }
+    },
+    "track_chat_scope_recent_minutes" : {
+      "comment" : "Last %lld minutes",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Last %lld minutes"
+          }
+        }
+      }
+    },
+    "track_chat_select_model" : {
+      "comment" : "Select Model",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select Model"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择模型"
+          }
+        }
+      }
+    },
+    "track_chat_source_collection_info" : {
+      "comment" : "Collection info",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collection info"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "合集信息"
+          }
+        }
+      }
+    },
+    "track_chat_source_track_info" : {
+      "comment" : "Track info",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track info"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音频信息"
+          }
+        }
+      }
+    },
+    "track_chat_source_transcript" : {
+      "comment" : "Transcript",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录"
+          }
+        }
+      }
+    },
+    "track_chat_thinking" : {
+      "comment" : "Thinking...",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Thinking..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "思考中"
+          }
+        }
+      }
+    },
+    "track_chat_title_fallback" : {
+      "comment" : "Track Chat",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Track Chat"
+          }
+        }
+      }
+    },
+    "track_chat_transcript_scope" : {
+      "comment" : "Scope\nTranscript Scope",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript Scope"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "转录范围"
+          }
+        }
+      }
+    },
+    "track_chat_transcript_truncated" : {
+      "comment" : "Transcript truncated",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript truncated for context length."
+          }
+        }
+      }
+    },
+    "track_chat_transcript_unavailable" : {
+      "comment" : "Transcript not available",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transcript not available for this track."
+          }
+        }
+      }
     },
     "track_count_and_size" : {
       "comment" : "Track count and size",

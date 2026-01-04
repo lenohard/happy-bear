@@ -213,3 +213,4 @@ Run `./scripts/generate-app-icons.sh <source-image-path>` to generate all sizes.
 
 ## Docs
 local/feat/*.md include some detailed refrences docs for some of the features. You can always refer to them firstly to quickly become familiar with them. And remember that when you made some changes, you shoud decide if the related doc should be updated once I have confirm it.
+it's not only feat doc, it's also the technical reference doc as well.

@@ -218,6 +218,9 @@ struct CollectionDetailView: View {
             .sheet(item: $viewModel.trackForDetails) { track in
                 TrackDetailsSheetView(track: track, collection: viewModel.collection)
             }
+            .sheet(item: $viewModel.trackForChat) { track in
+                TrackChatSheetWrapper(trackId: track.id.uuidString, collectionId: viewModel.collectionID.uuidString)
+            }
             .sheet(item: $viewModel.trackForReading) { track in
                 if let collection = viewModel.collection {
                     NavigationStack {
@@ -937,6 +940,12 @@ struct CollectionDetailView: View {
                             viewModel.trackForDetails = track
                         } label: {
                             Label("Track Details", systemImage: "info.circle")
+                        }
+
+                        Button {
+                            viewModel.trackForChat = track
+                        } label: {
+                            Label("Chat about this track", systemImage: "bubble.left.and.text.bubble.right")
                         }
 
                         // Add Read option for text tracks

@@ -79,6 +79,12 @@
 		868447162F018E0700962FC4 /* RemoteJobsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868447142F018E0700962FC4 /* RemoteJobsStore.swift */; };
 		868447172F018E0700962FC4 /* RemoteJobsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868447152F018E0700962FC4 /* RemoteJobsView.swift */; };
 		868447192F02723700962FC4 /* RemoteJobsClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 868447182F02723700962FC4 /* RemoteJobsClient.swift */; };
+		868447202F04C6A700962FC4 /* TrackChatContextBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8684471A2F04C6A700962FC4 /* TrackChatContextBuilder.swift */; };
+		868447212F04C6A700962FC4 /* TrackChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8684471F2F04C6A700962FC4 /* TrackChatViewModel.swift */; };
+		868447222F04C6A700962FC4 /* TrackChatDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8684471B2F04C6A700962FC4 /* TrackChatDatabaseSchema.swift */; };
+		868447232F04C6A700962FC4 /* TrackChatStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8684471D2F04C6A700962FC4 /* TrackChatStore.swift */; };
+		868447242F04C6A700962FC4 /* TrackChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8684471E2F04C6A700962FC4 /* TrackChatView.swift */; };
+		868447252F04C6A700962FC4 /* TrackChatModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8684471C2F04C6A700962FC4 /* TrackChatModels.swift */; };
 		8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */; };
 		8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */; };
 		8685F3632EBE204F003D8173 /* TemporaryPlaybackContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */; };
@@ -215,6 +221,12 @@
 		868447142F018E0700962FC4 /* RemoteJobsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteJobsStore.swift; sourceTree = "<group>"; };
 		868447152F018E0700962FC4 /* RemoteJobsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteJobsView.swift; sourceTree = "<group>"; };
 		868447182F02723700962FC4 /* RemoteJobsClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteJobsClient.swift; sourceTree = "<group>"; };
+		8684471A2F04C6A700962FC4 /* TrackChatContextBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackChatContextBuilder.swift; sourceTree = "<group>"; };
+		8684471B2F04C6A700962FC4 /* TrackChatDatabaseSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackChatDatabaseSchema.swift; sourceTree = "<group>"; };
+		8684471C2F04C6A700962FC4 /* TrackChatModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackChatModels.swift; sourceTree = "<group>"; };
+		8684471D2F04C6A700962FC4 /* TrackChatStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackChatStore.swift; sourceTree = "<group>"; };
+		8684471E2F04C6A700962FC4 /* TrackChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackChatView.swift; sourceTree = "<group>"; };
+		8684471F2F04C6A700962FC4 /* TrackChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackChatViewModel.swift; sourceTree = "<group>"; };
 		8685F35E2EBE17D5003D8173 /* SonioxKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeychainStore.swift; sourceTree = "<group>"; };
 		8685F35F2EBE17D5003D8173 /* SonioxKeyViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SonioxKeyViewModel.swift; sourceTree = "<group>"; };
 		8685F3622EBE204F003D8173 /* TemporaryPlaybackContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TemporaryPlaybackContext.swift; sourceTree = "<group>"; };
@@ -325,6 +337,12 @@
 				8603AC042EDAF98D00889565 /* FloatingBubbleWindowManager.swift */,
 				8603AC052EDAF98D00889565 /* SonioxSTTView.swift */,
 				6F6E7F6E2C4A9B0500AA00AA /* AudiobookPlayerApp.swift */,
+				8684471A2F04C6A700962FC4 /* TrackChatContextBuilder.swift */,
+				8684471B2F04C6A700962FC4 /* TrackChatDatabaseSchema.swift */,
+				8684471C2F04C6A700962FC4 /* TrackChatModels.swift */,
+				8684471D2F04C6A700962FC4 /* TrackChatStore.swift */,
+				8684471E2F04C6A700962FC4 /* TrackChatView.swift */,
+				8684471F2F04C6A700962FC4 /* TrackChatViewModel.swift */,
 				86FE175F2EC2531500027E93 /* ProviderIconView.swift */,
 				86FE17592EC20F6400027E93 /* CacheManagementView.swift */,
 				86FE175A2EC20F6400027E93 /* DownloadButton.swift */,
@@ -632,6 +650,12 @@
 				E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */,
 				8685F3602EBE17D6003D8173 /* SonioxKeychainStore.swift in Sources */,
 				8685F3612EBE17D6003D8173 /* SonioxKeyViewModel.swift in Sources */,
+				868447202F04C6A700962FC4 /* TrackChatContextBuilder.swift in Sources */,
+				868447212F04C6A700962FC4 /* TrackChatViewModel.swift in Sources */,
+				868447222F04C6A700962FC4 /* TrackChatDatabaseSchema.swift in Sources */,
+				868447232F04C6A700962FC4 /* TrackChatStore.swift in Sources */,
+				868447242F04C6A700962FC4 /* TrackChatView.swift in Sources */,
+				868447252F04C6A700962FC4 /* TrackChatModels.swift in Sources */,
 				5699532872F14F318BCED8CE /* CollectionBuilderViewModel.swift in Sources */,
 				869F06BE2ED6200A00B79131 /* TranscriptCorrectionsView.swift in Sources */,
 				86FC75842EC7244600E7AEB8 /* UserDataBackupManager.swift in Sources */,

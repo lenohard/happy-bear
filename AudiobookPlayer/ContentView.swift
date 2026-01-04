@@ -449,7 +449,10 @@ struct PlayingView: View {
 
                 Spacer()
 
-                transcriptButton(for: snapshot.track, in: snapshot.collection)
+                HStack(spacing: 8) {
+                    chatButton(for: snapshot.track, in: snapshot.collection)
+                    transcriptButton(for: snapshot.track, in: snapshot.collection)
+                }
             }
 
             liveTimeline()
@@ -819,6 +822,26 @@ struct PlayingView: View {
         case .unknown:
             EmptyView()
         }
+    }
+
+    private func chatButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
+        NavigationLink {
+            TrackChatView(
+                trackId: track.id.uuidString,
+                collectionId: collection.id.uuidString
+            )
+        } label: {
+            Image(systemName: "bubble.left.and.text.bubble.right")
+                .font(.headline)
+                .foregroundStyle(.white)
+                .padding(10)
+                .background(
+                    Circle()
+                        .fill(Color.accentColor.opacity(0.85))
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Chat about this track")
     }
 
     private var hasPreviousTrack: Bool {

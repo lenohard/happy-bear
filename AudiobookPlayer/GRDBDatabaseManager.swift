@@ -78,6 +78,10 @@ actor GRDBDatabaseManager {
             try addStreamedReasoningColumnIfNeeded(in: db)
             AppLog.debug("[GRDB] AI generation tables created")
 
+            AppLog.debug("[GRDB] Executing track chat schema...")
+            try db.execute(sql: TrackChatDatabaseSchema.createTableSQL)
+            AppLog.debug("[GRDB] Track chat tables created")
+
             // Create listening statistics table
             AppLog.debug("[GRDB] Creating listening statistics table...")
             try db.execute(sql: """

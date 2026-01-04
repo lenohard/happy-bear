@@ -33,6 +33,7 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var trackForReading: AudiobookTrack?
     @Published var trackForTTSProgress: AudiobookTrack?
     @Published var trackForDetails: AudiobookTrack?
+    @Published var trackForChat: AudiobookTrack?
     @Published var transcriptStatusCache: [UUID: Bool] = [:]
     @Published var pendingAutoFocusTrackId: UUID?
     @Published var didAutoFocusTrack = false

@@ -54,12 +54,33 @@ final class AIGatewayClient {
         onStreamDelta: ((StreamDelta) -> Void)? = nil,
         onStreamFallback: (() -> Void)? = nil
     ) async throws -> ChatCompletionsResponse {
+        let messages: [[String: Any]] = [
+            ["role": "system", "content": systemPrompt],
+            ["role": "user", "content": userPrompt]
+        ]
+        return try await sendChatMessages(
+            apiKey: apiKey,
+            model: model,
+            messages: messages,
+            temperature: temperature,
+            reasoning: reasoning,
+            onStreamDelta: onStreamDelta,
+            onStreamFallback: onStreamFallback
+        )
+    }
+
+    func sendChatMessages(
+        apiKey: String,
+        model: String,
+        messages: [[String: Any]],
+        temperature: Double = 0.7,
+        reasoning: AIGatewayReasoningConfig? = nil,
+        onStreamDelta: ((StreamDelta) -> Void)? = nil,
+        onStreamFallback: (() -> Void)? = nil
+    ) async throws -> ChatCompletionsResponse {
         var payload: [String: Any] = [
             "model": model,
-            "messages": [
-                ["role": "system", "content": systemPrompt],
-                ["role": "user", "content": userPrompt]
-            ],
+            "messages": messages,
             "temperature": temperature,
             "stream": true
         ]
