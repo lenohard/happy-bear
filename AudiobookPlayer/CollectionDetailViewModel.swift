@@ -94,6 +94,7 @@ final class CollectionDetailViewModel: ObservableObject {
     var currentFilterKey: FilterOption = .all
     var currentSortCriterion: SortCriterion = .trackNumber
     var currentSortOrder: SortOrder = .ascending
+    var pagingQueryToken: UUID = UUID()
     
     init(collectionID: UUID) {
         self.collectionID = collectionID
@@ -355,21 +356,34 @@ final class CollectionDetailViewModel: ObservableObject {
         if totalPages > 0, page >= totalPages { return }
         guard let collection else { return }
 
+        let queryToken = pagingQueryToken
+        let query = currentQuery
+        let filterKey = currentFilterKey
+        let sortCriterion = currentSortCriterion
+        let sortOrder = currentSortOrder
+
         _ = await MainActor.run { loadingPages.insert(page) }
 
         do {
             let offset = page * pageSize
             let (tracks, total) = try await GRDBDatabaseManager.shared.fetchTracks(
                 collectionId: collection.id,
-                query: currentQuery,
-                filter: filterDBKey(for: currentFilterKey),
-                sort: sortDBKey(for: currentSortCriterion, order: currentSortOrder),
+                query: query,
+                filter: filterDBKey(for: filterKey),
+                sort: sortDBKey(for: sortCriterion, order: sortOrder),
                 offset: offset,
                 limit: pageSize
             )
 
             let states = try await GRDBDatabaseManager.shared.fetchPlaybackStates(collectionId: collection.id, trackIds: tracks.map { $0.id })
             await MainActor.run {
+                guard queryToken == self.pagingQueryToken else {
+                    self.loadingPages.remove(page)
+                    if page == 0 {
+                        self.isListLoading = false
+                    }
+                    return
+                }
                 totalResults = total
                 totalPages = Int(ceil(Double(totalResults) / Double(pageSize)))
                 // Merge playback state snapshot for these tracks
@@ -390,6 +404,13 @@ final class CollectionDetailViewModel: ObservableObject {
         } catch {
             AppLog.debug("[CollectionDetailViewModel] Failed to load page \(page): \(error)")
             await MainActor.run {
+                if queryToken != self.pagingQueryToken {
+                    self.loadingPages.remove(page)
+                    if page == 0 {
+                        self.isListLoading = false
+                    }
+                    return
+                }
                 loadingPages.remove(page)
                 if page == 0 {
                     isListLoading = false
@@ -420,6 +441,7 @@ final class CollectionDetailViewModel: ObservableObject {
         currentFilterKey = selectedFilter
         currentSortCriterion = selectedCriterion
         currentSortOrder = selectedOrder
+        pagingQueryToken = UUID()
 
         // Always load first page; we no longer preload neighbors to reduce jank.
         await loadPage(0)
