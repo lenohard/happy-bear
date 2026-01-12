@@ -226,6 +226,7 @@ final class AudioPlayerViewModel: ObservableObject {
         startVLCTimeUpdateTimer()
 
         // Start playback
+        beginPlaybackStartupMonitoring()
         player.play()
 
         // Apply pending seek after a short delay to allow VLC to initialize
@@ -275,6 +276,9 @@ final class AudioPlayerViewModel: ObservableObject {
 
         // Update isPlaying state based on VLC state
         let vlcIsPlaying = player.isPlaying
+        if vlcIsPlaying {
+            endPlaybackStartupMonitoring()
+        }
         if isPlaying != vlcIsPlaying {
             isPlaying = vlcIsPlaying
             if !vlcIsPlaying {
@@ -429,6 +433,8 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     private let edgeTTSClient = EdgeTTSClient()
+    private var playbackStartupMonitorTask: Task<Void, Never>?
+    private var lastPlayRequestDate: Date?
 
     func play(
         track: AudiobookTrack,
@@ -1121,15 +1127,17 @@ final class AudioPlayerViewModel: ObservableObject {
         handlePlayPauseRequest()
     }
 
-    func handlePlayPauseRequest(forcePlay: Bool = false) {
+func handlePlayPauseRequest(forcePlay: Bool = false) {
         #if canImport(MobileVLCKit)
         // Handle VLC audio playback
         if usingVLCAudio, let vlcPlayer = vlcPlayer {
             if isPlaying && !forcePlay {
                 vlcPlayer.pause()
                 isPlaying = false
+                endPlaybackStartupMonitoring()
                 flushListeningSession()
             } else {
+                beginPlaybackStartupMonitoring()
                 vlcPlayer.play()
                 isPlaying = true
                 startListeningSession()
@@ -1146,6 +1154,7 @@ final class AudioPlayerViewModel: ObservableObject {
         if isPlaying && !forcePlay {
             player.pause()
             isPlaying = false
+            endPlaybackStartupMonitoring()
             flushListeningSession()
         } else {
             startPlaybackImmediately()
@@ -1812,6 +1821,7 @@ final class AudioPlayerViewModel: ObservableObject {
 
     func startPlaybackImmediately() {
         guard let player else { return }
+        beginPlaybackStartupMonitoring()
         if player.currentItem != nil {
             player.playImmediately(atRate: Float(playbackRate))
         } else {
@@ -1820,12 +1830,40 @@ final class AudioPlayerViewModel: ObservableObject {
         }
     }
 
+    private func beginPlaybackStartupMonitoring() {
+        playbackStartupMonitorTask?.cancel()
+        lastPlayRequestDate = Date()
+
+        playbackStartupMonitorTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+            guard let self, self.lastPlayRequestDate != nil else { return }
+            guard self.isPlaying else { return }
+
+            if let player = self.player, player.timeControlStatus == .waitingToPlayAtSpecifiedRate {
+                self.statusMessage = "Buffering… check network or file access."
+            }
+
+            #if canImport(MobileVLCKit)
+            if self.usingVLCAudio, let vlcPlayer = self.vlcPlayer, !vlcPlayer.isPlaying {
+                self.statusMessage = "Starting playback… check network or file access."
+            }
+            #endif
+        }
+    }
+
+    private func endPlaybackStartupMonitoring() {
+        lastPlayRequestDate = nil
+        playbackStartupMonitorTask?.cancel()
+        playbackStartupMonitorTask = nil
+    }
+
     func stopPlayback(clearQueue: Bool) {
         if let currentTrack {
             progressTracker.stopTracking(for: currentTrack.id.uuidString)
         }
 
         flushListeningSession()
+        endPlaybackStartupMonitoring()
 
         sleepTimer?.invalidate()
         sleepTimer = nil
@@ -2396,6 +2434,7 @@ private extension AudioPlayerViewModel {
                     if self.isPlaying {
                         AppLog.debug("[AudioPlayer] Detected external pause, updating state")
                         self.isPlaying = false
+                        self.endPlaybackStartupMonitoring()
                         self.flushListeningSession()
                         // We don't need to set rate to 0 here as pause implies it,
                         // but we should ensure UI reflects state.
@@ -2406,6 +2445,7 @@ private extension AudioPlayerViewModel {
                         self.isPlaying = true
                         self.startListeningSession()
                     }
+                    self.endPlaybackStartupMonitoring()
                 case .waitingToPlayAtSpecifiedRate:
                     break
                 @unknown default:

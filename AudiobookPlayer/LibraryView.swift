@@ -35,6 +35,13 @@ struct LibraryView: View {
         library.collections.filter { $0.folderId == nil && !$0.isArchived }
     }
 
+    private var eligibleCollectionsForRandomPlay: [AudiobookCollection] {
+        library.collections.filter { collection in
+            !collection.isArchived
+                && collection.trackCount > 0
+        }
+    }
+
     private var importMenu: some View {
         Menu {
             Button {
@@ -97,6 +104,16 @@ struct LibraryView: View {
         } label: {
             Label(NSLocalizedString("reload_button", comment: "Reload button"), systemImage: "arrow.clockwise")
         }
+    }
+
+    private var randomCollectionButton: some View {
+        Button {
+            playRandomCollectionFromLibrary()
+        } label: {
+            Image(systemName: "dice")
+        }
+        .disabled(eligibleCollectionsForRandomPlay.isEmpty)
+        .accessibilityLabel(NSLocalizedString("random_collection", comment: "Random collection button"))
     }
 
     @ViewBuilder
@@ -167,6 +184,9 @@ struct LibraryView: View {
             mainContent
                 .navigationTitle(themeManager.colors.isFestive ? "🎄 " + NSLocalizedString("library_title", comment: "Library view title") : NSLocalizedString("library_title", comment: "Library view title"))
                 .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        randomCollectionButton
+                    }
                     ToolbarItemGroup(placement: .topBarTrailing) {
                         importMenu
                         archivedButton
@@ -313,6 +333,11 @@ struct LibraryView: View {
                 }
             }
         }
+    }
+
+    private func playRandomCollectionFromLibrary() {
+        guard let randomCollection = eligibleCollectionsForRandomPlay.randomElement() else { return }
+        resumeCollectionPlayback(randomCollection)
     }
 
     private func delete(at offsets: IndexSet) {
@@ -796,7 +821,10 @@ struct FolderDetailView: View {
             await library.ensureCollectionLoaded(collection.id)
             await MainActor.run {
                 guard let updatedCollection = library.collections.first(where: { $0.id == collection.id }) else { return }
-                guard !updatedCollection.tracks.isEmpty else { return }
+                guard !updatedCollection.tracks.isEmpty else {
+                    audioPlayer.statusMessage = "\"\(updatedCollection.title)\" has no tracks to play."
+                    return
+                }
 
                 if updatedCollection.isMusic {
                     var collectionToPlay = updatedCollection
@@ -804,10 +832,16 @@ struct FolderDetailView: View {
                         library.updateShuffle(true, for: collectionToPlay.id)
                         collectionToPlay.shuffleEnabled = true
                     }
-                    guard let randomTrack = collectionToPlay.tracks.randomElement() else { return }
+                    guard let randomTrack = collectionToPlay.tracks.randomElement() else {
+                        audioPlayer.statusMessage = "Unable to pick a random track."
+                        return
+                    }
                     playTrack(randomTrack, in: collectionToPlay)
                 } else {
-                    guard let track = updatedCollection.resumeTrack() else { return }
+                    guard let track = updatedCollection.resumeTrack() else {
+                        audioPlayer.statusMessage = "Unable to find a track to resume."
+                        return
+                    }
                     playTrack(track, in: updatedCollection)
                 }
             }
@@ -817,6 +851,7 @@ struct FolderDetailView: View {
     private func playTrack(_ track: AudiobookTrack, in collection: AudiobookCollection) {
         if case .baiduNetdisk(_, _) = collection.source {
             guard let token = authViewModel.token else {
+                audioPlayer.statusMessage = NSLocalizedString("connect_baidu_before_stream", comment: "Alert message to sign in before streaming")
                 tabSelection.selectedTab = .personal
                 authViewModel.signIn()
                 return

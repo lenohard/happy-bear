@@ -123,7 +123,8 @@ struct ContentView: View {
                         .tag(TabSelectionManager.Tab.personal)
                 }
                 .tint(themeManager.colors.isFestive ? themeManager.colors.festiveRed : .accentColor)
-            }
+
+                PlaybackStatusOverlay()
             }
             .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
                 if library.isLoading {
@@ -138,6 +139,32 @@ struct ContentView: View {
                 handleResumeShortcut()
             }
         }
+        .alert(
+            "Generate Audio",
+            isPresented: $audioPlayer.showGenerateAudioConfirmation
+        ) {
+            Button("Cancel", role: .cancel) {
+                audioPlayer.showGenerateAudioConfirmation = false
+                audioPlayer.trackToGenerateAudio = nil
+            }
+            Button("Generate") {
+                if let track = audioPlayer.trackToGenerateAudio,
+                   let collection = audioPlayer.activeCollection {
+                    audioPlayer.generateAudio(for: track, in: collection, autoPlay: true)
+                } else {
+                    audioPlayer.statusMessage = "Unable to generate audio: missing track or collection context."
+                }
+                audioPlayer.showGenerateAudioConfirmation = false
+                audioPlayer.trackToGenerateAudio = nil
+            }
+        } message: {
+            if let track = audioPlayer.trackToGenerateAudio {
+                Text("Audio has not been generated for \"\(track.displayName)\". Would you like to generate it now?")
+            } else {
+                Text("Audio has not been generated for this track.")
+            }
+        }
+    }
 
     private func handleResumeShortcut() {
         if let activeCollection = audioPlayer.activeCollection,
@@ -160,12 +187,81 @@ struct ContentView: View {
     private func playFromShortcut(collection: AudiobookCollection, track: AudiobookTrack) {
         if case .baiduNetdisk(_, _) = collection.source {
             guard let token = authViewModel.token else {
+                audioPlayer.statusMessage = NSLocalizedString("connect_baidu_before_stream", comment: "Alert message to sign in before streaming")
                 return
             }
             audioPlayer.play(track: track, in: collection, token: token)
         } else {
             audioPlayer.play(track: track, in: collection, token: nil)
         }
+    }
+}
+
+struct PlaybackStatusOverlay: View {
+    @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
+    @State private var activeMessage: String?
+    @State private var hideTask: Task<Void, Never>?
+
+    var body: some View {
+        VStack {
+            if let activeMessage {
+                HStack(spacing: 10) {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundStyle(.blue)
+
+                    Text(activeMessage)
+                        .font(.subheadline)
+                        .lineLimit(3)
+
+                    Spacer(minLength: 0)
+
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(8)
+                            .contentShape(Rectangle())
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 12)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .shadow(color: .black.opacity(0.08), radius: 10, x: 0, y: 4)
+                .padding(.horizontal, 12)
+                .padding(.top, 10)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            Spacer()
+        }
+        .onChange(of: audioPlayer.statusMessage) { _, newValue in
+            guard let newValue else { return }
+            show(newValue)
+        }
+        .onAppear {
+            if let message = audioPlayer.statusMessage {
+                show(message)
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: activeMessage)
+    }
+
+    private func show(_ message: String) {
+        hideTask?.cancel()
+        activeMessage = message
+        let durationSeconds: Double = message.localizedCaseInsensitiveContains("error") ? 7 : 4
+        hideTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: UInt64(durationSeconds * 1_000_000_000))
+            dismiss()
+        }
+    }
+
+    private func dismiss() {
+        hideTask?.cancel()
+        hideTask = nil
+        activeMessage = nil
     }
 }
 
@@ -889,14 +985,15 @@ struct PlayingView: View {
 
     @ViewBuilder
     private func randomCollectionButton(excluding currentCollectionID: UUID) -> some View {
-        // Get collections with playback progress (excluding current one)
         let eligibleCollections = library.collections.filter { collection in
-            !collection.isArchived && collection.id != currentCollectionID && collection.resumeTrack() != nil
+            !collection.isArchived
+                && collection.id != currentCollectionID
+                && collection.trackCount > 0
         }
 
         if !eligibleCollections.isEmpty {
             Button {
-                playRandomCollection(from: eligibleCollections)
+                playRandomCollection(excluding: currentCollectionID)
             } label: {
                 Label(NSLocalizedString("random_collection", comment: "Random collection button"), systemImage: "dice")
             }
@@ -904,10 +1001,37 @@ struct PlayingView: View {
         }
     }
 
-    private func playRandomCollection(from collections: [AudiobookCollection]) {
-        guard let randomCollection = collections.randomElement(),
-              let track = randomCollection.resumeTrack() else { return }
-        resumePlayback(collection: randomCollection, track: track)
+    private func playRandomCollection(excluding currentCollectionID: UUID) {
+        let eligibleCollections = library.collections.filter { collection in
+            !collection.isArchived
+                && collection.id != currentCollectionID
+                && collection.trackCount > 0
+        }
+
+        guard let randomCollection = eligibleCollections.randomElement() else { return }
+
+        Task {
+            await library.ensureCollectionLoaded(randomCollection.id)
+
+            await MainActor.run {
+                guard let updatedCollection = library.collections.first(where: { $0.id == randomCollection.id }) else { return }
+                guard !updatedCollection.tracks.isEmpty else { return }
+
+                if updatedCollection.isMusic {
+                    var collectionToPlay = updatedCollection
+                    if !collectionToPlay.shuffleEnabled {
+                        library.updateShuffle(true, for: collectionToPlay.id)
+                        collectionToPlay.shuffleEnabled = true
+                    }
+
+                    guard let randomTrack = collectionToPlay.tracks.randomElement() else { return }
+                    resumePlayback(collection: collectionToPlay, track: randomTrack)
+                } else {
+                    guard let track = updatedCollection.resumeTrack() else { return }
+                    resumePlayback(collection: updatedCollection, track: track)
+                }
+            }
+        }
     }
 
     private func seekAndPlay(to time: TimeInterval) {
