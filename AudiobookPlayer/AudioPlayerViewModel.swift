@@ -16,7 +16,12 @@ final class AudioPlayerViewModel: ObservableObject {
     /// High-frequency ticks are emitted via `playbackClock` instead of this object.
     var currentTime: Double = 0
     var duration: Double = 0 {
-        didSet { playbackClock.duration = duration }
+        didSet {
+            playbackClock.duration = duration
+#if os(iOS)
+            updateNowPlayingDurationIfNeeded()
+#endif
+        }
     }
     @Published var statusMessage: String?
     @Published private(set) var activeCollection: AudiobookCollection?
@@ -2253,6 +2258,25 @@ private extension AudioPlayerViewModel {
         MPRemoteCommandCenter.shared().likeCommand.isActive = track.isFavorite
 #endif
     }
+
+#if os(iOS)
+    private func updateNowPlayingDurationIfNeeded() {
+        guard !nowPlayingInfo.isEmpty else { return }
+        guard duration.isFinite, duration > 0 else { return }
+
+        let existingValue = nowPlayingInfo[MPMediaItemPropertyPlaybackDuration]
+        let existingDuration: Double = {
+            if let duration = existingValue as? Double { return duration }
+            if let number = existingValue as? NSNumber { return number.doubleValue }
+            return 0
+        }()
+
+        guard abs(existingDuration - duration) >= 0.25 else { return }
+
+        nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+#endif
 
     func updateNowPlayingElapsedTime() {
         guard !nowPlayingInfo.isEmpty else { return }
