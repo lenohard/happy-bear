@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import ImageIO
 
 protocol LibrarySyncing: AnyObject {
     func fetchRemoteCollections() async throws -> [AudiobookCollection]
@@ -211,36 +212,40 @@ final class LibraryStore: ObservableObject {
         preloadCollectionThumbnails()
     }
 
-    /// Preload cover thumbnails into NSCache to prevent disk I/O during scroll
-    private func preloadCollectionThumbnails() {
-        Task.detached(priority: .background) {
-            for collection in await self.collections {
-                guard case let .image(relativePath) = collection.coverAsset.kind else { continue }
-                let cacheKey = relativePath as NSString
+	    /// Preload cover thumbnails into NSCache to prevent disk I/O during scroll
+	    private func preloadCollectionThumbnails() {
+	        Task.detached(priority: .background) {
+	            let collections = Array((await self.collections).prefix(120))
+	            for collection in collections {
+	                guard case let .image(relativePath) = collection.coverAsset.kind else { continue }
+	                let cacheKey = relativePath as NSString
+	
+	                // Skip if already cached
+	                if CollectionCoverArtView.thumbnailCache.object(forKey: cacheKey) != nil {
+	                    continue
+	                }
+	
+	                let url = CollectionCoverImageStore.fileURL(for: relativePath)
+	                guard let thumbnail = Self.downsampleCoverImage(at: url, maxPixelSize: 320) else { continue }
+	                CollectionCoverArtView.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
+	            }
+	        }
+	    }
 
-                // Skip if already cached
-                if CollectionCoverImageStore.cache.object(forKey: cacheKey) != nil {
-                    // Also ensure thumbnail is cached
-                    if CollectionCoverArtView.thumbnailCache.object(forKey: cacheKey) == nil,
-                       let fullImage = CollectionCoverImageStore.cache.object(forKey: cacheKey) {
-                        let thumbnail = fullImage.redraw(to: CGSize(width: 320, height: 320))
-                        CollectionCoverArtView.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
-                    }
-                    continue
-                }
+	    nonisolated private static func downsampleCoverImage(at url: URL, maxPixelSize: CGFloat) -> UIImage? {
+	        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+	        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else { return nil }
 
-                let url = CollectionCoverImageStore.fileURL(for: relativePath)
-                guard let image = UIImage(contentsOfFile: url.path) else { continue }
+	        let options = [
+	            kCGImageSourceCreateThumbnailFromImageAlways: true,
+	            kCGImageSourceCreateThumbnailWithTransform: true,
+	            kCGImageSourceShouldCacheImmediately: true,
+	            kCGImageSourceThumbnailMaxPixelSize: Int(maxPixelSize)
+	        ] as CFDictionary
 
-                // Cache full image
-                CollectionCoverImageStore.cache.setObject(image, forKey: cacheKey)
-
-                // Generate and cache thumbnail (320px for library rows)
-                let thumbnail = image.redraw(to: CGSize(width: 320, height: 320))
-                CollectionCoverArtView.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
-            }
-        }
-    }
+	        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else { return nil }
+	        return UIImage(cgImage: cgImage)
+	    }
 
     func save(_ collection: AudiobookCollection) {
         var updated = collections
@@ -679,6 +684,105 @@ final class LibraryStore: ObservableObject {
         let newTracks = try await scanNewTracksForRSSCollection(collectionId: collectionId)
         addTracks(to: collectionId, tracks: newTracks)
         return newTracks.count
+    }
+
+    func scanAllRSSCollections(onProgress: ((Int, Int) -> Void)? = nil) async -> [UUID: [AudiobookTrack]] {
+        var updates: [UUID: [AudiobookTrack]] = [:]
+        let isoFormatter = ISO8601DateFormatter()
+        let now = Date()
+
+        let rssCollections = collections.filter {
+            if case .rss = $0.source, $0.autoUpdateEnabled { return true }
+            return false
+        }
+
+        let total = rssCollections.count
+        var current = 0
+
+        for collection in rssCollections {
+            do {
+                let newTracks = try await scanNewTracksForRSSCollection(collectionId: collection.id)
+
+                // Determine the threshold date:
+                // 1. Use lastRSSCheckDate if available.
+                // 2. Fallback to the latest pubDate among existing tracks.
+                // 3. If neither, use distantPast (include all).
+
+                let latestTrackDate = collection.tracks.compactMap { track -> Date? in
+                    guard let dateString = track.metadata["pubDate"] else { return nil }
+                    return isoFormatter.date(from: dateString)
+                }.max()
+
+                let thresholdDate = collection.lastRSSCheckDate ?? latestTrackDate ?? Date.distantPast
+
+                let filteredTracks = newTracks.filter { track in
+                    guard let dateString = track.metadata["pubDate"],
+                          let date = isoFormatter.date(from: dateString) else {
+                        return false
+                    }
+                    return date > thresholdDate
+                }.sorted { t1, t2 in
+                    // Sort descending (newest first) for display
+                    let d1 = isoFormatter.date(from: t1.metadata["pubDate"] ?? "")
+                    let d2 = isoFormatter.date(from: t2.metadata["pubDate"] ?? "")
+                    switch (d1, d2) {
+                    case (let date1?, let date2?): return date1 > date2
+                    case (nil, _?): return false
+                    case (_?, nil): return true
+                    case (nil, nil): return t1.displayName < t2.displayName
+                    }
+                }
+
+                if !filteredTracks.isEmpty {
+                    updates[collection.id] = filteredTracks
+                }
+
+                // Update lastRSSCheckDate for this collection
+                await updateLastRSSCheckDate(now, for: collection.id)
+
+            } catch {
+                AppLog.debug("Failed to scan RSS collection \(collection.title): \(error)")
+            }
+
+            current += 1
+            onProgress?(current, total)
+        }
+        return updates
+    }
+
+    func updateLastRSSCheckDate(_ date: Date, for collectionID: UUID) async {
+        await MainActor.run {
+            guard let index = collections.firstIndex(where: { $0.id == collectionID }) else { return }
+            var collection = collections[index]
+            collection.lastRSSCheckDate = date
+            // We don't necessarily need to bump updatedAt for this internal state,
+            // but let's do it to ensure persistence triggers if we rely on it.
+            // However, frequent updates might be noisy. Let's just persist.
+            collections[index] = collection
+
+            if !useFallbackJSON {
+                persistToDatabase(collection)
+            } else {
+                persistCurrentSnapshot()
+            }
+        }
+    }
+
+    func updateAutoUpdateEnabled(_ enabled: Bool, for collectionID: UUID) {
+        guard let index = collections.firstIndex(where: { $0.id == collectionID }) else { return }
+        guard collections[index].autoUpdateEnabled != enabled else { return }
+
+        var collection = collections[index]
+        collection.autoUpdateEnabled = enabled
+        collection.updatedAt = Date()
+        collections[index] = collection
+
+        // Persist to database
+        if !useFallbackJSON {
+            persistToDatabase(collection)
+        } else {
+            persistCurrentSnapshot()
+        }
     }
 
     func clearErrors() {
@@ -1553,13 +1657,8 @@ actor CollectionCoverImageStore {
         }
     }
 
-    static let shared = CollectionCoverImageStore()
-    static let directoryName = "CollectionCovers"
-    nonisolated(unsafe) static let cache: NSCache<NSString, UIImage> = {
-        let cache = NSCache<NSString, UIImage>()
-        cache.countLimit = 200
-        return cache
-    }()
+	    static let shared = CollectionCoverImageStore()
+	    static let directoryName = "CollectionCovers"
 
     nonisolated static var directoryURL: URL {
         return documentsDirectory.appendingPathComponent(directoryName, isDirectory: true)

@@ -45,6 +45,7 @@
 		8603AC162EDCA76200889565 /* PlayableMediaFormat.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC152EDCA76200889565 /* PlayableMediaFormat.swift */; };
 		8603AC1A2EDDF0D100889565 /* TTSJobProgressSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC192EDDF0D100889565 /* TTSJobProgressSheet.swift */; };
 		86056E582EFEAE2E00A427F7 /* Logging.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86056E572EFEAE2E00A427F7 /* Logging.swift */; };
+		860B8B282F1A21AB00C2DB5C /* RSSUpdatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 860B8B272F1A21AB00C2DB5C /* RSSUpdatesView.swift */; };
 		8617DDE82EBE0A26006E7CA7 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */; };
 		8617DDE92EBE0A26006E7CA7 /* DatabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDF2EBE0A26006E7CA7 /* DatabaseConfig.swift */; };
 		8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */; };
@@ -188,6 +189,7 @@
 		8603AC152EDCA76200889565 /* PlayableMediaFormat.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayableMediaFormat.swift; sourceTree = "<group>"; };
 		8603AC192EDDF0D100889565 /* TTSJobProgressSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSJobProgressSheet.swift; sourceTree = "<group>"; };
 		86056E572EFEAE2E00A427F7 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
+		860B8B272F1A21AB00C2DB5C /* RSSUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSSUpdatesView.swift; sourceTree = "<group>"; };
 		8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayClient.swift; sourceTree = "<group>"; };
 		8617DDDA2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayKeychainStore.swift; sourceTree = "<group>"; };
 		8617DDDB2EBE0A26006E7CA7 /* AIGatewayModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayModels.swift; sourceTree = "<group>"; };
@@ -321,6 +323,7 @@
 		6F6E7F672C4A9B0500AA00AA /* AudiobookPlayer */ = {
 			isa = PBXGroup;
 			children = (
+				860B8B272F1A21AB00C2DB5C /* RSSUpdatesView.swift */,
 				688ACB11D5A942F29EFB2321 /* CollectionDetailViewModel.swift */,
 				86056E572EFEAE2E00A427F7 /* Logging.swift */,
 				B1C5E09F2F12300000AAA001 /* InfoPlist.strings */,
@@ -658,6 +661,7 @@
 				868447222F04C6A700962FC4 /* TrackChatDatabaseSchema.swift in Sources */,
 				868447232F04C6A700962FC4 /* TrackChatStore.swift in Sources */,
 				868447242F04C6A700962FC4 /* TrackChatView.swift in Sources */,
+				860B8B282F1A21AB00C2DB5C /* RSSUpdatesView.swift in Sources */,
 				868447252F04C6A700962FC4 /* TrackChatModels.swift in Sources */,
 				5699532872F14F318BCED8CE /* CollectionBuilderViewModel.swift in Sources */,
 				869F06BE2ED6200A00B79131 /* TranscriptCorrectionsView.swift in Sources */,

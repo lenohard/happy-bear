@@ -197,6 +197,7 @@ struct CollectionDetailView: View {
                     description: $viewModel.collectionDescriptionDraft,
                     isMusic: $viewModel.collectionIsMusicDraft,
                     folderPath: $viewModel.collectionFolderPathDraft,
+                    autoUpdateEnabled: viewModel.isRSSCollection ? $viewModel.collectionAutoUpdateEnabledDraft : nil,
                     onSubmit: viewModel.applyCollectionDetailsUpdate,
                     onCancel: viewModel.cancelCollectionDetailsEdit
                 )
@@ -1105,6 +1106,7 @@ private struct CollectionInfoEditorView: View {
     @Binding var description: String
     @Binding var isMusic: Bool
     @Binding var folderPath: String?
+    var autoUpdateEnabled: Binding<Bool>? = nil
     let onSubmit: () -> Void
     let onCancel: () -> Void
 
@@ -1146,6 +1148,10 @@ private struct CollectionInfoEditorView: View {
                         .textInputAutocapitalization(.sentences)
 
                     Toggle("Music Collection", isOn: $isMusic)
+
+                    if let autoUpdateEnabled {
+                        Toggle(NSLocalizedString("rss_auto_update_toggle", value: "Auto-Update RSS", comment: "RSS auto-update toggle"), isOn: autoUpdateEnabled)
+                    }
                 }
 
                 if folderPath != nil {
@@ -1227,16 +1233,6 @@ private struct TrackDetailsSheetView: View {
                     }
                 }
 
-                Section("Description") {
-                    if let description = trackDescription(for: track) {
-                        Text(description)
-                            .textSelection(.enabled)
-                    } else {
-                        Text("No description")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
                 TrackSummaryCard(
                     track: track,
                     isTranscriptAvailable: isTranscriptAvailable,
@@ -1258,11 +1254,6 @@ private struct TrackDetailsSheetView: View {
                 Task { await refreshTranscriptAvailability(for: track.id) }
             }
         }
-    }
-
-    private func trackDescription(for track: AudiobookTrack) -> String? {
-        let trimmed = track.metadata["description"]?.trimmingCharacters(in: .whitespacesAndNewlines)
-        return (trimmed?.isEmpty ?? true) ? nil : trimmed
     }
 
     private func sourcePathText(for track: AudiobookTrack) -> String? {

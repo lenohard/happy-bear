@@ -126,6 +126,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
     var preferredSortOrder: String?
     var folderId: UUID?
     var isArchived: Bool
+    var autoUpdateEnabled: Bool
+    var lastRSSCheckDate: Date?
 
     private enum CodingKeys: String, CodingKey {
         case id
@@ -147,6 +149,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         case preferredSortOrder
         case folderId
         case isArchived
+        case autoUpdateEnabled
+        case lastRSSCheckDate
     }
 
     init(
@@ -167,7 +171,9 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         isMusic: Bool = false,
         preferredSortOrder: String? = nil,
         folderId: UUID? = nil,
-        isArchived: Bool = false
+        isArchived: Bool = false,
+        autoUpdateEnabled: Bool = true,
+        lastRSSCheckDate: Date? = nil
     ) {
         self.id = id
         self.title = title
@@ -187,6 +193,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         self.preferredSortOrder = preferredSortOrder
         self.folderId = folderId
         self.isArchived = isArchived
+        self.autoUpdateEnabled = autoUpdateEnabled
+        self.lastRSSCheckDate = lastRSSCheckDate
     }
 
     init(from decoder: Decoder) throws {
@@ -216,6 +224,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         preferredSortOrder = try container.decodeIfPresent(String.self, forKey: .preferredSortOrder)
         folderId = try container.decodeIfPresent(UUID.self, forKey: .folderId)
         isArchived = try container.decodeIfPresent(Bool.self, forKey: .isArchived) ?? false
+        autoUpdateEnabled = try container.decodeIfPresent(Bool.self, forKey: .autoUpdateEnabled) ?? true
+        lastRSSCheckDate = try container.decodeIfPresent(Date.self, forKey: .lastRSSCheckDate)
 
         let decodedStates = try container.decodeIfPresent([UUID: TrackPlaybackState].self, forKey: .playbackStates) ?? [:]
         if decodedStates.isEmpty,
@@ -253,6 +263,8 @@ struct AudiobookCollection: Identifiable, Codable, Equatable {
         try container.encodeIfPresent(preferredSortOrder, forKey: .preferredSortOrder)
         try container.encodeIfPresent(folderId, forKey: .folderId)
         try container.encode(isArchived, forKey: .isArchived)
+        try container.encode(autoUpdateEnabled, forKey: .autoUpdateEnabled)
+        try container.encodeIfPresent(lastRSSCheckDate, forKey: .lastRSSCheckDate)
     }
     func playbackState(for trackId: UUID) -> TrackPlaybackState? {
         playbackStates[trackId]

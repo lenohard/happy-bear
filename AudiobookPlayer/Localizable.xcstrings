@@ -1013,6 +1013,91 @@
         }
       }
     },
+    "check_rss_updates" : {
+      "comment" : "Check RSS updates button",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Check RSS Updates"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "检查 RSS 更新"
+          }
+        }
+      }
+    },
+    "rss_checking_progress" : {
+      "comment" : "RSS check progress",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking %d/%d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查 %d/%d"
+          }
+        }
+      }
+    },
+    "rss_checking_starting" : {
+      "comment" : "RSS check starting",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting RSS check..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始检查 RSS..."
+          }
+        }
+      }
+    },
+    "rss_updates_title" : {
+      "comment" : "RSS updates view title",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RSS Updates"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "RSS 更新"
+          }
+        }
+      }
+    },
+    "rss_auto_update_toggle" : {
+      "comment" : "RSS auto-update toggle",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Auto-Update RSS"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动更新 RSS"
+          }
+        }
+      }
+    },
     "ai_tab_fetch_credits" : {
       "localizations" : {
         "en" : {
@@ -2036,6 +2121,18 @@
     "Chat about this track" : {
 
     },
+    "check_rss_updates" : {
+      "comment" : "Check RSS updates button",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Check RSS Updates"
+          }
+        }
+      }
+    },
     "christmas_theme_footer" : {
       "comment" : "Christmas theme footer",
       "extractionState" : "extracted_with_value",
@@ -2651,9 +2748,6 @@
           }
         }
       }
-    },
-    "Description" : {
-
     },
     "deselect_all_button" : {
       "comment" : "Deselect all items",
@@ -3737,9 +3831,6 @@
         }
       }
     },
-    "No description" : {
-
-    },
     "No matches found" : {
 
     },
@@ -4462,6 +4553,18 @@
         }
       }
     },
+    "rss_auto_update_toggle" : {
+      "comment" : "RSS auto-update toggle",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Auto-Update RSS"
+          }
+        }
+      }
+    },
     "rss_collection_description_field" : {
       "comment" : "Description field",
       "extractionState" : "extracted_with_value",
@@ -4618,6 +4721,52 @@
         }
       }
     },
+    "rss_checking_progress" : {
+      "comment" : "RSS check progress",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Checking %d/%d"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在检查 %d/%d"
+          }
+        }
+      }
+    },
+    "rss_checking_starting" : {
+      "comment" : "RSS check starting",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Starting RSS check..."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "开始检查 RSS..."
+          }
+        }
+      }
+    },
+    "rss_updates_title" : {
+      "comment" : "RSS updates view title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "RSS Updates"
+          }
+        }
+      }
+    },
     "save_to_library_button" : {
       "comment" : "Save to library button",
       "localizations" : {
@@ -4718,6 +4867,9 @@
           }
         }
       }
+    },
+    "Select All" : {
+
     },
     "select_all_button" : {
       "comment" : "Select all items",
@@ -7198,6 +7350,9 @@
           }
         }
       }
+    },
+    "Unselect All" : {
+
     },
     "unsupported_audio_file_message" : {
       "comment" : "Unsupported audio file message",

@@ -28,6 +28,7 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var collectionDescriptionDraft = ""
     @Published var collectionIsMusicDraft = false
     @Published var collectionFolderPathDraft: String? = nil
+    @Published var collectionAutoUpdateEnabledDraft = true
     @Published var trackForTranscription: AudiobookTrack?
     @Published var trackForViewing: AudiobookTrack?
     @Published var trackForReading: AudiobookTrack?
@@ -122,6 +123,13 @@ final class CollectionDetailViewModel: ObservableObject {
 
     var isEbookCollection: Bool {
         if let collection, case .ebook = collection.source {
+            return true
+        }
+        return false
+    }
+
+    var isRSSCollection: Bool {
+        if let collection, case .rss = collection.source {
             return true
         }
         return false
@@ -964,6 +972,7 @@ final class CollectionDetailViewModel: ObservableObject {
         collectionTitleDraft = String(collection.title.prefix(256))
         collectionDescriptionDraft = String((collection.description ?? "").prefix(1024))
         collectionIsMusicDraft = collection.isMusic
+        collectionAutoUpdateEnabledDraft = collection.autoUpdateEnabled
 
         // Extract folder path if this is a Baidu Netdisk collection
         if case let .baiduNetdisk(folderPath, _) = collection.source {
@@ -1011,7 +1020,11 @@ final class CollectionDetailViewModel: ObservableObject {
             newSource = .baiduNetdisk(folderPath: newPath, tokenScope: tokenScope)
         }
 
-        guard clampedTitle != collection.title || clampedDescription != collection.description || collectionIsMusicDraft != collection.isMusic || newSource != nil else { return }
+        guard clampedTitle != collection.title || clampedDescription != collection.description || collectionIsMusicDraft != collection.isMusic || newSource != nil || collectionAutoUpdateEnabledDraft != collection.autoUpdateEnabled else { return }
+
+        if collectionAutoUpdateEnabledDraft != collection.autoUpdateEnabled {
+            library?.updateAutoUpdateEnabled(collectionAutoUpdateEnabledDraft, for: collectionID)
+        }
 
         library?.updateCollectionDetails(
             collectionID: collectionID,

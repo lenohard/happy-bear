@@ -1,6 +1,7 @@
 import SwiftUI
 #if canImport(UIKit)
 import UIKit
+import ImageIO
 #endif
 import UniformTypeIdentifiers
 
@@ -23,6 +24,9 @@ struct LibraryView: View {
     @State private var isCreatingFolder = false
     @State private var newFolderName = ""
     @State private var hoveringFolder: UUID?
+    @State private var rssUpdates: [UUID: [AudiobookTrack]]?
+    @State private var isScanningRSS = false
+    @State private var rssCheckProgress: String?
 
     private var selectedCollectionID: Binding<UUID?> {
         Binding(
@@ -104,6 +108,19 @@ struct LibraryView: View {
         } label: {
             Label(NSLocalizedString("reload_button", comment: "Reload button"), systemImage: "arrow.clockwise")
         }
+    }
+
+    private var checkRSSButton: some View {
+        Button {
+            checkForRSSUpdates()
+        } label: {
+            if isScanningRSS {
+                ProgressView()
+            } else {
+                Label(NSLocalizedString("check_rss_updates", value: "Check RSS Updates", comment: "Check RSS updates button"), systemImage: "antenna.radiowaves.left.and.right")
+            }
+        }
+        .disabled(isScanningRSS)
     }
 
     private var randomCollectionButton: some View {
@@ -188,6 +205,7 @@ struct LibraryView: View {
                         randomCollectionButton
                     }
                     ToolbarItemGroup(placement: .topBarTrailing) {
+                        checkRSSButton
                         importMenu
                         archivedButton
                         favoritesButton
@@ -195,15 +213,31 @@ struct LibraryView: View {
                     }
                 }
                 .overlay(alignment: .bottom) {
-                    if let message = libraryErrorMessage {
-                        Text(message)
-                            .font(.footnote)
-                            .foregroundStyle(.red)
-                            .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity)
-                            .background(Color(uiColor: .systemBackground))
-                            .overlay(Divider(), alignment: .top)
+                    VStack(spacing: 0) {
+                        if let progress = rssCheckProgress {
+                            Text(progress)
+                                .font(.footnote)
+                                .foregroundStyle(.primary)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(.regularMaterial)
+                                .clipShape(Capsule())
+                                .shadow(radius: 2)
+                                .padding(.bottom, 8)
+                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                        }
+
+                        if let message = libraryErrorMessage {
+                            Text(message)
+                                .font(.footnote)
+                                .foregroundStyle(.red)
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity)
+                                .background(Color(uiColor: .systemBackground))
+                                .overlay(Divider(), alignment: .top)
+                        }
                     }
+                    .animation(.spring(), value: rssCheckProgress)
                 }
         }
         .alert("New Folder", isPresented: $isCreatingFolder) {
@@ -226,6 +260,12 @@ struct LibraryView: View {
                     pendingImport = PendingImport(path: duplicate.path)
                 }
             )
+        }
+        .sheet(item: Binding(
+            get: { rssUpdates.map { RSSUpdatesWrapper(updates: $0) } },
+            set: { if $0 == nil { rssUpdates = nil } }
+        )) { wrapper in
+            RSSUpdatesView(updates: wrapper.updates)
         }
         .sheet(item: Binding(
             get: {
@@ -379,6 +419,27 @@ struct LibraryView: View {
         }
 
         tabSelection.switchToPlayingTab()
+    }
+
+    private func checkForRSSUpdates() {
+        isScanningRSS = true
+        rssCheckProgress = NSLocalizedString("rss_checking_starting", value: "Starting RSS check...", comment: "RSS check starting")
+
+        Task {
+            let updates = await library.scanAllRSSCollections { current, total in
+                Task { @MainActor in
+                    rssCheckProgress = String(format: NSLocalizedString("rss_checking_progress", value: "Checking %d/%d", comment: "RSS check progress"), current, total)
+                }
+            }
+
+            await MainActor.run {
+                isScanningRSS = false
+                rssCheckProgress = nil
+                if !updates.isEmpty {
+                    rssUpdates = updates
+                }
+            }
+        }
     }
 }
 
@@ -613,6 +674,11 @@ private struct PendingImport: Identifiable {
 private struct PendingEbookImport: Identifiable {
     let url: URL
     var id: String { url.absoluteString }
+}
+
+private struct RSSUpdatesWrapper: Identifiable {
+    let id = UUID()
+    let updates: [UUID: [AudiobookTrack]]
 }
 
 // MARK: - Folder Views
@@ -1035,67 +1101,66 @@ struct CollectionCoverArtView: View {
             )
     }
 
-    private func refreshImageIfNeeded(force: Bool = false) {
-        guard case let .image(relativePath) = cover.kind else {
-            localImage = nil
-            cachedRelativePath = nil
-            return
-        }
+	    private func refreshImageIfNeeded(force: Bool = false) {
+	        guard case let .image(relativePath) = cover.kind else {
+	            localImage = nil
+	            cachedRelativePath = nil
+	            return
+	        }
 
         // If we already have this image loaded, skip
         guard force || cachedRelativePath != relativePath || localImage == nil else { return }
 
-        let cacheKey = relativePath as NSString
-        cachedRelativePath = relativePath
+	        let cacheKey = relativePath as NSString
+	        cachedRelativePath = relativePath
+	
+	        // 1. Check thumbnail cache first (fastest) - this is the hot path during scroll
+	        if size <= 160, let cachedThumbnail = Self.thumbnailCache.object(forKey: cacheKey) {
+	            localImage = cachedThumbnail
+	            return
+	        }
 
-        // 1. Check thumbnail cache first (fastest) - this is the hot path during scroll
-        if size <= 160, let cachedThumbnail = Self.thumbnailCache.object(forKey: cacheKey) {
-            localImage = cachedThumbnail
-            return
-        }
+#if canImport(UIKit)
+	        let targetMaxPixelSize = max(320, size * UIScreen.main.scale)
+#else
+	        let targetMaxPixelSize: CGFloat = 320
+#endif
+	
+	        // 2. Disk load - defer to background, don't block scroll
+	        // Only spawn task if we don't already have one running for this path
+	        loadTask?.cancel()
+	
+	        loadTask = Task.detached(priority: .utility) {
+	            let url = CollectionCoverImageStore.fileURL(for: relativePath)
+	            guard let thumbnail = Self.downsampleCoverImage(at: url, maxPixelSize: targetMaxPixelSize) else { return }
+	            Self.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
+	
+	            guard !Task.isCancelled else { return }
+	
+	            await MainActor.run {
+	                if self.cachedRelativePath == relativePath {
+	                    self.localImage = thumbnail
+	                }
+	            }
+	        }
+	    }
 
-        // 2. Check main cache - also fast, no disk I/O
-        if let cached = CollectionCoverImageStore.cache.object(forKey: cacheKey) {
-            localImage = cached
-            // Generate thumbnail in background for next time (non-blocking)
-            if size <= 160 {
-                generateThumbnail(from: cached, key: cacheKey)
-            }
-            return
-        }
+#if canImport(UIKit)
+	    private static func downsampleCoverImage(at url: URL, maxPixelSize: CGFloat) -> UIImage? {
+	        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+	        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else { return nil }
 
-        // 3. Disk load - defer to background, don't block scroll
-        // Only spawn task if we don't already have one running for this path
-        loadTask?.cancel()
+	        let options = [
+	            kCGImageSourceCreateThumbnailFromImageAlways: true,
+	            kCGImageSourceCreateThumbnailWithTransform: true,
+	            kCGImageSourceShouldCacheImmediately: true,
+	            kCGImageSourceThumbnailMaxPixelSize: Int(maxPixelSize)
+	        ] as CFDictionary
 
-        loadTask = Task.detached(priority: .utility) {
-            let url = CollectionCoverImageStore.fileURL(for: relativePath)
-            guard let image = UIImage(contentsOfFile: url.path) else { return }
-
-            // Cache full image
-            CollectionCoverImageStore.cache.setObject(image, forKey: cacheKey)
-
-            // Generate and cache thumbnail
-            let thumbnail = image.redraw(to: CGSize(width: 320, height: 320))
-            Self.thumbnailCache.setObject(thumbnail, forKey: cacheKey)
-
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                if self.cachedRelativePath == relativePath {
-                    self.localImage = self.size <= 160 ? thumbnail : image
-                }
-            }
-        }
-    }
-
-    private func generateThumbnail(from image: UIImage, key: NSString) {
-        Task.detached(priority: .background) {
-            let targetSize = CGSize(width: 320, height: 320)
-            let thumbnail = image.redraw(to: targetSize)
-            Self.thumbnailCache.setObject(thumbnail, forKey: key)
-        }
-    }
+	        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else { return nil }
+	        return UIImage(cgImage: cgImage)
+	    }
+#endif
 
     private func makeInitials(from text: String) -> String {
         let words = text.split(separator: " ")
