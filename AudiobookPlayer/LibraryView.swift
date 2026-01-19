@@ -422,6 +422,20 @@ struct LibraryView: View {
     }
 
     private func checkForRSSUpdates() {
+        let eligibleRSSCollectionCount = library.collections.filter {
+            if case .rss = $0.source, $0.autoUpdateEnabled { return true }
+            return false
+        }.count
+
+        guard eligibleRSSCollectionCount > 0 else {
+            audioPlayer.statusMessage = NSLocalizedString(
+                "rss_checking_no_collections",
+                value: "No RSS collections are enabled for auto-update.",
+                comment: "Toast when there are no RSS collections eligible for checking updates"
+            )
+            return
+        }
+
         isScanningRSS = true
         rssCheckProgress = NSLocalizedString("rss_checking_starting", value: "Starting RSS check...", comment: "RSS check starting")
 
@@ -437,6 +451,12 @@ struct LibraryView: View {
                 rssCheckProgress = nil
                 if !updates.isEmpty {
                     rssUpdates = updates
+                } else {
+                    audioPlayer.statusMessage = NSLocalizedString(
+                        "rss_checking_no_updates",
+                        value: "No new RSS episodes found.",
+                        comment: "Toast when RSS update scan finds no new episodes"
+                    )
                 }
             }
         }

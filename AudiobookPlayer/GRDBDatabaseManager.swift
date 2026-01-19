@@ -51,6 +51,8 @@ actor GRDBDatabaseManager {
             try addCollectionFoldersTableIfNeeded(in: db)
             try addCollectionFolderIdColumnIfNeeded(in: db)
             try addCollectionIsArchivedColumnIfNeeded(in: db)
+            try addCollectionAutoUpdateEnabledColumnIfNeeded(in: db)
+            try addCollectionLastRSSCheckDateColumnIfNeeded(in: db)
             AppLog.debug("[GRDB] Schema tables created")
 
             // Create transcription tables
@@ -135,7 +137,9 @@ actor GRDBDatabaseManager {
                         is_music = ?,
                         preferred_sort_order = ?,
                         folder_id = ?,
-                        is_archived = ?
+                        is_archived = ?,
+                        auto_update_enabled = ?,
+                        last_rss_check_date = ?
                     WHERE id = ?
                     """,
                     arguments: [
@@ -153,6 +157,8 @@ actor GRDBDatabaseManager {
                         collection.preferredSortOrder,
                         collection.folderId?.uuidString,
                         collection.isArchived ? 1 : 0,
+                        collection.autoUpdateEnabled ? 1 : 0,
+                        collection.lastRSSCheckDate,
                         collection.id.uuidString
                     ]
                 )
@@ -189,8 +195,10 @@ actor GRDBDatabaseManager {
                     is_music,
                     preferred_sort_order,
                     folder_id,
-                    is_archived
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    is_archived,
+                    auto_update_enabled,
+                    last_rss_check_date
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 arguments: [
                     collection.id.uuidString,
@@ -209,7 +217,9 @@ actor GRDBDatabaseManager {
                     collection.isMusic ? 1 : 0,
                     collection.preferredSortOrder,
                     collection.folderId?.uuidString,
-                    collection.isArchived ? 1 : 0
+                    collection.isArchived ? 1 : 0,
+                    collection.autoUpdateEnabled ? 1 : 0,
+                    collection.lastRSSCheckDate
                 ]
             )
 
@@ -1168,6 +1178,18 @@ actor GRDBDatabaseManager {
         let folderId = folderIdStr.flatMap(UUID.init)
         let isArchivedValue: Int? = collectionRow["is_archived"]
         let isArchived = (isArchivedValue ?? 0) == 1
+        let autoUpdateEnabledValue: Int? = collectionRow["auto_update_enabled"]
+        let autoUpdateEnabled = (autoUpdateEnabledValue ?? 1) == 1
+
+        let lastRSSCheckValue = collectionRow["last_rss_check_date"]
+        let lastRSSCheckDate: Date?
+        if let date = lastRSSCheckValue as? Date {
+            lastRSSCheckDate = date
+        } else if let dateString = lastRSSCheckValue as? String {
+            lastRSSCheckDate = Self.sqliteDateFormatter.date(from: dateString)
+        } else {
+            lastRSSCheckDate = nil
+        }
 
         return AudiobookCollection(
             id: uuid,
@@ -1187,7 +1209,9 @@ actor GRDBDatabaseManager {
             isMusic: isMusic,
             preferredSortOrder: preferredSortOrder,
             folderId: folderId,
-            isArchived: isArchived
+            isArchived: isArchived,
+            autoUpdateEnabled: autoUpdateEnabled,
+            lastRSSCheckDate: lastRSSCheckDate
         )
     }
 
@@ -2090,6 +2114,28 @@ actor GRDBDatabaseManager {
         }
         
         try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_collections_is_archived ON collections(is_archived)")
+    }
+
+    private func addCollectionAutoUpdateEnabledColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(collections)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("auto_update_enabled") {
+            try database.execute(sql: "ALTER TABLE collections ADD COLUMN auto_update_enabled INTEGER NOT NULL DEFAULT 1")
+        }
+
+        try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_collections_auto_update_enabled ON collections(auto_update_enabled)")
+    }
+
+    private func addCollectionLastRSSCheckDateColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(collections)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+
+        if !existingColumns.contains("last_rss_check_date") {
+            try database.execute(sql: "ALTER TABLE collections ADD COLUMN last_rss_check_date DATETIME")
+        }
+
+        try database.execute(sql: "CREATE INDEX IF NOT EXISTS idx_collections_last_rss_check_date ON collections(last_rss_check_date)")
     }
 
     private func addTranscriptRepairColumnsIfNeeded(in database: Database) throws {

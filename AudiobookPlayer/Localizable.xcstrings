@@ -1064,6 +1064,40 @@
         }
       }
     },
+    "rss_checking_no_collections" : {
+      "comment" : "Toast when there are no RSS collections eligible for checking updates",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No RSS collections are enabled for auto-update."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有启用自动更新的 RSS 订阅。"
+          }
+        }
+      }
+    },
+    "rss_checking_no_updates" : {
+      "comment" : "Toast when RSS update scan finds no new episodes",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No new RSS episodes found."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有发现新的 RSS 剧集。"
+          }
+        }
+      }
+    },
     "rss_updates_title" : {
       "comment" : "RSS updates view title",
       "localizations" : {

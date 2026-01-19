@@ -33,8 +33,12 @@ enum DatabaseSchema {
         source_payload TEXT NOT NULL,
         last_played_track_id TEXT,
         shuffle_enabled INTEGER NOT NULL DEFAULT 0,
+        is_music INTEGER NOT NULL DEFAULT 0,
         preferred_sort_order TEXT,
         folder_id TEXT,
+        is_archived INTEGER NOT NULL DEFAULT 0,
+        auto_update_enabled INTEGER NOT NULL DEFAULT 1,
+        last_rss_check_date DATETIME,
         FOREIGN KEY (folder_id) REFERENCES collection_folders(id)
     );
 
