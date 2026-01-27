@@ -1576,13 +1576,22 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
     func configureAudioSession() {
 #if os(iOS)
+        // Configuring AVAudioSession can fail during early app startup or when the system isn't ready.
+        // Treat it as best-effort and retry later when starting playback.
         let session = AVAudioSession.sharedInstance()
+
+        // Avoid reconfiguring on every init; this also reduces the chance of surfacing transient errors.
+        if session.category == .playback, session.mode == .spokenAudio {
+            return
+        }
+
         do {
             let options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
             try session.setCategory(.playback, mode: .spokenAudio, options: options)
             try session.setActive(true, options: [])
         } catch {
-            statusMessage = "Audio session error: \(error.localizedDescription)"
+            // Don't show an error toast on launch for a best-effort configuration.
+            AppLog.debug("Audio session configuration failed: \(error)")
         }
 #endif
     }
