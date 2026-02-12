@@ -5,7 +5,7 @@ echo "📦 打包 Mac DMG（Mac Catalyst）..."
 
 # 配置变量（可通过环境变量覆盖）
 SCHEME="${SCHEME:-AudiobookPlayer}"
-PROJECT="${PROJECT:-AudiobookPlayer.xcodeproj}"
+WORKSPACE="${WORKSPACE:-AudiobookPlayer.xcworkspace}"
 CONFIG="${CONFIG:-Release}"
 APP_NAME="${APP_NAME:-AudiobookPlayer}"
 BUILD_ROOT="${BUILD_ROOT:-$PWD/build/maccatalyst}"
@@ -44,9 +44,47 @@ else
 fi
 mkdir -p "$DERIVED" "$STAGE"
 
+# Patch Pods xcconfig to remove MobileVLCKit for Mac Catalyst
+# The [sdk=macosx*] conditional doesn't work for Catalyst (uses iphoneos SDK + macabi triple)
+# So we directly strip VLC-related linker flags and framework search paths
+echo "🔧 Patching Pods xcconfigs to exclude MobileVLCKit..."
+XCCONFIG_DIR="Pods/Target Support Files/Pods-AudiobookPlayer"
+for xcconfig in "$XCCONFIG_DIR"/*.xcconfig; do
+  if grep -q 'MobileVLCKit' "$xcconfig"; then
+    # Remove -framework "MobileVLCKit" and -framework "OpenGLES" from OTHER_LDFLAGS
+    sed -i '' 's/ -framework "MobileVLCKit"//g' "$xcconfig"
+    sed -i '' 's/ -framework "OpenGLES"//g' "$xcconfig"
+    # Remove MobileVLCKit framework search paths
+    sed -i '' 's| "${PODS_ROOT}/MobileVLCKit"||g' "$xcconfig"
+    sed -i '' 's| "${PODS_XCFRAMEWORKS_BUILD_DIR}/MobileVLCKit"||g' "$xcconfig"
+    # Remove MobileVLCKit module verifier flags
+    sed -i '' 's| "-F${PODS_CONFIGURATION_BUILD_DIR}/MobileVLCKit"||g' "$xcconfig"
+    # Remove any leftover conditional lines from Podfile post_install
+    sed -i '' '/OTHER_LDFLAGS\[sdk=macosx/d' "$xcconfig"
+    sed -i '' '/FRAMEWORK_SEARCH_PATHS\[sdk=macosx/d' "$xcconfig"
+    sed -i '' '/Mac Catalyst: exclude MobileVLCKit/d' "$xcconfig"
+    echo "  Patched: $xcconfig"
+  fi
+done
+
+# Patch the frameworks embed script to skip MobileVLCKit
+FRAMEWORKS_SH="$XCCONFIG_DIR/Pods-AudiobookPlayer-frameworks.sh"
+if [[ -f "$FRAMEWORKS_SH" ]] && grep -q 'MobileVLCKit' "$FRAMEWORKS_SH"; then
+  sed -i '' '/MobileVLCKit/d' "$FRAMEWORKS_SH"
+  echo "  Patched: $FRAMEWORKS_SH"
+fi
+
+# Patch input/output xcfilelists to remove MobileVLCKit entries
+for filelist in "$XCCONFIG_DIR"/*-frameworks-*.xcfilelist; do
+  if [[ -f "$filelist" ]] && grep -q 'MobileVLCKit' "$filelist"; then
+    sed -i '' '/MobileVLCKit/d' "$filelist"
+    echo "  Patched: $filelist"
+  fi
+done
+
 echo "🔨 构建 Mac Catalyst 应用（${CONFIG}）..."
 set +e
-xcodebuild -project "$PROJECT" \
+xcodebuild -workspace "$WORKSPACE" \
            -scheme "$SCHEME" \
            -configuration "$CONFIG" \
            -destination 'generic/platform=macOS' \
