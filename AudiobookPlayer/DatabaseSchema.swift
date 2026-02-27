@@ -59,6 +59,7 @@ enum DatabaseSchema {
         is_favorite INTEGER NOT NULL DEFAULT 0,
         favorited_at DATETIME,
         character_count INTEGER,
+        chapter TEXT,
         FOREIGN KEY (collection_id) REFERENCES collections(id)
     );
 
@@ -152,6 +153,8 @@ struct TrackRow: Codable {
     let mediaKind: String
     let isFavorite: Bool
     let favoritedAt: Date?
+    let characterCount: Int?
+    let chapter: String?
 }
 
 /// Data Transfer Object for playback states in the database

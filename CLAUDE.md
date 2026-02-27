@@ -10,6 +10,8 @@ BaiduNetdisk Doc: https://pan.baidu.com/union/doc/pksg0s9ns
 @local/PROD.md
 
 ## Recent Progress (Dec 2025)
+- **Chapter Support (Feb 2026)**: Added chapter support for audiobook collections. When importing a folder with subfolders, each subfolder becomes a chapter. Tracks in subfolders get the parent folder name as chapter. Collection detail view automatically groups tracks by chapter with headers showing folder icon, chapter name, and track count. Tracks without chapter appear at the end labeled as "Other". Fully backward compatible - collections without chapters display as flat list. Implementation includes: `chapter` property in `AudiobookTrack`, database migration, `extractChapter()` in CollectionBuilderViewModel, `ChapterGroup` struct and `chapterGroups` in CollectionDetailViewModel, UI grouping in CollectionDetailView.
+
 - **VLC Audio-Only Playback (Dec 20)**: Implemented VLC audio-only support for MKV/WebM files. When playing MKV/WebM, VLC handles audio without showing video UI (treating them like regular audio files). Updated `play(track:)` to call `startVLCAudioPlayback()` instead of bailing out. All playback controls (play/pause, seek, skip, speed, sleep timer) now work with VLC audio. Added `usingVLCAudio` flag, `vlcTimeUpdateTimer` (250ms polling), and time/state tracking. Fixed VLC drawable operations with main thread dispatch (resolves "Modifying properties off main thread" crashes). Simplified `handlePlayButtonPress()` to always call `togglePlayback()`.
 - **VLC Threading Fix (Dec 20)**: Fixed VLC OpenGL crashes by wrapping all `player.drawable` operations in main thread checks. VLC requires drawable operations on main thread for OpenGL initialization/teardown. Added checks to `VLCHostView.layoutSubviews()`, `updateUIView()`, `setupPlayer()`, and `cleanup()` with `Thread.isMainThread` guards and `DispatchQueue.main.async` fallbacks.
 - **VLC Playback Controls Fix (Dec 20)**: Fixed four interrelated VLC playback issues: (1) Play button now calls `openVideoPlayer(for:)` for VLC-only tracks instead of `togglePlayback()`; (2) Added `toggleVideoPlayback()` method for controlling minimized VLC sessions from Playing tab; (3) Fixed black screen on reopening VLC sheet by creating `VLCHostView` that rebinds drawable in `layoutSubviews()` and adds binding check in `updateUIView()`; (4) Native AVPlayer PiP already delegates to sheet via `isPresented` binding. Added `VideoPresentationMode` enum (hidden/fullscreen/mini) and `setVideoPresentationMode()` to track video state.
@@ -65,6 +67,12 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Build Filters**: Use `xcodebuild ... | grep -E "error:|BUILD"` to reduce noise.
 - **CocoaPods Workspace**: Always open `.xcworkspace` (not `.xcodeproj`) when CocoaPods dependencies are present. Run `pod install` after Podfile changes. Use `pod deintegrate && pod install` to reset if framework linking issues occur.
 - Beacues Current there are many warnings, so then you build to fix the errors filter out the warnning ones by default !
+
+### Chapter Support
+- **Chapter Detection**: Use immediate parent folder name as chapter. Files directly under root folder have no chapter (nil).
+- **Chapter Grouping UI**: Use `chapterGroups` computed property in ViewModel to group tracks. Check `hasChapters` first to determine rendering path.
+- **Backward Compatibility**: Chapter is optional. Old data with nil chapter displays as before (flat list).
+- **Data Model**: Chapter stored in database as optional TEXT column with migration for existing databases.
 
 ## Main Views & Workflows
 
@@ -188,7 +196,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 |----------|-------|
 | **Main Views** | `ContentView.swift`, `LibraryView.swift`, `SmartView.swift`, `PersonalView.swift` |
 | **Playback** | `AudioPlayerViewModel.swift`, `FloatingPlaybackBubbleView.swift`, `VLCVideoPlayerView.swift`, `PlaybackClock` (in AudioPlayerVM) |
-| **Collection Detail** | `CollectionDetailView.swift`, `CollectionDetailViewModel.swift` |
+| **Collection Detail** | `CollectionDetailView.swift`, `CollectionDetailViewModel.swift` (includes chapter grouping via `chapterGroups`, `hasChapters`) |
 | **Import Flows** | `CreateCollectionView.swift`, `CollectionBuilderViewModel.swift`, `BaiduNetdiskBrowserView.swift`, `AddRSSCollectionView.swift`, `CreateEbookCollectionView.swift` |
 | **AI/Transcription** | `TranscriptionManager.swift`, `AIGatewayViewModel.swift`, `AIGenerationManager.swift`, `SonioxSTTView.swift`, `EdgeTTSView.swift` |
 | **Data Layer** | `LibraryStore.swift`, `GRDBDatabaseManager.swift`, `AudioCacheManager.swift` |

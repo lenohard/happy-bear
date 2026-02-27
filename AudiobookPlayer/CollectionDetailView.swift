@@ -349,6 +349,10 @@ struct CollectionDetailView: View {
                             viewModel.selectedCriterion = .trackNumber
                             viewModel.selectedOrder = .ascending
                         }
+                        
+                        // Save the default sort order to database so playback uses it
+                        let sortString = "\(viewModel.selectedCriterion.rawValue):\(viewModel.selectedOrder.rawValue)"
+                        library.updatePreferredSortOrder(sortString, for: collection.id)
                     }
                 }
             }
@@ -853,6 +857,8 @@ struct CollectionDetailView: View {
     @ViewBuilder
     private func tracksSection(_ collection: AudiobookCollection) -> some View {
         let tracks = viewModel.filteredTracks
+        let hasChapters = viewModel.hasChapters
+        
         Section(header: tracksHeader) {
             if tracks.isEmpty {
                 if viewModel.isListLoading || (collection.tracks.isEmpty && collection.trackCount > 0) {
@@ -868,180 +874,225 @@ struct CollectionDetailView: View {
                         .foregroundStyle(.secondary)
                         .padding(.vertical, 4)
                 }
+            } else if hasChapters {
+                // Render tracks grouped by chapter
+                ForEach(viewModel.chapterGroups) { group in
+                    // Chapter header
+                    Section {
+                        // Tracks in this chapter
+                        ForEach(Array(group.tracks.enumerated()), id: \.element.id) { index, track in
+                            trackRow(track: track, index: index, totalTracks: tracks.count, collection: collection)
+                        }
+                    } header: {
+                        chapterHeader(for: group)
+                    }
+                }
             } else {
+                // Render flat list (original behavior for backward compatibility)
                 ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
-                    let trackIsActive = viewModel.isCurrentTrack(track: track)
-                    let hasTranscript = viewModel.transcriptStatusCache[track.id] ?? false
-                    let isTranscribingTrack = viewModel.sttTranscribingTrackIds.contains(track.id)
+                    trackRow(track: track, index: index, totalTracks: tracks.count, collection: collection)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Chapter Grouping UI
+    
+    @ViewBuilder
+    private func chapterHeader(for group: CollectionDetailViewModel.ChapterGroup) -> some View {
+        HStack {
+            Image(systemName: "folder.fill")
+                .foregroundStyle(.secondary)
+            Text(group.chapter ?? NSLocalizedString("ungrouped_tracks", value: "Other", comment: "Tracks without chapter"))
+                .font(.headline)
+                .foregroundStyle(.primary)
+            Spacer()
+            Text("\(group.tracks.count)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(Color.secondary.opacity(0.2), in: Capsule())
+        }
+        .padding(.vertical, 4)
+    }
+    
+    @ViewBuilder
+    private func trackRow(track: AudiobookTrack, index: Int, totalTracks: Int, collection: AudiobookCollection) -> some View {
+        let trackIsActive = viewModel.isCurrentTrack(track: track)
+        let hasTranscript = viewModel.transcriptStatusCache[track.id] ?? false
+        let isTranscribingTrack = viewModel.sttTranscribingTrackIds.contains(track.id)
 
-                    TrackDetailRow(
-                        index: index,
-                        track: track,
-                        collection: collection,
-                        isActive: trackIsActive,
-                        isPlaying: trackIsActive && audioPlayer.isPlaying,
-                        playbackState: viewModel.playbackStateSnapshot[track.id],
-                        isFavorite: track.isFavorite,
-                        hasTranscript: hasTranscript,
-                        hasSummary: viewModel.tracksWithSummaries.contains(track.id),
-                        isTranscribing: isTranscribingTrack,
-                        onSelect: {
-                            viewModel.startPlayback(track, in: collection)
-                            tabSelection.switchToPlayingTab()
-                        },
-                        onToggleFavorite: {
-                            library.toggleFavorite(for: track.id, in: collection.id)
-                            audioPlayer.notifyFavoriteToggle(for: track.id)
-                        },
-                        onSeek: { time in
-                            audioPlayer.seek(to: time)
-                        },
-                        onUpdateProgress: { position, duration in
-                            viewModel.updatePlaybackProgress(
-                                trackID: track.id,
-                                position: position,
-                                duration: duration
-                            )
-                        }
+        TrackDetailRow(
+            index: index,
+            track: track,
+            collection: collection,
+            isActive: trackIsActive,
+            isPlaying: trackIsActive && audioPlayer.isPlaying,
+            playbackState: viewModel.playbackStateSnapshot[track.id],
+            isFavorite: track.isFavorite,
+            hasTranscript: hasTranscript,
+            hasSummary: viewModel.tracksWithSummaries.contains(track.id),
+            isTranscribing: isTranscribingTrack,
+            onSelect: {
+                viewModel.startPlayback(track, in: collection)
+                tabSelection.switchToPlayingTab()
+            },
+            onToggleFavorite: {
+                library.toggleFavorite(for: track.id, in: collection.id)
+                audioPlayer.notifyFavoriteToggle(for: track.id)
+            },
+            onSeek: { time in
+                audioPlayer.seek(to: time)
+            },
+            onUpdateProgress: { position, duration in
+                viewModel.updatePlaybackProgress(
+                    trackID: track.id,
+                    position: position,
+                    duration: duration
+                )
+            }
+        )
+        .equatable()
+        .onAppear {
+            if index == totalTracks - 1 {
+                viewModel.isLastTrackVisible = true
+                // Load next page when bottom is reached in paged mode
+                if viewModel.isPagedMode {
+                    let currentPage = viewModel.loadedPages.keys.sorted().last ?? 0
+                    Task { await viewModel.loadPage(currentPage + 1) }
+                }
+            }
+        }
+        .onDisappear {
+            if index == totalTracks - 1 {
+                viewModel.isLastTrackVisible = false
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            favoriteSwipeButton(for: track, in: collection)
+        }
+        .swipeActions(edge: .trailing) {
+            if library.canModifyCollection(viewModel.collectionID) {
+                Button {
+                    viewModel.beginRenamingTrack(track)
+                } label: {
+                    Label(
+                        NSLocalizedString("rename_action", comment: "Rename action"),
+                        systemImage: "pencil"
                     )
-                    .equatable()
-                    .onAppear {
-                        if index == tracks.count - 1 {
-                            viewModel.isLastTrackVisible = true
-                            // Load next page when bottom is reached in paged mode
-                            if viewModel.isPagedMode {
-                                let currentPage = viewModel.loadedPages.keys.sorted().last ?? 0
-                                Task { await viewModel.loadPage(currentPage + 1) }
-                            }
-                        }
+                }
+                .labelStyle(.iconOnly)
+
+                Button(role: .destructive) {
+                    viewModel.confirmDeleteTrack(track)
+                } label: {
+                    Label(
+                        NSLocalizedString("remove_track_action", comment: "Remove track swipe action"),
+                        systemImage: "trash"
+                    )
+                }
+                .labelStyle(.iconOnly)
+            }
+        }
+        .contextMenu {
+            trackContextMenu(for: track, hasTranscript: hasTranscript, isTranscribingTrack: isTranscribingTrack, collection: collection)
+        } preview: {
+            Text(track.displayName)
+                .font(.subheadline)
+                .padding()
+                .multilineTextAlignment(.leading)
+                .lineLimit(nil)
+                .frame(maxWidth: 340)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+    
+    @ViewBuilder
+    private func trackContextMenu(for track: AudiobookTrack, hasTranscript: Bool, isTranscribingTrack: Bool, collection: AudiobookCollection) -> some View {
+        Button {
+            viewModel.trackForDetails = track
+        } label: {
+            Label("Track Details", systemImage: "info.circle")
+        }
+
+        Button {
+            viewModel.trackForChat = track
+        } label: {
+            Label("Chat about this track", systemImage: "bubble.left.and.text.bubble.right")
+        }
+
+        // Add Read option for text tracks
+        if case .text = track.location {
+            Button {
+                viewModel.trackForReading = track
+            } label: {
+                Label("Read", systemImage: "book")
+            }
+
+            if viewModel.ttsGeneratingTrackIds.contains(track.id) {
+                Button {
+                    viewModel.trackForTTSProgress = track
+                } label: {
+                    Label("View TTS progress", systemImage: "waveform.path.ecg")
+                }
+            } else {
+                Button {
+                    viewModel.trackForTTSProgress = track
+                    Task {
+                        await audioPlayer.generateAudio(for: track, in: collection)
                     }
-                    .onDisappear {
-                        if index == tracks.count - 1 {
-                            viewModel.isLastTrackVisible = false
-                        }
-                    }
-                    .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                        favoriteSwipeButton(for: track, in: collection)
-                    }
-                    .swipeActions(edge: .trailing) {
-                        if library.canModifyCollection(viewModel.collectionID) {
-                            Button {
-                                viewModel.beginRenamingTrack(track)
-                            } label: {
-                                Label(
-                                    NSLocalizedString("rename_action", comment: "Rename action"),
-                                    systemImage: "pencil"
-                                )
-                            }
-                            .labelStyle(.iconOnly)
+                } label: {
+                    Label(NSLocalizedString("generate_audio_action", value: "Generate Audio", comment: "Generate audio action"), systemImage: "waveform.badge.plus")
+                }
+            }
+        } else if case .cachedText = track.location {
+            Button {
+                viewModel.trackForReading = track
+            } label: {
+                Label("Read", systemImage: "book")
+            }
+            // Already generated, maybe offer re-generate?
+        }
 
-                            Button(role: .destructive) {
-                                viewModel.confirmDeleteTrack(track)
-                            } label: {
-                                Label(
-                                    NSLocalizedString("remove_track_action", comment: "Remove track swipe action"),
-                                    systemImage: "trash"
-                                )
-                            }
-                            .labelStyle(.iconOnly)
-                        }
-                    }
-                    .contextMenu {
-                        Button {
-                            viewModel.trackForDetails = track
-                        } label: {
-                            Label("Track Details", systemImage: "info.circle")
-                        }
+        if isTranscribingTrack {
+            Button {
+                viewModel.trackForTranscription = track
+            } label: {
+                Label(
+                    NSLocalizedString("transcription_view_running_job", comment: "View running transcription"),
+                    systemImage: "waveform.badge.exclamationmark"
+                )
+            }
+        } else if !hasTranscript && !track.isTextTrack { // Hide transcribe for text tracks
+            Button {
+                viewModel.trackForTranscription = track
+            } label: {
+                Label(
+                    NSLocalizedString("transcribe_track_title", comment: "Transcribe track title"),
+                    systemImage: "waveform"
+                )
+            }
+        }
 
-                        Button {
-                            viewModel.trackForChat = track
-                        } label: {
-                            Label("Chat about this track", systemImage: "bubble.left.and.text.bubble.right")
-                        }
+        if hasTranscript {
+            Button {
+                viewModel.trackForViewing = track
+            } label: {
+                Label(
+                    NSLocalizedString("view_transcript", comment: "View transcript menu item"),
+                    systemImage: "text.alignleft"
+                )
+            }
 
-                        // Add Read option for text tracks
-                        if case .text = track.location {
-                            Button {
-                                viewModel.trackForReading = track
-                            } label: {
-                                Label("Read", systemImage: "book")
-                            }
-
-                            if viewModel.ttsGeneratingTrackIds.contains(track.id) {
-                                Button {
-                                    viewModel.trackForTTSProgress = track
-                                } label: {
-                                    Label("View TTS progress", systemImage: "waveform.path.ecg")
-                                }
-                            } else {
-                                Button {
-                                    viewModel.trackForTTSProgress = track
-                                    Task {
-                                        await audioPlayer.generateAudio(for: track, in: collection)
-                                    }
-                                } label: {
-                                    Label(NSLocalizedString("generate_audio_action", value: "Generate Audio", comment: "Generate audio action"), systemImage: "waveform.badge.plus")
-                                }
-                            }
-                        } else if case .cachedText = track.location {
-                            Button {
-                                viewModel.trackForReading = track
-                            } label: {
-                                Label("Read", systemImage: "book")
-                            }
-                            // Already generated, maybe offer re-generate?
-                        }
-
-                        if isTranscribingTrack {
-                            Button {
-                                viewModel.trackForTranscription = track
-                            } label: {
-                                Label(
-                                    NSLocalizedString("transcription_view_running_job", comment: "View running transcription"),
-                                    systemImage: "waveform.badge.exclamationmark"
-                                )
-                            }
-                        } else if !hasTranscript && !track.isTextTrack { // Hide transcribe for text tracks
-                            Button {
-                                viewModel.trackForTranscription = track
-                            } label: {
-                                Label(
-                                    NSLocalizedString("transcribe_track_title", comment: "Transcribe track title"),
-                                    systemImage: "waveform"
-                                )
-                            }
-                        }
-
-                        if hasTranscript {
-                            Button {
-                                viewModel.trackForViewing = track
-                            } label: {
-                                Label(
-                                    NSLocalizedString("view_transcript", comment: "View transcript menu item"),
-                                    systemImage: "text.alignleft"
-                                )
-                            }
-
-                            if library.canModifyCollection(viewModel.collectionID) && !viewModel.isEbookCollection {
-                                Button(role: .destructive) {
-                                    viewModel.confirmDeleteTranscript(track)
-                                } label: {
-                                    Label(
-                                        NSLocalizedString("delete_transcript", comment: "Delete transcript menu item"),
-                                        systemImage: "trash"
-                                    )
-                                }
-                            }
-                        }
-                    } preview: {
-                        Text(track.displayName)
-                            .font(.subheadline)
-                            .padding()
-                            .multilineTextAlignment(.leading)
-                            .lineLimit(nil)
-                            .frame(maxWidth: 340)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
+            if library.canModifyCollection(viewModel.collectionID) && !viewModel.isEbookCollection {
+                Button(role: .destructive) {
+                    viewModel.confirmDeleteTranscript(track)
+                } label: {
+                    Label(
+                        NSLocalizedString("delete_transcript", comment: "Delete transcript menu item"),
+                        systemImage: "trash"
+                    )
                 }
             }
         }

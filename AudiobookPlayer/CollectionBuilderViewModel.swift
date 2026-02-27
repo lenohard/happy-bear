@@ -115,6 +115,9 @@ final class CollectionBuilderViewModel: ObservableObject {
                 // Convert to tracks
                 var tracks: [AudiobookTrack] = []
                 for (index, entry) in sortedEntries.enumerated() {
+                    // Extract chapter from parent folder name (if file is in a subfolder)
+                    let chapter = extractChapter(from: entry.path, rootPath: path)
+                    
                     let track = AudiobookTrack(
                         id: UUID(),
                         displayName: entry.serverFilename,
@@ -125,7 +128,8 @@ final class CollectionBuilderViewModel: ObservableObject {
                         trackNumber: index + 1,
                         checksum: entry.md5,
                         metadata: [:],
-                        mediaKind: PlayableMediaFormat.mediaKind(forFilename: entry.serverFilename)
+                        mediaKind: PlayableMediaFormat.mediaKind(forFilename: entry.serverFilename),
+                        chapter: chapter
                     )
                     tracks.append(track)
                 }
@@ -308,6 +312,41 @@ final class CollectionBuilderViewModel: ObservableObject {
             return match
         }
         return candidates.first
+    }
+    
+    /// Extracts the chapter name from a file path based on the root path.
+    /// - Parameters:
+    ///   - filePath: The full path of the file (e.g., "/Audiobooks/Chapter 1/section-a/audio.mp3")
+    ///   - rootPath: The root path that was selected for import (e.g., "/Audiobooks")
+    /// - Returns: The chapter name (e.g., "Chapter 1") if the file is in a subfolder, nil otherwise
+    private func extractChapter(from filePath: String, rootPath: String) -> String? {
+        // Normalize paths to handle trailing slashes
+        let normalizedRoot = rootPath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        let normalizedFilePath = filePath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        
+        // Remove root path from the file path to get the relative path
+        var relativePath: String
+        if normalizedRoot.isEmpty {
+            relativePath = normalizedFilePath
+        } else if normalizedFilePath.hasPrefix(normalizedRoot) {
+            relativePath = String(normalizedFilePath.dropFirst(normalizedRoot.count))
+            // Remove leading slash if present
+            if relativePath.hasPrefix("/") {
+                relativePath = String(relativePath.dropFirst())
+            }
+        } else {
+            // File is outside root path, use the immediate parent folder
+            relativePath = (filePath as NSString).deletingLastPathComponent
+        }
+        
+        // If no relative path or it's empty, file is directly under root
+        guard !relativePath.isEmpty else { return nil }
+        
+        // Get the first component of the relative path (the immediate parent folder)
+        let components = relativePath.components(separatedBy: "/")
+        guard let firstComponent = components.first, !firstComponent.isEmpty else { return nil }
+        
+        return firstComponent
     }
 }
 

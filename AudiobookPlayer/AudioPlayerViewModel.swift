@@ -370,7 +370,7 @@ final class AudioPlayerViewModel: ObservableObject {
             isShuffleEnabled = collection.shuffleEnabled
         }
 
-        let sortedTracks = collection.tracksSortedByFilename
+        let sortedTracks = collection.tracksSortedByPreferredOrder
 
         let selectedTrack: AudiobookTrack?
         if let currentTrack,
@@ -393,6 +393,7 @@ final class AudioPlayerViewModel: ObservableObject {
 
         if !preserveQueue || activeCollection?.id != collection.id || playlist.isEmpty {
             playlist = makePlaylist(from: sortedTracks, startingWith: anchorTrack)
+            debugLogPlaylist("prepareCollection", collection: collection, playlist: playlist, currentTrack: selectedTrack)
         }
 
         activeCollection = collection
@@ -1186,9 +1187,16 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
     }
 
     func setShuffleEnabled(_ enabled: Bool, for collection: AudiobookCollection?) {
-        guard isShuffleEnabled != enabled else { return }
+        let collectionShuffle = collection?.shuffleEnabled
+        guard isShuffleEnabled != enabled || collectionShuffle != enabled else { return }
         isShuffleEnabled = enabled
         defaults.set(enabled, forKey: Self.shuffleDefaultsKey)
+        
+        // Update activeCollection's shuffleEnabled so UI stays in sync
+        if let collectionID = activeCollection?.id, collectionID == collection?.id {
+            activeCollection?.shuffleEnabled = enabled
+        }
+        
         rebuildPlaylistPreservingCurrentTrack()
         if let collection, !collection.isEphemeral {
             library?.updateShuffle(enabled, for: collection.id)
@@ -1368,7 +1376,7 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
     private func rebuildPlaylistPreservingCurrentTrack() {
         guard let collection = activeCollection else { return }
-        let sortedTracks = collection.tracksSortedByFilename
+        let sortedTracks = collection.tracksSortedByPreferredOrder
         let anchor: AudiobookTrack?
         if let currentTrack,
            let match = sortedTracks.first(where: { $0.id == currentTrack.id }) {
@@ -1387,6 +1395,17 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         var remaining = tracks.filter { $0.id != anchor.id }
         remaining.shuffle()
         return [anchor] + remaining
+    }
+
+    private func debugLogPlaylist(
+        _ context: String,
+        collection: AudiobookCollection,
+        playlist: [AudiobookTrack],
+        currentTrack: AudiobookTrack?
+    ) {
+        let head = playlist.prefix(5).map { $0.displayName }.joined(separator: " | ")
+        let tail = playlist.suffix(5).map { $0.displayName }.joined(separator: " | ")
+        AppLog.debug("[PlaybackQueue] context=\(context) collection=\(collection.title) shuffle=\(collection.shuffleEnabled) preferredSort=\(collection.preferredSortOrder ?? "nil") count=\(playlist.count) current=\(currentTrack?.displayName ?? "nil") head=[\(head)] tail=[\(tail)]")
     }
     
     private func autoGenerateNextTrackIfNeeded(currentTrack: AudiobookTrack, collection: AudiobookCollection) {

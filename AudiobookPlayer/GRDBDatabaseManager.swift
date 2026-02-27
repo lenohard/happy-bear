@@ -69,6 +69,8 @@ actor GRDBDatabaseManager {
             // Ensure new optional columns exist
             try addTrackCharacterCountColumnIfNeeded(in: db)
             AppLog.debug("[GRDB] Track character_count column ensured")
+            try addTrackChapterColumnIfNeeded(in: db)
+            AppLog.debug("[GRDB] Track chapter column ensured")
 
             AppLog.debug("[GRDB] Executing track summary schema...")
             try db.execute(sql: TrackSummaryDatabaseSchema.createTableSQL)
@@ -240,8 +242,8 @@ actor GRDBDatabaseManager {
                         checksum, metadata_json,
                         media_kind,
                         is_favorite, favorited_at,
-                        character_count
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        character_count, chapter
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     arguments: [
                         track.id.uuidString,
@@ -258,7 +260,8 @@ actor GRDBDatabaseManager {
                         track.mediaKind.rawValue,
                         track.isFavorite ? 1 : 0,
                         track.favoritedAt,
-                        track.characterCount
+                        track.characterCount,
+                        track.chapter
                     ]
                 )
             }
@@ -1024,6 +1027,8 @@ actor GRDBDatabaseManager {
     func updateCollectionPreferredSortOrder(collectionID: UUID, sortOrder: String) async throws {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
+        AppLog.debug("[SORT-DB] Updating collection \(collectionID.uuidString) preferredSortOrder to: \(sortOrder)")
+
         try await db.write { db in
             try db.execute(sql:
                 """
@@ -1037,6 +1042,9 @@ actor GRDBDatabaseManager {
                     collectionID.uuidString
                 ]
             )
+            
+            let changes = db.changesCount
+            AppLog.debug("[SORT-DB] Update affected \(changes) row(s)")
         }
     }
 
@@ -1251,6 +1259,7 @@ actor GRDBDatabaseManager {
 
         
         let charCount: Int? = row["character_count"]
+        let chapter: String? = row["chapter"]
 
         return AudiobookTrack(
             id: uuid,
@@ -1265,7 +1274,8 @@ actor GRDBDatabaseManager {
             mediaKind: mediaKind,
             isFavorite: isFavorite,
             favoritedAt: favoritedAt,
-            characterCount: charCount
+            characterCount: charCount,
+            chapter: chapter
         )
     }
 
@@ -2182,6 +2192,14 @@ actor GRDBDatabaseManager {
         let existingColumns = Set(rows.compactMap { $0["name"] as? String })
         if !existingColumns.contains("character_count") {
             try database.execute(sql: "ALTER TABLE tracks ADD COLUMN character_count INTEGER")
+        }
+    }
+
+    private func addTrackChapterColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(tracks)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+        if !existingColumns.contains("chapter") {
+            try database.execute(sql: "ALTER TABLE tracks ADD COLUMN chapter TEXT")
         }
     }
     

@@ -376,6 +376,9 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
     // NEW: Character count for text tracks
     var characterCount: Int?
     
+    // NEW: Chapter support - the parent folder name if tracks are organized into chapters
+    var chapter: String?
+    
     var isTextTrack: Bool {
         if case .text = location { return true }
         if case .cachedText = location { return true }
@@ -391,6 +394,7 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
         case mediaKind
         case isFavorite, favoritedAt
         case characterCount
+        case chapter
     }
 }
 
@@ -531,6 +535,92 @@ extension AudiobookCollection {
             return true
         }
         return false
+    }
+    
+    /// Returns tracks sorted by the user's preferred sort order stored in preferredSortOrder
+    /// Falls back to filename sorting if no preferred sort order is set
+    var tracksSortedByPreferredOrder: [AudiobookTrack] {
+        guard let sortOrder = preferredSortOrder else {
+            // No preferred sort order - apply smart defaults
+            if case .rss = source {
+                // RSS collections default to ascending track number (matching display default)
+                return tracks.sorted { track1, track2 in
+                    if track1.trackNumber != track2.trackNumber {
+                        return track1.trackNumber < track2.trackNumber
+                    }
+                    return track1.displayName.localizedStandardCompare(track2.displayName) == .orderedAscending
+                }
+            } else {
+                // Other collections default to filename sorting
+                return tracksSortedByFilename
+            }
+        }
+        
+        // Parse "criterion:order" format
+        let components = sortOrder.split(separator: ":")
+        guard components.count == 2,
+              let criterion = SortCriterion(rawValue: String(components[0])),
+              let order = SortOrder(rawValue: String(components[1])) else {
+            // Invalid format, fallback to filename
+            return tracksSortedByFilename
+        }
+        
+        let isAscending = order == .ascending
+        
+        return tracks.sorted { (track1: AudiobookTrack, track2: AudiobookTrack) in
+            let result: Bool
+            switch criterion {
+            case .trackNumber:
+                // Sort by track number (parsed from filename or use display order)
+                let num1 = extractTrackNumber(from: track1.filename) ?? 0
+                let num2 = extractTrackNumber(from: track2.filename) ?? 0
+                result = num1 < num2
+            case .title:
+                result = track1.displayName.localizedCaseInsensitiveCompare(track2.displayName) == .orderedAscending
+            case .pubDate:
+                let date1 = Self.parsePubDate(from: track1.metadata["pubDate"])
+                let date2 = Self.parsePubDate(from: track2.metadata["pubDate"])
+                // If both dates are nil, fall back to filename sort
+                guard let d1 = date1, let d2 = date2 else {
+                    return track1.filename.localizedCaseInsensitiveCompare(track2.filename) == .orderedAscending
+                }
+                result = d1 < d2
+            }
+            
+            return isAscending ? result : !result
+        }
+    }
+    
+    /// Parse pubDate from metadata string (matching CollectionDetailViewModel)
+    private static func parsePubDate(from string: String?) -> Date? {
+        guard let string = string else { return nil }
+        let formatter = ISO8601DateFormatter()
+        return formatter.date(from: string)
+    }
+    
+    /// Extract track number from filename (e.g., "01 - Title.mp3" -> 1)
+    private func extractTrackNumber(from filename: String) -> Int? {
+        // Try to extract number from beginning of filename
+        let pattern = #"^(\d+)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: filename, range: NSRange(filename.startIndex..., in: filename)),
+              let range = Range(match.range(at: 1), in: filename) else {
+            return nil
+        }
+        return Int(filename[range])
+    }
+    
+    /// Sort criteria matching CollectionDetailViewModel
+    enum SortCriterion: String, CaseIterable {
+        case trackNumber = "Track Number"
+        case title = "Title"
+        case pubDate = "Pub Date"
+    }
+    
+    /// Sort order matching CollectionDetailViewModel
+    enum SortOrder: String, CaseIterable {
+        case ascending = "Ascending"
+        case descending = "Descending"
     }
 
     var tracksSortedByFilename: [AudiobookTrack] {

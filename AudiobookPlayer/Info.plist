@@ -33,6 +33,8 @@
 	<string>你可以使用 Siri 来播放你的音频合集</string>
 	<key>BaiduScope</key>
 	<string>basic,netdisk</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.entertainment</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

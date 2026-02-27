@@ -175,6 +175,47 @@ final class CollectionDetailViewModel: ObservableObject {
     var filteredTracks: [AudiobookTrack] {
         cachedOrderedTracks
     }
+    
+    // MARK: - Chapter Grouping
+    
+    /// Struct representing a chapter group with its tracks
+    struct ChapterGroup: Identifiable {
+        let id: String  // chapter name or "ungrouped"
+        let chapter: String?
+        let tracks: [AudiobookTrack]
+    }
+    
+    /// Returns true if any track has a chapter assigned
+    var hasChapters: Bool {
+        filteredTracks.contains { $0.chapter != nil }
+    }
+    
+    /// Groups tracks by chapter, with ungrouped tracks (nil chapter) at the end
+    var chapterGroups: [ChapterGroup] {
+        let tracks = filteredTracks
+        
+        // Group by chapter
+        var grouped: [String?: [AudiobookTrack]] = [:]
+        for track in tracks {
+            let chapter = track.chapter
+            grouped[chapter, default: []].append(track)
+        }
+        
+        // Sort chapters alphabetically, put nil chapter (ungrouped) at the end
+        let sortedKeys = grouped.keys.sorted { (a, b) -> Bool in
+            if a == nil { return false }
+            if b == nil { return true }
+            return a! < b!
+        }
+        
+        return sortedKeys.map { key in
+            ChapterGroup(
+                id: key ?? "ungrouped",
+                chapter: key,
+                tracks: grouped[key] ?? []
+            )
+        }
+    }
 
     var showScrollToTopButton: Bool {
         !isSummaryVisible

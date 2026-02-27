@@ -844,7 +844,7 @@ struct PlayingView: View {
 
             Button {
                 audioPlayer.setShuffleEnabled(
-                    !audioPlayer.isShuffleEnabled,
+                    !collection.shuffleEnabled,
                     for: collection
                 )
             } label: {

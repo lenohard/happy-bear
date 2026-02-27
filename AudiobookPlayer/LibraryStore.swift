@@ -308,6 +308,8 @@ final class LibraryStore: ObservableObject {
         collection.preferredSortOrder = sortOrder
         collection.updatedAt = Date()
         collections[index] = collection
+        
+        AppLog.debug("[SORT] Updated preferredSortOrder for '\(collection.title)' to: \(sortOrder)")
 
         persistPreferredSortOrder(collectionID: collectionID, sortOrder: sortOrder)
     }
