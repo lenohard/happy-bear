@@ -1690,7 +1690,31 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
     }
 
     private func handlePlayerItemFailure(_ error: Error?, track: AudiobookTrack?) {
-        stopPlayback(clearQueue: false)
+        // Preserve the last known position so the user can retry without losing progress.
+        // stopPlayback normally resets currentTime to 0, which would cause position loss.
+        let savedPosition = currentTime
+        let savedDuration = duration
+        let savedTrack = track ?? currentTrack
+        let savedCollection = activeCollection
+
+        // Use stopPlaybackPreservingPosition instead of stopPlayback to avoid resetting to 0
+        stopPlaybackPreservingPosition()
+
+        // Restore the saved position so DB and UI reflect the real progress
+        if savedPosition > 1 {
+            publishCurrentTime(savedPosition, force: true)
+            duration = savedDuration
+            // Persist to ensure the position survives app kill
+            if let savedTrack, let savedCollection {
+                library?.recordPlaybackProgress(
+                    collectionID: savedCollection.id,
+                    trackID: savedTrack.id,
+                    position: savedPosition,
+                    duration: savedDuration > 0 ? savedDuration : nil
+                )
+            }
+        }
+
         if track?.mediaKind == .video {
             statusMessage = NSLocalizedString("video_playback_failed_error", comment: "Video playback failed message")
         } else if let error {
@@ -1698,6 +1722,40 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         } else {
             statusMessage = NSLocalizedString("generic_playback_failed", comment: "Generic playback failure")
         }
+    }
+
+    /// Stops player resources without resetting currentTime to 0.
+    /// Used on failure so the saved playback position is preserved.
+    private func stopPlaybackPreservingPosition() {
+        if let currentTrack {
+            progressTracker.stopTracking(for: currentTrack.id.uuidString)
+        }
+
+        flushListeningSession()
+        endPlaybackStartupMonitoring()
+
+        sleepTimer?.invalidate()
+        sleepTimer = nil
+        if case .time = sleepTimerMode {
+            setSleepTimer(.off)
+        }
+
+        #if canImport(MobileVLCKit)
+        if usingVLCAudio {
+            stopVLCAudio()
+        }
+        #endif
+
+        player?.pause()
+        removeObservers()
+        player = nil
+        isPlaying = false
+        // NOTE: intentionally NOT resetting currentTime or duration here
+        pendingInitialSeek = nil
+#if os(iOS)
+        resetNowPlayingInfo()
+#endif
+        activeCacheStatus = nil
     }
 
     private func validateVideoTrackIfNeeded(asset: AVURLAsset, track: AudiobookTrack?) {

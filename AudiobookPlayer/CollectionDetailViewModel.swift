@@ -222,7 +222,6 @@ final class CollectionDetailViewModel: ObservableObject {
     }
 
     var showScrollToBottomButton: Bool {
-        guard !isPagedMode else { return false }
         guard !filteredTracks.isEmpty else { return false }
         return !isLastTrackVisible
     }
@@ -244,6 +243,7 @@ final class CollectionDetailViewModel: ObservableObject {
         switch criterion {
         case .trackNumber: base = "trackNumber"
         case .title: base = "title"
+        case .smartTitle: base = "title" // DB uses same column; smart sort is applied in-memory
         case .pubDate: base = "pubDate"
         }
 
@@ -266,6 +266,10 @@ final class CollectionDetailViewModel: ObservableObject {
             sorted = tracks.sorted {
                 $0.displayName.localizedStandardCompare($1.displayName) == .orderedAscending
             }
+        case .smartTitle:
+            sorted = tracks.sorted {
+                Self.smartTitleCompare($0.displayName, $1.displayName)
+            }
         case .pubDate:
             sorted = tracks.sorted { track1, track2 in
                 let date1 = Self.parsePubDate(from: track1.metadata["pubDate"])
@@ -284,6 +288,151 @@ final class CollectionDetailViewModel: ObservableObject {
         }
 
         return order == .descending ? sorted.reversed() : sorted
+    }
+
+    // MARK: - Smart Title Sort (Chinese Numeral Aware)
+
+    /// Map of Chinese numeral characters to their numeric values.
+    /// Supports 零-九 (0-9), 十百千万亿 for compound numbers like 二十三 (23).
+    private static let chineseDigitValues: [Character: Int] = [
+        "零": 0, "〇": 0,
+        "一": 1, "壹": 1,
+        "二": 2, "贰": 2, "两": 2,
+        "三": 3, "叁": 3,
+        "四": 4, "肆": 4,
+        "五": 5, "伍": 5,
+        "六": 6, "陆": 6,
+        "七": 7, "柒": 7,
+        "八": 8, "捌": 8,
+        "九": 9, "玖": 9,
+    ]
+
+    private static let chineseMultiplierValues: [Character: Int] = [
+        "十": 10, "拾": 10,
+        "百": 100, "佰": 100,
+        "千": 1000, "仟": 1000,
+        "万": 10000,
+        "亿": 100000000,
+    ]
+
+    /// Parses a Chinese numeral string (e.g. "二十三") into an integer (e.g. 23).
+    /// Returns nil if the string contains no valid Chinese numerals.
+    static func parseChineseNumeral(_ s: Substring) -> Int? {
+        guard !s.isEmpty else { return nil }
+
+        var result = 0
+        var current = 0
+        var hasNumeral = false
+
+        for ch in s {
+            if let digit = chineseDigitValues[ch] {
+                current = digit
+                hasNumeral = true
+            } else if let multiplier = chineseMultiplierValues[ch] {
+                hasNumeral = true
+                if multiplier >= 10000 {
+                    // 万/亿: multiply everything accumulated so far
+                    result = (result + max(current, 1)) * multiplier
+                    current = 0
+                } else {
+                    // 十/百/千: multiply current digit
+                    if current == 0 && multiplier == 10 {
+                        // Handle bare "十" meaning 10
+                        current = 1
+                    }
+                    result += current * multiplier
+                    current = 0
+                }
+            } else {
+                return nil // non-Chinese-numeral character encountered
+            }
+        }
+
+        result += current
+        return hasNumeral ? result : nil
+    }
+
+    /// A sort key segment: either a string segment or a numeric value.
+    private enum SortSegment: Comparable {
+        case string(String)
+        case number(Int)
+
+        static func < (lhs: SortSegment, rhs: SortSegment) -> Bool {
+            switch (lhs, rhs) {
+            case (.number(let a), .number(let b)):
+                return a < b
+            case (.string(let a), .string(let b)):
+                return a.localizedStandardCompare(b) == .orderedAscending
+            case (.number, .string):
+                return true // numbers sort before strings
+            case (.string, .number):
+                return false
+            }
+        }
+    }
+
+    /// Splits a title into segments for smart comparison.
+    /// Recognizes Arabic digits AND Chinese numeral sequences, sorting them numerically.
+    private static func smartTitleSegments(_ title: String) -> [SortSegment] {
+        var segments: [SortSegment] = []
+        var i = title.startIndex
+
+        while i < title.endIndex {
+            let ch = title[i]
+
+            // Arabic digit run
+            if ch.isASCII && ch.isNumber {
+                let start = i
+                while i < title.endIndex && title[i].isASCII && title[i].isNumber {
+                    i = title.index(after: i)
+                }
+                let numStr = String(title[start..<i])
+                segments.append(.number(Int(numStr) ?? 0))
+                continue
+            }
+
+            // Chinese numeral run
+            if chineseDigitValues[ch] != nil || chineseMultiplierValues[ch] != nil {
+                let start = i
+                while i < title.endIndex && (chineseDigitValues[title[i]] != nil || chineseMultiplierValues[title[i]] != nil) {
+                    i = title.index(after: i)
+                }
+                let sub = title[start..<i]
+                if let value = parseChineseNumeral(sub) {
+                    segments.append(.number(value))
+                } else {
+                    segments.append(.string(String(sub)))
+                }
+                continue
+            }
+
+            // Regular character run
+            let start = i
+            while i < title.endIndex {
+                let c = title[i]
+                if (c.isASCII && c.isNumber) || chineseDigitValues[c] != nil || chineseMultiplierValues[c] != nil {
+                    break
+                }
+                i = title.index(after: i)
+            }
+            segments.append(.string(String(title[start..<i])))
+        }
+
+        return segments
+    }
+
+    /// Compares two titles using smart segmentation (Chinese numeral + digit aware).
+    static func smartTitleCompare(_ a: String, _ b: String) -> Bool {
+        let segsA = smartTitleSegments(a)
+        let segsB = smartTitleSegments(b)
+
+        for (segA, segB) in zip(segsA, segsB) {
+            if segA < segB { return true }
+            if segB < segA { return false }
+        }
+
+        // If all compared segments are equal, shorter one comes first
+        return segsA.count < segsB.count
     }
 
     static func parsePubDate(from string: String?) -> Date? {
@@ -1195,6 +1344,7 @@ final class CollectionDetailViewModel: ObservableObject {
     enum SortCriterion: String, CaseIterable, Identifiable {
         case trackNumber = "Track Number"
         case title = "Title"
+        case smartTitle = "Smart Title"
         case pubDate = "Pub Date"
 
         var id: String { rawValue }
@@ -1203,6 +1353,7 @@ final class CollectionDetailViewModel: ObservableObject {
             switch self {
             case .trackNumber: return NSLocalizedString("sort_track_number", value: "Track Number", comment: "Sort criterion: Track Number")
             case .title: return NSLocalizedString("sort_title", value: "Title", comment: "Sort criterion: Title")
+            case .smartTitle: return NSLocalizedString("sort_smart_title", value: "Smart Title (中文)", comment: "Sort criterion: Smart Title with Chinese numeral support")
             case .pubDate: return NSLocalizedString("sort_pubdate", value: "Pub Date", comment: "Sort criterion: Pub Date")
             }
         }
@@ -1211,6 +1362,7 @@ final class CollectionDetailViewModel: ObservableObject {
             switch self {
             case .trackNumber: return "list.number"
             case .title: return "textformat"
+            case .smartTitle: return "character.textbox"
             case .pubDate: return "calendar"
             }
         }

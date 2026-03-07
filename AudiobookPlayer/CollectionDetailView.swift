@@ -560,10 +560,8 @@ struct CollectionDetailView: View {
                                         Task {
                                             await viewModel.loadPage(nextPage)
                                             await MainActor.run {
-                                                if let last = viewModel.filteredTracks.last {
-                                                    withAnimation {
-                                                        proxy.scrollTo(last.id, anchor: .bottom)
-                                                    }
+                                                withAnimation {
+                                                    proxy.scrollTo("list-bottom", anchor: .bottom)
                                                 }
                                             }
                                         }
@@ -571,10 +569,8 @@ struct CollectionDetailView: View {
                                     }
                                 }
                                 
-                                if let last = viewModel.filteredTracks.last {
-                                    withAnimation {
-                                        proxy.scrollTo(last.id, anchor: .bottom)
-                                    }
+                                withAnimation {
+                                    proxy.scrollTo("list-bottom", anchor: .bottom)
                                 }
                             } label: {
                                 Image(systemName: "chevron.down")
@@ -882,6 +878,7 @@ struct CollectionDetailView: View {
                         // Tracks in this chapter
                         ForEach(Array(group.tracks.enumerated()), id: \.element.id) { index, track in
                             trackRow(track: track, index: index, totalTracks: tracks.count, collection: collection)
+                                .id(track.id)
                         }
                     } header: {
                         chapterHeader(for: group)
@@ -891,9 +888,17 @@ struct CollectionDetailView: View {
                 // Render flat list (original behavior for backward compatibility)
                 ForEach(Array(tracks.enumerated()), id: \.element.id) { index, track in
                     trackRow(track: track, index: index, totalTracks: tracks.count, collection: collection)
+                        .id(track.id)
                 }
             }
         }
+        
+        // Invisible anchor at the very end of the list for reliable scroll-to-bottom
+        Section {
+            EmptyView()
+        }
+        .id("list-bottom")
+        .listRowBackground(Color.clear)
     }
     
     // MARK: - Chapter Grouping UI
