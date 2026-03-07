@@ -188,6 +188,10 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        // iCloud storage diagnostics
+        AppLog.debug("[iCloud] isAvailable: \(iCloudStorage.isAvailable)")
+        AppLog.debug("[iCloud] rootURL: \(iCloudStorage.rootURL.path)")
+
         // If launched from a home-screen quick action, capture it and defer handling
         // until the SwiftUI hierarchy is up. Returning false prevents the system
         // from calling performActionFor automatically during cold start.

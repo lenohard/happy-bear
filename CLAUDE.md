@@ -6,9 +6,6 @@ BaiduNetdisk Doc: https://pan.baidu.com/union/doc/pksg0s9ns
 **Build Target**: iPhone 17 Pro simulator.  
 **Note**: The `./local/` folder is **NOT** ignored by git for this repository.
 
-# PROD.md
-@local/PROD.md
-
 ## Recent Progress (Dec 2025)
 - **Chapter Support (Feb 2026)**: Added chapter support for audiobook collections. When importing a folder with subfolders, each subfolder becomes a chapter. Tracks in subfolders get the parent folder name as chapter. Collection detail view automatically groups tracks by chapter with headers showing folder icon, chapter name, and track count. Tracks without chapter appear at the end labeled as "Other". Fully backward compatible - collections without chapters display as flat list. Implementation includes: `chapter` property in `AudiobookTrack`, database migration, `extractChapter()` in CollectionBuilderViewModel, `ChapterGroup` struct and `chapterGroups` in CollectionDetailViewModel, UI grouping in CollectionDetailView.
 

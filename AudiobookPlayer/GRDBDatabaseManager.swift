@@ -19,6 +19,57 @@ actor GRDBDatabaseManager {
 
     // MARK: - Initialization
 
+    /// Migrates DB and cover images from legacy paths to iCloud container on first launch.
+    private static func migrateToiCloudIfNeeded() {
+        guard iCloudStorage.isAvailable else { return }
+
+        let newDBURL = DatabaseConfig.defaultURL
+        let oldDBURL = DatabaseConfig.legacyURL
+
+        // Migrate database
+        if !FileManager.default.fileExists(atPath: newDBURL.path),
+           FileManager.default.fileExists(atPath: oldDBURL.path) {
+            do {
+                try FileManager.default.createDirectory(
+                    at: newDBURL.deletingLastPathComponent(),
+                    withIntermediateDirectories: true,
+                    attributes: nil
+                )
+                try FileManager.default.copyItem(at: oldDBURL, to: newDBURL)
+                // Also copy WAL and SHM sidecar files if present
+                for ext in ["-wal", "-shm"] {
+                    let oldSidecar = oldDBURL.deletingPathExtension().appendingPathExtension("sqlite\(ext)")
+                    let newSidecar = newDBURL.deletingPathExtension().appendingPathExtension("sqlite\(ext)")
+                    if FileManager.default.fileExists(atPath: oldSidecar.path) {
+                        try? FileManager.default.copyItem(at: oldSidecar, to: newSidecar)
+                    }
+                }
+                AppLog.debug("[GRDB] Migrated database to iCloud container")
+            } catch {
+                AppLog.debug("[GRDB] Failed to migrate database to iCloud: \(error)")
+            }
+        }
+
+        // Migrate cover images directory
+        let newCoversURL = CollectionCoverImageStore.directoryURL
+        let oldCoversURL: URL = {
+            guard let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                return URL(fileURLWithPath: "")
+            }
+            return docs.appendingPathComponent(CollectionCoverImageStore.directoryName, isDirectory: true)
+        }()
+
+        if !FileManager.default.fileExists(atPath: newCoversURL.path),
+           FileManager.default.fileExists(atPath: oldCoversURL.path) {
+            do {
+                try FileManager.default.copyItem(at: oldCoversURL, to: newCoversURL)
+                AppLog.debug("[GRDB] Migrated cover images to iCloud container")
+            } catch {
+                AppLog.debug("[GRDB] Failed to migrate cover images to iCloud: \(error)")
+            }
+        }
+    }
+
     /// Initialize the database with schema
     func initializeDatabase() throws {
         if db != nil {
@@ -26,6 +77,7 @@ actor GRDBDatabaseManager {
         }
 
         AppLog.debug("[GRDB] initializeDatabase starting...")
+        Self.migrateToiCloudIfNeeded()
         try DatabaseConfig.ensureDirectoryExists()
         AppLog.debug("[GRDB] Directory exists")
 

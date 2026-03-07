@@ -1663,19 +1663,12 @@ actor CollectionCoverImageStore {
 	    static let directoryName = "CollectionCovers"
 
     nonisolated static var directoryURL: URL {
-        return documentsDirectory.appendingPathComponent(directoryName, isDirectory: true)
+        return iCloudStorage.rootURL.appendingPathComponent(directoryName, isDirectory: true)
     }
-
-    nonisolated static let documentsDirectory: URL = {
-        guard let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            fatalError("Unable to locate documents directory")
-        }
-        return url
-    }()
 
     nonisolated static func fileURL(for relativePath: String) -> URL {
         let trimmed = relativePath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        return documentsDirectory.appendingPathComponent(trimmed)
+        return iCloudStorage.rootURL.appendingPathComponent(trimmed)
     }
 
     private let fileManager: FileManager

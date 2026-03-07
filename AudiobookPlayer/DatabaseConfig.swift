@@ -2,8 +2,13 @@ import Foundation
 
 /// Configuration for the GRDB SQLite database
 struct DatabaseConfig {
-    /// Gets the default database URL
+    /// Gets the default database URL (iCloud container, fallback to ApplicationSupport)
     static var defaultURL: URL {
+        return iCloudStorage.rootURL.appendingPathComponent("library.sqlite", isDirectory: false)
+    }
+
+    /// Legacy ApplicationSupport database URL (used for migration)
+    static var legacyURL: URL {
         let appSupport = FileManager.default.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
@@ -13,7 +18,7 @@ struct DatabaseConfig {
             .appendingPathComponent("library.sqlite", isDirectory: false)
     }
 
-    /// Ensures the application support directory exists
+    /// Ensures the database directory exists
     static func ensureDirectoryExists() throws {
         let dir = defaultURL.deletingLastPathComponent()
         try FileManager.default.createDirectory(
