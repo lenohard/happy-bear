@@ -99,60 +99,6 @@ struct PersonalView: View {
         tabSelection.switchToPlayingTab()
     }
 }
- 
-private struct ListeningHistorySheet: View {
-    let entries: [ListeningHistoryEntry]
-    let onResume: (AudiobookCollection, AudiobookTrack) -> Void
-
-    var body: some View {
-        NavigationStack {
-            List(entries) { entry in
-                Button {
-                    onResume(entry.collection, entry.track)
-                } label: {
-                    HStack(alignment: .firstTextBaseline, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(entry.collection.title)
-                                .font(.subheadline)
-                                .bold()
-                                .lineLimit(2)
-
-                            Text(entry.track.displayName)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 2) {
-                            if let duration = entry.state.duration, duration > 0 {
-                                Text(percentString(position: entry.state.position, duration: duration))
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
-                            Text(entry.state.updatedAt.formatted(date: .abbreviated, time: .shortened))
-                                .font(.caption2)
-                                .foregroundStyle(.tertiary)
-                        }
-                    }
-                    .padding(.vertical, 8)
-                }
-                .buttonStyle(.plain)
-            }
-            .navigationTitle(NSLocalizedString("listening_history", comment: "Listening history section title"))
-        }
-    }
-
-    private func percentString(position: TimeInterval, duration: TimeInterval) -> String {
-        guard duration > 0 else { return "--" }
-        let clamped = max(0, min(position / duration, 1))
-        let percent = Int(round(clamped * 100))
-        return "\(percent)%"
-    }
-
-    @Environment(\.dismiss) private var dismiss
-}
 
 private struct PersonalCard<Content: View>: View {
     @EnvironmentObject private var themeManager: ThemeManager

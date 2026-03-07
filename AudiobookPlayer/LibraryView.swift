@@ -27,6 +27,7 @@ struct LibraryView: View {
     @State private var rssUpdates: [UUID: [AudiobookTrack]]?
     @State private var isScanningRSS = false
     @State private var rssCheckProgress: String?
+    @State private var showHistorySheet = false
 
     private var selectedCollectionID: Binding<UUID?> {
         Binding(
@@ -100,6 +101,14 @@ struct LibraryView: View {
             Label(NSLocalizedString("favorite_tracks_title", comment: "Favorite tracks view title"), systemImage: "heart.fill")
         }
         .tint(.red)
+    }
+
+    private var historyButton: some View {
+        Button {
+            showHistorySheet = true
+        } label: {
+            Label(NSLocalizedString("listening_history", comment: "Listening history section title"), systemImage: "clock.arrow.circlepath")
+        }
     }
 
     private var reloadButton: some View {
@@ -208,6 +217,7 @@ struct LibraryView: View {
                         checkRSSButton
                         importMenu
                         archivedButton
+                        historyButton
                         favoritesButton
                         reloadButton
                     }
@@ -340,6 +350,33 @@ struct LibraryView: View {
                 }
             )
         }
+        .sheet(isPresented: $showHistorySheet) {
+            ListeningHistorySheet(
+                entries: historySheetEntries,
+                onResume: { collection, track in
+                    resumeFromHistory(collection: collection, track: track)
+                    showHistorySheet = false
+                }
+            )
+        }
+    }
+
+    private var historySheetEntries: [ListeningHistoryEntry] {
+        buildListeningHistory(from: library, using: audioPlayer)
+    }
+
+    private func resumeFromHistory(collection: AudiobookCollection, track: AudiobookTrack) {
+        if case .baiduNetdisk(_, _) = collection.source {
+            guard let token = authViewModel.token else {
+                tabSelection.selectedTab = .personal
+                authViewModel.signIn()
+                return
+            }
+            audioPlayer.play(track: track, in: collection, token: token)
+        } else {
+            audioPlayer.play(track: track, in: collection, token: nil)
+        }
+        tabSelection.switchToPlayingTab()
     }
 
     private var libraryErrorMessage: String? {
