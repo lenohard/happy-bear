@@ -62,6 +62,7 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var refreshReviewDescription = ""
     @Published var playbackStateSnapshot: [UUID: TrackPlaybackState] = [:]
     @Published var isDescriptionExpanded = false
+    @Published var collapsedChapters: Set<String> = []
     
     @Published var sttTranscribingTrackIds: Set<UUID> = []
     @Published var ttsGeneratingTrackIds: Set<UUID> = []
@@ -217,13 +218,21 @@ final class CollectionDetailViewModel: ObservableObject {
         }
     }
 
-    var showScrollToTopButton: Bool {
-        !isSummaryVisible
+    /// Toggle chapter collapsed state
+    func toggleChapterCollapsed(_ chapterId: String) {
+        if collapsedChapters.contains(chapterId) {
+            collapsedChapters.remove(chapterId)
+        } else {
+            collapsedChapters.insert(chapterId)
+        }
+    }
+    
+    func isChapterCollapsed(_ chapterId: String) -> Bool {
+        collapsedChapters.contains(chapterId)
     }
 
-    var showScrollToBottomButton: Bool {
-        guard !filteredTracks.isEmpty else { return false }
-        return !isLastTrackVisible
+    var showScrollToTopButton: Bool {
+        !isSummaryVisible
     }
     
     // MARK: - Logic Methods

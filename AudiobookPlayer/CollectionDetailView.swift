@@ -504,7 +504,7 @@ struct CollectionDetailView: View {
 
     private func listContent(_ collection: AudiobookCollection) -> some View {
         ScrollViewReader { proxy in
-            ZStack(alignment: .center) {
+            ZStack(alignment: .top) {
                 List {
                     summarySection(collection)
                         .id("summary-section")
@@ -529,62 +529,24 @@ struct CollectionDetailView: View {
                     }
                 }
                 
-                // Jump to Top/Bottom Buttons (Centered)
-                if viewModel.filteredTracks.count > 10 && (viewModel.showScrollToTopButton || viewModel.showScrollToBottomButton) {
+                // Scroll to Top Button
+                if viewModel.filteredTracks.count > 10 && viewModel.showScrollToTopButton {
                     VStack {
-                        if viewModel.showScrollToTopButton {
-                            Button {
-                                withAnimation {
-                                    proxy.scrollTo("summary-section", anchor: .top)
-                                }
-                            } label: {
-                                Image(systemName: "chevron.up")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(10)
-                                    .background(.regularMaterial, in: Circle())
-                                    .shadow(color: .black.opacity(0.1), radius: 3)
+                        Button {
+                            withAnimation {
+                                proxy.scrollTo("summary-section", anchor: .top)
                             }
-                            .padding(.top, 8)
-                            .accessibilityLabel(Text("Scroll to top"))
+                        } label: {
+                            Image(systemName: "chevron.up")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.secondary)
+                                .padding(10)
+                                .background(.regularMaterial, in: Circle())
+                                .shadow(color: .black.opacity(0.1), radius: 3)
                         }
-                        
-                        Spacer()
-                        
-                        if viewModel.showScrollToBottomButton {
-                            Button {
-                                if viewModel.isPagedMode {
-                                    let maxLoaded = viewModel.loadedPages.keys.max() ?? 0
-                                    let nextPage = maxLoaded + 1
-                                    if nextPage < viewModel.totalPages {
-                                        Task {
-                                            await viewModel.loadPage(nextPage)
-                                            await MainActor.run {
-                                                withAnimation {
-                                                    proxy.scrollTo("list-bottom", anchor: .bottom)
-                                                }
-                                            }
-                                        }
-                                        return
-                                    }
-                                }
-                                
-                                withAnimation {
-                                    proxy.scrollTo("list-bottom", anchor: .bottom)
-                                }
-                            } label: {
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(.secondary)
-                                    .padding(10)
-                                    .background(.regularMaterial, in: Circle())
-                                    .shadow(color: .black.opacity(0.1), radius: 3)
-                            }
-                            .padding(.bottom, 8)
-                            .accessibilityLabel(Text("Scroll to bottom"))
-                        }
+                        .padding(.top, 8)
+                        .accessibilityLabel(Text("Scroll to top"))
                     }
-                    .padding(.vertical, 4)
                 }
             }
         }
@@ -871,17 +833,19 @@ struct CollectionDetailView: View {
                         .padding(.vertical, 4)
                 }
             } else if hasChapters {
-                // Render tracks grouped by chapter
+                // Render tracks grouped by chapter with collapsible sections
                 ForEach(viewModel.chapterGroups) { group in
-                    // Chapter header
+                    let isCollapsed = viewModel.isChapterCollapsed(group.id)
+                    
                     Section {
-                        // Tracks in this chapter
-                        ForEach(Array(group.tracks.enumerated()), id: \.element.id) { index, track in
-                            trackRow(track: track, index: index, totalTracks: tracks.count, collection: collection)
-                                .id(track.id)
+                        if !isCollapsed {
+                            ForEach(Array(group.tracks.enumerated()), id: \.element.id) { index, track in
+                                trackRow(track: track, index: index, totalTracks: tracks.count, collection: collection)
+                                    .id(track.id)
+                            }
                         }
                     } header: {
-                        chapterHeader(for: group)
+                        chapterHeader(for: group, isCollapsed: isCollapsed)
                     }
                 }
             } else {
@@ -892,34 +856,39 @@ struct CollectionDetailView: View {
                 }
             }
         }
-        
-        // Invisible anchor at the very end of the list for reliable scroll-to-bottom
-        Section {
-            EmptyView()
-        }
-        .id("list-bottom")
-        .listRowBackground(Color.clear)
     }
     
     // MARK: - Chapter Grouping UI
     
     @ViewBuilder
-    private func chapterHeader(for group: CollectionDetailViewModel.ChapterGroup) -> some View {
-        HStack {
-            Image(systemName: "folder.fill")
-                .foregroundStyle(.secondary)
-            Text(group.chapter ?? NSLocalizedString("ungrouped_tracks", value: "Other", comment: "Tracks without chapter"))
-                .font(.headline)
-                .foregroundStyle(.primary)
-            Spacer()
-            Text("\(group.tracks.count)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(Color.secondary.opacity(0.2), in: Capsule())
+    private func chapterHeader(for group: CollectionDetailViewModel.ChapterGroup, isCollapsed: Bool) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                viewModel.toggleChapterCollapsed(group.id)
+            }
+        } label: {
+            HStack {
+                Image(systemName: isCollapsed ? "chevron.right" : "chevron.down")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 12)
+                Image(systemName: "folder.fill")
+                    .foregroundStyle(.secondary)
+                Text(group.chapter ?? NSLocalizedString("ungrouped_tracks", value: "Other", comment: "Tracks without chapter"))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text("\(group.tracks.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color.secondary.opacity(0.2), in: Capsule())
+            }
+            .padding(.vertical, 4)
+            .contentShape(Rectangle())
         }
-        .padding(.vertical, 4)
+        .buttonStyle(.plain)
     }
     
     @ViewBuilder
