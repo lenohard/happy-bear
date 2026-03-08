@@ -4778,9 +4778,6 @@
         }
       }
     },
-    "Scroll to bottom" : {
-
-    },
     "Scroll to top" : {
 
     },
@@ -5112,6 +5109,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "发布时间"
+          }
+        }
+      }
+    },
+    "sort_smart_title" : {
+      "comment" : "Sort criterion: Smart Title with Chinese numeral support",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Smart Title (中文)"
           }
         }
       }

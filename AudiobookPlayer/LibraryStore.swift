@@ -739,8 +739,9 @@ final class LibraryStore: ObservableObject {
                     updates[collection.id] = filteredTracks
                 }
 
-                // Update lastRSSCheckDate for this collection
-                await updateLastRSSCheckDate(now, for: collection.id)
+                // NOTE: Do NOT update lastRSSCheckDate here.
+                // It should only be updated when tracks are actually imported,
+                // so tracks aren't lost if the user dismisses the sheet without importing.
 
             } catch {
                 AppLog.debug("Failed to scan RSS collection \(collection.title): \(error)")

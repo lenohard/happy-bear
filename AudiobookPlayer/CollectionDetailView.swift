@@ -513,6 +513,7 @@ struct CollectionDetailView: View {
                 .listStyle(.insetGrouped)
                 .onAppear {
                     viewModel.prepareAutoFocusTargetIfNeeded(for: collection)
+                    viewModel.initChapterExpandState(for: collection)
                     attemptAutoFocusIfNeeded(using: proxy)
                 }
                 .onChange(of: viewModel.pendingAutoFocusTrackId) {

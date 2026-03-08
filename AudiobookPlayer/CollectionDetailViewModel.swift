@@ -62,7 +62,8 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var refreshReviewDescription = ""
     @Published var playbackStateSnapshot: [UUID: TrackPlaybackState] = [:]
     @Published var isDescriptionExpanded = false
-    @Published var collapsedChapters: Set<String> = []
+    @Published var expandedChapters: Set<String> = []
+    @Published var didInitChapterState = false
     
     @Published var sttTranscribingTrackIds: Set<UUID> = []
     @Published var ttsGeneratingTrackIds: Set<UUID> = []
@@ -218,17 +219,41 @@ final class CollectionDetailViewModel: ObservableObject {
         }
     }
 
-    /// Toggle chapter collapsed state
+    /// Toggle chapter expanded/collapsed state
     func toggleChapterCollapsed(_ chapterId: String) {
-        if collapsedChapters.contains(chapterId) {
-            collapsedChapters.remove(chapterId)
+        if expandedChapters.contains(chapterId) {
+            expandedChapters.remove(chapterId)
         } else {
-            collapsedChapters.insert(chapterId)
+            expandedChapters.insert(chapterId)
         }
     }
     
     func isChapterCollapsed(_ chapterId: String) -> Bool {
-        collapsedChapters.contains(chapterId)
+        !expandedChapters.contains(chapterId)
+    }
+    
+    /// Initialize chapter expand state: all collapsed except the one containing the current/last played track
+    func initChapterExpandState(for collection: AudiobookCollection?) {
+        guard !didInitChapterState else { return }
+        didInitChapterState = true
+        
+        guard hasChapters else { return }
+        
+        // Find the focus track (current playing or last played)
+        let focusTrackId = resolveAutoFocusTrackID(for: collection)
+        
+        guard let focusTrackId else {
+            // No focus track — keep all collapsed
+            return
+        }
+        
+        // Find which chapter group contains this track and expand it
+        for group in chapterGroups {
+            if group.tracks.contains(where: { $0.id == focusTrackId }) {
+                expandedChapters.insert(group.id)
+                break
+            }
+        }
     }
 
     var showScrollToTopButton: Bool {

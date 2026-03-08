@@ -8,6 +8,8 @@ struct RSSUpdatesView: View {
     @State private var selectedTracks: Set<UUID> = []
     @State private var expandedCollections: Set<UUID> = []
     @State private var sortedCollectionIds: [UUID] = []
+    @State private var showImportSummary = false
+    @State private var importSummaryMessage = ""
 
     var body: some View {
         NavigationView {
@@ -90,7 +92,15 @@ struct RSSUpdatesView: View {
                 // Expand all by default
                 expandedCollections = Set(updates.keys)
             }
+            .alert("Import Complete", isPresented: $showImportSummary) {
+                Button("OK") {
+                    dismiss()
+                }
+            } message: {
+                Text(importSummaryMessage)
+            }
         }
+        .interactiveDismissDisabled()
     }
 
     private func areAllSelected(_ tracks: [AudiobookTrack]) -> Bool {
@@ -110,13 +120,39 @@ struct RSSUpdatesView: View {
     }
 
     private func importSelectedTracks() {
+        var importedCount = 0
+        var importedCollections: [String] = []
+        let now = Date()
+        
         for (collectionId, tracks) in updates {
             let tracksToImport = tracks.filter { selectedTracks.contains($0.id) }
             if !tracksToImport.isEmpty {
                 library.addTracks(to: collectionId, tracks: tracksToImport)
+                importedCount += tracksToImport.count
+                
+                if let collection = library.collections.first(where: { $0.id == collectionId }) {
+                    importedCollections.append("\(collection.title): \(tracksToImport.count)")
+                }
+                
+                // Only update lastRSSCheckDate for collections where tracks were actually imported
+                Task {
+                    await library.updateLastRSSCheckDate(now, for: collectionId)
+                }
             }
         }
-        dismiss()
+        
+        // Build summary message
+        let details = importedCollections.joined(separator: "\n")
+        importSummaryMessage = String(
+            format: NSLocalizedString(
+                "rss_import_summary",
+                value: "Imported %d tracks.\n\n%@",
+                comment: "RSS import summary with count and per-collection breakdown"
+            ),
+            importedCount,
+            details
+        )
+        showImportSummary = true
     }
 }
 
