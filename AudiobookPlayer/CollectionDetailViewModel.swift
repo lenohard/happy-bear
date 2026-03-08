@@ -76,6 +76,13 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var totalPages: Int = 0
     @Published var totalResults: Int = 0
     @Published var isListLoading: Bool = false
+
+    // MARK: - Derived / Cached View State
+    // Cached to avoid recomputing on every SwiftUI render pass.
+    @Published var cachedHasChapters: Bool = false
+    @Published var cachedChapterGroups: [ChapterGroup] = []
+    /// Total file size of all tracks in the current filtered list (used in summary header).
+    @Published var cachedTotalTracksSize: Int64 = 0
     
     // MARK: - Filter & Sort State
     @Published var selectedFilter: FilterOption = .all
@@ -187,36 +194,43 @@ final class CollectionDetailViewModel: ObservableObject {
         let tracks: [AudiobookTrack]
     }
     
-    /// Returns true if any track has a chapter assigned
-    var hasChapters: Bool {
-        filteredTracks.contains { $0.chapter != nil }
-    }
+    /// Returns true if any track has a chapter assigned.
+    /// Read from the pre-computed cache — do NOT call filteredTracks inline here.
+    var hasChapters: Bool { cachedHasChapters }
     
-    /// Groups tracks by chapter, with ungrouped tracks (nil chapter) at the end
-    var chapterGroups: [ChapterGroup] {
-        let tracks = filteredTracks
-        
-        // Group by chapter
-        var grouped: [String?: [AudiobookTrack]] = [:]
-        for track in tracks {
-            let chapter = track.chapter
-            grouped[chapter, default: []].append(track)
+    /// Groups tracks by chapter, with ungrouped tracks (nil chapter) at the end.
+    /// Read from the pre-computed cache — do NOT call filteredTracks inline here.
+    var chapterGroups: [ChapterGroup] { cachedChapterGroups }
+
+    /// Recomputes all derived view-state caches from the current `cachedOrderedTracks`.
+    /// Must be called on @MainActor whenever `cachedOrderedTracks` is mutated.
+    func recomputeDerivedViewState() {
+        let tracks = cachedOrderedTracks
+
+        // hasChapters
+        let hasChaps = tracks.contains { $0.chapter != nil }
+        cachedHasChapters = hasChaps
+
+        // chapterGroups (only build if there are chapters to group)
+        if hasChaps {
+            var grouped: [String?: [AudiobookTrack]] = [:]
+            for track in tracks {
+                grouped[track.chapter, default: []].append(track)
+            }
+            let sortedKeys = grouped.keys.sorted { a, b in
+                if a == nil { return false }
+                if b == nil { return true }
+                return a! < b!
+            }
+            cachedChapterGroups = sortedKeys.map { key in
+                ChapterGroup(id: key ?? "ungrouped", chapter: key, tracks: grouped[key] ?? [])
+            }
+        } else {
+            cachedChapterGroups = []
         }
-        
-        // Sort chapters alphabetically, put nil chapter (ungrouped) at the end
-        let sortedKeys = grouped.keys.sorted { (a, b) -> Bool in
-            if a == nil { return false }
-            if b == nil { return true }
-            return a! < b!
-        }
-        
-        return sortedKeys.map { key in
-            ChapterGroup(
-                id: key ?? "ungrouped",
-                chapter: key,
-                tracks: grouped[key] ?? []
-            )
-        }
+
+        // totalTracksSize
+        cachedTotalTracksSize = tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
     }
 
     /// Toggle chapter expanded/collapsed state
@@ -527,6 +541,7 @@ final class CollectionDetailViewModel: ObservableObject {
             await MainActor.run {
                 self.cachedOrderedTracks = filtered
                 self.totalResults = filtered.count
+                self.recomputeDerivedViewState()
             }
         }
     }
@@ -580,6 +595,7 @@ final class CollectionDetailViewModel: ObservableObject {
         let keep = [page - 1, page, page + 1, 0].filter { $0 >= 0 }
         loadedPages = loadedPages.filter { keep.contains($0.key) }
         cachedOrderedTracks = pagedTracks
+        recomputeDerivedViewState()
     }
 
     func loadPage(_ page: Int) async {
@@ -660,6 +676,7 @@ final class CollectionDetailViewModel: ObservableObject {
         if clearCaches {
             cachedOrderedTracks = []
             cachedSortedTracks = []
+            recomputeDerivedViewState()
         }
     }
 

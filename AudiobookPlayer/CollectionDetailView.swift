@@ -356,7 +356,10 @@ struct CollectionDetailView: View {
                     }
                 }
             }
-            .onChange(of: viewModel.collection?.tracks.map(\.id) ?? []) {
+            // Compare track count instead of mapping the full ID array on every render.
+            // Individual track mutations (rename, favorite) are handled via playbackStateSnapshot
+            // and transcriptStatusCache; we only need a full refresh when the set of tracks changes.
+            .onChange(of: viewModel.collection?.trackCount ?? 0) {
                 viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
                 viewModel.refreshTrackSummaryIndicators(for: viewModel.collection)
                 viewModel.refreshPlaybackStateSnapshot(for: viewModel.collection)
@@ -448,6 +451,7 @@ struct CollectionDetailView: View {
                 viewModel.sortTask?.cancel()
                 viewModel.cachedOrderedTracks = []
                 viewModel.cachedSortedTracks = []
+                viewModel.recomputeDerivedViewState()
                 viewModel.transcriptStatusCache = [:]
                 viewModel.tracksWithSummaries = []
                 viewModel.playbackStateSnapshot = [:]
@@ -573,8 +577,7 @@ struct CollectionDetailView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else {
-                            let totalSize = collection.tracks.reduce(into: Int64(0)) { $0 += $1.fileSize }
-                            Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.trackCount, formatBytes(totalSize)))
+                            Text(String(format: NSLocalizedString("track_count_and_size", comment: "Track count and size"), collection.trackCount, formatBytes(viewModel.cachedTotalTracksSize)))
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }

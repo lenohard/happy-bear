@@ -2,14 +2,13 @@ import SwiftUI
 
 struct RSSUpdatesView: View {
     let updates: [UUID: [AudiobookTrack]]
+    var onImportComplete: ((String) -> Void)? = nil
     @EnvironmentObject var library: LibraryStore
     @Environment(\.dismiss) var dismiss
     
     @State private var selectedTracks: Set<UUID> = []
     @State private var expandedCollections: Set<UUID> = []
     @State private var sortedCollectionIds: [UUID] = []
-    @State private var showImportSummary = false
-    @State private var importSummaryMessage = ""
 
     var body: some View {
         NavigationView {
@@ -92,13 +91,7 @@ struct RSSUpdatesView: View {
                 // Expand all by default
                 expandedCollections = Set(updates.keys)
             }
-            .alert("Import Complete", isPresented: $showImportSummary) {
-                Button("OK") {
-                    dismiss()
-                }
-            } message: {
-                Text(importSummaryMessage)
-            }
+
         }
         .interactiveDismissDisabled()
     }
@@ -141,9 +134,9 @@ struct RSSUpdatesView: View {
             }
         }
         
-        // Build summary message
+        // Build summary message and notify parent (which will dismiss sheet + show alert)
         let details = importedCollections.joined(separator: "\n")
-        importSummaryMessage = String(
+        let summary = String(
             format: NSLocalizedString(
                 "rss_import_summary",
                 value: "Imported %d tracks.\n\n%@",
@@ -152,7 +145,11 @@ struct RSSUpdatesView: View {
             importedCount,
             details
         )
-        showImportSummary = true
+        if let onImportComplete {
+            onImportComplete(summary)
+        } else {
+            dismiss()
+        }
     }
 }
 

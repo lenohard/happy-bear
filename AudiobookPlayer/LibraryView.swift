@@ -27,6 +27,7 @@ struct LibraryView: View {
     @State private var rssUpdates: [UUID: [AudiobookTrack]]?
     @State private var isScanningRSS = false
     @State private var rssCheckProgress: String?
+    @State private var rssImportSummary: String?
     @State private var showHistorySheet = false
 
     private var selectedCollectionID: Binding<UUID?> {
@@ -275,7 +276,25 @@ struct LibraryView: View {
             get: { rssUpdates.map { RSSUpdatesWrapper(updates: $0) } },
             set: { if $0 == nil { rssUpdates = nil } }
         )) { wrapper in
-            RSSUpdatesView(updates: wrapper.updates)
+            RSSUpdatesView(updates: wrapper.updates) { summary in
+                // Dismiss sheet first, wait for animation, then show the parent-level alert.
+                // Presenting an alert while the sheet dismiss animation is running causes it
+                // to be swallowed on some iOS versions.
+                rssUpdates = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                    rssImportSummary = summary
+                }
+            }
+        }
+        .alert(
+            NSLocalizedString("rss_import_complete_title", value: "Import Complete", comment: "RSS import complete alert title"),
+            isPresented: Binding(get: { rssImportSummary != nil }, set: { if !$0 { rssImportSummary = nil } })
+        ) {
+            Button(NSLocalizedString("ok_button", value: "OK", comment: "OK button")) {
+                rssImportSummary = nil
+            }
+        } message: {
+            Text(rssImportSummary ?? "")
         }
         .sheet(item: Binding(
             get: {
