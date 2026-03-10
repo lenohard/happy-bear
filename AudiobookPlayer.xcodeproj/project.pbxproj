@@ -746,7 +746,7 @@
 				CODE_SIGN_ENTITLEMENTS = AudiobookPlayer/AudiobookPlayer.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = 285P3M6846;
 				ENABLE_PREVIEWS = YES;
@@ -782,7 +782,7 @@
 				CODE_SIGN_ENTITLEMENTS = AudiobookPlayer/AudiobookPlayer.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 6;
+				CURRENT_PROJECT_VERSION = 7;
 				DEVELOPMENT_ASSET_PATHS = "\"AudiobookPlayer/Preview Content\"";
 				DEVELOPMENT_TEAM = 285P3M6846;
 				ENABLE_PREVIEWS = YES;

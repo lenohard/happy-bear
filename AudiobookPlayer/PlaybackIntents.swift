@@ -10,6 +10,9 @@ import Foundation
 final class IntentCoordinator: ObservableObject {
     static let shared = IntentCoordinator()
 
+    /// Set to true once the app's UI and LibraryStore are ready.
+    var isAppReady = false
+
     enum PendingAction {
         case resumeLastPlayed
         case playCollection(id: UUID)
@@ -86,30 +89,30 @@ struct CollectionQuery: EntityQuery {
 
 // MARK: - Intents
 
-struct ResumePlaybackIntent: AppIntent {
-    static var title: LocalizedStringResource = "Resume Playback"
-    static var description = IntentDescription("Continue your most recent happyBear playback.")
-    static var openAppWhenRun: Bool = true
+/// Resume last played — uses AudioPlaybackIntent so Siri can run it without unlocking.
+struct ResumePlaybackIntent: AudioPlaybackIntent {
+    static var title: LocalizedStringResource = "继续播放"
+    static var description = IntentDescription("继续播放happyBear上次的内容。")
 
     @MainActor
-    func perform() async throws -> some IntentResult & ProvidesDialog {
+    func perform() async throws -> some IntentResult {
         IntentCoordinator.shared.requestResume()
-        return .result(dialog: IntentDialog("Resuming happyBear."))
+        return .result()
     }
 }
 
-struct PlayCollectionIntent: AppIntent {
-    static var title: LocalizedStringResource = "Play Collection"
-    static var description = IntentDescription("Resume a specific collection from its last position.")
-    static var openAppWhenRun: Bool = true
+/// Play a specific collection — uses AudioPlaybackIntent for lock-screen support.
+struct PlayCollectionIntent: AudioPlaybackIntent {
+    static var title: LocalizedStringResource = "播放合集"
+    static var description = IntentDescription("播放指定的合集。")
 
-    @Parameter(title: "Collection")
+    @Parameter(title: "合集")
     var collection: CollectionEntity
 
     @MainActor
-    func perform() async throws -> some IntentResult & ProvidesDialog {
+    func perform() async throws -> some IntentResult {
         IntentCoordinator.shared.requestPlayCollection(id: collection.id)
-        return .result(dialog: IntentDialog("Resuming \(collection.title)."))
+        return .result()
     }
 }
 
@@ -122,30 +125,26 @@ struct HappyBearShortcuts: AppShortcutsProvider {
         AppShortcut(
             intent: ResumePlaybackIntent(),
             phrases: [
-                // English
-                "Resume ${applicationName}",
-                "Continue ${applicationName}",
-                "Play ${applicationName}",
-                // Chinese
-                "用${applicationName}继续播放",
-                "${applicationName}继续",
-                "播放${applicationName}"
+                "继续播放\(.applicationName)",
+                "\(.applicationName)继续播放",
+                "播放\(.applicationName)",
+                "Resume \(.applicationName)",
+                "Continue \(.applicationName)",
+                "Play \(.applicationName)"
             ],
-            shortTitle: "Resume",
+            shortTitle: "继续播放",
             systemImageName: "play.circle"
         )
         AppShortcut(
             intent: PlayCollectionIntent(),
             phrases: [
-                // English
-                "Play \(\.$collection) in ${applicationName}",
-                "Resume \(\.$collection) in ${applicationName}",
-                // Chinese
-                "用${applicationName}播放\(\.$collection)",
-                "${applicationName}播放\(\.$collection)",
-                "在${applicationName}里播放\(\.$collection)"
+                "用\(.applicationName)播放\(\.$collection)",
+                "\(.applicationName)播放\(\.$collection)",
+                "在\(.applicationName)里播放\(\.$collection)",
+                "Play \(\.$collection) in \(.applicationName)",
+                "Resume \(\.$collection) in \(.applicationName)"
             ],
-            shortTitle: "Play Collection",
+            shortTitle: "播放合集",
             systemImageName: "books.vertical"
         )
     }
