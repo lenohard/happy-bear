@@ -61,11 +61,13 @@ struct AudiobookPlayerApp: App {
             .onOpenURL { url in
                 handleIncomingURL(url)
             }
-            .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackIntentRequested)) { _ in
-                handleResumeIntent()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .playCollectionIntentRequested)) { notification in
-                if let id = notification.object as? UUID {
+            .onReceive(IntentCoordinator.shared.$pendingAction) { action in
+                guard let action else { return }
+                IntentCoordinator.shared.pendingAction = nil
+                switch action {
+                case .resumeLastPlayed:
+                    handleResumeIntent()
+                case .playCollection(let id):
                     handlePlayCollectionIntent(collectionId: id)
                 }
             }
@@ -144,6 +146,7 @@ struct AudiobookPlayerApp: App {
 
     private func handleResumeIntent() {
         Task {
+            await waitForLibraryReady()
             guard let recent = libraryStore.mostRecentPlayback() else { return }
             await playFromIntent(collection: recent.collection, track: recent.track)
         }
@@ -151,10 +154,22 @@ struct AudiobookPlayerApp: App {
 
     private func handlePlayCollectionIntent(collectionId: UUID) {
         Task {
+            await waitForLibraryReady()
             await libraryStore.ensureCollectionLoaded(collectionId)
             guard let collection = libraryStore.collections.first(where: { $0.id == collectionId }) else { return }
             guard let track = collection.resumeTrack() else { return }
             await playFromIntent(collection: collection, track: track)
+        }
+    }
+
+    /// Wait for LibraryStore to finish initial load (cold start via Siri).
+    private func waitForLibraryReady() async {
+        // If collections are already loaded, proceed immediately
+        if !libraryStore.collections.isEmpty { return }
+        // Otherwise wait up to 10 seconds for loading to complete
+        for _ in 0..<100 {
+            try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
+            if !libraryStore.collections.isEmpty { return }
         }
     }
 
@@ -232,8 +247,7 @@ extension Notification.Name {
     static let resumePlaybackShortcut = Notification.Name("resumePlaybackShortcut")
     static let transcriptDidFinalize = Notification.Name("transcriptDidFinalize")
 
-    static let resumePlaybackIntentRequested = Notification.Name("resumePlaybackIntentRequested")
-    static let playCollectionIntentRequested = Notification.Name("playCollectionIntentRequested")
+
 }
 
 // MARK: - Splash Screen

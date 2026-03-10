@@ -2,6 +2,32 @@
 import AppIntents
 import Foundation
 
+// MARK: - Intent Coordinator
+
+/// Bridges App Intents → in-app playback. Intents set pending actions here,
+/// and the app observes and executes them on the main actor.
+@MainActor
+final class IntentCoordinator: ObservableObject {
+    static let shared = IntentCoordinator()
+
+    enum PendingAction {
+        case resumeLastPlayed
+        case playCollection(id: UUID)
+    }
+
+    @Published var pendingAction: PendingAction?
+
+    private init() {}
+
+    func requestResume() {
+        pendingAction = .resumeLastPlayed
+    }
+
+    func requestPlayCollection(id: UUID) {
+        pendingAction = .playCollection(id: id)
+    }
+}
+
 // MARK: - AppEntity: Collection
 
 struct CollectionEntity: AppEntity, Identifiable, Hashable {
@@ -63,10 +89,11 @@ struct CollectionQuery: EntityQuery {
 struct ResumePlaybackIntent: AppIntent {
     static var title: LocalizedStringResource = "Resume Playback"
     static var description = IntentDescription("Continue your most recent happyBear playback.")
-    static var openAppWhenRun: Bool = false
+    static var openAppWhenRun: Bool = true
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        NotificationCenter.default.post(name: .resumePlaybackIntentRequested, object: nil)
+        IntentCoordinator.shared.requestResume()
         return .result(dialog: IntentDialog("Resuming happyBear."))
     }
 }
@@ -74,13 +101,14 @@ struct ResumePlaybackIntent: AppIntent {
 struct PlayCollectionIntent: AppIntent {
     static var title: LocalizedStringResource = "Play Collection"
     static var description = IntentDescription("Resume a specific collection from its last position.")
-    static var openAppWhenRun: Bool = false
+    static var openAppWhenRun: Bool = true
 
     @Parameter(title: "Collection")
     var collection: CollectionEntity
 
+    @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        NotificationCenter.default.post(name: .playCollectionIntentRequested, object: collection.id)
+        IntentCoordinator.shared.requestPlayCollection(id: collection.id)
         return .result(dialog: IntentDialog("Resuming \(collection.title)."))
     }
 }
