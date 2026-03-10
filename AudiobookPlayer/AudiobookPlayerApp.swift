@@ -51,6 +51,8 @@ struct AudiobookPlayerApp: App {
                         await transcriptionManager.checkAndResumePendingJobs()
                         await aiGenerationManager.refreshJobs()
                     }
+                    // Check for pending Siri playback commands
+                    checkSiriCommand()
                 case .background, .inactive:
                     // App going to background - checkpoint listening session
                     audioPlayer.checkpointListeningSession()
@@ -142,7 +144,20 @@ struct AudiobookPlayerApp: App {
         }
     }
 
-    // MARK: - Siri / App Intents Notifications
+    // MARK: - Siri / App Intents
+
+    /// Check for pending commands from SiriKit Intents Extension (via App Group UserDefaults).
+    private func checkSiriCommand() {
+        guard let command = SiriIntentBridge.shared.checkPendingSiriCommand() else { return }
+        switch command {
+        case .resumeLastPlayed:
+            handleResumeIntent()
+        case .playCollection(let id):
+            handlePlayCollectionIntent(collectionId: id)
+        case .searchAndPlay(let query):
+            handleSearchAndPlayIntent(query: query)
+        }
+    }
 
     private func handleResumeIntent() {
         Task {
@@ -162,11 +177,22 @@ struct AudiobookPlayerApp: App {
         }
     }
 
+    private func handleSearchAndPlayIntent(query: String) {
+        Task {
+            await waitForLibraryReady()
+            let lowered = query.lowercased()
+            guard let collection = libraryStore.collections.first(where: {
+                $0.title.lowercased().contains(lowered)
+            }) else { return }
+            await libraryStore.ensureCollectionLoaded(collection.id)
+            guard let track = collection.resumeTrack() else { return }
+            await playFromIntent(collection: collection, track: track)
+        }
+    }
+
     /// Wait for LibraryStore to finish initial load (cold start via Siri).
     private func waitForLibraryReady() async {
-        // If collections are already loaded, proceed immediately
         if !libraryStore.collections.isEmpty { return }
-        // Otherwise wait up to 10 seconds for loading to complete
         for _ in 0..<100 {
             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
             if !libraryStore.collections.isEmpty { return }
@@ -187,6 +213,9 @@ struct AudiobookPlayerApp: App {
         }
 
         tabSelection.selectedTab = .playing
+
+        // Donate to Siri so it learns this collection
+        SiriIntentBridge.donatePlayback(collectionTitle: collection.title, collectionId: collection.id)
     }
 }
 
