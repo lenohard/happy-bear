@@ -43,6 +43,47 @@ final class SiriIntentBridge {
         return nil
     }
 
+    /// Sync the collection catalog (id + title) to App Group UserDefaults
+    /// so the SiriIntentsExtension can search during resolveMediaItems.
+    /// Call this after library loads and whenever collections change.
+    static func syncCollectionCatalog(_ collections: [AudiobookCollection]) {
+        guard let defaults = UserDefaults(suiteName: "group.com.wdh.happyBear") else { return }
+        let list: [[String: String]] = collections.map {
+            ["id": $0.id.uuidString, "title": $0.title]
+        }
+        if let data = try? JSONEncoder().encode(list) {
+            defaults.set(data, forKey: "siri_collection_catalog")
+            defaults.synchronize()
+            AppLog.debug("[Siri] Synced \(collections.count) collections to App Group catalog")
+        }
+    }
+
+    /// Suggest all collections to Siri via INUpcomingMediaManager.
+    /// This tells Siri what content is available for playback (not what the user already played).
+    /// Call this after library finishes loading (e.g. on app launch).
+    static func donateAllCollections(_ collections: [AudiobookCollection]) {
+        let intents: [INPlayMediaIntent] = collections.map { collection in
+            let mediaItem = INMediaItem(
+                identifier: collection.id.uuidString,
+                title: collection.title,
+                type: .audioBook,
+                artwork: nil
+            )
+            return INPlayMediaIntent(
+                mediaItems: [mediaItem],
+                mediaContainer: nil,
+                playShuffled: nil,
+                playbackRepeatMode: .unknown,
+                resumePlayback: true,
+                playbackQueueLocation: .unknown,
+                playbackSpeed: nil,
+                mediaSearch: nil
+            )
+        }
+        INUpcomingMediaManager.shared.setSuggestedMediaIntents(NSOrderedSet(array: intents))
+        AppLog.debug("[Siri] Suggested \(collections.count) collections via INUpcomingMediaManager")
+    }
+
     /// Donate a playback intent so Siri learns the user's listening habits.
     static func donatePlayback(collectionTitle: String, collectionId: UUID) {
         let mediaItem = INMediaItem(

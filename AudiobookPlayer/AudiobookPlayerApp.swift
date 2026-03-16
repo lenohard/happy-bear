@@ -1,4 +1,5 @@
 import SwiftUI
+import Intents
 
 @main
 struct AudiobookPlayerApp: App {
@@ -73,9 +74,19 @@ struct AudiobookPlayerApp: App {
                     handlePlayCollectionIntent(collectionId: id)
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .siriPlaybackCommandReceived)) { _ in
+                // Handle Siri commands from background launch (via AppDelegate)
+                checkSiriCommand()
+            }
             .onAppear {
                 audioPlayer.bindLibrary(libraryStore)
                 bubbleWindowManager.show(audioPlayer: audioPlayer, tabSelection: tabSelection, themeManager: themeManager)
+                // Sync collection catalog + donate to Siri so voice queries can match any collection
+                Task {
+                    await waitForLibraryReady()
+                    SiriIntentBridge.syncCollectionCatalog(libraryStore.collections)
+                    SiriIntentBridge.donateAllCollections(libraryStore.collections)
+                }
             }
             .sheet(item: Binding(
                 get: { pendingEbookURL.map { PendingEbookImport(url: $0) } },
@@ -259,6 +270,19 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
         completionHandler(handled)
     }
 
+    // MARK: - Siri Intent Handling (background launch from .handleInApp)
+
+    func application(_ application: UIApplication,
+                     handle intent: INIntent,
+                     completionHandler: @escaping (INIntentResponse) -> Void) {
+        // The extension already wrote the command to App Group UserDefaults.
+        // Post a notification so the SwiftUI layer picks it up even during background launch.
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(name: .siriPlaybackCommandReceived, object: nil)
+        }
+        completionHandler(INPlayMediaIntentResponse(code: .success, userActivity: nil))
+    }
+
     @discardableResult
     private func handle(shortcutItem: UIApplicationShortcutItem) -> Bool {
         if shortcutItem.type == "com.senaca.AudiobookPlayer.continueLast" {
@@ -275,8 +299,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 extension Notification.Name {
     static let resumePlaybackShortcut = Notification.Name("resumePlaybackShortcut")
     static let transcriptDidFinalize = Notification.Name("transcriptDidFinalize")
-
-
+    static let siriPlaybackCommandReceived = Notification.Name("siriPlaybackCommandReceived")
 }
 
 // MARK: - Splash Screen

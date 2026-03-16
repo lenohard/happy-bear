@@ -2447,9 +2447,6 @@
         }
       }
     },
-    "Continue your most recent happyBear playback." : {
-
-    },
     "Correct text" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4035,9 +4032,6 @@
         }
       }
     },
-    "Play Collection" : {
-
-    },
     "play_collection_accessibility" : {
       "comment" : "Play collection accessibility label",
       "localizations" : {
@@ -4401,15 +4395,6 @@
     "Restart" : {
 
     },
-    "Resume" : {
-
-    },
-    "Resume a specific collection from its last position." : {
-
-    },
-    "Resume Playback" : {
-
-    },
     "resume_listening" : {
       "comment" : "Resume listening label",
       "localizations" : {
@@ -4426,12 +4411,6 @@
           }
         }
       }
-    },
-    "Resuming %@." : {
-
-    },
-    "Resuming happyBear." : {
-
     },
     "retry_button" : {
       "localizations" : {
@@ -4696,6 +4675,18 @@
         }
       }
     },
+    "rss_import_complete_title" : {
+      "comment" : "RSS import complete alert title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Import Complete"
+          }
+        }
+      }
+    },
     "rss_import_navigation_title" : {
       "comment" : "RSS import sheet title",
       "extractionState" : "extracted_with_value",
@@ -4710,6 +4701,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "导入RSS"
+          }
+        }
+      }
+    },
+    "rss_import_summary" : {
+      "comment" : "RSS import summary with count and per-collection breakdown",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Imported %1$d tracks.\n\n%2$@"
           }
         }
       }
@@ -7490,7 +7493,22 @@
     "个人" : {
 
     },
+    "合集" : {
+
+    },
+    "播放合集" : {
+
+    },
+    "播放指定的合集。" : {
+
+    },
     "智能" : {
+
+    },
+    "继续播放" : {
+
+    },
+    "继续播放happyBear上次的内容。" : {
 
     }
   },
