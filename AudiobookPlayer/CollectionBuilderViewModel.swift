@@ -344,7 +344,11 @@ final class CollectionBuilderViewModel: ObservableObject {
         
         // Get the first component of the relative path (the immediate parent folder)
         let components = relativePath.components(separatedBy: "/")
-        guard let firstComponent = components.first, !firstComponent.isEmpty else { return nil }
+        
+        // If there's only one component, the file is directly under root (no subfolder)
+        // e.g. relativePath = "011-23-xxxx.m4a" → no chapter
+        guard components.count > 1,
+              let firstComponent = components.first, !firstComponent.isEmpty else { return nil }
         
         return firstComponent
     }

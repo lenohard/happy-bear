@@ -458,7 +458,7 @@ final class AudioPlayerViewModel: ObservableObject {
                 let url = try streamURL(for: track, token: token)
                 startVLCAudioPlayback(url: url, track: track, collection: collection)
             } catch {
-                statusMessage = "Playback error: \(error.localizedDescription)"
+                statusMessage = playbackErrorMessage(for: error)
             }
             return
         }
@@ -491,7 +491,7 @@ final class AudioPlayerViewModel: ObservableObject {
                 let url = try streamURL(for: track, token: token)
                 startPlayback(url: url, track: track, collection: collection)
             } catch {
-                statusMessage = "Playback error: \(error.localizedDescription)"
+                statusMessage = playbackErrorMessage(for: error)
             }
         }
     }
@@ -1063,7 +1063,7 @@ final class AudioPlayerViewModel: ObservableObject {
                 let url = try streamURL(for: track, token: token)
                 startVLCAudioPlayback(url: url, track: track, collection: context.collection)
             } catch {
-                statusMessage = "Playback error: \(error.localizedDescription)"
+                statusMessage = playbackErrorMessage(for: error)
             }
             return
         }
@@ -1082,7 +1082,7 @@ final class AudioPlayerViewModel: ObservableObject {
             // Disabled auto-cache to reduce battery drain - user must manually cache via cache sheet
             // autoCacheIfPossible(track)
         } catch {
-            statusMessage = "Playback error: \(error.localizedDescription)"
+            statusMessage = playbackErrorMessage(for: error)
         }
     }
 
@@ -1148,7 +1148,11 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         #endif
 
         guard let player else {
-            statusMessage = "Player is not ready. Select a track to start playback."
+            if currentTrack != nil {
+                statusMessage = "Playback is unavailable right now. Check your network connection and try again."
+            } else {
+                statusMessage = "Select a track to start playback."
+            }
             return
         }
 
@@ -1718,7 +1722,7 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         if track?.mediaKind == .video {
             statusMessage = NSLocalizedString("video_playback_failed_error", comment: "Video playback failed message")
         } else if let error {
-            statusMessage = "Playback error: \(error.localizedDescription)"
+            statusMessage = playbackErrorMessage(for: error)
         } else {
             statusMessage = NSLocalizedString("generic_playback_failed", comment: "Generic playback failure")
         }
@@ -1756,6 +1760,45 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         resetNowPlayingInfo()
 #endif
         activeCacheStatus = nil
+    }
+
+    private func playbackErrorMessage(for error: Error) -> String {
+        if let urlError = error as? URLError {
+            return networkPlaybackErrorMessage(for: urlError.code)
+        }
+
+        let nsError = error as NSError
+
+        if nsError.domain == NSURLErrorDomain,
+           let urlError = URLError.Code(rawValue: nsError.code) {
+            return networkPlaybackErrorMessage(for: urlError)
+        }
+
+        let message = nsError.localizedDescription.lowercased()
+        if message.contains("offline") ||
+            message.contains("internet") ||
+            message.contains("network") ||
+            message.contains("timed out") ||
+            message.contains("cannot connect") ||
+            message.contains("could not connect") ||
+            message.contains("not connected") {
+            return "Network error: unable to load audio. Check your connection and try again."
+        }
+
+        return "Playback error: \(error.localizedDescription)"
+    }
+
+    private func networkPlaybackErrorMessage(for code: URLError.Code) -> String {
+        switch code {
+        case .notConnectedToInternet, .networkConnectionLost, .internationalRoamingOff, .callIsActive, .dataNotAllowed:
+            return "Network error: unable to load audio. Check your connection and try again."
+        case .timedOut:
+            return "Network timeout: audio took too long to load. Check your connection and try again."
+        case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
+            return "Server connection failed while loading audio. Check your network and try again."
+        default:
+            return "Playback error: \(code.localizedDescription)"
+        }
     }
 
     private func validateVideoTrackIfNeeded(asset: AVURLAsset, track: AudiobookTrack?) {
@@ -1926,12 +1969,12 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
             guard self.isPlaying else { return }
 
             if let player = self.player, player.timeControlStatus == .waitingToPlayAtSpecifiedRate {
-                self.statusMessage = "Buffering… check network or file access."
+                self.statusMessage = "Playback is waiting for data. Check your network connection or file access."
             }
 
             #if canImport(MobileVLCKit)
             if self.usingVLCAudio, let vlcPlayer = self.vlcPlayer, !vlcPlayer.isPlaying {
-                self.statusMessage = "Starting playback… check network or file access."
+                self.statusMessage = "Playback could not start yet. Check your network connection or file access."
             }
             #endif
         }
