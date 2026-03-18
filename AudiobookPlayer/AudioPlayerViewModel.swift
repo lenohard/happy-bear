@@ -1769,9 +1769,9 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
         let nsError = error as NSError
 
-        if nsError.domain == NSURLErrorDomain,
-           let urlError = URLError.Code(rawValue: nsError.code) {
-            return networkPlaybackErrorMessage(for: urlError)
+        if nsError.domain == NSURLErrorDomain {
+            let urlErrorCode = URLError.Code(rawValue: nsError.code)
+            return networkPlaybackErrorMessage(for: urlErrorCode)
         }
 
         let message = nsError.localizedDescription.lowercased()
@@ -1797,7 +1797,7 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed:
             return "Server connection failed while loading audio. Check your network and try again."
         default:
-            return "Playback error: \(code.localizedDescription)"
+            return "Playback error: \(URLError(code).localizedDescription)"
         }
     }
 
