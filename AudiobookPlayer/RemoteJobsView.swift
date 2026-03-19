@@ -107,43 +107,11 @@ struct RemoteJobsView: View {
                     } else {
                         ForEach(filteredJobs) { job in
                             RemoteJobRow(job: job)
-                                .swipeActions(edge: .leading, allowsFullSwipe: false) {
-                                    if job.status == .queued || job.status == .running {
-                                        Button {
-                                            Task {
-                                                do {
-                                                    try await remoteJobsStore.cancelJob(
-                                                        jobId: job.id,
-                                                        baseURL: remoteJobsBaseURL,
-                                                        token: remoteJobsAuthToken.isEmpty ? nil : remoteJobsAuthToken
-                                                    )
-                                                } catch {
-                                                    actionError = error.localizedDescription
-                                                }
-                                            }
-                                        } label: {
-                                            Label("Cancel", systemImage: "xmark.circle")
-                                        }
-                                        .tint(.orange)
-                                    }
-                                }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    if job.status != .queued && job.status != .running {
-                                        Button(role: .destructive) {
-                                            Task {
-                                                do {
-                                                    try await remoteJobsStore.deleteJob(
-                                                        jobId: job.id,
-                                                        baseURL: remoteJobsBaseURL,
-                                                        token: remoteJobsAuthToken.isEmpty ? nil : remoteJobsAuthToken
-                                                    )
-                                                } catch {
-                                                    actionError = error.localizedDescription
-                                                }
-                                            }
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
+                                    Button(role: .destructive) {
+                                        Task { await forceDelete(job: job) }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
                                     }
                                 }
                         }
@@ -262,6 +230,42 @@ struct RemoteJobsView: View {
         case .running, .streaming:
             return .running
         }
+    }
+
+    private func forceDelete(job: RemoteJob) async {
+        let token = remoteJobsAuthToken.isEmpty ? nil : remoteJobsAuthToken
+
+        // Get the remote server job ID before deleting locally
+        let remoteId: String? = switch job.type {
+        case .stt:
+            transcriptionManager.activeJobs.first(where: { $0.id == job.id })?.sonioxJobId.replacingOccurrences(of: localRemotePrefix, with: "")
+            ?? transcriptionManager.allRecentJobs.first(where: { $0.id == job.id })?.sonioxJobId.replacingOccurrences(of: localRemotePrefix, with: "")
+        case .ai:
+            aiGenerationManager.activeJobs.first(where: { $0.id == job.id }).flatMap { isRemoteAIJob($0) ? $0.decodedMetadata()?.extras?[remoteAIJobMetadataKey] : nil }
+            ?? aiGenerationManager.recentJobs.first(where: { $0.id == job.id }).flatMap { isRemoteAIJob($0) ? $0.decodedMetadata()?.extras?[remoteAIJobMetadataKey] : nil }
+        case .tts:
+            nil
+        }
+
+        // Delete locally first (always succeeds)
+        switch job.type {
+        case .stt:
+            try? await transcriptionManager.deleteJob(jobId: job.id)
+        case .ai:
+            if let aiJob = aiGenerationManager.activeJobs.first(where: { $0.id == job.id })
+                ?? aiGenerationManager.recentJobs.first(where: { $0.id == job.id }) {
+                await aiGenerationManager.deleteJob(aiJob)
+            }
+        case .tts:
+            break
+        }
+
+        // Best-effort remote cancel + delete (ignore 404 and network errors)
+        guard let remoteId else { return }
+        if job.status == .queued || job.status == .running {
+            try? await remoteJobsStore.cancelJob(jobId: remoteId, baseURL: remoteJobsBaseURL, token: token)
+        }
+        try? await remoteJobsStore.deleteJob(jobId: remoteId, baseURL: remoteJobsBaseURL, token: token)
     }
 
     private func trackTitle(for job: TranscriptionJob) -> String {
