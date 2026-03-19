@@ -255,29 +255,46 @@ struct TranscriptionSheet: View {
                         }
 
                         let existingJobId = await MainActor.run { downloadJobId ?? mirroredJobId }
-                        try await transcriptionManager.enqueueRemoteSTTJob(
-                            trackId: track.id,
-                            collectionId: collectionID,
-                            input: remoteInput,
-                            languageHints: ["zh", "en"],
-                            context: contextText,
-                            existingJobId: existingJobId
-                        )
-
-                        await MainActor.run {
-                            isTranscribing = false
-                            progress = 0.0
-                            transcriptionCompleted = false
-                            setStage(.transcribing, reason: "Remote job queued; switching to Jobs")
+                        do {
+                            try await transcriptionManager.enqueueRemoteSTTJob(
+                                trackId: track.id,
+                                collectionId: collectionID,
+                                input: remoteInput,
+                                languageHints: ["zh", "en"],
+                                context: contextText,
+                                existingJobId: existingJobId
+                            )
+                        } catch {
+                            // Server unreachable or rejected — clean up the placeholder and fall through to local
+                            if let jobId = await MainActor.run(body: { existingJobId }) {
+                                try? await transcriptionManager.deleteJob(jobId: jobId)
+                            }
+                            await MainActor.run {
+                                downloadJobId = nil
+                                mirroredJobId = nil
+                            }
+                            if !remoteJobsFallbackToLocal {
+                                throw error
+                            }
+                            // Fall through to local transcription below
+                            logger.warning("[TranscriptionSheet] Remote enqueue failed (\(error.localizedDescription, privacy: .public)); falling back to local")
                         }
 
-                        await MainActor.run {
-                            downloadJobId = nil
-                            mirroredJobId = nil
-                            dismiss()
-                            tabSelection.navigateToSmartJobs()
+                        // Only navigate to Jobs if enqueue succeeded (no error thrown above)
+                        if await MainActor.run(body: { downloadJobId == nil && mirroredJobId == nil }) {
+                            // We fell back to local — continue below
+                        } else {
+                            await MainActor.run {
+                                isTranscribing = false
+                                progress = 0.0
+                                transcriptionCompleted = false
+                                downloadJobId = nil
+                                mirroredJobId = nil
+                                dismiss()
+                                tabSelection.navigateToSmartJobs()
+                            }
+                            return
                         }
-                        return
                     } else if !remoteJobsFallbackToLocal {
                         throw TranscriptionManager.TranscriptionError.transcriptionFailed("Remote jobs enabled but input is not supported.")
                     }
