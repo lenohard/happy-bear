@@ -150,6 +150,21 @@ final class RemoteJobsClient {
         return response.data.result
     }
 
+    func cancelJob(jobId: String) async throws -> RemoteJobDTO {
+        let request = try makeRequest(path: "/jobs/\(jobId)/cancel", method: "POST", body: Optional<String>.none)
+        let response: RemoteJobEnvelope = try await perform(request)
+        return response.data.job
+    }
+
+    func deleteJob(jobId: String) async throws {
+        struct DeleteResponse: Decodable {
+            struct DataPayload: Decodable { let deleted: Bool }
+            let data: DataPayload
+        }
+        let request = try makeRequest(path: "/jobs/\(jobId)", method: "DELETE", body: Optional<String>.none)
+        let _: DeleteResponse = try await perform(request)
+    }
+
     private func makeRequest<Body: Encodable>(path: String, method: String, body: Body?) throws -> URLRequest {
         guard let endpoint = makeEndpoint(path: path) else {
             throw RemoteJobsClientError.invalidBaseURL

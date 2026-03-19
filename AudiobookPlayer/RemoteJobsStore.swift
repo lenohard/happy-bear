@@ -105,4 +105,26 @@ final class RemoteJobsStore: ObservableObject {
         }
         return URL(string: "\(sanitized)/v1/jobs?limit=1")
     }
+
+    func cancelJob(jobId: String, baseURL: String, token: String?) async throws {
+        guard let config = makeConfig(baseURL: baseURL, token: token) else {
+            throw RemoteJobsClientError.invalidBaseURL
+        }
+        let client = RemoteJobsClient(config: config)
+        _ = try await client.cancelJob(jobId: jobId)
+    }
+
+    func deleteJob(jobId: String, baseURL: String, token: String?) async throws {
+        guard let config = makeConfig(baseURL: baseURL, token: token) else {
+            throw RemoteJobsClientError.invalidBaseURL
+        }
+        let client = RemoteJobsClient(config: config)
+        try await client.deleteJob(jobId: jobId)
+    }
+
+    private func makeConfig(baseURL: String, token: String?) -> RemoteJobsConfig? {
+        let trimmed = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmed), url.scheme != nil else { return nil }
+        return RemoteJobsConfig(baseURL: url, token: token)
+    }
 }

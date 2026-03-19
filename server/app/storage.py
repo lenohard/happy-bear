@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from .config import load_settings
@@ -18,3 +19,10 @@ def input_path(job_id: str, filename: str) -> Path:
 
 def result_path(job_id: str, filename: str) -> Path:
     return job_dir(job_id) / f"result_{filename}"
+
+
+def delete_job_files(job_id: str) -> None:
+    settings = load_settings()
+    path = settings.storage_dir / job_id
+    if path.exists():
+        shutil.rmtree(path)

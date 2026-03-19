@@ -143,6 +143,15 @@ def get_job(job_id: str) -> dict[str, Any] | None:
         conn.close()
 
 
+def delete_job(job_id: str) -> None:
+    conn = _connect()
+    try:
+        conn.execute("DELETE FROM jobs WHERE id = %s", (job_id,))
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def list_jobs(filters: dict[str, Any], limit: int, cursor: str | None) -> tuple[list[dict[str, Any]], str | None]:
     conn = _connect()
     try:

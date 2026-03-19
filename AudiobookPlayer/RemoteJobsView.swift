@@ -38,6 +38,7 @@ struct RemoteJobsView: View {
     @Environment(\.openURL) private var openURL
     @State private var scope: RemoteJobsScope = .remote
     @State private var filter: RemoteJobsFilter = .running
+    @State private var actionError: String?
     private let localRemotePrefix = "remote:"
     private let remoteAIJobMetadataKey = "remote_job_id"
 
@@ -106,12 +107,59 @@ struct RemoteJobsView: View {
                     } else {
                         ForEach(filteredJobs) { job in
                             RemoteJobRow(job: job)
+                                .swipeActions(edge: .leading, allowsFullSwipe: false) {
+                                    if job.status == .queued || job.status == .running {
+                                        Button {
+                                            Task {
+                                                do {
+                                                    try await remoteJobsStore.cancelJob(
+                                                        jobId: job.id,
+                                                        baseURL: remoteJobsBaseURL,
+                                                        token: remoteJobsAuthToken.isEmpty ? nil : remoteJobsAuthToken
+                                                    )
+                                                } catch {
+                                                    actionError = error.localizedDescription
+                                                }
+                                            }
+                                        } label: {
+                                            Label("Cancel", systemImage: "xmark.circle")
+                                        }
+                                        .tint(.orange)
+                                    }
+                                }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    if job.status != .queued && job.status != .running {
+                                        Button(role: .destructive) {
+                                            Task {
+                                                do {
+                                                    try await remoteJobsStore.deleteJob(
+                                                        jobId: job.id,
+                                                        baseURL: remoteJobsBaseURL,
+                                                        token: remoteJobsAuthToken.isEmpty ? nil : remoteJobsAuthToken
+                                                    )
+                                                } catch {
+                                                    actionError = error.localizedDescription
+                                                }
+                                            }
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                                }
                         }
                     }
                 }
             }
         }
         .navigationTitle("Jobs")
+        .alert("Error", isPresented: Binding(
+            get: { actionError != nil },
+            set: { if !$0 { actionError = nil } }
+        )) {
+            Button("OK", role: .cancel) { actionError = nil }
+        } message: {
+            Text(actionError ?? "")
+        }
     }
 
     private func filteredRemoteJobs() -> [RemoteJob] {

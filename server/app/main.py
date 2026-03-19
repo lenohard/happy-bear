@@ -12,7 +12,7 @@ from fastapi.exceptions import RequestValidationError
 from .auth import AuthDep
 from . import db
 from .models import CreateJobRequest, JobResponse
-from .storage import input_path
+from .storage import input_path, delete_job_files
 from .workers import run_job
 
 app = FastAPI(title="Audiobook Remote Jobs", version="0.1.0")
@@ -264,6 +264,23 @@ async def cancel_job(job_id: str, _: AuthDep) -> dict:
     db.update_job(job_id, status="canceled", progress=1.0, phase="canceled")
     job = db.get_job(job_id)
     return {"data": {"job": _job_to_response(job)}}
+
+
+@app.delete("/v1/jobs/{job_id}")
+async def delete_job(job_id: str, _: AuthDep) -> dict:
+    job = db.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail={"code": "JOB_NOT_FOUND", "message": "Job not found"})
+
+    if job["status"] in {"queued", "running"}:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "JOB_INVALID_STATE", "message": "Cannot delete a running job. Cancel it first."},
+        )
+
+    delete_job_files(job_id)
+    db.delete_job(job_id)
+    return {"data": {"deleted": True}}
 
 
 @app.get("/v1/jobs/{job_id}/result")
