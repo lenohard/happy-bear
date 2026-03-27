@@ -183,9 +183,25 @@ final class RemoteJobsClient {
     }
 
     private func makeEndpoint(path: String) -> URL? {
-        let base = config.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        let normalized = base.hasSuffix("/v1") ? base : "\(base)/v1"
-        return URL(string: normalized + path)
+        let normalizedBase = normalizedBaseURLString()
+        let versionedBase = normalizedBase.hasSuffix("/v1") ? normalizedBase : "\(normalizedBase)/v1"
+        return URL(string: versionedBase + path)
+    }
+
+    private func normalizedBaseURLString() -> String {
+        var base = config.baseURL.absoluteString.trimmingCharacters(in: .whitespacesAndNewlines)
+        while base.hasSuffix("/") {
+            base.removeLast()
+        }
+
+        // Accept user-provided URLs ending with /v1/jobs or /jobs and normalize them.
+        if base.hasSuffix("/v1/jobs") {
+            base.removeLast("/jobs".count)
+        } else if base.hasSuffix("/jobs") {
+            base.removeLast("/jobs".count)
+        }
+
+        return base
     }
 
     private func perform<Response: Decodable>(_ request: URLRequest) async throws -> Response {

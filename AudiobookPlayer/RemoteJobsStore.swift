@@ -93,17 +93,13 @@ final class RemoteJobsStore: ObservableObject {
     }
 
     private func makeTestURL(from baseURL: String) -> URL? {
-        guard let base = URL(string: baseURL), base.scheme != nil else {
+        let normalized = normalizeBaseURLString(baseURL)
+        guard URL(string: normalized)?.scheme != nil else {
             return nil
         }
-        var sanitized = baseURL
-        while sanitized.hasSuffix("/") {
-            sanitized.removeLast()
-        }
-        if sanitized.hasSuffix("/v1") {
-            return URL(string: "\(sanitized)/jobs?limit=1")
-        }
-        return URL(string: "\(sanitized)/v1/jobs?limit=1")
+
+        let versioned = normalized.hasSuffix("/v1") ? normalized : "\(normalized)/v1"
+        return URL(string: "\(versioned)/jobs?limit=1")
     }
 
     func cancelJob(jobId: String, baseURL: String, token: String?) async throws {
@@ -123,8 +119,24 @@ final class RemoteJobsStore: ObservableObject {
     }
 
     private func makeConfig(baseURL: String, token: String?) -> RemoteJobsConfig? {
-        let trimmed = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: trimmed), url.scheme != nil else { return nil }
+        let normalized = normalizeBaseURLString(baseURL)
+        guard let url = URL(string: normalized), url.scheme != nil else { return nil }
         return RemoteJobsConfig(baseURL: url, token: token)
+    }
+
+    private func normalizeBaseURLString(_ raw: String) -> String {
+        var sanitized = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        while sanitized.hasSuffix("/") {
+            sanitized.removeLast()
+        }
+
+        // Users may paste either host, /v1, /jobs, or /v1/jobs.
+        if sanitized.hasSuffix("/v1/jobs") {
+            sanitized.removeLast("/jobs".count)
+        } else if sanitized.hasSuffix("/jobs") {
+            sanitized.removeLast("/jobs".count)
+        }
+
+        return sanitized
     }
 }

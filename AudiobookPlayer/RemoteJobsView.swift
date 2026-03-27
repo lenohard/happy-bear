@@ -91,10 +91,21 @@ struct RemoteJobsView: View {
 
             Section {
                 if scope == .local {
-                    ContentUnavailableView(
-                        "Local jobs are listed in STT/TTS/AI screens.",
-                        systemImage: "tray"
-                    )
+                    let filteredJobs = filteredLocalJobs()
+                    if filteredJobs.isEmpty {
+                        ContentUnavailableView("No local jobs yet", systemImage: "tray")
+                    } else {
+                        ForEach(filteredJobs) { job in
+                            RemoteJobRow(job: job)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        Task { await deleteLocal(job: job) }
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
+                        }
+                    }
                 } else if !remoteJobsEnabled {
                     ContentUnavailableView(
                         "Enable Remote Jobs in Settings to see remote jobs.",
@@ -131,7 +142,14 @@ struct RemoteJobsView: View {
     }
 
     private func filteredRemoteJobs() -> [RemoteJob] {
-        let jobs = remoteTranscriptionJobs() + remoteAIJobs()
+        applyFilter(to: remoteTranscriptionJobs() + remoteAIJobs())
+    }
+
+    private func filteredLocalJobs() -> [RemoteJob] {
+        applyFilter(to: localTranscriptionJobs() + localAIJobs())
+    }
+
+    private func applyFilter(to jobs: [RemoteJob]) -> [RemoteJob] {
         switch filter {
         case .running:
             return jobs.filter { $0.status == .queued || $0.status == .running }
@@ -139,6 +157,47 @@ struct RemoteJobsView: View {
             return jobs.filter { $0.status == .succeeded }
         case .failed:
             return jobs.filter { $0.status == .failed || $0.status == .canceled }
+        }
+    }
+
+    private func localTranscriptionJobs() -> [RemoteJob] {
+        let activeLocal = transcriptionManager.activeJobs.filter {
+            !$0.sonioxJobId.hasPrefix(localRemotePrefix)
+        }
+        let activeIds = Set(activeLocal.map(\.id))
+        let historyLocal = transcriptionManager.allRecentJobs.filter {
+            !$0.sonioxJobId.hasPrefix(localRemotePrefix) && !activeIds.contains($0.id)
+        }
+
+        let combined = (activeLocal + historyLocal).sorted { $0.createdAt > $1.createdAt }
+        return combined.map { job in
+            let type: RemoteJobType = job.sonioxJobId.hasPrefix("tts-") ? .tts : .stt
+            return RemoteJob(
+                id: job.id,
+                type: type,
+                status: mapTranscriptionStatus(job.status),
+                title: trackTitle(for: job, isRemote: false),
+                progress: job.progress ?? 0.0,
+                createdAt: job.createdAt
+            )
+        }
+    }
+
+    private func localAIJobs() -> [RemoteJob] {
+        let activeLocal = aiGenerationManager.activeJobs.filter { !isRemoteAIJob($0) }
+        let activeIds = Set(activeLocal.map(\.id))
+        let historyLocal = aiGenerationManager.recentJobs.filter { $0.isTerminal && !isRemoteAIJob($0) && !activeIds.contains($0.id) }
+
+        let combined = (activeLocal + historyLocal).sorted { $0.createdAt > $1.createdAt }
+        return combined.map { job in
+            RemoteJob(
+                id: job.id,
+                type: .ai,
+                status: mapAIStatus(job.status),
+                title: aiJobTitle(for: job),
+                progress: job.progress ?? 0.0,
+                createdAt: job.createdAt
+            )
         }
     }
 
@@ -153,8 +212,8 @@ struct RemoteJobsView: View {
             RemoteJob(
                 id: job.id,
                 type: .stt,
-                status: mapRemoteStatus(job.status),
-                title: trackTitle(for: job),
+                status: mapTranscriptionStatus(job.status),
+                title: trackTitle(for: job, isRemote: true),
                 progress: job.progress ?? 0.0,
                 createdAt: job.createdAt
             )
@@ -204,7 +263,7 @@ struct RemoteJobsView: View {
         }
     }
 
-    private func mapRemoteStatus(_ status: String) -> RemoteJobStatus {
+    private func mapTranscriptionStatus(_ status: String) -> RemoteJobStatus {
         switch status {
         case "queued":
             return .queued
@@ -212,6 +271,8 @@ struct RemoteJobsView: View {
             return .failed
         case "completed":
             return .succeeded
+        case "canceled":
+            return .canceled
         default:
             return .running
         }
@@ -229,6 +290,18 @@ struct RemoteJobsView: View {
             return .canceled
         case .running, .streaming:
             return .running
+        }
+    }
+
+    private func deleteLocal(job: RemoteJob) async {
+        switch job.type {
+        case .stt, .tts:
+            try? await transcriptionManager.deleteJob(jobId: job.id)
+        case .ai:
+            if let aiJob = aiGenerationManager.activeJobs.first(where: { $0.id == job.id })
+                ?? aiGenerationManager.recentJobs.first(where: { $0.id == job.id }) {
+                await aiGenerationManager.deleteJob(aiJob)
+            }
         }
     }
 
@@ -268,11 +341,16 @@ struct RemoteJobsView: View {
         try? await remoteJobsStore.deleteJob(jobId: remoteId, baseURL: remoteJobsBaseURL, token: token)
     }
 
-    private func trackTitle(for job: TranscriptionJob) -> String {
+    private func trackTitle(for job: TranscriptionJob, isRemote: Bool) -> String {
         if let track = library.collections.flatMap(\.tracks).first(where: { $0.id.uuidString == job.trackId }) {
             return track.displayName
         }
-        return "Remote STT"
+
+        if job.sonioxJobId.hasPrefix("tts-") {
+            return isRemote ? "Remote TTS" : "Local TTS"
+        }
+
+        return isRemote ? "Remote STT" : "Local STT"
     }
 }
 
