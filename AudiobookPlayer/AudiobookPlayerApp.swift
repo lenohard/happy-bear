@@ -47,6 +47,7 @@ struct AudiobookPlayerApp: App {
             .onChange(of: scenePhase) { newPhase in
                 switch newPhase {
                 case .active:
+                    audioPlayer.handleAppDidBecomeActive()
                     // App became active - check for pending jobs that may have been interrupted
                     Task {
                         await transcriptionManager.checkAndResumePendingJobs()
@@ -57,6 +58,7 @@ struct AudiobookPlayerApp: App {
                 case .background, .inactive:
                     // App going to background - checkpoint listening session
                     audioPlayer.checkpointListeningSession()
+                    audioPlayer.handleAppDidEnterBackground()
                 @unknown default:
                     break
                 }

@@ -81,6 +81,7 @@ final class AudioPlayerViewModel: ObservableObject {
     private var sleepTimer: Timer?
     #if canImport(MobileVLCKit)
     private var vlcTimeUpdateTimer: Timer?
+    private var lastVLCObservedState: VLCMediaPlayerState = .stopped
     #endif
     private var currentSessionStartTime: Date?
     private let sessionDurationThreshold: TimeInterval = 2.0
@@ -204,6 +205,7 @@ final class AudioPlayerViewModel: ObservableObject {
         // Get or create VLC player
         let player = getOrCreateVLCPlayer(url: url)
         usingVLCAudio = true
+        lastVLCObservedState = player.state
 
         // Set up resume position
         let resumeState = collection.playbackStates[track.id]
@@ -286,10 +288,12 @@ final class AudioPlayerViewModel: ObservableObject {
             }
         }
 
-        // Check for end of track
-        if player.state == .ended || player.state == .stopped {
+        // Check for end of track (transition-based to avoid repeated callbacks)
+        let currentState = player.state
+        if currentState == .ended, lastVLCObservedState != .ended {
             handleVLCTrackEnded()
         }
+        lastVLCObservedState = currentState
     }
 
     private func handleVLCTrackEnded() {
@@ -309,6 +313,7 @@ final class AudioPlayerViewModel: ObservableObject {
         vlcPlayer?.stop()
         vlcPlayer = nil
         usingVLCAudio = false
+        lastVLCObservedState = .stopped
     }
 
     private func stopAVPlayer() {
@@ -1138,6 +1143,7 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
                 endPlaybackStartupMonitoring()
                 flushListeningSession()
             } else {
+                startVLCTimeUpdateTimer()
                 beginPlaybackStartupMonitoring()
                 vlcPlayer.play()
                 isPlaying = true
@@ -2591,6 +2597,25 @@ extension AudioPlayerViewModel {
             flushListeningSession()
             startListeningSession()
         }
+    }
+
+    func handleAppDidEnterBackground() {
+        endPlaybackStartupMonitoring()
+
+        #if canImport(MobileVLCKit)
+        // Avoid keeping a high-frequency timer alive while app is idle in background.
+        if usingVLCAudio && !isPlaying {
+            stopVLCTimeUpdateTimer()
+        }
+        #endif
+    }
+
+    func handleAppDidBecomeActive() {
+        #if canImport(MobileVLCKit)
+        if usingVLCAudio && isPlaying {
+            startVLCTimeUpdateTimer()
+        }
+        #endif
     }
 }
 #endif

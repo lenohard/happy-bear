@@ -18,6 +18,36 @@ struct CollectionDetailView: View {
     }
 
     var body: some View {
+        let applySavedSortPreference: () -> Void = {
+            guard let collection = viewModel.collection else { return }
+
+            if let savedSortOrder = collection.preferredSortOrder {
+                let components = savedSortOrder.split(separator: ":")
+                if components.count == 2,
+                   let criterion = CollectionDetailViewModel.SortCriterion(rawValue: String(components[0])),
+                   let order = CollectionDetailViewModel.SortOrder(rawValue: String(components[1])) {
+                    viewModel.selectedCriterion = criterion
+                    viewModel.selectedOrder = order
+                    return
+                }
+            }
+
+            // Apply smart defaults based on collection source
+            if case .rss = collection.source {
+                // RSS collections default to newest-first (descending track number)
+                viewModel.selectedCriterion = .trackNumber
+                viewModel.selectedOrder = .descending
+            } else {
+                // Other collections default to oldest-first (ascending track number)
+                viewModel.selectedCriterion = .trackNumber
+                viewModel.selectedOrder = .ascending
+            }
+
+            // Save the default sort order to database so playback uses it
+            let sortString = "\(viewModel.selectedCriterion.rawValue):\(viewModel.selectedOrder.rawValue)"
+            library.updatePreferredSortOrder(sortString, for: collection.id)
+        }
+
         let baseView = content
             .navigationTitle(viewModel.collection?.title ?? NSLocalizedString("collection_title_fallback", comment: "Collection detail fallback title"))
             .navigationBarTitleDisplayMode(.inline)
@@ -316,45 +346,7 @@ struct CollectionDetailView: View {
                 viewModel.refreshTrackSummaryIndicators(for: viewModel.collection)
                 viewModel.refreshPlaybackStateSnapshot(for: viewModel.collection)
 
-                // Restore saved sort preference or apply smart defaults
-                if let collection = viewModel.collection {
-                    if let savedSortOrder = collection.preferredSortOrder {
-                        // Try to parse new format: "criterion:order"
-                        let components = savedSortOrder.split(separator: ":")
-                        if components.count == 2,
-                           let criterion = CollectionDetailViewModel.SortCriterion(rawValue: String(components[0])),
-                           let order = CollectionDetailViewModel.SortOrder(rawValue: String(components[1])) {
-                            viewModel.selectedCriterion = criterion
-                            viewModel.selectedOrder = order
-                        } else {
-                            // Apply smart defaults based on collection source
-                            if case .rss = collection.source {
-                                // RSS collections default to newest-first (descending track number)
-                                viewModel.selectedCriterion = .trackNumber
-                                viewModel.selectedOrder = .descending
-                            } else {
-                                // Other collections default to oldest-first (ascending track number)
-                                viewModel.selectedCriterion = .trackNumber
-                                viewModel.selectedOrder = .ascending
-                            }
-                        }
-                    } else {
-                        // Apply smart defaults based on collection source
-                        if case .rss = collection.source {
-                            // RSS collections default to newest-first (descending track number)
-                            viewModel.selectedCriterion = .trackNumber
-                            viewModel.selectedOrder = .descending
-                        } else {
-                            // Other collections default to oldest-first (ascending track number)
-                            viewModel.selectedCriterion = .trackNumber
-                            viewModel.selectedOrder = .ascending
-                        }
-                        
-                        // Save the default sort order to database so playback uses it
-                        let sortString = "\(viewModel.selectedCriterion.rawValue):\(viewModel.selectedOrder.rawValue)"
-                        library.updatePreferredSortOrder(sortString, for: collection.id)
-                    }
-                }
+                applySavedSortPreference()
             }
             // Compare track count instead of mapping the full ID array on every render.
             // Individual track mutations (rename, favorite) are handled via playbackStateSnapshot
@@ -391,6 +383,7 @@ struct CollectionDetailView: View {
                     await library.ensureCollectionLoaded(viewModel.collectionID)
                     await MainActor.run {
                         viewModel.refreshPlaybackStateSnapshot(for: viewModel.collection)
+                        applySavedSortPreference()
                         viewModel.currentQuery = viewModel.searchText
                         viewModel.currentFilterKey = viewModel.selectedFilter
                         viewModel.currentSortCriterion = viewModel.selectedCriterion
