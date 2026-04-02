@@ -88,7 +88,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>13</string>
+	<string>15</string>
 	<key>CloudKitSyncEnabled</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
