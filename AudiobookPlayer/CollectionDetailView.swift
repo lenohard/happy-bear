@@ -12,6 +12,7 @@ struct CollectionDetailView: View {
     @EnvironmentObject private var transcriptionManager: TranscriptionManager
     @EnvironmentObject private var aiGenerationManager: AIGenerationManager
     @EnvironmentObject private var tabSelection: TabSelectionManager
+    @EnvironmentObject private var listenQueueStore: ListenQueueStore
 
     init(collectionID: UUID) {
         _viewModel = StateObject(wrappedValue: CollectionDetailViewModel(collectionID: collectionID))
@@ -942,6 +943,7 @@ struct CollectionDetailView: View {
         }
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
             favoriteSwipeButton(for: track, in: collection)
+            addToQueueSwipeButton(for: track, in: collection)
         }
         .swipeActions(edge: .trailing) {
             if library.canModifyCollection(viewModel.collectionID) {
@@ -981,6 +983,29 @@ struct CollectionDetailView: View {
     
     @ViewBuilder
     private func trackContextMenu(for track: AudiobookTrack, hasTranscript: Bool, isTranscribingTrack: Bool, collection: AudiobookCollection) -> some View {
+        let isQueued = listenQueueStore.isQueued(trackID: track.id)
+        Button {
+            Task {
+                if isQueued {
+                    if let item = listenQueueStore.pendingItems.first(where: { item in
+                        if case .track(_, let tid) = item.target { return tid == track.id }
+                        return false
+                    }) {
+                        await listenQueueStore.remove(itemID: item.id)
+                    }
+                } else {
+                    await listenQueueStore.addTrack(track.id, in: collection.id)
+                }
+            }
+        } label: {
+            Label(
+                isQueued
+                    ? NSLocalizedString("remove_from_queue", value: "Remove from Queue", comment: "Remove from listen queue")
+                    : NSLocalizedString("add_to_queue", value: "Add to Queue", comment: "Add to listen queue"),
+                systemImage: isQueued ? "text.badge.minus" : "text.badge.plus"
+            )
+        }
+
         Button {
             viewModel.trackForDetails = track
         } label: {
@@ -1096,6 +1121,35 @@ struct CollectionDetailView: View {
     }
 
     @ViewBuilder
+    @ViewBuilder
+    private func addToQueueSwipeButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
+        let isQueued = listenQueueStore.isQueued(trackID: track.id)
+        Button {
+            Task {
+                if isQueued {
+                    // Find the pending item and remove it.
+                    if let item = listenQueueStore.pendingItems.first(where: { item in
+                        if case .track(_, let tid) = item.target { return tid == track.id }
+                        return false
+                    }) {
+                        await listenQueueStore.remove(itemID: item.id)
+                    }
+                } else {
+                    await listenQueueStore.addTrack(track.id, in: collection.id)
+                }
+            }
+        } label: {
+            Label(
+                isQueued
+                    ? NSLocalizedString("remove_from_queue", value: "Remove from Queue", comment: "Remove from listen queue")
+                    : NSLocalizedString("add_to_queue", value: "Add to Queue", comment: "Add to listen queue"),
+                systemImage: isQueued ? "text.badge.minus" : "text.badge.plus"
+            )
+        }
+        .labelStyle(.iconOnly)
+        .tint(.indigo)
+    }
+
     private func favoriteSwipeButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
         Button {
             library.toggleFavorite(for: track.id, in: collection.id)

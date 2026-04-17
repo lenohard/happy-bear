@@ -16,6 +16,7 @@ struct LibraryView: View {
     @EnvironmentObject private var authViewModel: BaiduAuthViewModel
     @EnvironmentObject private var tabSelection: TabSelectionManager
     @EnvironmentObject private var themeManager: ThemeManager
+    @EnvironmentObject private var listenQueueStore: ListenQueueStore
 
     @State private var activeSource: ImportSource?
     @State private var pendingImport: PendingImport?
@@ -200,7 +201,22 @@ struct LibraryView: View {
                 onDelete: { library.delete(collection) },
                 onArchive: { withAnimation { library.archiveCollection(collection) } },
                 folders: library.folders,
-                onMoveToFolder: { folder in library.moveCollection(collection, to: folder) }
+                onMoveToFolder: { folder in library.moveCollection(collection, to: folder) },
+                isQueued: listenQueueStore.isQueued(collectionID: collection.id),
+                onToggleQueue: {
+                    Task {
+                        if listenQueueStore.isQueued(collectionID: collection.id) {
+                            if let item = listenQueueStore.pendingItems.first(where: { item in
+                                if case .collection(let cid) = item.target { return cid == collection.id }
+                                return false
+                            }) {
+                                await listenQueueStore.remove(itemID: item.id)
+                            }
+                        } else {
+                            await listenQueueStore.addCollection(collection.id)
+                        }
+                    }
+                }
             )
             .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
         }
@@ -630,10 +646,12 @@ private struct CollectionListRow: View {
     let onArchive: () -> Void
     let folders: [CollectionFolder]
     let onMoveToFolder: (CollectionFolder) -> Void
+    let isQueued: Bool
+    let onToggleQueue: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            LibraryCollectionRow(collection: collection)
+            LibraryCollectionRow(collection: collection, isQueued: isQueued)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     selectedCollectionID.wrappedValue = collection.id
@@ -650,6 +668,20 @@ private struct CollectionListRow: View {
             .frame(width: 56, alignment: .trailing)
         }
         .draggable(CollectionDragItem(collection: collection))
+        .swipeActions(edge: .leading, allowsFullSwipe: false) {
+            Button {
+                onToggleQueue()
+            } label: {
+                Label(
+                    isQueued
+                        ? NSLocalizedString("remove_from_queue", value: "Remove from Queue", comment: "Remove from listen queue")
+                        : NSLocalizedString("add_to_queue", value: "Add to Queue", comment: "Add to listen queue"),
+                    systemImage: isQueued ? "text.badge.minus" : "text.badge.plus"
+                )
+            }
+            .labelStyle(.iconOnly)
+            .tint(.indigo)
+        }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 onDelete()
@@ -1010,6 +1042,7 @@ struct FolderDetailView: View {
 
 struct LibraryCollectionRow: View {
     let collection: AudiobookCollection
+    var isQueued: Bool = false
 
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -1039,6 +1072,12 @@ struct LibraryCollectionRow: View {
                         .font(.headline)
                         .lineLimit(1)
                         .truncationMode(.tail)
+                    if isQueued {
+                        Image(systemName: "list.bullet")
+                            .font(.caption2)
+                            .foregroundStyle(.indigo)
+                            .accessibilityLabel(Text(NSLocalizedString("queue_badge_accessibility", value: "In Listen Queue", comment: "Accessibility label for listen queue badge")))
+                    }
                 }
                 if let author = collection.author, !author.isEmpty {
                     Text(author)
