@@ -105,6 +105,27 @@ struct LibraryView: View {
         .tint(.red)
     }
 
+    private var queueButton: some View {
+        NavigationLink {
+            ListenQueueView()
+        } label: {
+            let count = listenQueueStore.resolvedPending.count
+            if count > 0 {
+                Label {
+                    Text("\(count)")
+                } icon: {
+                    Image(systemName: "list.bullet.rectangle")
+                }
+            } else {
+                Label(
+                    NSLocalizedString("queue_title", value: "Listen Queue", comment: "Listen queue view title"),
+                    systemImage: "list.bullet.rectangle"
+                )
+            }
+        }
+        .tint(.indigo)
+    }
+
     private var historyButton: some View {
         Button {
             showHistorySheet = true
@@ -236,6 +257,7 @@ struct LibraryView: View {
                         archivedButton
                         historyButton
                         favoritesButton
+                        queueButton
                         reloadButton
                     }
                 }

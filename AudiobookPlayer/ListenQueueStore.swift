@@ -439,7 +439,10 @@ final class ListenQueueStore: ObservableObject {
     /// Returns the first track in the collection (using preferred sort order) that isn't
     /// considered "done" (not ≥95% played and not in our own completed set).
     /// Optionally treat `pretendingFinished` as if it was just completed.
-    private func firstUnfinishedTrack(
+    /// Returns the first track in `collection` (in preferred order) that is not
+    /// yet queue-completed and has played less than 95% of its duration.
+    /// Exposed for views that need to resolve a collection-target into a concrete track.
+    func firstUnfinishedTrack(
         in collection: AudiobookCollection,
         pretendingFinished finishedTrackID: UUID? = nil
     ) -> AudiobookTrack? {
