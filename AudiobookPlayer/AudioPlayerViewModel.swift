@@ -86,6 +86,7 @@ final class AudioPlayerViewModel: ObservableObject {
     private var currentSessionStartTime: Date?
     private let sessionDurationThreshold: TimeInterval = 2.0
     private weak var library: LibraryStore?
+    private weak var listenQueueStore: ListenQueueStore?
 
     let playbackClock = PlaybackClock()
 
@@ -146,6 +147,10 @@ final class AudioPlayerViewModel: ObservableObject {
 
     func bindLibrary(_ library: LibraryStore?) {
         self.library = library
+    }
+
+    func bindListenQueue(_ store: ListenQueueStore?) {
+        self.listenQueueStore = store
     }
 
     func notifyFavoriteToggle(for trackID: UUID) {

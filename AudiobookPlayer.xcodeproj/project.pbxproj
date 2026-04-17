@@ -33,6 +33,7 @@
 		6FD0A0042C5B0C0000AA00AB /* CachedAudioAsset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6FD0A0032C5B0C0000AA00AB /* CachedAudioAsset.swift */; };
 		83B4644A2F92B1A7009304C4 /* ListenQueueItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83B464492F92B1A7009304C4 /* ListenQueueItem.swift */; };
 		83B4644B2F92B1A7009304C4 /* ListenQueueDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83B464482F92B1A7009304C4 /* ListenQueueDatabaseSchema.swift */; };
+		83B4644D2F92B1A7009304C4 /* ListenQueueStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83B4644E2F92B1A7009304C4 /* ListenQueueStore.swift */; };
 		83B4644C2F92B1A7009304C4 /* GRDBDatabaseManager+ListenQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83B464472F92B1A7009304C4 /* GRDBDatabaseManager+ListenQueue.swift */; };
 		8603AC062EDAF98D00889565 /* EdgeTTSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC012EDAF98D00889565 /* EdgeTTSClient.swift */; };
 		8603AC072EDAF98D00889565 /* FloatingBubbleWindowManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8603AC042EDAF98D00889565 /* FloatingBubbleWindowManager.swift */; };
@@ -207,6 +208,7 @@
 		83B464472F92B1A7009304C4 /* GRDBDatabaseManager+ListenQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AudiobookPlayer/GRDBDatabaseManager+ListenQueue.swift"; sourceTree = "<group>"; };
 		83B464482F92B1A7009304C4 /* ListenQueueDatabaseSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayer/ListenQueueDatabaseSchema.swift; sourceTree = "<group>"; };
 		83B464492F92B1A7009304C4 /* ListenQueueItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayer/ListenQueueItem.swift; sourceTree = "<group>"; };
+		83B4644E2F92B1A7009304C4 /* ListenQueueStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudiobookPlayer/ListenQueueStore.swift; sourceTree = "<group>"; };
 		8603AC012EDAF98D00889565 /* EdgeTTSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeTTSClient.swift; sourceTree = "<group>"; };
 		8603AC022EDAF98D00889565 /* EdgeTTSView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EdgeTTSView.swift; sourceTree = "<group>"; };
 		8603AC032EDAF98D00889565 /* EpubParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EpubParser.swift; sourceTree = "<group>"; };
@@ -372,6 +374,7 @@
 				83B464472F92B1A7009304C4 /* GRDBDatabaseManager+ListenQueue.swift */,
 				83B464482F92B1A7009304C4 /* ListenQueueDatabaseSchema.swift */,
 				83B464492F92B1A7009304C4 /* ListenQueueItem.swift */,
+				83B4644E2F92B1A7009304C4 /* ListenQueueStore.swift */,
 				86C40B1A2F6037020038A8A7 /* SiriIntentBridge.swift */,
 				86B0E7EE2F5BF4E000B52695 /* iCloudStorage.swift */,
 				6F6E7F672C4A9B0500AA00AA /* AudiobookPlayer */,
@@ -748,6 +751,7 @@
 				83B4644A2F92B1A7009304C4 /* ListenQueueItem.swift in Sources */,
 				83B4644B2F92B1A7009304C4 /* ListenQueueDatabaseSchema.swift in Sources */,
 				83B4644C2F92B1A7009304C4 /* GRDBDatabaseManager+ListenQueue.swift in Sources */,
+				83B4644D2F92B1A7009304C4 /* ListenQueueStore.swift in Sources */,
 				86FD8E042ED6E9A7002A2036 /* ListeningHistory.swift in Sources */,
 				C5E631EC2F1B000100AA0001 /* AIGenerationManager.swift in Sources */,
 				8603AC162EDCA76200889565 /* PlayableMediaFormat.swift in Sources */,

@@ -13,6 +13,7 @@ struct AudiobookPlayerApp: App {
     @StateObject private var transcriptionManager = TranscriptionManager()
     @StateObject private var aiGenerationManager = AIGenerationManager()
     @StateObject private var remoteJobsStore = RemoteJobsStore()
+    @StateObject private var listenQueueStore = ListenQueueStore()
     @StateObject private var bubbleWindowManager = FloatingBubbleWindowManager(viewModel: FloatingPlaybackBubbleViewModel())
     @StateObject private var themeManager = ThemeManager()
     @State private var showSplash = true
@@ -34,6 +35,7 @@ struct AudiobookPlayerApp: App {
                     .environmentObject(transcriptionManager)
                     .environmentObject(aiGenerationManager)
                     .environmentObject(remoteJobsStore)
+                    .environmentObject(listenQueueStore)
                     .environmentObject(themeManager)
                     .preferredColorScheme(themeManager.colorScheme)
 
@@ -82,6 +84,8 @@ struct AudiobookPlayerApp: App {
             }
             .onAppear {
                 audioPlayer.bindLibrary(libraryStore)
+                audioPlayer.bindListenQueue(listenQueueStore)
+                listenQueueStore.bindLibrary(libraryStore)
                 bubbleWindowManager.show(audioPlayer: audioPlayer, tabSelection: tabSelection, themeManager: themeManager)
                 // Sync collection catalog + donate to Siri so voice queries can match any collection
                 Task {
