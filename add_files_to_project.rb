@@ -12,8 +12,9 @@ if target
   
   if group
     files_to_add = [
-      'ThemeManager.swift',
-      'ThemeSelectionView.swift'
+      'ListenQueueDatabaseSchema.swift',
+      'ListenQueueItem.swift',
+      'GRDBDatabaseManager+ListenQueue.swift'
     ]
     
     files_to_add.each do |file_name|

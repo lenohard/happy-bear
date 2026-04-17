@@ -138,6 +138,12 @@ actor GRDBDatabaseManager {
             try db.execute(sql: TrackChatDatabaseSchema.createTableSQL)
             AppLog.debug("[GRDB] Track chat tables created")
 
+            AppLog.debug("[GRDB] Executing listen queue schema...")
+            try db.execute(sql: ListenQueueDatabaseSchema.createTableSQL)
+            let (seedSQL, seedArgs) = ListenQueueDatabaseSchema.seedDefaultListSQL(now: Date())
+            try db.execute(sql: seedSQL, arguments: StatementArguments(seedArgs) ?? StatementArguments())
+            AppLog.debug("[GRDB] Listen queue tables created")
+
             // Create listening statistics table
             AppLog.debug("[GRDB] Creating listening statistics table...")
             try db.execute(sql: """
