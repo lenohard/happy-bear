@@ -368,6 +368,8 @@ struct PlayingView: View {
                                 }
                             }
 
+                            ListenQueueSummaryCard()
+
                             if !snapshot.isLive && !historyEntries(excluding: snapshot).isEmpty {
                                 listeningHistorySection(entries: historyEntries(excluding: snapshot))
                             }

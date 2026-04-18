@@ -302,6 +302,15 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     private func handleVLCTrackEnded() {
+        // Notify listen queue about the finished track BEFORE clearing state / advancing.
+        let finishedTrackID = currentTrack?.id
+        let finishedCollectionID = activeCollection?.id
+        if let tID = finishedTrackID, let cID = finishedCollectionID, let queue = listenQueueStore {
+            Task { @MainActor in
+                await queue.handleTrackFinished(trackID: tID, collectionID: cID)
+            }
+        }
+
         // Handle sleep timer end of track
         if case .endOfTrack = sleepTimerMode {
             stopPlayback(clearQueue: false)
@@ -309,7 +318,7 @@ final class AudioPlayerViewModel: ObservableObject {
             return
         }
 
-        // Play next track
+        // Play next track (queue override happens inside playNextTrack()).
         playNextTrack()
     }
 
@@ -1097,6 +1106,16 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     func playNextTrack() {
+        // Queue-driven auto-advance override: if enabled and there's a pending item,
+        // prefer it over the current collection's next track. Falls back to the
+        // original behaviour when the queue is empty or the toggle is off.
+        if let queue = listenQueueStore, queue.playFromQueueEnabled,
+           let (nextCollection, nextQueueTrack) = queue.nextPendingTrack() {
+            AppLog.debug("[QUEUE] playNextTrack -> queue item: \(nextQueueTrack.displayName)")
+            play(track: nextQueueTrack, in: nextCollection, token: currentToken, preserveQueue: false)
+            return
+        }
+
         guard
             let collection = activeCollection,
             let currentTrack,
@@ -1846,6 +1865,17 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
     func handlePlaybackFinished() {
         flushListeningSession()
+
+        // Notify listen queue about the finished track BEFORE clearing state / advancing,
+        // so collection-target items can detect the last-track-of-collection case.
+        let finishedTrackID = currentTrack?.id
+        let finishedCollectionID = activeCollection?.id
+        if let tID = finishedTrackID, let cID = finishedCollectionID, let queue = listenQueueStore {
+            Task { @MainActor in
+                await queue.handleTrackFinished(trackID: tID, collectionID: cID)
+            }
+        }
+
         if sleepTimerMode == .endOfTrack {
             stopPlayback(clearQueue: false)
             setSleepTimer(.off)
@@ -1855,6 +1885,15 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         publishCurrentTime(0, force: true)
         isPlaying = false
         pendingInitialSeek = nil
+
+        // If the user has opted into queue-driven auto-advance, try that first.
+        if let queue = listenQueueStore, queue.playFromQueueEnabled,
+           let (nextCollection, nextQueueTrack) = queue.nextPendingTrack() {
+            progressTracker.stopTracking(for: (finishedTrackID ?? UUID()).uuidString)
+            AppLog.debug("[QUEUE] auto-advance to \(nextQueueTrack.displayName) in \(nextCollection.title)")
+            play(track: nextQueueTrack, in: nextCollection, token: currentToken, preserveQueue: false)
+            return
+        }
 
         guard
             let collection = activeCollection,
