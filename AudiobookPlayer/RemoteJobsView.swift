@@ -381,7 +381,7 @@ struct RemoteJobsView: View {
                     actionError = "Could not find original track for retry."
                     return
                 }
-                let localJob = try transcriptionManager.dbManager.createTranscriptionJob(
+                let localJob = try await transcriptionManager.dbManager.createTranscriptionJob(
                     trackId: trackId,
                     sonioxJobId: newRemoteId,
                     status: "transcribing",
@@ -412,7 +412,7 @@ struct RemoteJobsView: View {
                 let metadataData = try encoder.encode(metadata)
                 let encodedMetadata = String(data: metadataData, encoding: .utf8)
 
-                let newLocalJob = try aiGenerationManager.dbManager.createAIGenerationJob(
+                let newLocalJob = try await aiGenerationManager.dbManager.createAIGenerationJob(
                     type: originalJob.type,
                     modelId: originalJob.modelId,
                     trackId: originalJob.trackId,
@@ -456,7 +456,7 @@ struct RemoteJobsView: View {
                 } else {
                     localStatus = status.status
                 }
-                try transcriptionManager.dbManager.updateJobStatus(
+                try await transcriptionManager.dbManager.updateJobStatus(
                     jobId: localJobId,
                     status: localStatus,
                     progress: status.progress ?? 0.0
