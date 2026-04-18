@@ -1107,13 +1107,16 @@ final class AudioPlayerViewModel: ObservableObject {
 
     func playNextTrack() {
         // Queue-driven auto-advance override: if enabled and there's a pending item,
-        // prefer it over the current collection's next track. Falls back to the
-        // original behaviour when the queue is empty or the toggle is off.
+        // prefer it over the current collection's next track. Avoid replaying the
+        // currently active track when the user manually taps Next while the current
+        // queue head has not yet been auto-completed.
         if let queue = listenQueueStore, queue.playFromQueueEnabled,
            let (nextCollection, nextQueueTrack) = queue.nextPendingTrack() {
-            AppLog.debug("[QUEUE] playNextTrack -> queue item: \(nextQueueTrack.displayName)")
-            play(track: nextQueueTrack, in: nextCollection, token: currentToken, preserveQueue: false)
-            return
+            if nextQueueTrack.id != currentTrack?.id || nextCollection.id != activeCollection?.id {
+                AppLog.debug("[QUEUE] playNextTrack -> queue item: \(nextQueueTrack.displayName)")
+                play(track: nextQueueTrack, in: nextCollection, token: currentToken, preserveQueue: false)
+                return
+            }
         }
 
         guard

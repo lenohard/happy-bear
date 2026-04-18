@@ -79,7 +79,7 @@ def _do_request(
 
     session = requests.Session()
     session.headers.update(headers)
-    session.trust_env = False
+    # trust_env=True (default) picks up HTTP_PROXY/HTTPS_PROXY from environment
     response = session.post(f"{base_url}/chat/completions", json=payload, timeout=60)
     if response.status_code != 200:
         logger.error(

@@ -1256,8 +1256,17 @@ struct PlayingView: View {
         guard autoGenerateTrackSummaries else { return }
         guard aiGateway.hasValidKey || remoteJobsEnabled else { return }
 
-        let modelId = aiGateway.selectedModelID.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !modelId.isEmpty else { return }
+        let selectedModelId = aiGateway.selectedModelID.trimmingCharacters(in: .whitespacesAndNewlines)
+        let modelId: String
+        if !selectedModelId.isEmpty {
+            modelId = selectedModelId
+        } else if remoteJobsEnabled {
+            // Remote AI jobs can use the server-side default model even when the local
+            // model picker is blank, so don't block auto-generation in that case.
+            modelId = "remote-default"
+        } else {
+            return
+        }
 
         if autoSummaryGuards.contains(trackId) {
             return

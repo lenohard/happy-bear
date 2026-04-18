@@ -22,6 +22,9 @@ from .storage import input_path, result_path
 logger = logging.getLogger(__name__)
 
 
+OPENROUTER_DEFAULT_MODEL = os.environ.get("OPENROUTER_DEFAULT_MODEL", "google/gemini-3-flash-preview")
+
+
 def _try_generate_text(
     messages: list[dict[str, Any]],
     **kwargs: Any,
@@ -39,8 +42,12 @@ def _try_generate_text(
 
     openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
     if openrouter_api_key:
-        logger.info("Using OpenRouter as fallback: model=%s key=%s…", model, openrouter_api_key[:8])
-        return generate_text_openrouter(api_key=openrouter_api_key, messages=messages, **kwargs)
+        logger.info("Using OpenRouter as fallback: model=%s key=%s…", OPENROUTER_DEFAULT_MODEL, openrouter_api_key[:8])
+        return generate_text_openrouter(
+            api_key=openrouter_api_key,
+            messages=messages,
+            **{**kwargs, "model": OPENROUTER_DEFAULT_MODEL},
+        )
 
     raise RuntimeError("No AI API keys available")
 
