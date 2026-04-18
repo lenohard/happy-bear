@@ -27,16 +27,19 @@ def _try_generate_text(
     **kwargs: Any,
 ) -> AIGatewayResult:
     """Try Vercel AI Gateway first, fall back to OpenRouter on failure."""
+    model = kwargs.get("model", "<default>")
+
     api_key = os.environ.get("VERCEL_AI_GATEWAY_API_KEY")
     if api_key:
         try:
+            logger.info("Trying Vercel AI Gateway: model=%s key=%s…", model, api_key[:6])
             return generate_text(api_key=api_key, messages=messages, **kwargs)
         except Exception as exc:
-            logger.error("Vercel AI Gateway failed: %s, falling back to OpenRouter", exc)
+            logger.error("Vercel AI Gateway failed (model=%s): %s, falling back to OpenRouter", model, exc)
 
     openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
     if openrouter_api_key:
-        logger.info("Using OpenRouter as fallback for AI generation")
+        logger.info("Using OpenRouter as fallback: model=%s key=%s…", model, openrouter_api_key[:8])
         return generate_text_openrouter(api_key=openrouter_api_key, messages=messages, **kwargs)
 
     raise RuntimeError("No AI API keys available")

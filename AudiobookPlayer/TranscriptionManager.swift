@@ -103,6 +103,7 @@ class TranscriptionManager: NSObject, ObservableObject {
 
         Task {
             await refreshActiveJobsFromDatabase()
+            await refreshAllRecentJobs()
         }
         
         NotificationCenter.default.addObserver(
@@ -1506,6 +1507,7 @@ class TranscriptionManager: NSObject, ObservableObject {
                 current.updating(status: "completed", progress: 1.0, lastAttemptAt: Date())
             }
             removeActiveJob(jobId: jobId)
+            await refreshAllRecentJobs()
         } catch {
             await markRemoteJobFailed(jobId: jobId, trackId: trackId, message: error.localizedDescription)
         }
@@ -1515,6 +1517,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         try? await dbManager.markJobFailed(jobId: jobId, errorMessage: message)
         removeActiveJob(jobId: jobId)
         await markTranscriptFailure(trackId: trackId, message: message)
+        await refreshAllRecentJobs()
     }
 
     /// Check the status of a Soniox job and update local state accordingly

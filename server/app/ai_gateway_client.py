@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
 import requests
+
+logger = logging.getLogger("app.ai_gateway")
 
 
 AI_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1"
@@ -78,6 +81,10 @@ def _do_request(
     session.headers.update(headers)
     session.trust_env = False
     response = session.post(f"{base_url}/chat/completions", json=payload, timeout=60)
+    if response.status_code != 200:
+        logger.error(
+            "AI request failed: %s %s body=%s", response.status_code, response.url, response.text[:500]
+        )
     response.raise_for_status()
     data = response.json()
 
