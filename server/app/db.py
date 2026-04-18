@@ -38,6 +38,7 @@ def init_db() -> None:
                 input_source TEXT,
                 input_cookie TEXT,
                 input_path TEXT,
+                dedup_key TEXT,
                 params_json TEXT,
                 output_kind TEXT,
                 output_mime TEXT,
@@ -48,6 +49,10 @@ def init_db() -> None:
             """
         )
         _ensure_column(conn, "jobs", "input_path", "TEXT")
+        _ensure_column(conn, "jobs", "dedup_key", "TEXT")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_jobs_dedup_key ON jobs (dedup_key)"
+        )
         _ensure_column(conn, "jobs", "params_json", "TEXT")
         _ensure_column(conn, "jobs", "output_text", "TEXT")
         _ensure_column(conn, "jobs", "input_url", "TEXT")
@@ -76,10 +81,10 @@ def insert_job(job: dict[str, Any]) -> None:
             INSERT INTO jobs (
                 id, type, status, progress, phase, phase_started_at, created_at, updated_at,
                 error_code, error_message, input_kind, input_mime,
-                input_size, input_text, input_url, input_source, input_cookie, input_path, params_json,
+                input_size, input_text, input_url, input_source, input_cookie, input_path, dedup_key, params_json,
                 output_kind, output_mime, output_size, output_text,
                 result_path
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 job["id"],
@@ -100,6 +105,7 @@ def insert_job(job: dict[str, Any]) -> None:
                 job.get("input_source"),
                 job.get("input_cookie"),
                 job.get("input_path"),
+                job.get("dedup_key"),
                 job.get("params_json"),
                 job.get("output_kind"),
                 job.get("output_mime"),
@@ -139,6 +145,31 @@ def get_job(job_id: str) -> dict[str, Any] | None:
         if not row:
             return None
         return dict(row)
+    finally:
+        conn.close()
+
+
+def find_cached_input(dedup_key: str, job_type: str) -> str | None:
+    """Find a prior job's input_path for the same dedup_key & type.
+
+    Returns the on-disk path if found and the file still exists, else None.
+    """
+    if not dedup_key:
+        return None
+    conn = _connect()
+    try:
+        row = conn.execute(
+            """
+            SELECT input_path FROM jobs
+            WHERE dedup_key = %s AND type = %s AND input_path IS NOT NULL
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (dedup_key, job_type),
+        ).fetchone()
+        if not row:
+            return None
+        return row.get("input_path")
     finally:
         conn.close()
 

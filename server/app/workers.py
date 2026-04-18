@@ -13,13 +13,33 @@ import requests
 
 from . import db
 from .ai_gateway_client import DEFAULT_MODEL as DEFAULT_AI_MODEL
-from .ai_gateway_client import generate_text
+from .ai_gateway_client import generate_text, generate_text_openrouter
 from .soniox_client import DEFAULT_MODEL as DEFAULT_STT_MODEL
 from .soniox_client import transcribe_file
 from .storage import input_path, result_path
 
 
 logger = logging.getLogger(__name__)
+
+
+def _try_generate_text(
+    messages: list[dict[str, Any]],
+    **kwargs: Any,
+) -> AIGatewayResult:
+    """Try Vercel AI Gateway first, fall back to OpenRouter on failure."""
+    api_key = os.environ.get("VERCEL_AI_GATEWAY_API_KEY")
+    if api_key:
+        try:
+            return generate_text(api_key=api_key, messages=messages, **kwargs)
+        except Exception as exc:
+            logger.error("Vercel AI Gateway failed: %s, falling back to OpenRouter", exc)
+
+    openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
+    if openrouter_api_key:
+        logger.info("Using OpenRouter as fallback for AI generation")
+        return generate_text_openrouter(api_key=openrouter_api_key, messages=messages, **kwargs)
+
+    raise RuntimeError("No AI API keys available")
 
 
 def _utc_now() -> str:
@@ -121,7 +141,7 @@ def run_job(job_id: str) -> None:
 
         input_kind = job.get("input_kind")
         input_path_value = job.get("input_path")
-        if input_kind == "url":
+        if input_kind == "url" and not input_path_value:
             try:
                 _set_phase(job_id, "downloading", progress=0.2)
                 input_path_value = str(_download_url_input(job_id, job))
@@ -172,6 +192,7 @@ def run_job(job_id: str) -> None:
             )
             db.update_job(job_id, input_text=None)
         except Exception as exc:
+            logger.error("STT job failed: %s", exc)
             _set_phase(
                 job_id,
                 "failed",
@@ -195,14 +216,15 @@ def run_job(job_id: str) -> None:
 
     if job_type == "ai":
         api_key = os.environ.get("VERCEL_AI_GATEWAY_API_KEY")
-        if not api_key:
+        openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
+        if not api_key and not openrouter_api_key:
             _set_phase(
                 job_id,
                 "failed",
                 status="failed",
                 progress=1.0,
                 error_code="PROCESSING_FAILED",
-                error_message="VERCEL_AI_GATEWAY_API_KEY not set",
+                error_message="No AI API keys configured",
             )
             return
 
@@ -236,8 +258,7 @@ def run_job(job_id: str) -> None:
 
         try:
             _set_phase(job_id, "generating", progress=0.4)
-            result = generate_text(
-                api_key=api_key,
+            result = _try_generate_text(
                 messages=messages,
                 model=params.get("model") or DEFAULT_AI_MODEL,
                 system_prompt=params.get("system_prompt"),
@@ -267,6 +288,7 @@ def run_job(job_id: str) -> None:
                 result_path=str(output_file),
             )
         except Exception as exc:
+            logger.error("AI job failed: %s", exc)
             _set_phase(
                 job_id,
                 "failed",

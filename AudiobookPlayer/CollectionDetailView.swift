@@ -1121,7 +1121,6 @@ struct CollectionDetailView: View {
     }
 
     @ViewBuilder
-    @ViewBuilder
     private func addToQueueSwipeButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
         let isQueued = listenQueueStore.isQueued(trackID: track.id)
         Button {

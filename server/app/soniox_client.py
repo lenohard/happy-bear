@@ -94,6 +94,9 @@ def transcribe_file(
 ) -> SonioxResult:
     headers = {"Authorization": f"Bearer {api_key}"}
     timeout = 60
+    # Upload: separate (connect, read) timeout. Reads can be slow for large files on narrow uplinks.
+    # 30s connect, 30min read covers >100MB audio files on slow uploads.
+    upload_timeout = (30, 1800)
 
     session = requests.Session()
     session.headers.update(headers)
@@ -101,7 +104,7 @@ def transcribe_file(
 
     with audio_path.open("rb") as handle:
         files = {"file": handle}
-        upload_response = session.post(f"{SONIOX_API_BASE_URL}/v1/files", files=files, timeout=timeout)
+        upload_response = session.post(f"{SONIOX_API_BASE_URL}/v1/files", files=files, timeout=upload_timeout)
     upload_response.raise_for_status()
     file_payload = upload_response.json()
     file_id = file_payload.get("id")

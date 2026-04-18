@@ -2,8 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+import logging
+import logging.handlers
 from pathlib import Path
 import uuid
+
+from dotenv import load_dotenv
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse
@@ -14,6 +19,17 @@ from . import db
 from .models import CreateJobRequest, JobResponse
 from .storage import input_path, delete_job_files
 from .workers import run_job
+
+# Configure app-level logging to file
+_log_dir = Path(__file__).parent.parent / "logs"
+_log_dir.mkdir(parents=True, exist_ok=True)
+_worker_log_path = _log_dir / "remote-jobs-worker.log"
+_file_handler = logging.handlers.RotatingFileHandler(
+    _worker_log_path, maxBytes=10 * 1024 * 1024, backupCount=3, encoding="utf-8"
+)
+_file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
+logging.getLogger("app").addHandler(_file_handler)
+logging.getLogger("app").setLevel(logging.DEBUG)
 
 app = FastAPI(title="Audiobook Remote Jobs", version="0.1.0")
 
@@ -139,6 +155,17 @@ async def create_job(
     now = _utc_now()
     params_json = json.dumps(request.params.model_dump(exclude_none=True)) if request.params else None
 
+    # Dedup: if a prior job for the same source+track cached its input file, reuse it.
+    cached_input_path: str | None = None
+    if request.dedup_key and request.input.kind == "url":
+        candidate = db.find_cached_input(request.dedup_key, request.type)
+        if candidate and Path(candidate).exists():
+            cached_input_path = candidate
+            logging.getLogger("app").info(
+                "job=%s dedup_hit input_path=%s dedup_key=%s",
+                job_id, cached_input_path, request.dedup_key,
+            )
+
     job = {
         "id": job_id,
         "type": request.type,
@@ -152,10 +179,11 @@ async def create_job(
         "input_mime": request.input.mime,
         "input_size": None,
         "input_text": request.input.text,
-        "input_url": request.input.url,
+        "input_url": request.input.url if cached_input_path is None else None,
         "input_source": request.input.source,
-        "input_cookie": request.input.cookie,
-        "input_path": None,
+        "input_cookie": request.input.cookie if cached_input_path is None else None,
+        "input_path": cached_input_path,
+        "dedup_key": request.dedup_key,
         "params_json": params_json,
         "output_kind": None,
         "output_mime": None,
@@ -170,6 +198,9 @@ async def create_job(
     if request.input.kind == "upload":
         upload = {"url": f"/v1/jobs/{job_id}/upload", "method": "POST"}
     else:
+        if cached_input_path is not None:
+            # Skip download — go straight to processing
+            db.update_job(job_id, phase="starting", status="running", progress=0.1)
         background_tasks.add_task(run_job, job_id)
 
     return {"data": {"job": _job_to_response(job), "upload": upload}}
@@ -264,6 +295,76 @@ async def cancel_job(job_id: str, _: AuthDep) -> dict:
     db.update_job(job_id, status="canceled", progress=1.0, phase="canceled")
     job = db.get_job(job_id)
     return {"data": {"job": _job_to_response(job)}}
+
+
+@app.post("/v1/jobs/{job_id}/retry")
+async def retry_job(
+    job_id: str,
+    background_tasks: BackgroundTasks,
+    _: AuthDep,
+) -> dict:
+    job = db.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail={"code": "JOB_NOT_FOUND", "message": "Job not found"})
+
+    if job["status"] not in {"failed", "canceled"}:
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "JOB_INVALID_STATE", "message": "Can only retry failed or canceled jobs"},
+        )
+
+    # Clone the job with a new ID
+    new_job_id = f"job_{uuid.uuid4().hex}"
+    now = _utc_now()
+
+    # Check if input file still exists (skip re-download for URL jobs)
+    existing_input_path = job.get("input_path")
+    input_file_exists = False
+    if existing_input_path:
+        from pathlib import Path
+        input_file_exists = Path(existing_input_path).exists()
+
+    new_job = {
+        "id": new_job_id,
+        "type": job["type"],
+        "status": "queued",
+        "progress": 0.0,
+        "phase": "queued",
+        "phase_started_at": now,
+        "created_at": now,
+        "updated_at": now,
+        "input_kind": job["input_kind"],
+        "input_mime": job.get("input_mime"),
+        "input_size": job.get("input_size"),
+        "input_text": job.get("input_text"),
+        "input_url": job.get("input_url") if not input_file_exists else None,
+        "input_source": job.get("input_source"),
+        "input_cookie": job.get("input_cookie") if not input_file_exists else None,
+        "input_path": existing_input_path if input_file_exists else None,
+        "dedup_key": job.get("dedup_key"),
+        "params_json": job.get("params_json"),
+        "output_kind": None,
+        "output_mime": None,
+        "output_size": None,
+        "output_text": None,
+        "result_path": None,
+    }
+
+    db.insert_job(new_job)
+
+    if input_file_exists:
+        # File already downloaded, go straight to processing
+        db.update_job(new_job_id, phase="starting", status="running", progress=0.1)
+        background_tasks.add_task(run_job, new_job_id)
+    elif job.get("input_kind") == "upload":
+        # Upload jobs need re-upload
+        pass
+    else:
+        # URL jobs will re-download
+        background_tasks.add_task(run_job, new_job_id)
+
+    updated = db.get_job(new_job_id)
+    return {"data": {"job": _job_to_response(updated)}}
 
 
 @app.delete("/v1/jobs/{job_id}")

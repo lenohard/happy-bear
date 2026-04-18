@@ -124,6 +124,9 @@
         }
       }
     },
+    "%lld." : {
+
+    },
     "%lld%%" : {
 
     },
@@ -341,6 +344,18 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "添加到收藏"
+          }
+        }
+      }
+    },
+    "add_to_queue" : {
+      "comment" : "Add to listen queue",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Add to Queue"
           }
         }
       }
@@ -2385,7 +2400,7 @@
 
     },
     "connect_baidu_before_stream" : {
-      "comment" : "Alert message to sign in before streaming",
+      "comment" : "Alert message\nAlert message to sign in before streaming",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -4129,6 +4144,246 @@
     "Preview Changes (%lld)" : {
 
     },
+    "queue_badge_accessibility" : {
+      "comment" : "Accessibility label for listen queue badge",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "In Listen Queue"
+          }
+        }
+      }
+    },
+    "queue_clear_completed" : {
+      "comment" : "Clear completed queue items",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clear Completed"
+          }
+        }
+      }
+    },
+    "queue_clear_completed_confirm" : {
+      "comment" : "Confirm clear completed",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Clear all completed items?"
+          }
+        }
+      }
+    },
+    "queue_collection_badge" : {
+      "comment" : "Collection badge in queue row",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Whole collection"
+          }
+        }
+      }
+    },
+    "queue_empty_completed_message" : {
+      "comment" : "Empty completed queue message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Items you complete from the queue will show up here."
+          }
+        }
+      }
+    },
+    "queue_empty_completed_title" : {
+      "comment" : "Empty completed queue title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Nothing finished yet"
+          }
+        }
+      }
+    },
+    "queue_empty_pending_message" : {
+      "comment" : "Empty pending queue message",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Swipe on a track or collection to add it here."
+          }
+        }
+      }
+    },
+    "queue_empty_pending_title" : {
+      "comment" : "Empty pending queue title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Your queue is empty"
+          }
+        }
+      }
+    },
+    "queue_manage" : {
+      "comment" : "Manage queue link",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Manage"
+          }
+        }
+      }
+    },
+    "queue_mark_done" : {
+      "comment" : "Mark queue item as done",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Mark Done"
+          }
+        }
+      }
+    },
+    "queue_missing_note" : {
+      "comment" : "Item missing note",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No longer available"
+          }
+        }
+      }
+    },
+    "queue_more_items" : {
+      "comment" : "Extra queue items beyond the preview",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "+%d more"
+          }
+        }
+      }
+    },
+    "queue_play_from_queue" : {
+      "comment" : "Toggle auto-advance from queue",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Play from Queue"
+          }
+        }
+      }
+    },
+    "queue_remaining_tracks" : {
+      "comment" : "Remaining tracks in collection queue row",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%d tracks left"
+          }
+        }
+      }
+    },
+    "queue_remove" : {
+      "comment" : "Remove queue item",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Remove"
+          }
+        }
+      }
+    },
+    "queue_section_completed" : {
+      "comment" : "Queue completed section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Done"
+          }
+        }
+      }
+    },
+    "queue_section_pending" : {
+      "comment" : "Queue pending section title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Up Next"
+          }
+        }
+      }
+    },
+    "queue_title" : {
+      "comment" : "Listen queue view title",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Listen Queue"
+          }
+        }
+      }
+    },
+    "queue_undo" : {
+      "comment" : "Move completed item back to pending",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Move Back"
+          }
+        }
+      }
+    },
+    "queue_up_next_count" : {
+      "comment" : "Up next header with count",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Up Next · %d items"
+          }
+        }
+      }
+    },
     "queued_status" : {
       "comment" : "Queued job status"
     },
@@ -4305,6 +4560,18 @@
         }
       }
     },
+    "remove_from_queue" : {
+      "comment" : "Remove from listen queue",
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Remove from Queue"
+          }
+        }
+      }
+    },
     "remove_track_action" : {
       "comment" : "Remove track action label\nRemove track dialog title\nRemove track swipe action",
       "localizations" : {
@@ -4411,6 +4678,9 @@
           }
         }
       }
+    },
+    "Retry" : {
+
     },
     "retry_button" : {
       "localizations" : {

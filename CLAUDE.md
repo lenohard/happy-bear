@@ -7,6 +7,7 @@ BaiduNetdisk Doc: https://pan.baidu.com/union/doc/pksg0s9ns
 **Note**: The `./local/` folder is **NOT** ignored by git for this repository.
 
 ## Recent Progress (Dec 2025)
+- **Remote STT Fix (Apr 2026)**: Fixed broken remote STT server mode. Tailscale Serve was misconfigured to proxy `https://mathemac-mini.tailb0587a.ts.net` → `http://127.0.0.1:18789` (a Node.js app) instead of the FastAPI server on port 8081. Fixed with `tailscale serve reset && tailscale serve --bg --https=443 http://127.0.0.1:8081`. After fix, iOS client successfully connects and remote STT jobs run end-to-end. Note: Baidu download URLs can expire — if job fails with "write operation timed out", retry with a fresh session.
 - **Chapter Support (Feb 2026)**: Added chapter support for audiobook collections. When importing a folder with subfolders, each subfolder becomes a chapter. Tracks in subfolders get the parent folder name as chapter. Collection detail view automatically groups tracks by chapter with headers showing folder icon, chapter name, and track count. Tracks without chapter appear at the end labeled as "Other". Fully backward compatible - collections without chapters display as flat list. Implementation includes: `chapter` property in `AudiobookTrack`, database migration, `extractChapter()` in CollectionBuilderViewModel, `ChapterGroup` struct and `chapterGroups` in CollectionDetailViewModel, UI grouping in CollectionDetailView.
 
 - **VLC Audio-Only Playback (Dec 20)**: Implemented VLC audio-only support for MKV/WebM files. When playing MKV/WebM, VLC handles audio without showing video UI (treating them like regular audio files). Updated `play(track:)` to call `startVLCAudioPlayback()` instead of bailing out. All playback controls (play/pause, seek, skip, speed, sleep timer) now work with VLC audio. Added `usingVLCAudio` flag, `vlcTimeUpdateTimer` (250ms polling), and time/state tracking. Fixed VLC drawable operations with main thread dispatch (resolves "Modifying properties off main thread" crashes). Simplified `handlePlayButtonPress()` to always call `togglePlayback()`.
@@ -33,6 +34,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Scroll Performance**: Preload assets (images) to NSCache in background (`Task.detached`). View `onAppear` should check cache synchronously.
 - **High-Frequency State**: Don't publish playback ticks (`currentTime`) from main `EnvironmentObject`. Use a small, dedicated `ObservableObject` (`PlaybackClock`) for timeline views to avoid massive re-renders.
 - **Background Tasks**: iOS suspends polling/sockets in background. Check job status on foreground resume (`scenePhase`) instead of continuous polling.
+- **Database Sync Strategy**: Prefer simple DB-file sync by placing `library.sqlite` inside iCloud Drive / app container location included in Apple sync between Mac and iPhone. Do not build CloudKit or other complex record-level sync unless requirements change.
 - **Backup/Restore Coverage**: Backup exports the full `library.sqlite`, so collection folders + archived state are included automatically. Restore replaces the DB and runs migrations, so older backups upgrade to the new schema.
 
 ### SwiftUI & UI
@@ -209,7 +211,8 @@ Run `./scripts/generate-app-icons.sh <source-image-path>` to generate all sizes.
 - **Format**: Ensure file remains JSON, not binary plist.
 
 ### Database
-- **Location**: `~/Library/Containers/.../library.sqlite`
+- **Sync Location**: Current plan is to keep `library.sqlite` in iCloud-synced container/storage so same DB file syncs between Mac and iPhone.
+- **Sync Approach**: File-based sync only. Do not introduce CloudKit or other complex sync stack unless needed later.
 - **Reference**: See `local/database-reference-debug.md`.
 
 ### Xcode Project

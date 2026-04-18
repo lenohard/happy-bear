@@ -412,7 +412,12 @@ class TranscriptionManager: NSObject, ObservableObject {
 
             DispatchQueue.main.async { self.transcriptionProgress = 0.15 }
 
-            let remoteJob = try await client.createSTTJob(input: input, languageHints: languageHints, context: context)
+            let remoteJob = try await client.createSTTJob(
+                input: input,
+                languageHints: languageHints,
+                context: context,
+                dedupKey: "stt:track:\(trackIdStr)"
+            )
             let storedRemoteId = "\(remoteJobPrefix)\(remoteJob.id)"
 
             if let jobId = currentJobId {
@@ -543,7 +548,12 @@ class TranscriptionManager: NSObject, ObservableObject {
             upsertActiveJob(job)
         }
 
-        let remoteJob = try await client.createSTTJob(input: input, languageHints: languageHints, context: context)
+        let remoteJob = try await client.createSTTJob(
+            input: input,
+            languageHints: languageHints,
+            context: context,
+            dedupKey: "stt:track:\(trackIdStr)"
+        )
         let storedRemoteId = "\(remoteJobPrefix)\(remoteJob.id)"
         let progress = max(remoteJob.progress ?? 0.1, 0.1)
         let status = remoteJob.status == "queued" ? "queued" : "transcribing"
@@ -1604,7 +1614,7 @@ class TranscriptionManager: NSObject, ObservableObject {
         return "external"
     }
 
-    private func parseSRTSegments(_ srtText: String, transcriptId: String) -> [TranscriptSegment] {
+    func parseSRTSegments(_ srtText: String, transcriptId: String) -> [TranscriptSegment] {
         let blocks = srtText
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")

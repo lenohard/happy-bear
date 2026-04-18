@@ -6,7 +6,7 @@ final class AIGenerationManager: ObservableObject {
     @Published private(set) var activeJobs: [AIGenerationJob] = []
     @Published private(set) var recentJobs: [AIGenerationJob] = []
 
-    private let dbManager: GRDBDatabaseManager
+    let dbManager: GRDBDatabaseManager
     private let executor: AIGenerationJobExecutor
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGenerationManager")
     private var refreshTask: Task<Void, Never>?

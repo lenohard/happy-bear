@@ -58,7 +58,7 @@ final class RemoteJobsClient {
         self.config = config
     }
 
-    func createSTTJob(input: RemoteJobsInput, languageHints: [String], context: String?) async throws -> RemoteJobDTO {
+    func createSTTJob(input: RemoteJobsInput, languageHints: [String], context: String?, dedupKey: String? = nil) async throws -> RemoteJobDTO {
         struct RequestBody: Encodable {
             struct Input: Encodable {
                 let kind: String
@@ -74,6 +74,7 @@ final class RemoteJobsClient {
             let type: String
             let input: Input
             let params: Params
+            let dedup_key: String?
         }
 
         let body = RequestBody(
@@ -85,7 +86,8 @@ final class RemoteJobsClient {
                 cookie: input.cookie,
                 mime: input.mime
             ),
-            params: .init(language_hints: languageHints, context: context)
+            params: .init(language_hints: languageHints, context: context),
+            dedup_key: dedupKey
         )
 
         let request = try makeRequest(path: "/jobs", method: "POST", body: body)
@@ -152,6 +154,12 @@ final class RemoteJobsClient {
 
     func cancelJob(jobId: String) async throws -> RemoteJobDTO {
         let request = try makeRequest(path: "/jobs/\(jobId)/cancel", method: "POST", body: Optional<String>.none)
+        let response: RemoteJobEnvelope = try await perform(request)
+        return response.data.job
+    }
+
+    func retryJob(jobId: String) async throws -> RemoteJobDTO {
+        let request = try makeRequest(path: "/jobs/\(jobId)/retry", method: "POST", body: Optional<String>.none)
         let response: RemoteJobEnvelope = try await perform(request)
         return response.data.job
     }

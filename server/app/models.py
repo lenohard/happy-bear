@@ -50,6 +50,7 @@ class CreateJobRequest(BaseModel):
     type: JobType
     input: InputPayload
     params: Optional[JobParams] = None
+    dedup_key: Optional[str] = None
 
 
 class JobOutput(BaseModel):
