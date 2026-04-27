@@ -2,13 +2,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-import time
 from typing import Any
 
-import requests
+from soniox import SonioxClient
+from soniox.types import CreateTranscriptionConfig
 
-
-SONIOX_API_BASE_URL = "https://api.soniox.com"
 DEFAULT_MODEL = "stt-async-preview"
 DEFAULT_LANGUAGE_HINTS = ["zh", "en"]
 
@@ -17,18 +15,6 @@ DEFAULT_LANGUAGE_HINTS = ["zh", "en"]
 class SonioxResult:
     transcript_text: str
     srt_text: str
-
-
-def _token_time_bounds(token: dict[str, Any]) -> tuple[int, int]:
-    start_ms = token.get("start_ms") or 0
-    end_ms = token.get("end_ms")
-    if end_ms is None:
-        duration_ms = token.get("duration_ms")
-        if duration_ms is not None:
-            end_ms = start_ms + duration_ms
-        else:
-            end_ms = start_ms
-    return start_ms, end_ms
 
 
 def _format_srt_time(ms: int) -> str:
@@ -40,7 +26,8 @@ def _format_srt_time(ms: int) -> str:
     return f"{hours:02d}:{minutes:02d}:{secs:02d},{millisecs:03d}"
 
 
-def tokens_to_srt(tokens: list[dict[str, Any]], chunk_duration_ms: int = 5000) -> str:
+def tokens_to_srt(tokens: list[Any], chunk_duration_ms: int = 5000) -> str:
+    """Convert Token list to SRT subtitle format."""
     if not tokens:
         return ""
 
@@ -51,8 +38,9 @@ def tokens_to_srt(tokens: list[dict[str, Any]], chunk_duration_ms: int = 5000) -
     chunk_end_ms: int | None = None
 
     for token in tokens:
-        text = token.get("text", "")
-        start_ms, end_ms = _token_time_bounds(token)
+        text = token.text
+        start_ms = token.start_ms or 0
+        end_ms = token.end_ms if token.end_ms is not None else start_ms
 
         if chunk_start_ms is None:
             chunk_start_ms = start_ms
@@ -79,10 +67,6 @@ def tokens_to_srt(tokens: list[dict[str, Any]], chunk_duration_ms: int = 5000) -
     return "".join(srt_parts)
 
 
-def tokens_to_text(tokens: list[dict[str, Any]]) -> str:
-    return "".join(token.get("text", "") for token in tokens)
-
-
 def transcribe_file(
     api_key: str,
     audio_path: Path,
@@ -92,79 +76,41 @@ def transcribe_file(
     poll_interval: float = 1.0,
     max_wait_seconds: int = 600,
 ) -> SonioxResult:
-    headers = {"Authorization": f"Bearer {api_key}"}
-    timeout = 60
-    # Upload: separate (connect, read) timeout. Reads can be slow for large files on narrow uplinks.
-    # 30s connect, 30min read covers >100MB audio files on slow uploads.
-    upload_timeout = (30, 1800)
+    """
+    Transcribe an audio file using Soniox SDK.
 
-    session = requests.Session()
-    session.headers.update(headers)
-    session.trust_env = False
+    Uses async transcription: upload -> create job -> poll -> get result -> cleanup.
+    The SDK handles all HTTP requests with proper timeouts.
+    """
+    client = SonioxClient(api_key=api_key)
 
+    config = CreateTranscriptionConfig(
+        model=model or DEFAULT_MODEL,
+        language_hints=language_hints or DEFAULT_LANGUAGE_HINTS,
+        enable_speaker_diarization=True,
+        enable_language_identification=True,
+        context=context,
+    )
+
+    # Use SDK's transcribe_and_wait_with_tokens which handles:
+    # - File upload
+    # - Transcription creation
+    # - Polling until completion
+    # - Fetching tokens
+    # - Cleanup (delete_after=True)
     with audio_path.open("rb") as handle:
-        files = {"file": handle}
-        upload_response = session.post(f"{SONIOX_API_BASE_URL}/v1/files", files=files, timeout=upload_timeout)
-    upload_response.raise_for_status()
-    file_payload = upload_response.json()
-    file_id = file_payload.get("id")
-    if not file_id:
-        raise RuntimeError("Soniox file upload missing id")
-
-    config: dict[str, Any] = {
-        "file_id": file_id,
-        "model": model or DEFAULT_MODEL,
-        "language_hints": language_hints or DEFAULT_LANGUAGE_HINTS,
-        "enable_speaker_diarization": True,
-        "enable_language_identification": True,
-    }
-    if context:
-        config["context"] = context
-
-    transcription_response = session.post(
-        f"{SONIOX_API_BASE_URL}/v1/transcriptions", json=config, timeout=timeout
-    )
-    transcription_response.raise_for_status()
-    transcription_payload = transcription_response.json()
-    transcription_id = transcription_payload.get("id")
-    if not transcription_id:
-        raise RuntimeError("Soniox transcription missing id")
-
-    start_time = time.time()
-    status = None
-    error_message = None
-    while True:
-        status_response = session.get(
-            f"{SONIOX_API_BASE_URL}/v1/transcriptions/{transcription_id}", timeout=timeout
+        result = client.stt.transcribe_and_wait_with_tokens(
+            file=handle,
+            filename=audio_path.name,
+            config=config,
+            delete_after=True,
+            wait_interval_sec=poll_interval,
+            wait_timeout_sec=max_wait_seconds,
         )
-        status_response.raise_for_status()
-        status_payload = status_response.json()
-        status = status_payload.get("status")
-        if status == "completed":
-            break
-        if status == "error":
-            error_message = status_payload.get("error_message") or "Unknown Soniox error"
-            break
 
-        if time.time() - start_time > max_wait_seconds:
-            error_message = "Soniox transcription timed out"
-            break
+    srt_text = tokens_to_srt(result.tokens)
 
-        time.sleep(poll_interval)
-
-    if status != "completed":
-        raise RuntimeError(error_message or "Soniox transcription failed")
-
-    transcript_response = session.get(
-        f"{SONIOX_API_BASE_URL}/v1/transcriptions/{transcription_id}/transcript", timeout=timeout
+    return SonioxResult(
+        transcript_text=result.text,
+        srt_text=srt_text,
     )
-    transcript_response.raise_for_status()
-    transcript_payload = transcript_response.json()
-    tokens = transcript_payload.get("tokens") or []
-    srt_text = tokens_to_srt(tokens)
-    transcript_text = tokens_to_text(tokens)
-
-    session.delete(f"{SONIOX_API_BASE_URL}/v1/transcriptions/{transcription_id}", timeout=timeout)
-    session.delete(f"{SONIOX_API_BASE_URL}/v1/files/{file_id}", timeout=timeout)
-
-    return SonioxResult(transcript_text=transcript_text, srt_text=srt_text)

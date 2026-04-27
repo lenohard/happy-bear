@@ -3616,9 +3616,6 @@
     "Loading…" : {
 
     },
-    "Local jobs are listed in STT/TTS/AI screens." : {
-
-    },
     "local_files_coming_soon" : {
       "comment" : "Local files coming soon",
       "localizations" : {
@@ -3762,6 +3759,9 @@
           }
         }
       }
+    },
+    "No local jobs yet" : {
+
     },
     "No matches found" : {
 
