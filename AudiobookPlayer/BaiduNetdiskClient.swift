@@ -208,20 +208,21 @@ final class BaiduNetdiskClient: BaiduNetdiskListing {
             throw NetdiskError.expiredToken
         }
 
-        // Percent-encode the path for query parameter value.
-        // Use urlQueryAllowed but remove '+' since it's a space placeholder in query strings.
-        // URLQueryAllowed doesn't encode '+' by default, which breaks paths with '+'.
-        var queryAllowed = CharacterSet.urlQueryAllowed
-        queryAllowed.remove(charactersIn: "+")
+        var components = URLComponents(url: downloadBaseURL, resolvingAgainstBaseURL: false)!
+        components.queryItems = [
+            URLQueryItem(name: "method", value: "download"),
+            URLQueryItem(name: "access_token", value: token.accessToken),
+            URLQueryItem(name: "path", value: path)
+        ]
 
-        guard let encodedPath = path.addingPercentEncoding(withAllowedCharacters: queryAllowed) else {
-            throw NetdiskError.invalidRequest
-        }
+        // URLQueryItem correctly escapes query delimiters like '&' and '=',
+        // but Foundation leaves literal '+' untouched in query values.
+        // Baidu treats '+' as a space placeholder, so normalize it to '%2B'
+        // after URLComponents has encoded everything else.
+        components.percentEncodedQuery = components.percentEncodedQuery?
+            .replacingOccurrences(of: "+", with: "%2B")
 
-        // Manually construct URL to avoid URLComponents double-encoding the path.
-        // URLComponents would re-encode already-encoded characters (like %E3 from Chinese chars).
-        let queryString = "method=download&access_token=\(token.accessToken)&path=\(encodedPath)"
-        guard let url = URL(string: "\(downloadBaseURL.absoluteString)?\(queryString)") else {
+        guard let url = components.url else {
             throw NetdiskError.invalidRequest
         }
 
