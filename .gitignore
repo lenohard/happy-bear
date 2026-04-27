@@ -4,6 +4,8 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 *.pbxproj.bak
+Podfile.bak
+Podfile.lock.bak
 test-1min.mp3
 local/
 */__pycache__/*
