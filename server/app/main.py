@@ -18,18 +18,40 @@ from .auth import AuthDep
 from . import db
 from .models import CreateJobRequest, JobResponse
 from .storage import input_path, delete_job_files
-from .workers import run_job
+from .workers import clear_cancel, request_cancel, run_job
+
+logger = logging.getLogger(__name__)
 
 # Configure app-level logging to file
 _log_dir = Path(__file__).parent.parent / "logs"
 _log_dir.mkdir(parents=True, exist_ok=True)
+_log_format = logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+
+# Worker / app logger
 _worker_log_path = _log_dir / "remote-jobs-worker.log"
-_file_handler = logging.handlers.RotatingFileHandler(
+_worker_handler = logging.handlers.RotatingFileHandler(
     _worker_log_path, maxBytes=10 * 1024 * 1024, backupCount=3, encoding="utf-8"
 )
-_file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s"))
-logging.getLogger("app").addHandler(_file_handler)
+_worker_handler.setFormatter(_log_format)
+logging.getLogger("app").addHandler(_worker_handler)
 logging.getLogger("app").setLevel(logging.DEBUG)
+
+# Uvicorn HTTP access logger → separate file
+_access_log_path = _log_dir / "remote-jobs-access.log"
+_access_handler = logging.handlers.RotatingFileHandler(
+    _access_log_path, maxBytes=10 * 1024 * 1024, backupCount=3, encoding="utf-8"
+)
+_access_handler.setFormatter(_log_format)
+logging.getLogger("uvicorn.access").addHandler(_access_handler)
+logging.getLogger("uvicorn.access").setLevel(logging.INFO)
+
+# Uvicorn general logger → same file as access
+_server_handler = logging.handlers.RotatingFileHandler(
+    _access_log_path, maxBytes=10 * 1024 * 1024, backupCount=3, encoding="utf-8"
+)
+_server_handler.setFormatter(_log_format)
+logging.getLogger("uvicorn").addHandler(_server_handler)
+logging.getLogger("uvicorn").setLevel(logging.INFO)
 
 app = FastAPI(title="Audiobook Remote Jobs", version="0.1.0")
 
@@ -41,7 +63,7 @@ def _utc_now() -> str:
 def _job_to_response(job: dict) -> JobResponse:
     error = None
     if job.get("error_code") or job.get("error_message"):
-        error = {"code": job.get("error_code"), "message": job.get("error_message")}
+        error = {"code": job.get("error_code") or "PROCESSING_FAILED", "message": job.get("error_message") or "Unknown error"}
 
     input_payload = None
     if job.get("input_kind"):
@@ -96,6 +118,9 @@ def handle_validation_error(_: Request, exc: RequestValidationError) -> JSONResp
 @app.on_event("startup")
 def on_startup() -> None:
     db.init_db()
+    count = db.reset_orphan_running_jobs(_utc_now())
+    if count:
+        logger.info("Reset %d orphan running jobs on startup", count)
 
 
 @app.post("/v1/jobs")
@@ -292,6 +317,7 @@ async def cancel_job(job_id: str, _: AuthDep) -> dict:
             detail={"code": "JOB_INVALID_STATE", "message": "Job cannot be canceled"},
         )
 
+    request_cancel(job_id)
     db.update_job(job_id, status="canceled", progress=1.0, phase="canceled")
     job = db.get_job(job_id)
     return {"data": {"job": _job_to_response(job)}}
@@ -313,57 +339,47 @@ async def retry_job(
             detail={"code": "JOB_INVALID_STATE", "message": "Can only retry failed or canceled jobs"},
         )
 
-    # Clone the job with a new ID
-    new_job_id = f"job_{uuid.uuid4().hex}"
+    # Retry in-place so the job moves from Failed -> Running instead of
+    # leaving an old failed row plus a new running row in the client list.
     now = _utc_now()
 
-    # Check if input file still exists (skip re-download for URL jobs)
     existing_input_path = job.get("input_path")
     input_file_exists = False
     if existing_input_path:
         from pathlib import Path
         input_file_exists = Path(existing_input_path).exists()
 
-    new_job = {
-        "id": new_job_id,
-        "type": job["type"],
-        "status": "queued",
-        "progress": 0.0,
-        "phase": "queued",
-        "phase_started_at": now,
-        "created_at": now,
-        "updated_at": now,
-        "input_kind": job["input_kind"],
-        "input_mime": job.get("input_mime"),
-        "input_size": job.get("input_size"),
-        "input_text": job.get("input_text"),
-        "input_url": job.get("input_url") if not input_file_exists else None,
-        "input_source": job.get("input_source"),
-        "input_cookie": job.get("input_cookie") if not input_file_exists else None,
-        "input_path": existing_input_path if input_file_exists else None,
-        "dedup_key": job.get("dedup_key"),
-        "params_json": job.get("params_json"),
-        "output_kind": None,
-        "output_mime": None,
-        "output_size": None,
-        "output_text": None,
-        "result_path": None,
-    }
+    # Clear any stale cancel flag before re-queuing.
+    clear_cancel(job_id)
 
-    db.insert_job(new_job)
+    db.update_job(
+        job_id,
+        status="queued",
+        progress=0.0,
+        phase="queued",
+        phase_started_at=now,
+        error_code=None,
+        error_message=None,
+        output_kind=None,
+        output_mime=None,
+        output_size=None,
+        output_text=None,
+        result_path=None,
+        input_path=existing_input_path if input_file_exists else None,
+    )
 
     if input_file_exists:
-        # File already downloaded, go straight to processing
-        db.update_job(new_job_id, phase="starting", status="running", progress=0.1)
-        background_tasks.add_task(run_job, new_job_id)
+        # File already downloaded, go straight to processing.
+        db.update_job(job_id, phase="starting", status="running", progress=0.1)
+        background_tasks.add_task(run_job, job_id)
     elif job.get("input_kind") == "upload":
-        # Upload jobs need re-upload
+        # Upload jobs need re-upload.
         pass
     else:
-        # URL jobs will re-download
-        background_tasks.add_task(run_job, new_job_id)
+        # URL jobs will re-download.
+        background_tasks.add_task(run_job, job_id)
 
-    updated = db.get_job(new_job_id)
+    updated = db.get_job(job_id)
     return {"data": {"job": _job_to_response(updated)}}
 
 
@@ -371,13 +387,12 @@ async def retry_job(
 async def delete_job(job_id: str, _: AuthDep) -> dict:
     job = db.get_job(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail={"code": "JOB_NOT_FOUND", "message": "Job not found"})
+        # Idempotent: already deleted counts as success.
+        return {"data": {"deleted": True}}
 
     if job["status"] in {"queued", "running"}:
-        raise HTTPException(
-            status_code=409,
-            detail={"code": "JOB_INVALID_STATE", "message": "Cannot delete a running job. Cancel it first."},
-        )
+        request_cancel(job_id)
+        db.update_job(job_id, status="canceled", progress=1.0, phase="canceled")
 
     delete_job_files(job_id)
     db.delete_job(job_id)
@@ -426,7 +441,7 @@ async def get_result(job_id: str, _: AuthDep) -> dict:
             raw_payload = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             raw_payload = None
-        result = {"text": job.get("output_text") or "", "raw": raw_payload}
+        result = {"text": job.get("output_text") or ""}
         return {"data": {"result": result}}
 
     raise HTTPException(

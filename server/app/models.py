@@ -67,6 +67,8 @@ class JobResponse(BaseModel):
     phase: Optional[str] = None
     created_at: str
     updated_at: str
+    title: Optional[str] = None
+    subtype: Optional[str] = None
     error: Optional[ErrorPayload] = None
     input: Optional[InputPayload] = None
     output: Optional[JobOutput] = None

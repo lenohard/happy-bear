@@ -25,6 +25,49 @@ logger = logging.getLogger(__name__)
 OPENROUTER_DEFAULT_MODEL = os.environ.get("OPENROUTER_DEFAULT_MODEL", "google/gemini-3-flash-preview")
 
 
+# Cancel signaling. Set of job IDs that should stop as soon as the worker
+# notices. `run_job` checks this between phases.
+_CANCEL_REQUESTS: set[str] = set()
+
+
+def request_cancel(job_id: str) -> None:
+    _CANCEL_REQUESTS.add(job_id)
+
+
+def clear_cancel(job_id: str) -> None:
+    _CANCEL_REQUESTS.discard(job_id)
+
+
+def _check_cancel(job_id: str) -> bool:
+    if job_id in _CANCEL_REQUESTS:
+        _CANCEL_REQUESTS.discard(job_id)
+        return True
+    return False
+
+
+def _mark_failed(job_id: str, message: str, *, code: str = "PROCESSING_FAILED") -> None:
+    # Clear any cached cookie so we don't keep secrets around on failed rows.
+    db.update_job(job_id, input_cookie=None)
+    _set_phase(
+        job_id,
+        "failed",
+        status="failed",
+        progress=1.0,
+        error_code=code,
+        error_message=message,
+    )
+
+
+def _mark_canceled(job_id: str) -> None:
+    db.update_job(job_id, input_cookie=None)
+    _set_phase(
+        job_id,
+        "canceled",
+        status="canceled",
+        progress=1.0,
+    )
+
+
 def _try_generate_text(
     messages: list[dict[str, Any]],
     **kwargs: Any,
@@ -32,7 +75,7 @@ def _try_generate_text(
     """Try Vercel AI Gateway first, fall back to OpenRouter on failure."""
     model = kwargs.get("model", "<default>")
 
-    api_key = os.environ.get("VERCEL_AI_GATEWAY_API_KEY")
+    api_key = os.environ.get("VERCEL_AI_GATEWAY_API_KEY") or os.environ.get("AI_GATEWAY_API_KEY")
     if api_key:
         try:
             logger.info("Trying Vercel AI Gateway: model=%s key=%s…", model, api_key[:6])
@@ -125,8 +168,15 @@ def run_job(job_id: str) -> None:
     if job["status"] in {"canceled", "failed", "succeeded"}:
         return
 
+    # Clear any leftover cancel flag before starting fresh (e.g. on retry).
+    clear_cancel(job_id)
+
     _set_phase(job_id, "starting", status="running", progress=0.1)
     time.sleep(0.2)
+
+    if _check_cancel(job_id):
+        _mark_canceled(job_id)
+        return
 
     job_type = job["type"]
     params = {}
@@ -139,14 +189,7 @@ def run_job(job_id: str) -> None:
     if job_type == "stt":
         api_key = os.environ.get("SONIOX_API_KEY")
         if not api_key:
-            _set_phase(
-                job_id,
-                "failed",
-                status="failed",
-                progress=1.0,
-                error_code="PROCESSING_FAILED",
-                error_message="SONIOX_API_KEY not set",
-            )
+            _mark_failed(job_id, "SONIOX_API_KEY not set")
             return
 
         input_kind = job.get("input_kind")
@@ -156,25 +199,15 @@ def run_job(job_id: str) -> None:
                 _set_phase(job_id, "downloading", progress=0.2)
                 input_path_value = str(_download_url_input(job_id, job))
             except Exception as exc:
-                _set_phase(
-                    job_id,
-                    "failed",
-                    status="failed",
-                    progress=1.0,
-                    error_code="PROCESSING_FAILED",
-                    error_message=str(exc),
-                )
+                _mark_failed(job_id, str(exc))
                 return
 
+        if _check_cancel(job_id):
+            _mark_canceled(job_id)
+            return
+
         if not input_path_value:
-            _set_phase(
-                job_id,
-                "failed",
-                status="failed",
-                progress=1.0,
-                error_code="PROCESSING_FAILED",
-                error_message="Missing input file",
-            )
+            _mark_failed(job_id, "Missing input file")
             return
 
         try:
@@ -200,70 +233,39 @@ def run_job(job_id: str) -> None:
                 output_text=result.transcript_text,
                 result_path=str(output_file),
             )
-            db.update_job(job_id, input_text=None)
+            db.update_job(job_id, input_text=None, input_cookie=None)
         except Exception as exc:
             logger.error("STT job failed: %s", exc)
-            _set_phase(
-                job_id,
-                "failed",
-                status="failed",
-                progress=1.0,
-                error_code="PROCESSING_FAILED",
-                error_message=str(exc),
-            )
+            _mark_failed(job_id, str(exc))
         return
 
     if job_type == "tts":
-        _set_phase(
-            job_id,
-            "failed",
-            status="failed",
-            progress=1.0,
-            error_code="PROCESSING_FAILED",
-            error_message="TTS provider not configured",
-        )
+        _mark_failed(job_id, "TTS provider not configured")
         return
 
     if job_type == "ai":
-        api_key = os.environ.get("VERCEL_AI_GATEWAY_API_KEY")
+        api_key = os.environ.get("VERCEL_AI_GATEWAY_API_KEY") or os.environ.get("AI_GATEWAY_API_KEY")
         openrouter_api_key = os.environ.get("OPENROUTER_API_KEY")
         if not api_key and not openrouter_api_key:
-            _set_phase(
-                job_id,
-                "failed",
-                status="failed",
-                progress=1.0,
-                error_code="PROCESSING_FAILED",
-                error_message="No AI API keys configured",
-            )
+            _mark_failed(job_id, "No AI API keys configured")
             return
 
         prompt = job.get("input_text") or ""
         messages = list(params.get("messages") or [])
         if not messages:
             if not prompt.strip():
-                _set_phase(
-                    job_id,
-                    "failed",
-                    status="failed",
-                    progress=1.0,
-                    error_code="PROCESSING_FAILED",
-                    error_message="Missing input text",
-                )
+                _mark_failed(job_id, "Missing input text")
                 return
             messages = [{"role": "user", "content": prompt}]
         elif prompt.strip():
             messages.append({"role": "user", "content": prompt})
 
         if not messages:
-            _set_phase(
-                job_id,
-                "failed",
-                status="failed",
-                progress=1.0,
-                error_code="PROCESSING_FAILED",
-                error_message="Missing messages",
-            )
+            _mark_failed(job_id, "Missing messages")
+            return
+
+        if _check_cancel(job_id):
+            _mark_canceled(job_id)
             return
 
         try:
@@ -299,21 +301,7 @@ def run_job(job_id: str) -> None:
             )
         except Exception as exc:
             logger.error("AI job failed: %s", exc)
-            _set_phase(
-                job_id,
-                "failed",
-                status="failed",
-                progress=1.0,
-                error_code="PROCESSING_FAILED",
-                error_message=str(exc),
-            )
+            _mark_failed(job_id, str(exc))
         return
 
-    _set_phase(
-        job_id,
-        "failed",
-        status="failed",
-        progress=1.0,
-        error_code="PROCESSING_FAILED",
-        error_message="Unknown job type",
-    )
+    _mark_failed(job_id, "Unknown job type")

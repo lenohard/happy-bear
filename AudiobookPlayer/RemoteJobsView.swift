@@ -1,30 +1,45 @@
 import SwiftUI
 import UIKit
 
-private enum RemoteJobsScope: String, CaseIterable {
-    case local
-    case remote
-
-    var title: String {
-        switch self {
-        case .local: return "Local"
-        case .remote: return "Remote"
-        }
-    }
-}
-
-private enum RemoteJobsFilter: String, CaseIterable {
+private enum RemoteJobsStatusFilter: String, CaseIterable {
+    case all
     case running
     case completed
     case failed
 
     var title: String {
         switch self {
+        case .all: return "All"
         case .running: return "Running"
         case .completed: return "Completed"
         case .failed: return "Failed"
         }
     }
+}
+
+private enum RemoteJobsTypeFilter: String, CaseIterable {
+    case all
+    case stt
+    case ai
+    case tts
+
+    var title: String {
+        switch self {
+        case .all: return "All"
+        case .stt: return "STT"
+        case .ai: return "AI"
+        case .tts: return "TTS"
+        }
+    }
+}
+
+/// Pre-built lookup tables used to avoid O(N*M) enrichment on every body eval.
+private struct EnrichmentIndex {
+    /// Remote job id -> track display name / type override for STT/TTS jobs.
+    var sttTitleByJobId: [String: String] = [:]
+    var ttsJobIds: Set<String> = []
+    /// Remote job id -> AI job display title.
+    var aiTitleByJobId: [String: String] = [:]
 }
 
 struct RemoteJobsView: View {
@@ -35,10 +50,13 @@ struct RemoteJobsView: View {
     @AppStorage("remoteJobsEnabled") private var remoteJobsEnabled = false
     @AppStorage("remoteJobsBaseURL") private var remoteJobsBaseURL = ""
     @AppStorage("remoteJobsAuthToken") private var remoteJobsAuthToken = ""
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openURL) private var openURL
-    @State private var scope: RemoteJobsScope = .remote
-    @State private var filter: RemoteJobsFilter = .running
+    @State private var statusFilter: RemoteJobsStatusFilter = .all
+    @State private var typeFilter: RemoteJobsTypeFilter = .all
     @State private var actionError: String?
+    @State private var isViewVisible = false
+    @State private var nowTick: Date = Date()
     private let localRemotePrefix = "remote:"
     private let remoteAIJobMetadataKey = "remote_job_id"
 
@@ -72,81 +90,122 @@ struct RemoteJobsView: View {
             }
 
             Section {
-                Picker("Scope", selection: $scope) {
-                    ForEach(RemoteJobsScope.allCases, id: \.self) { scope in
-                        Text(scope.title).tag(scope)
+                Picker("Status", selection: $statusFilter) {
+                    ForEach(RemoteJobsStatusFilter.allCases, id: \.self) { f in
+                        Text(f.title).tag(f)
                     }
                 }
                 .pickerStyle(.segmented)
-            }
-
-            Section {
-                Picker("Filter", selection: $filter) {
-                    ForEach(RemoteJobsFilter.allCases, id: \.self) { filter in
-                        Text(filter.title).tag(filter)
-                    }
-                }
-                .pickerStyle(.segmented)
-            }
-
-            Section {
-                if scope == .local {
-                    let filteredJobs = filteredLocalJobs()
-                    if filteredJobs.isEmpty {
-                        ContentUnavailableView("No local jobs yet", systemImage: "tray")
-                    } else {
-                        ForEach(filteredJobs) { job in
-                            RemoteJobRow(job: job)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        Task { await deleteLocal(job: job) }
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
+                // Type filter — compact chip row
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(RemoteJobsTypeFilter.allCases, id: \.self) { f in
+                            let selected = typeFilter == f
+                            Button { typeFilter = f } label: {
+                                Text(f.title)
+                                    .font(.subheadline.weight(selected ? .semibold : .regular))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 5)
+                                    .background(
+                                        Capsule().fill(selected ? Color.accentColor : Color(.tertiarySystemFill))
+                                    )
+                                    .foregroundStyle(selected ? .white : .primary)
+                            }
+                            .buttonStyle(.plain)
+                            .animation(.easeInOut(duration: 0.15), value: selected)
                         }
                     }
-                } else if !remoteJobsEnabled {
+                    .padding(.vertical, 2)
+                }
+            }
+
+            Section {
+                if !remoteJobsEnabled {
                     ContentUnavailableView(
                         "Enable Remote Jobs in Settings to see remote jobs.",
                         systemImage: "antenna.radiowaves.left.and.right"
                     )
+                } else if remoteJobsStore.isFetchingJobs && remoteJobsStore.jobs.isEmpty && remoteJobsStore.lastFetchedAt == nil {
+                    HStack {
+                        Spacer()
+                        ProgressView("Loading jobs…")
+                        Spacer()
+                    }
                 } else {
-                    let filteredJobs = filteredRemoteJobs()
-                    if filteredJobs.isEmpty {
+                    let jobs = displayedRemoteJobs()
+                    if jobs.isEmpty {
                         ContentUnavailableView("No remote jobs yet", systemImage: "tray")
                     } else {
-                        ForEach(filteredJobs) { job in
+                        ForEach(jobs) { job in
                             RemoteJobRow(
                                 job: job,
                                 onRetry: (job.status == .failed || job.status == .canceled)
                                     ? { Task { await retryJob(job: job) } }
                                     : nil
                             )
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        Task { await forceDelete(job: job) }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    Task { await forceDelete(job: job) }
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .labelStyle(.iconOnly)
+
+                                if job.status == .failed || job.status == .canceled {
+                                    Button {
+                                        Task { await retryJob(job: job) }
                                     } label: {
-                                        Label("Delete", systemImage: "trash")
+                                        Label("Retry", systemImage: "arrow.clockwise")
                                     }
                                     .labelStyle(.iconOnly)
-
-                                    if job.status == .failed || job.status == .canceled {
-                                        Button {
-                                            Task { await retryJob(job: job) }
-                                        } label: {
-                                            Label("Retry", systemImage: "arrow.clockwise")
-                                        }
-                                        .labelStyle(.iconOnly)
-                                        .tint(.blue)
-                                    }
+                                    .tint(.blue)
                                 }
+                            }
                         }
                     }
+                }
+            } footer: {
+                if remoteJobsEnabled, let subtitle = lastUpdatedSubtitle() {
+                    HStack(spacing: 4) {
+                        if remoteJobsStore.isFetchingJobs {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                        }
+                        Text(subtitle)
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
                 }
             }
         }
         .navigationTitle("Jobs")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task { await refreshRemoteJobs(reportErrors: true, force: true) }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .disabled(!remoteJobsEnabled || remoteJobsStore.isFetchingJobs)
+            }
+        }
+        .refreshable {
+            await refreshRemoteJobs(reportErrors: false, force: true)
+        }
+        .onAppear {
+            isViewVisible = true
+        }
+        .onDisappear {
+            isViewVisible = false
+        }
+        .task(id: pollingTaskID) {
+            await pollRemoteJobs()
+        }
+        .onChange(of: scenePhase) { newPhase in
+            if newPhase == .active && isViewVisible {
+                Task { await refreshRemoteJobs(reportErrors: false) }
+            }
+        }
         .alert("Error", isPresented: Binding(
             get: { actionError != nil },
             set: { if !$0 { actionError = nil } }
@@ -155,114 +214,163 @@ struct RemoteJobsView: View {
         } message: {
             Text(actionError ?? "")
         }
-    }
-
-    private func filteredRemoteJobs() -> [RemoteJob] {
-        applyFilter(to: remoteTranscriptionJobs() + remoteAIJobs())
-    }
-
-    private func filteredLocalJobs() -> [RemoteJob] {
-        applyFilter(to: localTranscriptionJobs() + localAIJobs())
-    }
-
-    private func applyFilter(to jobs: [RemoteJob]) -> [RemoteJob] {
-        switch filter {
-        case .running:
-            return jobs.filter { $0.status == .queued || $0.status == .running }
-        case .completed:
-            return jobs.filter { $0.status == .succeeded }
-        case .failed:
-            return jobs.filter { $0.status == .failed || $0.status == .canceled }
+        .onReceive(Timer.publish(every: 15, on: .main, in: .common).autoconnect()) { date in
+            nowTick = date
         }
     }
 
-    private func localTranscriptionJobs() -> [RemoteJob] {
-        let activeLocal = transcriptionManager.activeJobs.filter {
-            !$0.sonioxJobId.hasPrefix(localRemotePrefix)
+    /// Polling task ID — restarts polling only when these change.
+    /// Filter changes do NOT affect polling anymore (fetch is status-agnostic).
+    /// scenePhase is intentionally NOT included — we handle foreground refreshes
+    /// via a dedicated onChange handler with throttling in the store.
+    private var pollingTaskID: String {
+        "\(remoteJobsEnabled)|\(remoteJobsBaseURL)|\(isViewVisible)"
+    }
+
+    private func lastUpdatedSubtitle() -> String? {
+        guard let last = remoteJobsStore.lastFetchedAt else {
+            return remoteJobsStore.isFetchingJobs ? "Loading…" : nil
         }
-        let activeIds = Set(activeLocal.map(\.id))
-        let historyLocal = transcriptionManager.allRecentJobs.filter {
-            !$0.sonioxJobId.hasPrefix(localRemotePrefix) && !activeIds.contains($0.id)
+        _ = nowTick // force re-evaluate when ticker fires
+        let elapsed = Int(Date().timeIntervalSince(last))
+        let timeText: String
+        if elapsed < 5 {
+            timeText = "just now"
+        } else if elapsed < 60 {
+            timeText = "\(elapsed)s ago"
+        } else if elapsed < 3600 {
+            timeText = "\(elapsed / 60)m ago"
+        } else {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            formatter.timeStyle = .short
+            timeText = formatter.string(from: last)
+        }
+        return "Updated \(timeText)"
+    }
+
+    /// Build enrichment lookup once per displayed jobs call instead of scanning
+    /// library/transcription/AI managers per row.
+    private func buildEnrichmentIndex() -> EnrichmentIndex {
+        var index = EnrichmentIndex()
+
+        // Transcription jobs (STT/TTS) — map remote job id -> track title.
+        let transcriptionJobs = transcriptionManager.activeJobs + transcriptionManager.allRecentJobs
+        if !transcriptionJobs.isEmpty {
+            // Pre-index tracks by id string.
+            var trackNames: [String: String] = [:]
+            for collection in library.collections {
+                for track in collection.tracks {
+                    trackNames[track.id.uuidString] = track.displayName
+                }
+            }
+            for job in transcriptionJobs {
+                let sid = job.sonioxJobId
+                guard sid.hasPrefix(localRemotePrefix) else { continue }
+                let remoteId = String(sid.dropFirst(localRemotePrefix.count))
+                let isTTS = sid.hasPrefix("tts-") // preserved from legacy logic
+                if isTTS {
+                    index.ttsJobIds.insert(remoteId)
+                }
+                let title = trackNames[job.trackId] ?? (sid.hasPrefix("tts-") ? "Remote TTS" : "Remote STT")
+                index.sttTitleByJobId[remoteId] = title
+            }
         }
 
-        let combined = (activeLocal + historyLocal).sorted { $0.createdAt > $1.createdAt }
-        return combined.map { job in
-            let type: RemoteJobType = job.sonioxJobId.hasPrefix("tts-") ? .tts : .stt
-            return RemoteJob(
-                id: job.id,
-                type: type,
-                status: mapTranscriptionStatus(job.status),
-                title: trackTitle(for: job, isRemote: false),
-                progress: job.progress ?? 0.0,
-                createdAt: job.createdAt
+        // AI jobs — map remote job id -> display title.
+        let aiJobs = aiGenerationManager.activeJobs + aiGenerationManager.recentJobs
+        for job in aiJobs {
+            guard let remoteId = job.decodedMetadata()?.extras?[remoteAIJobMetadataKey] else { continue }
+            index.aiTitleByJobId[remoteId] = aiJobTitle(for: job)
+        }
+
+        return index
+    }
+
+    private func displayedRemoteJobs() -> [RemoteJob] {
+        let index = buildEnrichmentIndex()
+        let enriched = remoteJobsStore.jobs.map { job -> RemoteJob in
+            var e = job
+            switch job.type {
+            case .ai:
+                if let t = index.aiTitleByJobId[job.id] {
+                    e.title = t
+                }
+            case .stt, .tts:
+                if let t = index.sttTitleByJobId[job.id] {
+                    e.title = t
+                }
+                if index.ttsJobIds.contains(job.id) {
+                    e.type = .tts
+                }
+            }
+            return e
+        }
+
+        let filteredByStatus: [RemoteJob]
+        if statusFilter == .all {
+            filteredByStatus = enriched
+        } else {
+            let allowedStatuses: Set<String> = {
+                switch statusFilter {
+                case .running: return ["queued", "running"]
+                case .completed: return ["succeeded"]
+                case .failed: return ["failed", "canceled"]
+                case .all: return []
+                }
+            }()
+            filteredByStatus = enriched.filter { allowedStatuses.contains($0.status.rawValue) }
+        }
+        switch typeFilter {
+        case .all:
+            return filteredByStatus
+        case .stt:
+            return filteredByStatus.filter { $0.type == .stt }
+        case .ai:
+            return filteredByStatus.filter { $0.type == .ai }
+        case .tts:
+            return filteredByStatus.filter { $0.type == .tts }
+        }
+    }
+
+    private func refreshRemoteJobs(reportErrors: Bool = true, force: Bool = false) async {
+        guard remoteJobsEnabled else { return }
+        let token = remoteJobsAuthToken.isEmpty ? nil : remoteJobsAuthToken
+        do {
+            try await remoteJobsStore.fetchJobs(
+                baseURL: remoteJobsBaseURL,
+                token: token,
+                statuses: [], // Always fetch all; filter client-side.
+                force: force
             )
+        } catch {
+            if reportErrors {
+                actionError = "Refresh failed: \(error.localizedDescription)"
+            }
         }
     }
 
-    private func localAIJobs() -> [RemoteJob] {
-        let activeLocal = aiGenerationManager.activeJobs.filter { !isRemoteAIJob($0) }
-        let activeIds = Set(activeLocal.map(\.id))
-        let historyLocal = aiGenerationManager.recentJobs.filter { $0.isTerminal && !isRemoteAIJob($0) && !activeIds.contains($0.id) }
+    /// Smart polling loop.
+    /// - Only runs when: remote jobs enabled, view visible, scene active.
+    /// - Only polls while there are active (queued/running) jobs.
+    /// - Idle state relies on manual pull-to-refresh or foreground activation.
+    private func pollRemoteJobs() async {
+        guard remoteJobsEnabled, isViewVisible, scenePhase == .active else { return }
 
-        let combined = (activeLocal + historyLocal).sorted { $0.createdAt > $1.createdAt }
-        return combined.map { job in
-            RemoteJob(
-                id: job.id,
-                type: .ai,
-                status: mapAIStatus(job.status),
-                title: aiJobTitle(for: job),
-                progress: job.progress ?? 0.0,
-                createdAt: job.createdAt
-            )
+        // Initial refresh when polling task starts.
+        await refreshRemoteJobs(reportErrors: false)
+
+        while !Task.isCancelled {
+            let hasActiveJobs = remoteJobsStore.jobs.contains { $0.status == .queued || $0.status == .running }
+            if !hasActiveJobs {
+                // No active jobs — stop the polling loop. Refreshes come from
+                // pull-to-refresh, toolbar button, or scenePhase .active.
+                break
+            }
+            try? await Task.sleep(nanoseconds: 5 * 1_000_000_000)
+            guard !Task.isCancelled else { break }
+            await refreshRemoteJobs(reportErrors: false)
         }
-    }
-
-    private func remoteTranscriptionJobs() -> [RemoteJob] {
-        let activeRemote = transcriptionManager.activeJobs.filter { $0.sonioxJobId.hasPrefix(localRemotePrefix) }
-        let activeIds = Set(activeRemote.map(\.id))
-        let historyRemote = transcriptionManager.allRecentJobs.filter {
-            $0.sonioxJobId.hasPrefix(localRemotePrefix) && !activeIds.contains($0.id)
-        }
-        let combined = (activeRemote + historyRemote).sorted { $0.createdAt > $1.createdAt }
-        return combined.map { job in
-            RemoteJob(
-                id: job.id,
-                type: .stt,
-                status: mapTranscriptionStatus(job.status),
-                title: trackTitle(for: job, isRemote: true),
-                progress: job.progress ?? 0.0,
-                createdAt: job.createdAt
-            )
-        }
-    }
-
-    private func remoteAIJobs() -> [RemoteJob] {
-        let activeRemote = aiRemoteActiveJobs()
-        let activeIds = Set(activeRemote.map(\.id))
-        let historyRemote = aiRemoteHistoryJobs(excluding: activeIds)
-        let combined = (activeRemote + historyRemote).sorted { $0.createdAt > $1.createdAt }
-        return combined.map { job in
-            RemoteJob(
-                id: job.id,
-                type: .ai,
-                status: mapAIStatus(job.status),
-                title: aiJobTitle(for: job),
-                progress: job.progress ?? 0.0,
-                createdAt: job.createdAt
-            )
-        }
-    }
-
-    private func aiRemoteActiveJobs() -> [AIGenerationJob] {
-        aiGenerationManager.activeJobs.filter { isRemoteAIJob($0) }
-    }
-
-    private func aiRemoteHistoryJobs(excluding activeIds: Set<String>) -> [AIGenerationJob] {
-        aiGenerationManager.recentJobs.filter { $0.isTerminal && isRemoteAIJob($0) && !activeIds.contains($0.id) }
-    }
-
-    private func isRemoteAIJob(_ job: AIGenerationJob) -> Bool {
-        job.decodedMetadata()?.extras?[remoteAIJobMetadataKey] != nil
     }
 
     private func aiJobTitle(for job: AIGenerationJob) -> String {
@@ -279,349 +387,137 @@ struct RemoteJobsView: View {
         }
     }
 
-    private func mapTranscriptionStatus(_ status: String) -> RemoteJobStatus {
-        switch status {
-        case "queued":
-            return .queued
-        case "failed":
-            return .failed
-        case "completed":
-            return .succeeded
-        case "canceled":
-            return .canceled
-        default:
-            return .running
-        }
-    }
-
-    private func mapAIStatus(_ status: AIGenerationJob.Status) -> RemoteJobStatus {
-        switch status {
-        case .queued:
-            return .queued
-        case .failed:
-            return .failed
-        case .completed:
-            return .succeeded
-        case .canceled:
-            return .canceled
-        case .running, .streaming:
-            return .running
-        }
-    }
-
-    private func deleteLocal(job: RemoteJob) async {
-        switch job.type {
-        case .stt, .tts:
-            try? await transcriptionManager.deleteJob(jobId: job.id)
-        case .ai:
-            if let aiJob = aiGenerationManager.activeJobs.first(where: { $0.id == job.id })
-                ?? aiGenerationManager.recentJobs.first(where: { $0.id == job.id }) {
-                await aiGenerationManager.deleteJob(aiJob)
-            }
-        }
-    }
-
     private func forceDelete(job: RemoteJob) async {
         let token = remoteJobsAuthToken.isEmpty ? nil : remoteJobsAuthToken
-
-        // Get the remote server job ID before deleting locally
-        let remoteId: String? = switch job.type {
-        case .stt:
-            transcriptionManager.activeJobs.first(where: { $0.id == job.id })?.sonioxJobId.replacingOccurrences(of: localRemotePrefix, with: "")
-            ?? transcriptionManager.allRecentJobs.first(where: { $0.id == job.id })?.sonioxJobId.replacingOccurrences(of: localRemotePrefix, with: "")
-        case .ai:
-            aiGenerationManager.activeJobs.first(where: { $0.id == job.id }).flatMap { isRemoteAIJob($0) ? $0.decodedMetadata()?.extras?[remoteAIJobMetadataKey] : nil }
-            ?? aiGenerationManager.recentJobs.first(where: { $0.id == job.id }).flatMap { isRemoteAIJob($0) ? $0.decodedMetadata()?.extras?[remoteAIJobMetadataKey] : nil }
-        case .tts:
-            nil
+        do {
+            // Server auto-cancels running/queued jobs before delete.
+            try await remoteJobsStore.deleteJob(jobId: job.id, baseURL: remoteJobsBaseURL, token: token)
+            await refreshRemoteJobs(reportErrors: false, force: true)
+        } catch {
+            actionError = "Delete failed: \(error.localizedDescription)"
         }
-
-        // Delete locally first (always succeeds)
-        switch job.type {
-        case .stt:
-            try? await transcriptionManager.deleteJob(jobId: job.id)
-        case .ai:
-            if let aiJob = aiGenerationManager.activeJobs.first(where: { $0.id == job.id })
-                ?? aiGenerationManager.recentJobs.first(where: { $0.id == job.id }) {
-                await aiGenerationManager.deleteJob(aiJob)
-            }
-        case .tts:
-            break
-        }
-
-        // Best-effort remote cancel + delete (ignore 404 and network errors)
-        guard let remoteId else { return }
-        if job.status == .queued || job.status == .running {
-            try? await remoteJobsStore.cancelJob(jobId: remoteId, baseURL: remoteJobsBaseURL, token: token)
-        }
-        try? await remoteJobsStore.deleteJob(jobId: remoteId, baseURL: remoteJobsBaseURL, token: token)
     }
 
     private func retryJob(job: RemoteJob) async {
-        guard remoteJobsEnabled,
-              let baseURL = URL(string: remoteJobsBaseURL.trimmingCharacters(in: .whitespacesAndNewlines))
-        else {
-            actionError = "Remote jobs not configured."
-            return
-        }
-
+        guard remoteJobsEnabled else { return }
         let token = remoteJobsAuthToken.isEmpty ? nil : remoteJobsAuthToken
-        let client = RemoteJobsClient(config: RemoteJobsConfig(baseURL: baseURL, token: token))
-
         do {
-            // Look up the actual remote server job ID (not the local DB UUID)
-            let remoteJobId: String? = switch job.type {
-            case .stt:
-                transcriptionManager.activeJobs.first(where: { $0.id == job.id })?.sonioxJobId.replacingOccurrences(of: localRemotePrefix, with: "")
-                ?? transcriptionManager.allRecentJobs.first(where: { $0.id == job.id })?.sonioxJobId.replacingOccurrences(of: localRemotePrefix, with: "")
-            case .ai:
-                aiGenerationManager.activeJobs.first(where: { $0.id == job.id }).flatMap { isRemoteAIJob($0) ? $0.decodedMetadata()?.extras?[remoteAIJobMetadataKey] : nil }
-                ?? aiGenerationManager.recentJobs.first(where: { $0.id == job.id }).flatMap { isRemoteAIJob($0) ? $0.decodedMetadata()?.extras?[remoteAIJobMetadataKey] : nil }
-            case .tts:
-                nil
-            }
-            guard let remoteJobId else {
-                actionError = "Could not find remote job ID."
-                return
-            }
-            let retriedJob = try await client.retryJob(jobId: remoteJobId)
-            let newRemoteId = "\(localRemotePrefix)\(retriedJob.id)"
-
-            switch job.type {
-            case .stt:
-                let originalJob = transcriptionManager.activeJobs.first(where: { $0.id == job.id })
-                    ?? transcriptionManager.allRecentJobs.first(where: { $0.id == job.id })
-                guard let trackId = originalJob?.trackId else {
-                    actionError = "Could not find original track for retry."
-                    return
-                }
-                let localJob = try await transcriptionManager.dbManager.createTranscriptionJob(
-                    trackId: trackId,
-                    sonioxJobId: newRemoteId,
-                    status: "transcribing",
-                    progress: retriedJob.progress ?? 0.0
-                )
-                transcriptionManager.upsertActiveJob(localJob)
-                await transcriptionManager.refreshAllRecentJobs()
-                Task.detached { [newRemoteId, localJob, trackId] in
-                    await self.pollRetriedSTT(client: client, remoteJobId: newRemoteId, localJobId: localJob.id, trackId: trackId)
-                }
-
-            case .ai:
-                let originalJob = aiGenerationManager.activeJobs.first(where: { $0.id == job.id })
-                    ?? aiGenerationManager.recentJobs.first(where: { $0.id == job.id })
-                guard let originalJob else {
-                    actionError = "Could not find original AI job for retry."
-                    return
-                }
-                // Create a new local AI job tracking the retried remote job
-                var metadata = originalJob.decodedMetadata() ?? AIGenerationJobMetadata(
-                    flags: nil,
-                    extras: nil,
-                    repairResults: nil,
-                    reasoning: nil
-                )
-                metadata = metadata.updatingExtra("remote_job_id", value: retriedJob.id)
-                let encoder = JSONEncoder()
-                let metadataData = try encoder.encode(metadata)
-                let encodedMetadata = String(data: metadataData, encoding: .utf8)
-
-                let newLocalJob = try await aiGenerationManager.dbManager.createAIGenerationJob(
-                    type: originalJob.type,
-                    modelId: originalJob.modelId,
-                    trackId: originalJob.trackId,
-                    transcriptId: originalJob.transcriptId,
-                    sourceContext: originalJob.sourceContext,
-                    displayName: originalJob.displayName,
-                    systemPrompt: originalJob.systemPrompt,
-                    userPrompt: originalJob.userPrompt,
-                    payloadJSON: originalJob.payloadJSON,
-                    metadataJSON: encodedMetadata,
-                    initialStatus: .running
-                )
-                await aiGenerationManager.refreshJobs()
-                Task.detached { [newRemoteId, newLocalJob] in
-                    await self.pollRetriedAI(client: client, remoteJobId: newRemoteId, localJobId: newLocalJob.id)
-                }
-
-            case .tts:
-                actionError = "TTS retry not yet supported."
-                return
-            }
-
+            try await remoteJobsStore.retryJob(jobId: job.id, baseURL: remoteJobsBaseURL, token: token)
+            await refreshRemoteJobs(reportErrors: false, force: true)
         } catch {
             actionError = "Retry failed: \(error.localizedDescription)"
         }
-    }
-
-    private func pollRetriedSTT(client: RemoteJobsClient, remoteJobId: String, localJobId: String, trackId: String) async {
-        let maxPolling: TimeInterval = 3600
-        let interval: TimeInterval = 2
-        let startTime = Date()
-
-        while Date().timeIntervalSince(startTime) < maxPolling {
-            do {
-                let status = try await client.fetchJob(jobId: remoteJobId)
-                let localStatus: String
-                if status.status == "running" || status.status == "queued" {
-                    localStatus = "transcribing"
-                } else if status.status == "succeeded" {
-                    localStatus = "completed"
-                } else {
-                    localStatus = status.status
-                }
-                try await transcriptionManager.dbManager.updateJobStatus(
-                    jobId: localJobId,
-                    status: localStatus,
-                    progress: status.progress ?? 0.0
-                )
-
-                if status.status == "succeeded" {
-                    let result = try await client.fetchSTTResult(jobId: remoteJobId)
-                    let srtText = result.srt ?? ""
-                    let transcriptText = result.transcript ?? ""
-                    let transcriptId = UUID().uuidString
-                    let segments = transcriptionManager.parseSRTSegments(srtText, transcriptId: transcriptId)
-                    let fullText = transcriptText.isEmpty ? segments.map { $0.text }.joined(separator: "\n") : transcriptText
-                    let transcript = Transcript(
-                        id: transcriptId,
-                        trackId: trackId,
-                        collectionId: "",
-                        language: "en",
-                        fullText: fullText,
-                        createdAt: Date(),
-                        updatedAt: Date(),
-                        jobStatus: "complete",
-                        jobId: "\(localRemotePrefix)\(remoteJobId)",
-                        errorMessage: nil
-                    )
-                    try transcriptionManager.dbManager.saveTranscript(transcript, segments: segments)
-                    try transcriptionManager.dbManager.markJobCompleted(jobId: localJobId)
-                    transcriptionManager.removeActiveJob(jobId: localJobId)
-                    await transcriptionManager.refreshAllRecentJobs()
-                    return
-                } else if status.status == "failed" {
-                    try transcriptionManager.dbManager.markJobFailed(
-                        jobId: localJobId,
-                        errorMessage: "Remote job failed"
-                    )
-                    transcriptionManager.removeActiveJob(jobId: localJobId)
-                    return
-                }
-
-                try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
-            } catch {
-                try? transcriptionManager.dbManager.markJobFailed(
-                    jobId: localJobId,
-                    errorMessage: error.localizedDescription
-                )
-                transcriptionManager.removeActiveJob(jobId: localJobId)
-                return
-            }
-        }
-    }
-
-    private func pollRetriedAI(client: RemoteJobsClient, remoteJobId: String, localJobId: String) async {
-        let maxPolling: TimeInterval = 3600
-        let interval: TimeInterval = 2
-        let startTime = Date()
-
-        while Date().timeIntervalSince(startTime) < maxPolling {
-            do {
-                let status = try await client.fetchJob(jobId: remoteJobId)
-                try? aiGenerationManager.dbManager.updateAIGenerationJobStatus(
-                    jobId: localJobId,
-                    status: status.status == "succeeded" ? .completed : .running,
-                    progress: status.progress
-                )
-
-                if status.status == "succeeded" {
-                    let result = try await client.fetchAIResult(jobId: remoteJobId)
-                    try? aiGenerationManager.dbManager.markAIGenerationJobCompleted(
-                        jobId: localJobId,
-                        finalOutput: result.text,
-                        usageJSON: nil
-                    )
-                    await aiGenerationManager.refreshJobs()
-                    return
-                } else if status.status == "failed" {
-                    try? aiGenerationManager.dbManager.markAIGenerationJobFailed(
-                        jobId: localJobId,
-                        errorMessage: "Remote job failed"
-                    )
-                    await aiGenerationManager.refreshJobs()
-                    return
-                }
-
-                try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
-            } catch {
-                try? aiGenerationManager.dbManager.markAIGenerationJobFailed(
-                    jobId: localJobId,
-                    errorMessage: error.localizedDescription
-                )
-                await aiGenerationManager.refreshJobs()
-                return
-            }
-        }
-    }
-
-    private func trackTitle(for job: TranscriptionJob, isRemote: Bool) -> String {
-        if let track = library.collections.flatMap(\.tracks).first(where: { $0.id.uuidString == job.trackId }) {
-            return track.displayName
-        }
-
-        if job.sonioxJobId.hasPrefix("tts-") {
-            return isRemote ? "Remote TTS" : "Local TTS"
-        }
-
-        return isRemote ? "Remote STT" : "Local STT"
     }
 }
 
 private struct RemoteJobRow: View {
     let job: RemoteJob
     var onRetry: (() -> Void)? = nil
+    @State private var showCopied = false
+
+    private var isActive: Bool {
+        job.status == .running || job.status == .queued
+    }
+
+    private var isOlderThanToday: Bool {
+        !Calendar.current.isDateInToday(job.createdAt)
+    }
+
+    /// Shorten e.g. "job_17f3f81376c342d18b6299ee1b444e54" → "17f3f813…444e54"
+    private var shortID: String {
+        var id = job.id
+        if id.hasPrefix("job_") { id = String(id.dropFirst(4)) }
+        guard id.count > 16 else { return id }
+        return "\(id.prefix(8))…\(id.suffix(6))"
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Label(job.title, systemImage: iconName)
-                Spacer()
-                Text(job.status.rawValue.capitalized)
-                    .font(.caption)
-                    .foregroundStyle(statusColor)
+        VStack(alignment: .leading, spacing: 6) {
+            // Row 1: icon + title + status pill
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: iconName)
+                    .font(.body)
+                    .foregroundStyle(typeColor)
+                    .frame(width: 22)
+                Text(job.title)
+                    .font(.body)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 6)
+                StatusPillView(status: job.status)
             }
-            HStack(spacing: 8) {
+
+            // Row 2: type badge + short ID (copyable) + date
+            HStack(spacing: 6) {
                 Text(job.type.badgeLabel)
-                    .font(.caption2)
-                    .fontWeight(.semibold)
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
-                    .background(
-                        Capsule().fill(Color(.secondarySystemFill))
-                    )
-                Text(job.id)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            ProgressView(value: job.progress)
-                .progressViewStyle(.linear)
-            HStack {
-                Text(job.createdAt, style: .time)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .background(Capsule().fill(Color(.tertiarySystemFill)))
+
+                Button {
+                    UIPasteboard.general.string = job.id
+                    showCopied = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        showCopied = false
+                    }
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(showCopied ? "Copied!" : shortID)
+                            .font(.caption2)
+                            .foregroundStyle(showCopied ? .green : .secondary)
+                            .monospacedDigit()
+                        if !showCopied {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 9))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
                 Spacer()
-                if let onRetry {
+
+                Group {
+                    if isOlderThanToday {
+                        Text(job.createdAt, style: .date)
+                    } else {
+                        Text(job.createdAt, style: .time)
+                    }
+                }
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            }
+
+            // Row 3: progress (active only)
+            if isActive {
+                ProgressView(value: job.progress)
+                    .progressViewStyle(.linear)
+                    .tint(.blue)
+            }
+
+            // Row 4: error message
+            if let msg = job.errorMessage, !msg.isEmpty {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.caption2)
+                    Text(msg)
+                        .font(.caption)
+                        .lineLimit(2)
+                }
+                .foregroundStyle(.red)
+            }
+
+            // Row 5: retry button (failed/canceled)
+            if let onRetry {
+                HStack {
+                    Spacer()
                     Button(action: onRetry) {
                         Label("Retry", systemImage: "arrow.clockwise")
                             .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
                     }
-                    .buttonStyle(.borderedProminent)
+                    .buttonStyle(.bordered)
                     .controlSize(.mini)
                     .tint(.blue)
                 }
@@ -630,11 +526,11 @@ private struct RemoteJobRow: View {
         .padding(.vertical, 4)
     }
 
-    private var statusColor: Color {
-        switch job.status {
-        case .failed, .canceled: return .red
-        case .succeeded: return .green
-        case .running, .queued: return .blue
+    private var typeColor: Color {
+        switch job.type {
+        case .stt: return .indigo
+        case .tts: return .teal
+        case .ai: return .purple
         }
     }
 
@@ -644,6 +540,44 @@ private struct RemoteJobRow: View {
         case .tts: return "speaker.wave.2"
         case .ai: return "sparkles"
         }
+    }
+}
+
+/// Colored pill showing job status.
+private struct StatusPillView: View {
+    let status: RemoteJobStatus
+
+    var body: some View {
+        Text(label)
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(foreground)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(background)
+            .clipShape(Capsule())
+    }
+
+    private var label: String {
+        switch status {
+        case .queued:    return "Queued"
+        case .running:   return "Running"
+        case .succeeded: return "Done"
+        case .failed:    return "Failed"
+        case .canceled:  return "Canceled"
+        }
+    }
+
+    private var foreground: Color {
+        switch status {
+        case .queued:    return .orange
+        case .running:   return .blue
+        case .succeeded: return .green
+        case .failed, .canceled: return .red
+        }
+    }
+
+    private var background: Color {
+        foreground.opacity(0.12)
     }
 }
 

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from soniox import SonioxClient
-from soniox.types import CreateTranscriptionConfig
+from soniox.types import CreateTranscriptionConfig, StructuredContext
 
 DEFAULT_MODEL = "stt-async-preview"
 DEFAULT_LANGUAGE_HINTS = ["zh", "en"]
@@ -82,14 +82,25 @@ def transcribe_file(
     Uses async transcription: upload -> create job -> poll -> get result -> cleanup.
     The SDK handles all HTTP requests with proper timeouts.
     """
+    # Soniox SDK's internal httpx client reads proxy env vars.
+    # Clear them to avoid proxy-related failures (e.g. missing socksio).
+    import os
+    for key in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "no_proxy", "NO_PROXY"):
+        os.environ.pop(key, None)
+
     client = SonioxClient(api_key=api_key)
+
+    # Soniox SDK requires context to be a dict or StructuredContext, not a raw string.
+    structured_context = None
+    if context:
+        structured_context = StructuredContext(text=context)
 
     config = CreateTranscriptionConfig(
         model=model or DEFAULT_MODEL,
         language_hints=language_hints or DEFAULT_LANGUAGE_HINTS,
         enable_speaker_diarization=True,
         enable_language_identification=True,
-        context=context,
+        context=structured_context,
     )
 
     # Use SDK's transcribe_and_wait_with_tokens which handles:

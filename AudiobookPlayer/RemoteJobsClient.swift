@@ -30,13 +30,48 @@ struct RemoteJobsInput {
 }
 
 struct RemoteJobDTO: Decodable {
+    struct Input: Decodable {
+        let kind: String?
+        let text: String?
+        let mime: String?
+        let url: String?
+        let source: String?
+    }
+
+    struct ErrorPayload: Decodable {
+        let code: String?
+        let message: String?
+    }
+
     let id: String
     let type: String
     let status: String
     let progress: Double?
+    let createdAt: String?
+    let title: String?
+    let subtype: String?
+    let input: Input?
+    let error: ErrorPayload?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case type
+        case status
+        case progress
+        case createdAt = "created_at"
+        case title
+        case subtype
+        case input
+        case error
+    }
 }
 
-struct RemoteJobResultDTO: Decodable {
+struct RemoteJobsPage {
+    let jobs: [RemoteJobDTO]
+    let nextCursor: String?
+}
+
+enum RemoteJobResultDTO {
     struct STTResult: Decodable {
         let format: String
         let srt: String?
@@ -46,8 +81,6 @@ struct RemoteJobResultDTO: Decodable {
     struct AIResult: Decodable {
         let text: String
     }
-
-    let result: STTResult
 }
 
 final class RemoteJobsClient {
@@ -101,6 +134,23 @@ final class RemoteJobsClient {
         return response.data.job
     }
 
+    func fetchJobs(limit: Int = 100, status: String? = nil, cursor: String? = nil) async throws -> RemoteJobsPage {
+        var queryItems = [URLQueryItem(name: "limit", value: String(limit))]
+        if let status, !status.isEmpty {
+            queryItems.append(URLQueryItem(name: "status", value: status))
+        }
+        if let cursor, !cursor.isEmpty {
+            queryItems.append(URLQueryItem(name: "cursor", value: cursor))
+        }
+
+        var components = URLComponents()
+        components.queryItems = queryItems
+        let query = components.percentEncodedQuery.map { "?\($0)" } ?? ""
+        let request = try makeRequest(path: "/jobs\(query)", method: "GET", body: Optional<String>.none)
+        let response: RemoteJobsEnvelope = try await perform(request)
+        return RemoteJobsPage(jobs: response.data.jobs, nextCursor: response.data.nextCursor)
+    }
+
     func fetchSTTResult(jobId: String) async throws -> RemoteJobResultDTO.STTResult {
         let request = try makeRequest(path: "/jobs/\(jobId)/result", method: "GET", body: Optional<String>.none)
         let response: RemoteResultEnvelope = try await perform(request)
@@ -111,7 +161,10 @@ final class RemoteJobsClient {
         inputText: String,
         modelId: String?,
         systemPrompt: String?,
-        temperature: Double?
+        temperature: Double?,
+        title: String? = nil,
+        subtype: String? = nil,
+        dedupKey: String? = nil
     ) async throws -> RemoteJobDTO {
         struct RequestBody: Encodable {
             struct Input: Encodable {
@@ -122,15 +175,28 @@ final class RemoteJobsClient {
                 let model: String?
                 let system_prompt: String?
                 let temperature: Double?
+                let extra: [String: String]?
             }
             let type: String
             let input: Input
             let params: Params?
+            let dedup_key: String?
         }
 
+        let extra: [String: String]? = {
+            var values: [String: String] = [:]
+            if let title, !title.isEmpty {
+                values["title"] = title
+            }
+            if let subtype, !subtype.isEmpty {
+                values["subtype"] = subtype
+            }
+            return values.isEmpty ? nil : values
+        }()
+
         let params: RequestBody.Params?
-        if modelId != nil || systemPrompt != nil || temperature != nil {
-            params = RequestBody.Params(model: modelId, system_prompt: systemPrompt, temperature: temperature)
+        if modelId != nil || systemPrompt != nil || temperature != nil || extra != nil {
+            params = RequestBody.Params(model: modelId, system_prompt: systemPrompt, temperature: temperature, extra: extra)
         } else {
             params = nil
         }
@@ -138,7 +204,8 @@ final class RemoteJobsClient {
         let body = RequestBody(
             type: "ai",
             input: .init(kind: "text", text: inputText),
-            params: params
+            params: params,
+            dedup_key: dedupKey
         )
 
         let request = try makeRequest(path: "/jobs", method: "POST", body: body)
@@ -227,6 +294,19 @@ final class RemoteJobsClient {
     private struct RemoteJobEnvelope: Decodable {
         struct DataPayload: Decodable {
             let job: RemoteJobDTO
+        }
+        let data: DataPayload
+    }
+
+    private struct RemoteJobsEnvelope: Decodable {
+        struct DataPayload: Decodable {
+            let jobs: [RemoteJobDTO]
+            let nextCursor: String?
+
+            enum CodingKeys: String, CodingKey {
+                case jobs
+                case nextCursor = "next_cursor"
+            }
         }
         let data: DataPayload
     }

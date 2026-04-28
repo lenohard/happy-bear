@@ -3022,9 +3022,6 @@
         }
       }
     },
-    "Filter" : {
-
-    },
     "filter_all" : {
       "comment" : "Filter option: All",
       "extractionState" : "extracted_with_value",
@@ -3590,6 +3587,9 @@
         }
       }
     },
+    "Loading jobs…" : {
+
+    },
     "Loading Models..." : {
 
     },
@@ -3759,9 +3759,6 @@
           }
         }
       }
-    },
-    "No local jobs yet" : {
-
     },
     "No matches found" : {
 
@@ -5031,9 +5028,6 @@
         }
       }
     },
-    "Scope" : {
-
-    },
     "scopes_label" : {
       "comment" : "Scopes label",
       "localizations" : {
@@ -5463,6 +5457,9 @@
           }
         }
       }
+    },
+    "Status" : {
+
     },
     "status_downloading_audio" : {
       "extractionState" : "manual",

@@ -174,6 +174,40 @@ def find_cached_input(dedup_key: str, job_type: str) -> str | None:
         conn.close()
 
 
+def reset_orphan_running_jobs(now: str) -> int:
+    """Reset rows stuck in status=running from a previous process.
+
+    Marks them as failed with a clear error so the user can retry. Returns
+    the number of rows affected.
+    """
+    conn = _connect()
+    try:
+        cursor = conn.execute(
+            """
+            UPDATE jobs
+            SET status = %s,
+                progress = 1.0,
+                phase = %s,
+                error_code = %s,
+                error_message = %s,
+                updated_at = %s
+            WHERE status = 'running'
+            """,
+            (
+                "failed",
+                "orphaned",
+                "ORPHANED",
+                "Job was interrupted by server restart",
+                now,
+            ),
+        )
+        affected = cursor.rowcount or 0
+        conn.commit()
+        return affected
+    finally:
+        conn.close()
+
+
 def delete_job(job_id: str) -> None:
     conn = _connect()
     try:

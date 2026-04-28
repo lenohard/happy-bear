@@ -129,7 +129,10 @@ actor AIGenerationJobExecutor {
                     inputText: prompt,
                     modelId: modelId,
                     systemPrompt: systemPrompt,
-                    temperature: temperature
+                    temperature: temperature,
+                    title: job.displayName ?? NSLocalizedString("ai_job_type_chat_tester", comment: ""),
+                    subtype: AIGenerationJob.JobType.chatTester.rawValue,
+                    dedupKey: "ai:chat:\(job.id)"
                 )
                 try await persistRemoteJobId(remoteJob.id, jobId: job.id, metadata: &metadata)
                 let resultText = try await pollRemoteAIJob(
@@ -245,7 +248,10 @@ actor AIGenerationJobExecutor {
                     inputText: userPrompt,
                     modelId: modelId,
                     systemPrompt: AITranscriptRepairManager.defaultSystemPrompt,
-                    temperature: 0.2
+                    temperature: 0.2,
+                    title: job.displayName ?? payload.trackTitle,
+                    subtype: AIGenerationJob.JobType.transcriptRepair.rawValue,
+                    dedupKey: "ai:repair:\(payload.transcriptId):\(job.id)"
                 )
                 try await persistRemoteJobId(remoteJob.id, jobId: job.id, metadata: &metadata)
                 let content = try await pollRemoteAIJob(
@@ -441,7 +447,10 @@ actor AIGenerationJobExecutor {
                             inputText: prompts.userPrompt,
                             modelId: modelId,
                             systemPrompt: prompts.systemPrompt,
-                            temperature: 0.3
+                            temperature: 0.3,
+                            title: job.displayName ?? context.trackTitle,
+                            subtype: AIGenerationJob.JobType.trackSummary.rawValue,
+                            dedupKey: "ai:summary:\(payload.trackId):translate:\(index):\(job.id)"
                         )
                         try await persistRemoteJobId(remoteJob.id, jobId: job.id, metadata: &metadata)
 
@@ -482,7 +491,10 @@ actor AIGenerationJobExecutor {
                         inputText: prompts.userPrompt,
                         modelId: modelId,
                         systemPrompt: prompts.systemPrompt,
-                        temperature: 0.3
+                        temperature: 0.3,
+                        title: job.displayName ?? context.trackTitle,
+                        subtype: AIGenerationJob.JobType.trackSummary.rawValue,
+                        dedupKey: "ai:summary:\(payload.trackId):\(job.id)"
                     )
                     try await persistRemoteJobId(remoteJob.id, jobId: job.id, metadata: &metadata)
                     let rawText = try await pollRemoteAIJob(
