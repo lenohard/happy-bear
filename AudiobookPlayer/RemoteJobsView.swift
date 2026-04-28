@@ -369,7 +369,21 @@ struct RemoteJobsView: View {
         let client = RemoteJobsClient(config: RemoteJobsConfig(baseURL: baseURL, token: token))
 
         do {
-            let remoteJobId = job.id.replacingOccurrences(of: localRemotePrefix, with: "")
+            // Look up the actual remote server job ID (not the local DB UUID)
+            let remoteJobId: String? = switch job.type {
+            case .stt:
+                transcriptionManager.activeJobs.first(where: { $0.id == job.id })?.sonioxJobId.replacingOccurrences(of: localRemotePrefix, with: "")
+                ?? transcriptionManager.allRecentJobs.first(where: { $0.id == job.id })?.sonioxJobId.replacingOccurrences(of: localRemotePrefix, with: "")
+            case .ai:
+                aiGenerationManager.activeJobs.first(where: { $0.id == job.id }).flatMap { isRemoteAIJob($0) ? $0.decodedMetadata()?.extras?[remoteAIJobMetadataKey] : nil }
+                ?? aiGenerationManager.recentJobs.first(where: { $0.id == job.id }).flatMap { isRemoteAIJob($0) ? $0.decodedMetadata()?.extras?[remoteAIJobMetadataKey] : nil }
+            case .tts:
+                nil
+            }
+            guard let remoteJobId else {
+                actionError = "Could not find remote job ID."
+                return
+            }
             let retriedJob = try await client.retryJob(jobId: remoteJobId)
             let newRemoteId = "\(localRemotePrefix)\(retriedJob.id)"
 

@@ -18,23 +18,8 @@
 	<string>cUTK7dZv9HCTCuNuD362xGZqueyGmwPD</string>
 	<key>BaiduRedirectURI</key>
 	<string>bd120615406://oauth-callback</string>
-	<key>INAlternativeAppNames</key>
-	<array>
-		<dict>
-			<key>INAlternativeAppName</key>
-			<string>耳机熊</string>
-		</dict>
-		<dict>
-			<key>INAlternativeAppName</key>
-			<string>Earphone Bear</string>
-		</dict>
-	</array>
-	<key>NSSiriUsageDescription</key>
-	<string>你可以使用 Siri 来播放你的音频合集</string>
 	<key>BaiduScope</key>
 	<string>basic,netdisk</string>
-	<key>LSApplicationCategoryType</key>
-	<string>public.app-category.entertainment</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -66,7 +51,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.3.0</string>
+	<string>0.3.1</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -88,15 +73,32 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>15</string>
+	<string>1</string>
 	<key>CloudKitSyncEnabled</key>
 	<false/>
+	<key>INAlternativeAppNames</key>
+	<array>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>耳机熊</string>
+		</dict>
+		<dict>
+			<key>INAlternativeAppName</key>
+			<string>Earphone Bear</string>
+		</dict>
+	</array>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.entertainment</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Allow happyBear to access your photos for collection covers.</string>
+	<key>NSSiriUsageDescription</key>
+	<string>你可以使用 Siri 来播放你的音频合集</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -163,7 +165,5 @@
 			</dict>
 		</dict>
 	</array>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 </dict>
 </plist>
