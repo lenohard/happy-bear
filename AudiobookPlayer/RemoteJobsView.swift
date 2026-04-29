@@ -496,12 +496,9 @@ private struct RemoteJobRow: View {
                     .padding(.vertical, 2)
                     .background(Capsule().fill(Color.indigo.opacity(0.12)))
                 } else if showApplyPending {
-                    Label("Swipe to save", systemImage: "arrow.left")
+                    Image(systemName: "arrow.left")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(.indigo)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Capsule().fill(Color.indigo.opacity(0.12)))
                 }
                 StatusPillView(status: job.status)
             }
