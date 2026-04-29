@@ -40,6 +40,8 @@ private struct EnrichmentIndex {
     var ttsJobIds: Set<String> = []
     /// Remote job id -> AI job display title.
     var aiTitleByJobId: [String: String] = [:]
+    /// Remote STT job IDs whose result has already been saved locally (local job status == "completed").
+    var appliedRemoteSTTJobIds: Set<String> = []
 }
 
 struct RemoteJobsView: View {
@@ -55,6 +57,7 @@ struct RemoteJobsView: View {
     @State private var statusFilter: RemoteJobsStatusFilter = .all
     @State private var typeFilter: RemoteJobsTypeFilter = .all
     @State private var actionError: String?
+    @State private var applyingJobIds: Set<String> = []
     @State private var isViewVisible = false
     @State private var nowTick: Date = Date()
     private let localRemotePrefix = "remote:"
@@ -132,35 +135,13 @@ struct RemoteJobsView: View {
                         Spacer()
                     }
                 } else {
-                    let jobs = displayedRemoteJobs()
+                    let index = buildEnrichmentIndex()
+                    let jobs = displayedRemoteJobs(index: index)
                     if jobs.isEmpty {
                         ContentUnavailableView("No remote jobs yet", systemImage: "tray")
                     } else {
                         ForEach(jobs) { job in
-                            RemoteJobRow(
-                                job: job,
-                                onRetry: (job.status == .failed || job.status == .canceled)
-                                    ? { Task { await retryJob(job: job) } }
-                                    : nil
-                            )
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    Task { await forceDelete(job: job) }
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                                .labelStyle(.iconOnly)
-
-                                if job.status == .failed || job.status == .canceled {
-                                    Button {
-                                        Task { await retryJob(job: job) }
-                                    } label: {
-                                        Label("Retry", systemImage: "arrow.clockwise")
-                                    }
-                                    .labelStyle(.iconOnly)
-                                    .tint(.blue)
-                                }
-                            }
+                            jobRow(job: job, index: index)
                         }
                     }
                 }
@@ -274,6 +255,10 @@ struct RemoteJobsView: View {
                 }
                 let title = trackNames[job.trackId] ?? (sid.hasPrefix("tts-") ? "Remote TTS" : "Remote STT")
                 index.sttTitleByJobId[remoteId] = title
+                // Mark as applied if the local transcription job completed.
+                if job.status == "completed" {
+                    index.appliedRemoteSTTJobIds.insert(remoteId)
+                }
             }
         }
 
@@ -287,8 +272,7 @@ struct RemoteJobsView: View {
         return index
     }
 
-    private func displayedRemoteJobs() -> [RemoteJob] {
-        let index = buildEnrichmentIndex()
+    private func displayedRemoteJobs(index: EnrichmentIndex) -> [RemoteJob] {
         let enriched = remoteJobsStore.jobs.map { job -> RemoteJob in
             var e = job
             switch job.type {
@@ -408,11 +392,58 @@ struct RemoteJobsView: View {
             actionError = "Retry failed: \(error.localizedDescription)"
         }
     }
+
+    @ViewBuilder
+    private func jobRow(job: RemoteJob, index: EnrichmentIndex) -> some View {
+        let canApply = job.type == .stt
+            && job.status == .succeeded
+            && !index.appliedRemoteSTTJobIds.contains(job.id)
+        RemoteJobRow(
+            job: job,
+            isApplying: applyingJobIds.contains(job.id),
+            onRetry: (job.status == .failed || job.status == .canceled)
+                ? { Task { await retryJob(job: job) } }
+                : nil,
+            onApply: canApply
+                ? { Task { await applySTTResult(job: job) } }
+                : nil
+        )
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                Task { await forceDelete(job: job) }
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .labelStyle(.iconOnly)
+            if job.status == .failed || job.status == .canceled {
+                Button {
+                    Task { await retryJob(job: job) }
+                } label: {
+                    Label("Retry", systemImage: "arrow.clockwise")
+                }
+                .labelStyle(.iconOnly)
+                .tint(.blue)
+            }
+        }
+    }
+
+    private func applySTTResult(job: RemoteJob) async {
+        guard job.type == .stt, job.status == .succeeded else { return }
+        applyingJobIds.insert(job.id)
+        defer { applyingJobIds.remove(job.id) }
+        do {
+            try await transcriptionManager.applyRemoteSTTResult(remoteJobId: job.id)
+        } catch {
+            actionError = "Apply failed: \(error.localizedDescription)"
+        }
+    }
 }
 
 private struct RemoteJobRow: View {
     let job: RemoteJob
+    var isApplying: Bool = false
     var onRetry: (() -> Void)? = nil
+    var onApply: (() -> Void)? = nil
     @State private var showCopied = false
 
     private var isActive: Bool {
@@ -509,17 +540,38 @@ private struct RemoteJobRow: View {
                 .foregroundStyle(.red)
             }
 
-            // Row 5: retry button (failed/canceled)
-            if let onRetry {
-                HStack {
+            // Row 5: action buttons (retry / apply)
+            if onRetry != nil || onApply != nil {
+                HStack(spacing: 8) {
                     Spacer()
-                    Button(action: onRetry) {
-                        Label("Retry", systemImage: "arrow.clockwise")
-                            .font(.caption.weight(.semibold))
+                    if let onRetry {
+                        Button(action: onRetry) {
+                            Label("Retry", systemImage: "arrow.clockwise")
+                                .font(.caption.weight(.semibold))
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.mini)
+                        .tint(.blue)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.mini)
-                    .tint(.blue)
+                    if let onApply {
+                        Button(action: onApply) {
+                            if isApplying {
+                                HStack(spacing: 4) {
+                                    ProgressView()
+                                        .scaleEffect(0.75)
+                                    Text("Applying…")
+                                        .font(.caption.weight(.semibold))
+                                }
+                            } else {
+                                Label("Save to Library", systemImage: "square.and.arrow.down")
+                                    .font(.caption.weight(.semibold))
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.mini)
+                        .tint(.indigo)
+                        .disabled(isApplying)
+                    }
                 }
             }
         }
