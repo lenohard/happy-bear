@@ -119,6 +119,12 @@ struct SettingsTabView: View {
                 }
             } header: {
                 Text(NSLocalizedString("settings_auto_summary_section_title", comment: "Auto summary section title"))
+            } footer: {
+                if autoGenerateTrackSummaries {
+                    Text("Applies to both local and remote transcriptions. When remote STT finishes (including after reconnecting), the client auto-generates a rich track summary.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section {

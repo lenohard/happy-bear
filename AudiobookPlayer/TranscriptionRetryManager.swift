@@ -96,13 +96,28 @@ extension TranscriptionManager {
                 let baiduToken = try? tokenStore.loadToken()
                 do {
                     if let input = try await resolveRemoteSTTInput(track: track, collectionId: collectionId, baiduToken: baiduToken) {
+                        // Inherit global auto-AI preferences on retry.
+                        let autoAI = defaults.bool(forKey: "autoGenerateTrackSummaries")
+                        let defaultModel = defaults.string(forKey: "ai_gateway_default_model")
+                        let taskId = "task_\(UUID().uuidString)"
+                        let autoAIParams: RemoteAutoAIParams? = autoAI
+                            ? RemoteAutoAIParams(
+                                model: (defaultModel?.isEmpty == false) ? defaultModel : nil,
+                                title: track.displayName,
+                                subtype: "track_summary",
+                                dedupKey: "ai:summary:\(track.id.uuidString)"
+                              )
+                            : nil
                         try await transcribeTrackRemote(
                             trackId: track.id,
                             collectionId: collectionId,
                             input: input,
                             languageHints: ["zh", "en"],
                             context: nil,
-                            existingJobId: jobId
+                            existingJobId: jobId,
+                            taskId: taskId,
+                            autoAI: autoAI,
+                            autoAIParams: autoAIParams
                         )
                         return
                     }

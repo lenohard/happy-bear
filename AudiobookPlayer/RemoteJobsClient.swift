@@ -50,6 +50,7 @@ struct RemoteJobDTO: Decodable {
     let createdAt: String?
     let title: String?
     let subtype: String?
+    let taskId: String?
     let input: Input?
     let error: ErrorPayload?
 
@@ -61,8 +62,34 @@ struct RemoteJobDTO: Decodable {
         case createdAt = "created_at"
         case title
         case subtype
+        case taskId = "task_id"
         case input
         case error
+    }
+}
+
+struct RemoteAutoAIParams: Encodable {
+    let model: String?
+    let system_prompt: String?
+    let temperature: Double?
+    let title: String?
+    let subtype: String?
+    let dedup_key: String?
+
+    init(
+        model: String? = nil,
+        systemPrompt: String? = nil,
+        temperature: Double? = nil,
+        title: String? = nil,
+        subtype: String? = nil,
+        dedupKey: String? = nil
+    ) {
+        self.model = model
+        self.system_prompt = systemPrompt
+        self.temperature = temperature
+        self.title = title
+        self.subtype = subtype
+        self.dedup_key = dedupKey
     }
 }
 
@@ -91,7 +118,15 @@ final class RemoteJobsClient {
         self.config = config
     }
 
-    func createSTTJob(input: RemoteJobsInput, languageHints: [String], context: String?, dedupKey: String? = nil) async throws -> RemoteJobDTO {
+    func createSTTJob(
+        input: RemoteJobsInput,
+        languageHints: [String],
+        context: String?,
+        dedupKey: String? = nil,
+        taskId: String? = nil,
+        autoAI: Bool = false,
+        autoAIParams: RemoteAutoAIParams? = nil
+    ) async throws -> RemoteJobDTO {
         struct RequestBody: Encodable {
             struct Input: Encodable {
                 let kind: String
@@ -108,6 +143,9 @@ final class RemoteJobsClient {
             let input: Input
             let params: Params
             let dedup_key: String?
+            let task_id: String?
+            let auto_ai: Bool?
+            let auto_ai_params: RemoteAutoAIParams?
         }
 
         let body = RequestBody(
@@ -120,7 +158,10 @@ final class RemoteJobsClient {
                 mime: input.mime
             ),
             params: .init(language_hints: languageHints, context: context),
-            dedup_key: dedupKey
+            dedup_key: dedupKey,
+            task_id: taskId,
+            auto_ai: autoAI ? true : nil,
+            auto_ai_params: autoAI ? autoAIParams : nil
         )
 
         let request = try makeRequest(path: "/jobs", method: "POST", body: body)
@@ -134,10 +175,22 @@ final class RemoteJobsClient {
         return response.data.job
     }
 
-    func fetchJobs(limit: Int = 100, status: String? = nil, cursor: String? = nil) async throws -> RemoteJobsPage {
+    func fetchJobs(
+        limit: Int = 100,
+        status: String? = nil,
+        type: String? = nil,
+        taskId: String? = nil,
+        cursor: String? = nil
+    ) async throws -> RemoteJobsPage {
         var queryItems = [URLQueryItem(name: "limit", value: String(limit))]
         if let status, !status.isEmpty {
             queryItems.append(URLQueryItem(name: "status", value: status))
+        }
+        if let type, !type.isEmpty {
+            queryItems.append(URLQueryItem(name: "type", value: type))
+        }
+        if let taskId, !taskId.isEmpty {
+            queryItems.append(URLQueryItem(name: "task_id", value: taskId))
         }
         if let cursor, !cursor.isEmpty {
             queryItems.append(URLQueryItem(name: "cursor", value: cursor))

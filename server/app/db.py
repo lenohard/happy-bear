@@ -60,6 +60,11 @@ def init_db() -> None:
         _ensure_column(conn, "jobs", "input_cookie", "TEXT")
         _ensure_column(conn, "jobs", "phase", "TEXT")
         _ensure_column(conn, "jobs", "phase_started_at", "TEXT")
+        _ensure_column(conn, "jobs", "task_id", "TEXT")
+        _ensure_column(conn, "jobs", "metadata_json", "TEXT")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_jobs_task_id ON jobs (task_id)"
+        )
         conn.commit()
     finally:
         conn.close()
@@ -83,8 +88,8 @@ def insert_job(job: dict[str, Any]) -> None:
                 error_code, error_message, input_kind, input_mime,
                 input_size, input_text, input_url, input_source, input_cookie, input_path, dedup_key, params_json,
                 output_kind, output_mime, output_size, output_text,
-                result_path
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                result_path, task_id, metadata_json
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (
                 job["id"],
@@ -112,6 +117,8 @@ def insert_job(job: dict[str, Any]) -> None:
                 job.get("output_size"),
                 job.get("output_text"),
                 job.get("result_path"),
+                job.get("task_id"),
+                job.get("metadata_json"),
             ),
         )
         conn.commit()
@@ -229,6 +236,9 @@ def list_jobs(filters: dict[str, Any], limit: int, cursor: str | None) -> tuple[
         if "type" in filters:
             clauses.append("type = %s")
             values.append(filters["type"])
+        if "task_id" in filters:
+            clauses.append("task_id = %s")
+            values.append(filters["task_id"])
 
         if cursor:
             clauses.append("created_at < %s")

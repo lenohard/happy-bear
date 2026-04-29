@@ -371,7 +371,10 @@ class TranscriptionManager: NSObject, ObservableObject {
         input: RemoteJobsInput,
         languageHints: [String] = ["zh", "en"],
         context: String? = nil,
-        existingJobId: String? = nil
+        existingJobId: String? = nil,
+        taskId: String? = nil,
+        autoAI: Bool = false,
+        autoAIParams: RemoteAutoAIParams? = nil
     ) async throws {
         let config = try loadRemoteJobsConfig()
         let client = RemoteJobsClient(config: config)
@@ -417,7 +420,10 @@ class TranscriptionManager: NSObject, ObservableObject {
                 input: input,
                 languageHints: languageHints,
                 context: context,
-                dedupKey: "stt:track:\(trackIdStr)"
+                dedupKey: "stt:track:\(trackIdStr)",
+                taskId: taskId,
+                autoAI: autoAI,
+                autoAIParams: autoAIParams
             )
             let storedRemoteId = "\(remoteJobPrefix)\(remoteJob.id)"
 
@@ -519,7 +525,10 @@ class TranscriptionManager: NSObject, ObservableObject {
         input: RemoteJobsInput,
         languageHints: [String] = ["zh", "en"],
         context: String? = nil,
-        existingJobId: String? = nil
+        existingJobId: String? = nil,
+        taskId: String? = nil,
+        autoAI: Bool = false,
+        autoAIParams: RemoteAutoAIParams? = nil
     ) async throws -> RemoteJobDTO {
         let config = try loadRemoteJobsConfig()
         let client = RemoteJobsClient(config: config)
@@ -553,7 +562,10 @@ class TranscriptionManager: NSObject, ObservableObject {
             input: input,
             languageHints: languageHints,
             context: context,
-            dedupKey: "stt:track:\(trackIdStr)"
+            dedupKey: "stt:track:\(trackIdStr)",
+            taskId: taskId,
+            autoAI: autoAI,
+            autoAIParams: autoAIParams
         )
         let storedRemoteId = "\(remoteJobPrefix)\(remoteJob.id)"
         let progress = max(remoteJob.progress ?? 0.1, 0.1)
@@ -1354,9 +1366,93 @@ class TranscriptionManager: NSObject, ObservableObject {
             await startRemotePollingIfNeeded(job: job)
         }
 
+        // Reconciliation (Option A): scan recently FAILED remote jobs to see
+        // if the server-side job has since succeeded (e.g. after a retry while
+        // the app was backgrounded). If so, pull the result and finalize it
+        // locally, which also fires `.transcriptDidFinalize` → auto-summary.
+        await reconcileFailedRemoteJobs()
+
         // Refresh UI after checking
         await refreshActiveJobsFromDatabase()
         await refreshAllRecentJobs()
+    }
+
+    /// Scan recently failed remote STT jobs and re-check their status on the
+    /// remote server. If the server now reports `succeeded`, download the
+    /// transcript and finalize it locally.
+    private func reconcileFailedRemoteJobs() async {
+        // Gather candidate jobs: failed locally, sonioxId prefixed with
+        // `remote:`, and not already in activeJobs/polling.
+        let candidates = allRecentJobs.filter { job in
+            job.status == "failed" &&
+            job.sonioxJobId.hasPrefix(remoteJobPrefix) &&
+            remoteJobId(from: job.sonioxJobId) != nil
+        }
+
+        guard !candidates.isEmpty else {
+            logger.debug("[TranscriptionManager] No failed remote jobs to reconcile")
+            return
+        }
+
+        let config: RemoteJobsConfig
+        do {
+            config = try loadRemoteJobsConfig()
+        } catch {
+            logger.debug("[TranscriptionManager] Skipping reconcile: remote jobs not configured")
+            return
+        }
+        let client = RemoteJobsClient(config: config)
+
+        logger.info("[TranscriptionManager] Reconciling \(candidates.count) failed remote job(s)")
+
+        for job in candidates {
+            guard let remoteId = remoteJobId(from: job.sonioxJobId) else { continue }
+            guard remotePollingJobs.insert(job.id).inserted else { continue }
+            defer { remotePollingJobs.remove(job.id) }
+
+            let remoteStatus: RemoteJobDTO
+            do {
+                remoteStatus = try await client.fetchJob(jobId: remoteId)
+            } catch {
+                logger.debug("[TranscriptionManager] Reconcile: cannot fetch remote job \(remoteId, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                continue
+            }
+
+            switch remoteStatus.status {
+            case "succeeded":
+                // Skip if a transcript is already saved locally (idempotent).
+                if let existing = try? await dbManager.loadTranscript(forTrackId: job.trackId),
+                   existing.jobStatus.lowercased() == "complete",
+                   !existing.fullText.isEmpty {
+                    logger.info("[TranscriptionManager] Reconcile: job \(job.id, privacy: .public) already has local transcript; clearing failed state")
+                    try? await dbManager.markJobCompleted(jobId: job.id)
+                    continue
+                }
+                logger.info("[TranscriptionManager] Reconcile: remote job \(remoteId, privacy: .public) succeeded on server; finalizing locally (local job=\(job.id, privacy: .public))")
+                // Put job back into running state before finalize so UI reflects it.
+                try? await dbManager.updateJobStatus(jobId: job.id, status: "transcribing", progress: 0.9)
+                upsertActiveJob(job.updating(status: "transcribing", progress: 0.9, lastAttemptAt: Date()))
+                await finalizeRemoteJobSuccess(
+                    jobId: job.id,
+                    trackId: job.trackId,
+                    remoteJobId: remoteId,
+                    client: client
+                )
+            case "running", "queued":
+                // Server is re-running it; resume polling as if it were active.
+                logger.info("[TranscriptionManager] Reconcile: remote job \(remoteId, privacy: .public) is \(remoteStatus.status, privacy: .public) on server; resuming polling")
+                try? await dbManager.updateJobStatus(jobId: job.id, status: "transcribing", progress: remoteStatus.progress ?? 0.4)
+                upsertActiveJob(job.updating(status: "transcribing", progress: remoteStatus.progress ?? 0.4, lastAttemptAt: Date()))
+                // Release polling lock before re-entering startRemotePollingIfNeeded.
+                remotePollingJobs.remove(job.id)
+                if let refreshed = try? await dbManager.loadTranscriptionJob(jobId: job.id) {
+                    await startRemotePollingIfNeeded(job: refreshed)
+                }
+            default:
+                // failed/canceled — leave local state as failed.
+                logger.debug("[TranscriptionManager] Reconcile: remote job \(remoteId, privacy: .public) status=\(remoteStatus.status, privacy: .public); no change")
+            }
+        }
     }
 
     private func resumeRemoteJob(job: TranscriptionJob) async {

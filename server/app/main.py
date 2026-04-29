@@ -83,6 +83,19 @@ def _job_to_response(job: dict) -> JobResponse:
             "size": job.get("output_size"),
         }
 
+    # Extract title/subtype from metadata_json if present
+    title = None
+    subtype = None
+    metadata_json = job.get("metadata_json")
+    if metadata_json:
+        try:
+            md = json.loads(metadata_json) if isinstance(metadata_json, str) else metadata_json
+            if isinstance(md, dict):
+                title = md.get("title")
+                subtype = md.get("subtype")
+        except (json.JSONDecodeError, TypeError):
+            pass
+
     return JobResponse(
         id=job["id"],
         type=job["type"],
@@ -91,6 +104,9 @@ def _job_to_response(job: dict) -> JobResponse:
         phase=job.get("phase"),
         created_at=job["created_at"],
         updated_at=job["updated_at"],
+        title=title,
+        subtype=subtype,
+        task_id=job.get("task_id"),
         error=error,
         input=input_payload,
         output=output_payload,
@@ -180,6 +196,16 @@ async def create_job(
     now = _utc_now()
     params_json = json.dumps(request.params.model_dump(exclude_none=True)) if request.params else None
 
+    # Build metadata blob (auto_ai settings, title/subtype hints, etc.)
+    metadata: dict = {}
+    if request.auto_ai:
+        metadata["auto_ai"] = True
+    if request.auto_ai_params:
+        metadata["auto_ai_params"] = request.auto_ai_params.model_dump(exclude_none=True)
+        # Hoist title/subtype for convenience if provided via auto_ai_params
+        # (These are used when the AI job is auto-created.)
+    metadata_json = json.dumps(metadata) if metadata else None
+
     # Dedup: if a prior job for the same source+track cached its input file, reuse it.
     cached_input_path: str | None = None
     if request.dedup_key and request.input.kind == "url":
@@ -215,6 +241,8 @@ async def create_job(
         "output_size": None,
         "output_text": None,
         "result_path": None,
+        "task_id": request.task_id,
+        "metadata_json": metadata_json,
     }
 
     db.insert_job(job)
@@ -287,6 +315,7 @@ async def list_jobs(
     _: AuthDep,
     status: str | None = None,
     type: str | None = None,
+    task_id: str | None = None,
     limit: int = 50,
     cursor: str | None = None,
 ) -> dict:
@@ -295,6 +324,8 @@ async def list_jobs(
         filters["status"] = status
     if type:
         filters["type"] = type
+    if task_id:
+        filters["task_id"] = task_id
 
     jobs, next_cursor = db.list_jobs(filters, limit, cursor)
     return {

@@ -46,11 +46,23 @@ class JobParams(BaseModel):
     extra: Optional[dict[str, Any]] = None
 
 
+class AutoAIParams(BaseModel):
+    model: Optional[str] = None
+    system_prompt: Optional[str] = None
+    temperature: Optional[float] = None
+    title: Optional[str] = None
+    subtype: Optional[str] = None
+    dedup_key: Optional[str] = None
+
+
 class CreateJobRequest(BaseModel):
     type: JobType
     input: InputPayload
     params: Optional[JobParams] = None
     dedup_key: Optional[str] = None
+    task_id: Optional[str] = None
+    auto_ai: Optional[bool] = None
+    auto_ai_params: Optional[AutoAIParams] = None
 
 
 class JobOutput(BaseModel):
@@ -69,6 +81,7 @@ class JobResponse(BaseModel):
     updated_at: str
     title: Optional[str] = None
     subtype: Optional[str] = None
+    task_id: Optional[str] = None
     error: Optional[ErrorPayload] = None
     input: Optional[InputPayload] = None
     output: Optional[JobOutput] = None

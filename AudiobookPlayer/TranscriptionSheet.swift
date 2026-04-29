@@ -27,6 +27,8 @@ struct TranscriptionSheet: View {
     @State private var downloadJobId: String?
     @AppStorage("remoteJobsEnabled") private var remoteJobsEnabled = false
     @AppStorage("remoteJobsFallbackToLocal") private var remoteJobsFallbackToLocal = true
+    @AppStorage("autoGenerateTrackSummaries") private var autoGenerateTrackSummaries = true
+    @AppStorage("ai_gateway_default_model") private var aiGatewayDefaultModel: String = ""
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "TranscriptionSheet")
 
     private enum Stage {
@@ -255,6 +257,20 @@ struct TranscriptionSheet: View {
                         }
 
                         let existingJobId = await MainActor.run { downloadJobId ?? mirroredJobId }
+                        // Build auto-AI payload from global settings. The server
+                        // stores these as task metadata; the client's
+                        // `transcriptDidFinalize` handler drives the actual AI
+                        // generation using its richer prompt context.
+                        let taskId = "task_\(UUID().uuidString)"
+                        let autoAI = autoGenerateTrackSummaries
+                        let autoAIParams: RemoteAutoAIParams? = autoAI
+                            ? RemoteAutoAIParams(
+                                model: aiGatewayDefaultModel.isEmpty ? nil : aiGatewayDefaultModel,
+                                title: track.displayName,
+                                subtype: "track_summary",
+                                dedupKey: "ai:summary:\(track.id.uuidString)"
+                              )
+                            : nil
                         do {
                             try await transcriptionManager.enqueueRemoteSTTJob(
                                 trackId: track.id,
@@ -262,7 +278,10 @@ struct TranscriptionSheet: View {
                                 input: remoteInput,
                                 languageHints: ["zh", "en"],
                                 context: contextText,
-                                existingJobId: existingJobId
+                                existingJobId: existingJobId,
+                                taskId: taskId,
+                                autoAI: autoAI,
+                                autoAIParams: autoAIParams
                             )
                         } catch {
                             // Server unreachable or rejected — clean up the placeholder and fall through to local

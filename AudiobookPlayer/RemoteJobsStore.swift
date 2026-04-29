@@ -39,6 +39,7 @@ struct RemoteJob: Identifiable, Hashable, Codable {
     var progress: Double
     var createdAt: Date
     var errorMessage: String?
+    var taskId: String?
 }
 
 extension RemoteJobType {
@@ -286,7 +287,8 @@ final class RemoteJobsStore: ObservableObject {
             title: remoteJobTitle(from: dto),
             progress: dto.progress ?? 0.0,
             createdAt: parseDate(dto.createdAt) ?? Date(),
-            errorMessage: dto.error?.message
+            errorMessage: dto.error?.message,
+            taskId: dto.taskId
         )
     }
 
