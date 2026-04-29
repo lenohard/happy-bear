@@ -401,11 +401,9 @@ struct RemoteJobsView: View {
         RemoteJobRow(
             job: job,
             isApplying: applyingJobIds.contains(job.id),
+            showApplyPending: canApply,
             onRetry: (job.status == .failed || job.status == .canceled)
                 ? { Task { await retryJob(job: job) } }
-                : nil,
-            onApply: canApply
-                ? { Task { await applySTTResult(job: job) } }
                 : nil
         )
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -423,6 +421,15 @@ struct RemoteJobsView: View {
                 }
                 .labelStyle(.iconOnly)
                 .tint(.blue)
+            }
+            if canApply {
+                Button {
+                    Task { await applySTTResult(job: job) }
+                } label: {
+                    Label("Save", systemImage: "square.and.arrow.down")
+                }
+                .labelStyle(.iconOnly)
+                .tint(.indigo)
             }
         }
     }
@@ -442,8 +449,11 @@ struct RemoteJobsView: View {
 private struct RemoteJobRow: View {
     let job: RemoteJob
     var isApplying: Bool = false
+    /// True when the job has a succeeded result that the user hasn't saved
+    /// to the library yet. Shown as a small badge so users know the swipe
+    /// action is available.
+    var showApplyPending: Bool = false
     var onRetry: (() -> Void)? = nil
-    var onApply: (() -> Void)? = nil
     @State private var showCopied = false
 
     private var isActive: Bool {
@@ -475,6 +485,24 @@ private struct RemoteJobRow: View {
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 6)
+                if isApplying {
+                    HStack(spacing: 4) {
+                        ProgressView().scaleEffect(0.7)
+                        Text("Saving…")
+                            .font(.caption2.weight(.semibold))
+                    }
+                    .foregroundStyle(.indigo)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.indigo.opacity(0.12)))
+                } else if showApplyPending {
+                    Label("Swipe to save", systemImage: "arrow.left")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.indigo)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Capsule().fill(Color.indigo.opacity(0.12)))
+                }
                 StatusPillView(status: job.status)
             }
 
@@ -540,38 +568,17 @@ private struct RemoteJobRow: View {
                 .foregroundStyle(.red)
             }
 
-            // Row 5: action buttons (retry / apply)
-            if onRetry != nil || onApply != nil {
-                HStack(spacing: 8) {
+            // Row 5: retry button (failed/canceled)
+            if let onRetry {
+                HStack {
                     Spacer()
-                    if let onRetry {
-                        Button(action: onRetry) {
-                            Label("Retry", systemImage: "arrow.clockwise")
-                                .font(.caption.weight(.semibold))
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.mini)
-                        .tint(.blue)
+                    Button(action: onRetry) {
+                        Label("Retry", systemImage: "arrow.clockwise")
+                            .font(.caption.weight(.semibold))
                     }
-                    if let onApply {
-                        Button(action: onApply) {
-                            if isApplying {
-                                HStack(spacing: 4) {
-                                    ProgressView()
-                                        .scaleEffect(0.75)
-                                    Text("Applying…")
-                                        .font(.caption.weight(.semibold))
-                                }
-                            } else {
-                                Label("Save to Library", systemImage: "square.and.arrow.down")
-                                    .font(.caption.weight(.semibold))
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.mini)
-                        .tint(.indigo)
-                        .disabled(isApplying)
-                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.mini)
+                    .tint(.blue)
                 }
             }
         }
