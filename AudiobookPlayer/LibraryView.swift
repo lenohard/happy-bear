@@ -30,6 +30,7 @@ struct LibraryView: View {
     @State private var rssCheckProgress: String?
     @State private var rssImportSummary: String?
     @State private var showHistorySheet = false
+    @State private var searchQuery = ""
 
     private var selectedCollectionID: Binding<UUID?> {
         Binding(
@@ -167,12 +168,24 @@ struct LibraryView: View {
 
     @ViewBuilder
     private var mainContent: some View {
-        if library.isLoading {
-            LoadingLibraryView()
-        } else if library.collections.isEmpty && library.folders.isEmpty {
-            EmptyLibraryView()
-        } else {
-            libraryList
+        Group {
+            if library.isLoading {
+                LoadingLibraryView()
+            } else if !searchQuery.isEmpty {
+                searchResultsList
+            } else if library.collections.isEmpty && library.folders.isEmpty {
+                EmptyLibraryView()
+            } else {
+                libraryList
+            }
+        }
+        .navigationDestination(isPresented: Binding(
+            get: { selectedCollectionID.wrappedValue != nil },
+            set: { if !$0 { selectedCollectionID.wrappedValue = nil } }
+        )) {
+            if let collectionID = selectedCollectionID.wrappedValue {
+                CollectionDetailView(collectionID: collectionID)
+            }
         }
     }
 
@@ -189,14 +202,78 @@ struct LibraryView: View {
         .listStyle(.insetGrouped)
         .scrollContentBackground(themeManager.colors.isFestive ? .hidden : .visible)
         .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
-        .navigationDestination(isPresented: Binding(
-            get: { selectedCollectionID.wrappedValue != nil },
-            set: { if !$0 { selectedCollectionID.wrappedValue = nil } }
-        )) {
-            if let collectionID = selectedCollectionID.wrappedValue {
-                CollectionDetailView(collectionID: collectionID)
+    }
+
+
+    private var searchResultsList: some View {
+        List {
+            let lowerQuery = searchQuery.localizedLowercase
+            let matchedCollections = library.collections.filter { !$0.isArchived && ($0.title.localizedCaseInsensitiveContains(lowerQuery) || ($0.author?.localizedCaseInsensitiveContains(lowerQuery) ?? false)) }
+            
+            if !matchedCollections.isEmpty {
+                Section(NSLocalizedString("collections_section", value: "Collections", comment: "Collections section")) {
+                    ForEach(matchedCollections) { collection in
+                        CollectionListRow(
+                            collection: collection,
+                            selectedCollectionID: selectedCollectionID,
+                            onResume: { resumeCollectionPlayback(collection) },
+                            onDelete: { library.delete(collection) },
+                            onArchive: { withAnimation { library.archiveCollection(collection) } },
+                            folders: library.folders,
+                            onMoveToFolder: { folder in library.moveCollection(collection, to: folder) },
+                            isQueued: listenQueueStore.isQueued(collectionID: collection.id),
+                            onToggleQueue: {
+                                Task {
+                                    if listenQueueStore.isQueued(collectionID: collection.id) {
+                                        if let item = listenQueueStore.pendingItems.first(where: { item in
+                                            if case .collection(let cid) = item.target { return cid == collection.id }
+                                            return false
+                                        }) {
+                                            await listenQueueStore.remove(itemID: item.id)
+                                        }
+                                    } else {
+                                        await listenQueueStore.addCollection(collection.id)
+                                    }
+                                }
+                            }
+                        )
+                        .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
+                    }
+                }
+            }
+            
+            let matchedTracks = library.collections.filter { !$0.isArchived }.flatMap { collection in
+                collection.tracks
+                    .filter { $0.displayName.localizedCaseInsensitiveContains(lowerQuery) }
+                    .map { LibraryStore.FavoriteTrackEntry(collection: collection, track: $0) }
+            }
+            
+            if !matchedTracks.isEmpty {
+                Section(NSLocalizedString("tracks_section", value: "Tracks", comment: "Tracks section")) {
+                    ForEach(matchedTracks) { entry in
+                        FavoriteTrackRow(
+                            entry: entry,
+                            isActive: audioPlayer.activeCollection?.id == entry.collection.id && audioPlayer.currentTrack?.id == entry.track.id,
+                            onPlay: { playTrack(entry.track, in: entry.collection) },
+                            onToggleFavorite: {
+                                library.toggleFavorite(for: entry.track.id, in: entry.collection.id)
+                                audioPlayer.notifyFavoriteToggle(for: entry.track.id)
+                            }
+                        )
+                        .listRowBackground(themeManager.colors.isFestive ? themeManager.colors.secondaryBackground.opacity(0.8) : nil)
+                    }
+                }
+            }
+            
+            if matchedCollections.isEmpty && matchedTracks.isEmpty {
+                Text(String(format: NSLocalizedString("no_results_for", value: "No results found for \"%@\"", comment: "No search results message"), searchQuery))
+                    .foregroundColor(.secondary)
+                    .listRowBackground(Color.clear)
             }
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(themeManager.colors.isFestive ? .hidden : .visible)
+        .background(themeManager.colors.isFestive ? Color.clear : Color(uiColor: .systemGroupedBackground))
     }
 
     @ViewBuilder
@@ -247,6 +324,7 @@ struct LibraryView: View {
         NavigationStack {
             mainContent
                 .navigationTitle(themeManager.colors.isFestive ? "🎄 " + NSLocalizedString("library_title", comment: "Library view title") : NSLocalizedString("library_title", comment: "Library view title"))
+                .searchable(text: $searchQuery, prompt: NSLocalizedString("search_library_prompt", value: "Search collections and tracks", comment: "Search prompt in library"))
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         randomCollectionButton
