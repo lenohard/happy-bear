@@ -7,6 +7,7 @@ BaiduNetdisk Doc: https://pan.baidu.com/union/doc/pksg0s9ns
 **Note**: The `./local/` folder is **NOT** ignored by git for this repository.
 
 ## Recent Progress (Dec 2025)
+- **Global Search (May 2026)**: Added `.searchable` to `LibraryView` for searching across all collections (title/author) and tracks (displayName). Results grouped into "Collections" and "Tracks" sections using existing `CollectionListRow` and `FavoriteTrackRow` views. Search is inline — replaces the main content when active. Key lesson: `AudiobookCollection` uses `title` while `AudiobookTrack` uses `displayName` (no `title` property). Uploaded as version 0.3.2 (build 19) to TestFlight.
 - **Remote STT Fix (Apr 2026)**: Fixed broken remote STT server mode. Tailscale Serve was misconfigured to proxy `https://mathemac-mini.tailb0587a.ts.net` → `http://127.0.0.1:18789` (a Node.js app) instead of the FastAPI server on port 8081. Fixed with `tailscale serve reset && tailscale serve --bg --https=443 http://127.0.0.1:8081`. After fix, iOS client successfully connects and remote STT jobs run end-to-end. Note: Baidu download URLs can expire — if job fails with "write operation timed out", retry with a fresh session.
 - **Chapter Support (Feb 2026)**: Added chapter support for audiobook collections. When importing a folder with subfolders, each subfolder becomes a chapter. Tracks in subfolders get the parent folder name as chapter. Collection detail view automatically groups tracks by chapter with headers showing folder icon, chapter name, and track count. Tracks without chapter appear at the end labeled as "Other". Fully backward compatible - collections without chapters display as flat list. Implementation includes: `chapter` property in `AudiobookTrack`, database migration, `extractChapter()` in CollectionBuilderViewModel, `ChapterGroup` struct and `chapterGroups` in CollectionDetailViewModel, UI grouping in CollectionDetailView.
 
@@ -36,6 +37,7 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Background Tasks**: iOS suspends polling/sockets in background. Check job status on foreground resume (`scenePhase`) instead of continuous polling.
 - **Database Sync Strategy**: Prefer simple DB-file sync by placing `library.sqlite` inside iCloud Drive / app container location included in Apple sync between Mac and iPhone. Do not build CloudKit or other complex record-level sync unless requirements change.
 - **Backup/Restore Coverage**: Backup exports the full `library.sqlite`, so collection folders + archived state are included automatically. Restore replaces the DB and runs migrations, so older backups upgrade to the new schema.
+- **Data Model Property Names**: `AudiobookCollection` uses **`title`** for its name, while `AudiobookTrack` has **no `title`** property — its display name is **`displayName`**. When filtering/searching across both collections and tracks, be careful not to mix these up. Use `localizedCaseInsensitiveContains` for search matching.
 
 ### SwiftUI & UI
 - **Overlays vs Sheets**: `overlay()` doesn't render above sheets. For persistent UI (bubbles), use a separate `UIWindow` with `PassThroughWindow`.
