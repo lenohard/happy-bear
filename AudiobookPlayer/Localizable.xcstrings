@@ -1453,6 +1453,9 @@
         }
       }
     },
+    "Applies to both local and remote transcriptions. After saving a remote STT result to the library, a rich track summary is generated automatically." : {
+
+    },
     "Apply" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5001,6 +5004,9 @@
         }
       }
     },
+    "Save" : {
+
+    },
     "save_to_library_button" : {
       "comment" : "Save to library button",
       "localizations" : {
@@ -5017,6 +5023,9 @@
           }
         }
       }
+    },
+    "Saving…" : {
+
     },
     "Scanning folder..." : {
       "localizations" : {

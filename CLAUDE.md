@@ -1,5 +1,4 @@
 # iOS Audiobook Player - Product Requirements & Architecture
-
 **Repo**: https://github.com/lenohard/happy-bear  
 BaiduNetdisk Doc: https://pan.baidu.com/union/doc/pksg0s9ns
 **Tools**: Use `deepwiki` for quick repo details.  
