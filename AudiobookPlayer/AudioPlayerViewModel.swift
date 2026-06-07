@@ -4,6 +4,7 @@ import Foundation
 import CryptoKit
 #if os(iOS)
 import MediaPlayer
+import UIKit
 private let favoriteNowPlayingInfoKey = "MPNowPlayingInfoPropertyIsLiked"
 #endif
 #if canImport(MobileVLCKit)
@@ -68,6 +69,13 @@ final class AudioPlayerViewModel: ObservableObject {
     private var timeObserverToken: Any?
     private var endPlaybackObserver: NSObjectProtocol?
     private var timeControlStatusObserver: NSKeyValueObservation?
+#if os(iOS)
+    /// Observer for AVAudioSession interruptions (phone calls, other apps grabbing audio).
+    private var interruptionObserver: NSObjectProtocol?
+    /// Background task identifier used to protect the listening-session flush when the
+    /// app moves to the background while paused (no audio runtime is granted while paused).
+    private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
+#endif
     private var playerItemStatusObserver: NSKeyValueObservation?
     private var currentToken: BaiduOAuthToken?
     private var pendingInitialSeek: Double?
@@ -1636,6 +1644,9 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         // Treat it as best-effort and retry later when starting playback.
         let session = AVAudioSession.sharedInstance()
 
+        // Register the interruption observer once (handles phone calls / other apps grabbing audio).
+        registerInterruptionObserverIfNeeded()
+
         // Avoid reconfiguring on every init; this also reduces the chance of surfacing transient errors.
         if session.category == .playback, session.mode == .spokenAudio {
             return
@@ -1648,6 +1659,55 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         } catch {
             // Don't show an error toast on launch for a best-effort configuration.
             AppLog.debug("Audio session configuration failed: \(error)")
+        }
+#endif
+    }
+
+#if os(iOS)
+    private func registerInterruptionObserverIfNeeded() {
+        guard interruptionObserver == nil else { return }
+
+        interruptionObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(),
+            queue: .main
+        ) { [weak self] notification in
+            Task { @MainActor [weak self] in
+                self?.handleAudioSessionInterruption(notification)
+            }
+        }
+    }
+
+    private func handleAudioSessionInterruption(_ notification: Notification) {
+        guard let info = notification.userInfo,
+              let rawType = info[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: rawType) else {
+            return
+        }
+
+        switch type {
+        case .began:
+            // Audio was taken away (e.g. incoming call). The system has already paused us;
+            // sync our state and persist progress so we don't touch stale resources later.
+            if isPlaying {
+                isPlaying = false
+                endPlaybackStartupMonitoring()
+                flushListeningSession()
+            }
+        case .ended:
+            // Conservatively only refresh state; do not force-resume. Resuming is left to
+            // the user (or the lock-screen "play" control) to avoid surprising playback.
+            break
+        @unknown default:
+            break
+        }
+    }
+#endif
+
+    deinit {
+#if os(iOS)
+        if let interruptionObserver {
+            NotificationCenter.default.removeObserver(interruptionObserver)
         }
 #endif
     }
@@ -2569,22 +2629,40 @@ private extension AudioPlayerViewModel {
     }
     
     func flushListeningSession() {
+        guard let statistic = makeListeningStatisticForFlush() else { return }
+
+        // Save asynchronously to avoid blocking playback.
+        Task {
+            await Self.persistListeningStatistic(statistic)
+        }
+    }
+
+    /// Awaitable variant used when we must guarantee the write completes within a
+    /// protected background-task window (e.g. when backgrounding while paused).
+    func flushListeningSessionAwaitingCompletion() async {
+        guard let statistic = makeListeningStatisticForFlush() else { return }
+        await Self.persistListeningStatistic(statistic)
+    }
+
+    /// Builds the statistic to persist (if the current session is long enough) and
+    /// clears the session start time. Returns nil when nothing should be saved.
+    private func makeListeningStatisticForFlush() -> ListeningStatistic? {
         guard let startTime = currentSessionStartTime,
               let track = currentTrack,
               let collection = activeCollection else {
             currentSessionStartTime = nil
-            return
+            return nil
         }
-        
+
         let endTime = Date()
         let duration = endTime.timeIntervalSince(startTime)
-        
+
         // Only save sessions longer than threshold
         guard duration >= sessionDurationThreshold else {
             currentSessionStartTime = nil
-            return
+            return nil
         }
-        
+
         let statistic = ListeningStatistic(
             id: UUID(),
             trackId: track.id,
@@ -2593,18 +2671,18 @@ private extension AudioPlayerViewModel {
             endTime: endTime,
             createdAt: Date()
         )
-        
-        // Save asynchronously to avoid blocking playback
-        Task {
-            do {
-                try await GRDBDatabaseManager.shared.saveListeningStatistic(statistic)
-                AppLog.debug("[STATS] Saved listening session: \\(duration)s for track \\(track.displayName)")
-            } catch {
-                AppLog.debug("[STATS] Failed to save listening session: \\(error)")
-            }
-        }
-        
+
         currentSessionStartTime = nil
+        return statistic
+    }
+
+    private static func persistListeningStatistic(_ statistic: ListeningStatistic) async {
+        do {
+            try await GRDBDatabaseManager.shared.saveListeningStatistic(statistic)
+            AppLog.debug("[STATS] Saved listening session for track \\(statistic.trackId)")
+        } catch {
+            AppLog.debug("[STATS] Failed to save listening session: \\(error)")
+        }
     }
     
     private func observeTimeControlStatus() {
@@ -2655,7 +2733,47 @@ extension AudioPlayerViewModel {
             stopVLCTimeUpdateTimer()
         }
         #endif
+
+        // When backgrounding while paused, iOS grants no audio runtime and will suspend
+        // the app within seconds. Any in-flight async DB write (listening session flush)
+        // can be interrupted at the suspension boundary and trip the watchdog. Wrap the
+        // flush in a protected background task so it is guaranteed a window to complete.
+        //
+        // While *playing*, the audio background mode keeps the app alive, so this is only
+        // strictly needed when paused — but running it unconditionally is harmless and
+        // keeps the cleanup uniform.
+        flushListeningSessionInProtectedBackgroundTask()
     }
+
+    private func flushListeningSessionInProtectedBackgroundTask() {
+#if os(iOS)
+        // Avoid stacking multiple background tasks if backgrounded repeatedly in quick succession.
+        guard backgroundTaskID == .invalid else {
+            flushListeningSession()
+            return
+        }
+
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "FlushListeningSession") { [weak self] in
+            // Expiration handler: must end the task promptly to avoid termination.
+            self?.endProtectedBackgroundTask()
+        }
+
+        Task { @MainActor [weak self] in
+            await self?.flushListeningSessionAwaitingCompletion()
+            self?.endProtectedBackgroundTask()
+        }
+#else
+        flushListeningSession()
+#endif
+    }
+
+#if os(iOS)
+    private func endProtectedBackgroundTask() {
+        guard backgroundTaskID != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(backgroundTaskID)
+        backgroundTaskID = .invalid
+    }
+#endif
 
     func handleAppDidBecomeActive() {
         #if canImport(MobileVLCKit)
