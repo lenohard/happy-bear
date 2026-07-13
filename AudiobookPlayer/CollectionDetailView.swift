@@ -303,33 +303,35 @@ struct CollectionDetailView: View {
             .fileImporter(isPresented: $viewModel.showCoverFileImporter, allowedContentTypes: [.image]) { result in
                 viewModel.handleCoverFileImport(result)
             }
-            .navigationDestination(isPresented: $viewModel.showRefreshReview) {
-                CollectionRefreshReviewView(
-                    title: $viewModel.refreshReviewTitle,
-                    description: $viewModel.refreshReviewDescription,
-                    candidateTracks: viewModel.candidateTracks,
-                    selectedCandidateIds: $viewModel.selectedCandidateIds,
-                    onSave: {
-                        let selected = viewModel.candidateTracks.filter { viewModel.selectedCandidateIds.contains($0.id) }
-                        library.addTracks(to: viewModel.collectionID, tracks: selected)
+            .sheet(isPresented: $viewModel.showRefreshReview) {
+                NavigationStack {
+                    CollectionRefreshReviewView(
+                        title: $viewModel.refreshReviewTitle,
+                        description: $viewModel.refreshReviewDescription,
+                        candidateTracks: viewModel.candidateTracks,
+                        selectedCandidateIds: $viewModel.selectedCandidateIds,
+                        onSave: {
+                            let selected = viewModel.candidateTracks.filter { viewModel.selectedCandidateIds.contains($0.id) }
+                            library.addTracks(to: viewModel.collectionID, tracks: selected)
 
-                        if let collection = viewModel.collection, (viewModel.refreshReviewTitle != collection.title || viewModel.refreshReviewDescription != (collection.description ?? "")) {
-                            library.updateCollectionDetails(
-                                collectionID: viewModel.collectionID,
-                                newTitle: viewModel.refreshReviewTitle,
-                                newDescription: viewModel.refreshReviewDescription.isEmpty ? nil : viewModel.refreshReviewDescription,
-                                shouldUpdateDescription: true
-                            )
+                            if let collection = viewModel.collection, (viewModel.refreshReviewTitle != collection.title || viewModel.refreshReviewDescription != (collection.description ?? "")) {
+                                library.updateCollectionDetails(
+                                    collectionID: viewModel.collectionID,
+                                    newTitle: viewModel.refreshReviewTitle,
+                                    newDescription: viewModel.refreshReviewDescription.isEmpty ? nil : viewModel.refreshReviewDescription,
+                                    shouldUpdateDescription: true
+                                )
+                            }
+
+                            viewModel.showRefreshReview = false
+                            viewModel.refreshResult = String(format: NSLocalizedString("refresh_success_message", value: "Added %d tracks.", comment: "Refresh success"), selected.count)
+                            viewModel.showRefreshResult = true
+                        },
+                        onCancel: {
+                            viewModel.showRefreshReview = false
                         }
-
-                        viewModel.showRefreshReview = false
-                        viewModel.refreshResult = String(format: NSLocalizedString("refresh_success_message", value: "Added %d tracks.", comment: "Refresh success"), selected.count)
-                        viewModel.showRefreshResult = true
-                    },
-                    onCancel: {
-                        viewModel.showRefreshReview = false
-                    }
-                )
+                    )
+                }
             }
 
         let viewWithPlaybackEvents = viewWithSheets
@@ -414,7 +416,10 @@ struct CollectionDetailView: View {
                     await viewModel.reloadFromDatabase(startingPage: 0, focusTarget: viewModel.pendingAutoFocusTrackId)
                 }
             }
-            .onChange(of: viewModel.collection?.tracks) { viewModel.scheduleSortedTracksUpdate() }
+            .onChange(of: viewModel.collection?.tracks) {
+                guard !viewModel.showRefreshReview else { return }
+                viewModel.scheduleSortedTracksUpdate()
+            }
             .onChange(of: viewModel.searchText) {
                 // Debounce search to avoid hammering DB per keystroke
                 viewModel.searchDebounceTask?.cancel()

@@ -26,6 +26,7 @@ struct LibraryView: View {
     @State private var newFolderName = ""
     @State private var hoveringFolder: UUID?
     @State private var rssUpdates: [UUID: [AudiobookTrack]]?
+    @State private var showRSSUpdatesSheet = false
     @State private var isScanningRSS = false
     @State private var rssCheckProgress: String?
     @State private var rssImportSummary: String?
@@ -388,17 +389,17 @@ struct LibraryView: View {
                 }
             )
         }
-        .sheet(item: Binding(
-            get: { rssUpdates.map { RSSUpdatesWrapper(updates: $0) } },
-            set: { if $0 == nil { rssUpdates = nil } }
-        )) { wrapper in
-            RSSUpdatesView(updates: wrapper.updates) { summary in
-                // Dismiss sheet first, wait for animation, then show the parent-level alert.
-                // Presenting an alert while the sheet dismiss animation is running causes it
-                // to be swallowed on some iOS versions.
-                rssUpdates = nil
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
-                    rssImportSummary = summary
+        .sheet(isPresented: $showRSSUpdatesSheet, onDismiss: { rssUpdates = nil }) {
+            if let updates = rssUpdates {
+                RSSUpdatesView(updates: updates) { summary in
+                    // Dismiss sheet first, wait for animation, then show the parent-level alert.
+                    // Presenting an alert while the sheet dismiss animation is running causes it
+                    // to be swallowed on some iOS versions.
+                    showRSSUpdatesSheet = false
+                    rssUpdates = nil
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                        rssImportSummary = summary
+                    }
                 }
             }
         }
@@ -623,6 +624,7 @@ struct LibraryView: View {
                 rssCheckProgress = nil
                 if !updates.isEmpty {
                     rssUpdates = updates
+                    showRSSUpdatesSheet = true
                 } else {
                     audioPlayer.statusMessage = NSLocalizedString(
                         "rss_checking_no_updates",
@@ -882,11 +884,6 @@ private struct PendingImport: Identifiable {
 private struct PendingEbookImport: Identifiable {
     let url: URL
     var id: String { url.absoluteString }
-}
-
-private struct RSSUpdatesWrapper: Identifiable {
-    let id = UUID()
-    let updates: [UUID: [AudiobookTrack]]
 }
 
 // MARK: - Folder Views

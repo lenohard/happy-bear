@@ -966,6 +966,7 @@ final class CollectionDetailViewModel: ObservableObject {
                 
                 if !candidates.isEmpty {
                     await MainActor.run {
+                        isRefreshingCollection = false
                         candidateTracks = candidates
                         selectedCandidateIds = Set(candidates.map(\.id))
                         refreshReviewTitle = collection.title
@@ -1353,6 +1354,7 @@ final class CollectionDetailViewModel: ObservableObject {
                     
                     if !newTracks.isEmpty {
                         await MainActor.run {
+                            isRefreshingCollection = false
                             candidateTracks = newTracks
                             selectedCandidateIds = Set(newTracks.map(\.id))
                             refreshReviewTitle = collection?.title ?? ""
