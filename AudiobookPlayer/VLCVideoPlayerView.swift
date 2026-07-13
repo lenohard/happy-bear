@@ -181,6 +181,13 @@ struct VLCVideoPlayerSheet: View {
     @State private var currentTime: Double = 0
     @State private var duration: Double = 0
     @State private var showControls = true
+    @State private var scrubValue: Double = 0
+    @State private var isScrubbing = false
+    @State private var resumeAfterScrub = false
+
+    private var displayedTime: Double {
+        isScrubbing ? scrubValue : currentTime
+    }
 
     var body: some View {
         ZStack {
@@ -255,17 +262,34 @@ struct VLCVideoPlayerSheet: View {
                 if duration > 0 {
                     Slider(
                         value: Binding(
-                            get: { currentTime },
-                            set: { newValue in
-                                player.time = VLCTime(int: Int32(newValue * 1000))
-                            }
+                            get: { displayedTime },
+                            set: { scrubValue = $0 }
                         ),
-                        in: 0...duration
+                        in: 0...duration,
+                        onEditingChanged: { editing in
+                            if editing {
+                                resumeAfterScrub = isPlaying
+                                if isPlaying {
+                                    player.pause()
+                                    isPlaying = false
+                                }
+                                scrubValue = currentTime
+                                isScrubbing = true
+                            } else {
+                                isScrubbing = false
+                                player.time = VLCTime(int: Int32(scrubValue * 1000))
+                                currentTime = scrubValue
+                                if resumeAfterScrub {
+                                    player.play()
+                                    isPlaying = true
+                                }
+                            }
+                        }
                     )
                     .tint(.white)
 
                     HStack {
-                        Text(formatTime(currentTime))
+                        Text(formatTime(displayedTime))
                         Spacer()
                         Text(formatTime(duration))
                     }

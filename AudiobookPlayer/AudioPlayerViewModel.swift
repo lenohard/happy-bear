@@ -1314,6 +1314,35 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         }
     }
 
+    private var resumePlaybackAfterScrub = false
+
+    func beginScrubbing() {
+        resumePlaybackAfterScrub = isPlaying
+        guard isPlaying else { return }
+
+        #if canImport(MobileVLCKit)
+        if usingVLCAudio, let vlcPlayer = vlcPlayer {
+            vlcPlayer.pause()
+            isPlaying = false
+            return
+        }
+        #endif
+
+        player?.pause()
+        isPlaying = false
+    }
+
+    func endScrubbing(at time: Double) {
+        let shouldResume = resumePlaybackAfterScrub
+        resumePlaybackAfterScrub = false
+
+        if shouldResume {
+            seekAndResume(to: time)
+        } else {
+            seek(to: time)
+        }
+    }
+
     func cacheStatus(for track: AudiobookTrack) -> CacheStatusSnapshot? {
         computeCacheStatus(for: track)
     }
