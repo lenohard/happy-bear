@@ -86,6 +86,21 @@ struct CollectionDetailView: View {
                         }
                     }
                 }
+                if !viewModel.archivedTracks.isEmpty {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button {
+                            viewModel.showArchivedTracks = true
+                        } label: {
+                            HStack(spacing: 2) {
+                                Image(systemName: "archivebox")
+                                Text("\(viewModel.archivedTracks.count)")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .accessibilityLabel(NSLocalizedString("archived_tracks_button", value: "Archived Tracks", comment: "Archived tracks button"))
+                    }
+                }
             }
 
         let viewWithAlerts = baseView
@@ -273,6 +288,12 @@ struct CollectionDetailView: View {
                         }
                     )
                 }
+            }
+            .sheet(isPresented: $viewModel.showArchivedTracks) {
+                ArchivedTracksSheet(
+                    tracks: viewModel.archivedTracks,
+                    collectionID: viewModel.collectionID
+                )
             }
             .sheet(isPresented: $viewModel.showCoverPhotosPicker) {
                 CoverPhotoCropPicker(isPresented: $viewModel.showCoverPhotosPicker) { image in
@@ -528,9 +549,9 @@ struct CollectionDetailView: View {
                     }
                 }
                 
-                // Scroll to Top Button
+                // Scroll Buttons
                 if viewModel.filteredTracks.count > 10 && viewModel.showScrollToTopButton {
-                    VStack {
+                    VStack(spacing: 4) {
                         Button {
                             withAnimation {
                                 proxy.scrollTo("summary-section", anchor: .top)
@@ -543,9 +564,25 @@ struct CollectionDetailView: View {
                                 .background(.regularMaterial, in: Circle())
                                 .shadow(color: .black.opacity(0.1), radius: 3)
                         }
-                        .padding(.top, 8)
                         .accessibilityLabel(Text("Scroll to top"))
+                        
+                        Button {
+                            withAnimation {
+                                if let lastTrack = viewModel.filteredTracks.last {
+                                    proxy.scrollTo(lastTrack.id, anchor: .bottom)
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.secondary)
+                                .padding(10)
+                                .background(.regularMaterial, in: Circle())
+                                .shadow(color: .black.opacity(0.1), radius: 3)
+                        }
+                        .accessibilityLabel(Text("Scroll to bottom"))
                     }
+                    .padding(.top, 8)
                 }
             }
         }
@@ -859,6 +896,37 @@ struct CollectionDetailView: View {
     // MARK: - Chapter Grouping UI
     
     @ViewBuilder
+    private func archivedTracksSection(_ collection: AudiobookCollection) -> some View {
+        let archived = viewModel.archivedTracks
+        
+        if !archived.isEmpty {
+            Section {
+                ForEach(Array(archived.enumerated()), id: \.element.id) { index, track in
+                    trackRow(track: track, index: index, totalTracks: archived.count, collection: collection)
+                        .id(track.id)
+                        .opacity(0.6)
+                }
+            } header: {
+                HStack {
+                    Image(systemName: "archivebox.fill")
+                        .foregroundStyle(.orange)
+                    Text(NSLocalizedString("archived_tracks_section", value: "Archived Tracks", comment: "Archived tracks section header"))
+                        .font(.headline)
+                    Spacer()
+                    Text("\(archived.count)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 2)
+                        .background(Color.secondary.opacity(0.2), in: Capsule())
+                }
+            }
+        }
+    }
+    
+    // MARK: - Chapter Grouping UI
+    
+    @ViewBuilder
     private func chapterHeader(for group: CollectionDetailViewModel.ChapterGroup, isCollapsed: Bool) -> some View {
         Button {
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -942,7 +1010,31 @@ struct CollectionDetailView: View {
             }
         }
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
-            favoriteSwipeButton(for: track, in: collection)
+            if !track.isArchived {
+                Button {
+                    library.archiveTrack(track, in: collection.id)
+                    viewModel.scheduleFilteredTracksUpdate()
+                } label: {
+                    Label(
+                        NSLocalizedString("archive_track_button", value: "Archive", comment: "Archive track"),
+                        systemImage: "archivebox"
+                    )
+                }
+                .labelStyle(.iconOnly)
+                .tint(.orange)
+            } else {
+                Button {
+                    library.unarchiveTrack(track, in: collection.id)
+                    viewModel.scheduleFilteredTracksUpdate()
+                } label: {
+                    Label(
+                        NSLocalizedString("unarchive_track_button", value: "Unarchive", comment: "Unarchive track"),
+                        systemImage: "arrow.uturn.backward"
+                    )
+                }
+                .labelStyle(.iconOnly)
+                .tint(.blue)
+            }
             addToQueueSwipeButton(for: track, in: collection)
         }
         .swipeActions(edge: .trailing) {
@@ -1147,22 +1239,6 @@ struct CollectionDetailView: View {
         }
         .labelStyle(.iconOnly)
         .tint(.indigo)
-    }
-
-    private func favoriteSwipeButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
-        Button {
-            library.toggleFavorite(for: track.id, in: collection.id)
-            audioPlayer.notifyFavoriteToggle(for: track.id)
-        } label: {
-            Label(
-                track.isFavorite
-                ? NSLocalizedString("remove_from_favorites", comment: "Remove from favorites")
-                : NSLocalizedString("add_to_favorites", comment: "Add to favorites"),
-                systemImage: track.isFavorite ? "heart.slash" : "heart"
-            )
-        }
-        .labelStyle(.iconOnly)
-        .tint(track.isFavorite ? .pink : Color.accentColor)
     }
 
     private func formatBytes(_ bytes: Int64) -> String {

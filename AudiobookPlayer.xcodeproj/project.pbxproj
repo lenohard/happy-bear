@@ -153,6 +153,7 @@
 		D0C0FFEB2F4B8A1A00C0FF01 /* CollectionRefreshReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C0FFEA2F4B8A1A00C0FF01 /* CollectionRefreshReviewView.swift */; };
 		D3A1F7BA2F3A1C1100ABCDEF /* PlaybackClock.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3A1F7B92F3A1C1100ABCDEF /* PlaybackClock.swift */; };
 		E348980BBC3F438AA2C8C842 /* CreateCollectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */; };
+		B7A1A0368AB3436F963BF9C0 /* ArchivedTracksSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 218BC533921849AEACCB1FC2 /* ArchivedTracksSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -316,6 +317,7 @@
 		D3A1F7B92F3A1C1100ABCDEF /* PlaybackClock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackClock.swift; sourceTree = "<group>"; };
 		DAFADB082A384DC9ACA621D5 /* SelectionListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/SelectionListView.swift; sourceTree = "<group>"; };
 		F7432AE5D710401797665C14 /* CollectionBuilderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionBuilderViewModel.swift; sourceTree = "<group>"; };
+		218BC533921849AEACCB1FC2 /* ArchivedTracksSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArchivedTracksSheet.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -479,6 +481,7 @@
 				8617DDE52EBE0A26006E7CA7 /* TranscriptionManager.swift */,
 				868447182F02723700962FC4 /* RemoteJobsClient.swift */,
 				8617DDE62EBE0A26006E7CA7 /* TranscriptionSheet.swift */,
+				218BC533921849AEACCB1FC2 /* ArchivedTracksSheet.swift */,
 				8617DDE72EBE0A26006E7CA7 /* TranscriptModels.swift */,
 				C5E631A42F1B000100AA0001 /* AIGenerationDatabaseSchema.swift */,
 				C5E631B42F1B000100AA0001 /* AIGenerationJob.swift */,
@@ -833,6 +836,7 @@
 				6FC0101C2C5B0C0000AA00AA /* CloudKitLibrarySync.swift in Sources */,
 				86FD8E072ED6F314002A2036 /* ListeningStatistic.swift in Sources */,
 				86FD8E082ED6F314002A2036 /* ListeningStatisticsView.swift in Sources */,
+				B7A1A0368AB3436F963BF9C0 /* ArchivedTracksSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

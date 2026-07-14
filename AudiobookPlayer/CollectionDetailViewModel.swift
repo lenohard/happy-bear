@@ -24,6 +24,7 @@ final class CollectionDetailViewModel: ObservableObject {
     @Published var trackTitleDraft = ""
     @Published var showCollectionInfoSheet = false
     @Published var showBatchRename = false
+    @Published var showArchivedTracks = false
     @Published var collectionTitleDraft = ""
     @Published var collectionDescriptionDraft = ""
     @Published var collectionIsMusicDraft = false
@@ -165,6 +166,15 @@ final class CollectionDetailViewModel: ObservableObject {
         return countHint > pagingThreshold
     }
 
+    var archivedTracks: [AudiobookTrack] {
+        if isPagedMode {
+            return pagedTracks.filter { $0.isArchived }
+        } else {
+            guard let collection else { return [] }
+            return collection.tracks.filter { $0.isArchived }
+        }
+    }
+    
     var sortedTracks: [AudiobookTrack] {
         if isPagedMode {
             return pagedTracks
@@ -555,6 +565,9 @@ final class CollectionDetailViewModel: ObservableObject {
         collection: AudiobookCollection?
     ) -> [AudiobookTrack] {
         var tracks = base
+        
+        // Always exclude archived tracks from main list
+        tracks = tracks.filter { !$0.isArchived }
 
         if filter != .all {
             tracks = tracks.filter { track in

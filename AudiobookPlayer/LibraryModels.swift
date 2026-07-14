@@ -379,6 +379,9 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
     // NEW: Chapter support - the parent folder name if tracks are organized into chapters
     var chapter: String?
     
+    // NEW: Archive support - tracks can be individually archived when fully played
+    var isArchived: Bool = false
+    
     var isTextTrack: Bool {
         if case .text = location { return true }
         if case .cachedText = location { return true }
@@ -395,6 +398,7 @@ struct AudiobookTrack: Identifiable, Codable, Equatable {
         case isFavorite, favoritedAt
         case characterCount
         case chapter
+        case isArchived
     }
 }
 

@@ -122,6 +122,7 @@ actor GRDBDatabaseManager {
             try addTrackCharacterCountColumnIfNeeded(in: db)
             AppLog.debug("[GRDB] Track character_count column ensured")
             try addTrackChapterColumnIfNeeded(in: db)
+            try addTrackArchivedColumnIfNeeded(in: db)
             AppLog.debug("[GRDB] Track chapter column ensured")
 
             AppLog.debug("[GRDB] Executing track summary schema...")
@@ -300,8 +301,8 @@ actor GRDBDatabaseManager {
                         checksum, metadata_json,
                         media_kind,
                         is_favorite, favorited_at,
-                        character_count, chapter
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        character_count, chapter, is_archived
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     arguments: [
                         track.id.uuidString,
@@ -319,7 +320,8 @@ actor GRDBDatabaseManager {
                         track.isFavorite ? 1 : 0,
                         track.favoritedAt,
                         track.characterCount,
-                        track.chapter
+                        track.chapter,
+                        track.isArchived ? 1 : 0
                     ]
                 )
             }
@@ -1318,6 +1320,8 @@ actor GRDBDatabaseManager {
         
         let charCount: Int? = row["character_count"]
         let chapter: String? = row["chapter"]
+        let isArchivedValue: Int? = row["is_archived"]
+        let isArchived = (isArchivedValue ?? 0) == 1
 
         return AudiobookTrack(
             id: uuid,
@@ -1333,7 +1337,8 @@ actor GRDBDatabaseManager {
             isFavorite: isFavorite,
             favoritedAt: favoritedAt,
             characterCount: charCount,
-            chapter: chapter
+            chapter: chapter,
+            isArchived: isArchived
         )
     }
 
@@ -2258,6 +2263,14 @@ actor GRDBDatabaseManager {
         let existingColumns = Set(rows.compactMap { $0["name"] as? String })
         if !existingColumns.contains("chapter") {
             try database.execute(sql: "ALTER TABLE tracks ADD COLUMN chapter TEXT")
+        }
+    }
+    
+    private func addTrackArchivedColumnIfNeeded(in database: Database) throws {
+        let rows = try Row.fetchAll(database, sql: "PRAGMA table_info(tracks)")
+        let existingColumns = Set(rows.compactMap { $0["name"] as? String })
+        if !existingColumns.contains("is_archived") {
+            try database.execute(sql: "ALTER TABLE tracks ADD COLUMN is_archived INTEGER NOT NULL DEFAULT 0")
         }
     }
     

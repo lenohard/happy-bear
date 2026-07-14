@@ -882,7 +882,24 @@ final class LibraryStore: ObservableObject {
                 try? await syncEngine.saveRemoteCollection(collection)
             }
         }
+        
+        // Auto-archive track when played to 100% completion
+        if let duration = state.duration, duration > 0, state.position >= duration * 0.99 {
+            if let trackIdx = collection.tracks.firstIndex(where: { $0.id == trackID }),
+               !collection.tracks[trackIdx].isArchived {
+                AppLog.debug("[AUTO-ARCHIVE] Track fully played: \(collection.tracks[trackIdx].displayName)")
+                collections[index].tracks[trackIdx].isArchived = true
+                // Persist the archived flag (the optimized path above only saves playback state)
+                if !useFallbackJSON {
+                    persistToDatabase(collections[index])
+                } else {
+                    persistCurrentSnapshot()
+                }
+            }
+        }
+
     }
+
 
     /// Returns the most recent playback entry across all collections, based on TrackPlaybackState.updatedAt.
     /// Used by Siri/App Intents and "Continue Last" shortcut.
@@ -1366,6 +1383,34 @@ final class LibraryStore: ObservableObject {
             Task(priority: .utility) {
                 try? await syncEngine.saveRemoteCollection(updated)
             }
+        }
+    }
+    
+    // MARK: - Track Archive Management
+    
+    func archiveTrack(_ track: AudiobookTrack, in collectionID: UUID) {
+        guard let colIdx = collections.firstIndex(where: { $0.id == collectionID }),
+              let trackIdx = collections[colIdx].tracks.firstIndex(where: { $0.id == track.id }) else { return }
+        collections[colIdx].tracks[trackIdx].isArchived = true
+        collections[colIdx].updatedAt = Date()
+        
+        if !useFallbackJSON {
+            persistToDatabase(collections[colIdx])
+        } else {
+            persistCurrentSnapshot()
+        }
+    }
+    
+    func unarchiveTrack(_ track: AudiobookTrack, in collectionID: UUID) {
+        guard let colIdx = collections.firstIndex(where: { $0.id == collectionID }),
+              let trackIdx = collections[colIdx].tracks.firstIndex(where: { $0.id == track.id }) else { return }
+        collections[colIdx].tracks[trackIdx].isArchived = false
+        collections[colIdx].updatedAt = Date()
+        
+        if !useFallbackJSON {
+            persistToDatabase(collections[colIdx])
+        } else {
+            persistCurrentSnapshot()
         }
     }
     
