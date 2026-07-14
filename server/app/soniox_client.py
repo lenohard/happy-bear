@@ -88,7 +88,7 @@ def transcribe_file(
     for key in ("http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "all_proxy", "ALL_PROXY", "no_proxy", "NO_PROXY"):
         os.environ.pop(key, None)
 
-    client = SonioxClient(api_key=api_key)
+    client = SonioxClient(api_key=api_key, timeout_sec=300)
 
     # Soniox SDK requires context to be a dict or StructuredContext, not a raw string.
     structured_context = None
