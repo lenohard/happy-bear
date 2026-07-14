@@ -64,9 +64,13 @@ An iOS application for playing audiobooks stored in Baidu Cloud Drive (百度云
 - **Database Locked**: If `xcodebuild` fails with "database is locked", wait/retry or run `killall xcodebuild` and clear DerivedData.
 - **Duplicate Body**: "Declaration only valid at file scope" often means a duplicate `var body: some View` line.
 - **Catalyst**: Enable **Keychain Sharing** capability for Mac Catalyst builds to allow Keychain writes in unsigned DMGs.
+- **Mac DMG**: `scripts/package-maccatalyst-dmg.sh` builds Catalyst .app → styled DMG with Finder layout (`.DS_Store` template). Applications symlink included for drag-to-install. Supports optional signing (`SIGN=1`) and notarization (`NOTARIZE=1`).
 - **Build Filters**: Use `xcodebuild ... | grep -E "error:|BUILD"` to reduce noise.
 - **CocoaPods Workspace**: Always open `.xcworkspace` (not `.xcodeproj`) when CocoaPods dependencies are present. Run `pod install` after Podfile changes. Use `pod deintegrate && pod install` to reset if framework linking issues occur.
 - Beacues Current there are many warnings, so then you build to fix the errors filter out the warnning ones by default !
+- **Headless Build**: Full build works via `xcodebuild` CLI without opening Xcode (see `ios-headless-build` skill). Simulator build: `xcodebuild -project AudiobookPlayer.xcodeproj -scheme AudiobookPlayer -configuration Debug -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO build 2>&1 | grep -E "error:|BUILD"`.
+- **Workspace vs Project**: Don't assume `.xcworkspace` exists just because CocoaPods is used. This project currently has no `.xcworkspace` — use `-project AudiobookPlayer.xcodeproj`. Always `ls *.xcworkspace` first to verify.
+- **SwiftUI Type-Checker Timeout**: "the compiler is unable to type-check this expression in reasonable time" means a modifier chain is too long (~15+). **Fix**: split with `let` intermediate variables. Follow the existing `viewWith*` naming convention (e.g. `viewWithSheets`, `viewWithPlaybackEvents`, `viewWithStateEvents` used in `listContent`). Keep each chain ≤10 modifiers. Large closure bodies in `.onChange`/`.onAppear` compound the problem — extract those to methods too.
 
 ### Chapter Support
 - **Chapter Detection**: Use immediate parent folder name as chapter. Files directly under root folder have no chapter (nil).

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	 Minimal Mac Catalyst entitlements for DMG distribution.
+	 Restricted entitlements (iCloud, Siri, app-groups, keychain-access-groups,
+	 app-sandbox) are REMOVED — they require a provisioning profile that isn't
+	 available for ad-hoc/development signed DMG builds.
+	 Only non-restricted entitlements are safe to use here.
+	-->
+	<key>com.apple.security.network.client</key>
+	<true/>
+</dict>
+</plist>

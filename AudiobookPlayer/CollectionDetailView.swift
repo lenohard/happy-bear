@@ -384,7 +384,7 @@ struct CollectionDetailView: View {
                 viewModel.prepareAutoFocusTargetIfNeeded(for: viewModel.collection)
             }
 
-        return viewWithStateEvents
+        let viewWithLifecycleEvents = viewWithStateEvents
             .onAppear {
                 viewModel.setup(
                     library: library,
@@ -479,6 +479,8 @@ struct CollectionDetailView: View {
                 viewModel.loadingPages = []
                 viewModel.totalPages = 0
             }
+
+        return viewWithLifecycleEvents
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("TranscriptionCompleted"))) { notification in
                 AppLog.debug("[CollectionDetailView] Received TranscriptionCompleted notification")
                 // Reload transcript status when a transcription completes
@@ -488,7 +490,7 @@ struct CollectionDetailView: View {
                 isPresented: $viewModel.showEbookFileImporter,
                 allowedContentTypes: [UTType.epub],
                 allowsMultipleSelection: false
-            ) { result in
+            ) { (result: Result<[URL], any Error>) in
                 AppLog.debug("[CollectionDetailView] File importer completed")
                 switch result {
                 case .success(let urls):
