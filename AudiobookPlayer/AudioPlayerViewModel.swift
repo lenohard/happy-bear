@@ -75,6 +75,8 @@ final class AudioPlayerViewModel: ObservableObject {
     /// Background task identifier used to protect the listening-session flush when the
     /// app moves to the background while paused (no audio runtime is granted while paused).
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
+    /// Bridges the gap between play-tap and first audio while the screen is locked.
+    private var playbackStartupBackgroundTaskID: UIBackgroundTaskIdentifier = .invalid
 #endif
     private var playerItemStatusObserver: NSKeyValueObservation?
     private var currentToken: BaiduOAuthToken?
@@ -240,8 +242,12 @@ final class AudioPlayerViewModel: ObservableObject {
         // Start VLC time update timer
         startVLCTimeUpdateTimer()
 
-        // Start playback
+#if os(iOS)
+        activateAudioSessionForPlayback()
+        beginPlaybackStartupBackgroundTaskIfNeeded()
+#endif
         beginPlaybackStartupMonitoring()
+        isPlaying = true
         player.play()
 
         // Apply pending seek after a short delay to allow VLC to initialize
@@ -540,6 +546,9 @@ final class AudioPlayerViewModel: ObservableObject {
             duration = max(duration, recordedDuration)
         }
 
+#if os(iOS)
+        activateAudioSessionForPlayback()
+#endif
         preparePlayer(with: url, autoPlay: true, track: track)
         currentTrack = track
         statusMessage = "Playing \"\(track.displayName)\"."
@@ -1279,7 +1288,7 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         }
     }
 
-    func seek(to time: Double) {
+    func seek(to time: Double, resumeAfterSeek: Bool = false) {
         #if canImport(MobileVLCKit)
         if usingVLCAudio, let vlcPlayer = vlcPlayer {
             vlcPlayer.time = VLCTime(int: Int32(time * 1000))
@@ -1287,36 +1296,63 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 #if os(iOS)
             updateNowPlayingElapsedTime()
 #endif
+            if resumeAfterSeek {
+                resumePlaybackAfterSeek()
+            }
             return
         }
         #endif
 
         guard let player else { return }
         let target = CMTime(seconds: time, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
-        player.seek(to: target) { [weak self] _ in
+        player.seek(to: target) { [weak self] finished in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.publishCurrentTime(time, force: true)
 #if os(iOS)
                 self.updateNowPlayingElapsedTime()
 #endif
+                if resumeAfterSeek, finished {
+                    self.resumePlaybackAfterSeek()
+                }
             }
         }
     }
 
     func seekAndResume(to time: Double) {
-        seek(to: time)
-        if !isPlaying {
-            startPlaybackImmediately()
+        seek(to: time, resumeAfterSeek: true)
+    }
+
+    private func resumePlaybackAfterSeek() {
+        guard !isPlaying else {
+            applyPlaybackRateToPlayer()
+            return
+        }
+
+        #if canImport(MobileVLCKit)
+        if usingVLCAudio, let vlcPlayer = vlcPlayer {
+            startVLCTimeUpdateTimer()
+            beginPlaybackStartupMonitoring()
+            vlcPlayer.play()
             isPlaying = true
             startListeningSession()
             applyPlaybackRateToPlayer()
+            return
         }
+        #endif
+
+        startPlaybackImmediately()
+        isPlaying = true
+        startListeningSession()
+        applyPlaybackRateToPlayer()
     }
 
     private var resumePlaybackAfterScrub = false
+    private var isScrubbingActive = false
 
     func beginScrubbing() {
+        guard !isScrubbingActive else { return }
+        isScrubbingActive = true
         resumePlaybackAfterScrub = isPlaying
         guard isPlaying else { return }
 
@@ -1324,23 +1360,23 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         if usingVLCAudio, let vlcPlayer = vlcPlayer {
             vlcPlayer.pause()
             isPlaying = false
+            endPlaybackStartupMonitoring()
             return
         }
         #endif
 
         player?.pause()
         isPlaying = false
+        endPlaybackStartupMonitoring()
     }
 
     func endScrubbing(at time: Double) {
+        guard isScrubbingActive else { return }
+        isScrubbingActive = false
+
         let shouldResume = resumePlaybackAfterScrub
         resumePlaybackAfterScrub = false
-
-        if shouldResume {
-            seekAndResume(to: time)
-        } else {
-            seek(to: time)
-        }
+        seek(to: time, resumeAfterSeek: shouldResume)
     }
 
     func cacheStatus(for track: AudiobookTrack) -> CacheStatusSnapshot? {
@@ -1669,28 +1705,73 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
     func configureAudioSession() {
 #if os(iOS)
-        // Configuring AVAudioSession can fail during early app startup or when the system isn't ready.
-        // Treat it as best-effort and retry later when starting playback.
+        activateAudioSessionForPlayback()
+#endif
+    }
+
+#if os(iOS)
+    /// Ensures the audio session category is correct and active before playback or background buffering.
+    func activateAudioSessionForPlayback() {
         let session = AVAudioSession.sharedInstance()
-
-        // Register the interruption observer once (handles phone calls / other apps grabbing audio).
         registerInterruptionObserverIfNeeded()
-
-        // Avoid reconfiguring on every init; this also reduces the chance of surfacing transient errors.
-        if session.category == .playback, session.mode == .spokenAudio {
-            return
-        }
 
         do {
             let options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
-            try session.setCategory(.playback, mode: .spokenAudio, options: options)
+            if session.category != .playback || session.mode != .spokenAudio {
+                try session.setCategory(.playback, mode: .spokenAudio, options: options)
+            }
             try session.setActive(true, options: [])
         } catch {
-            // Don't show an error toast on launch for a best-effort configuration.
-            AppLog.debug("Audio session configuration failed: \(error)")
+            AppLog.debug("Audio session activation failed: \(error)")
         }
-#endif
     }
+
+    private func beginPlaybackStartupBackgroundTaskIfNeeded() {
+        guard playbackStartupBackgroundTaskID == .invalid else { return }
+
+        playbackStartupBackgroundTaskID = UIApplication.shared.beginBackgroundTask(
+            withName: "PlaybackStartup"
+        ) { [weak self] in
+            self?.endPlaybackStartupBackgroundTask()
+        }
+    }
+
+    private func endPlaybackStartupBackgroundTask() {
+        guard playbackStartupBackgroundTaskID != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(playbackStartupBackgroundTaskID)
+        playbackStartupBackgroundTaskID = .invalid
+    }
+
+    /// Re-issues play() when the player stalled during startup (e.g. screen locked before first audio).
+    private func resumePlaybackIfStalled() {
+        guard isPlaying else { return }
+
+        #if canImport(MobileVLCKit)
+        if usingVLCAudio {
+            if let vlcPlayer, !vlcPlayer.isPlaying {
+                vlcPlayer.play()
+            }
+            return
+        }
+        #endif
+
+        guard let player else { return }
+
+        switch player.timeControlStatus {
+        case .paused, .waitingToPlayAtSpecifiedRate:
+            if player.currentItem?.status == .readyToPlay {
+                player.playImmediately(atRate: Float(playbackRate))
+            } else {
+                player.play()
+                player.rate = Float(playbackRate)
+            }
+        case .playing:
+            break
+        @unknown default:
+            break
+        }
+    }
+#endif
 
 #if os(iOS)
     private func registerInterruptionObserverIfNeeded() {
@@ -1859,6 +1940,9 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
         flushListeningSession()
         endPlaybackStartupMonitoring()
+#if os(iOS)
+        endPlaybackStartupBackgroundTask()
+#endif
 
         sleepTimer?.invalidate()
         sleepTimer = nil
@@ -2092,6 +2176,10 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
     func startPlaybackImmediately() {
         guard let player else { return }
+#if os(iOS)
+        activateAudioSessionForPlayback()
+        beginPlaybackStartupBackgroundTaskIfNeeded()
+#endif
         beginPlaybackStartupMonitoring()
         if player.currentItem != nil {
             player.playImmediately(atRate: Float(playbackRate))
@@ -2135,6 +2223,9 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
         flushListeningSession()
         endPlaybackStartupMonitoring()
+#if os(iOS)
+        endPlaybackStartupBackgroundTask()
+#endif
 
         sleepTimer?.invalidate()
         sleepTimer = nil
@@ -2718,12 +2809,17 @@ private extension AudioPlayerViewModel {
         timeControlStatusObserver = player?.observe(\.timeControlStatus, options: [.new]) { [weak self] player, _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
+                guard !self.isScrubbingActive else { return }
                 switch player.timeControlStatus {
                 case .paused:
-                    if self.isPlaying {
+                    // During startup buffering the player can briefly report paused; ignore that.
+                    if self.isPlaying, self.lastPlayRequestDate == nil {
                         AppLog.debug("[AudioPlayer] Detected external pause, updating state")
                         self.isPlaying = false
                         self.endPlaybackStartupMonitoring()
+#if os(iOS)
+                        self.endPlaybackStartupBackgroundTask()
+#endif
                         self.flushListeningSession()
                         // We don't need to set rate to 0 here as pause implies it,
                         // but we should ensure UI reflects state.
@@ -2735,6 +2831,9 @@ private extension AudioPlayerViewModel {
                         self.startListeningSession()
                     }
                     self.endPlaybackStartupMonitoring()
+#if os(iOS)
+                    self.endPlaybackStartupBackgroundTask()
+#endif
                 case .waitingToPlayAtSpecifiedRate:
                     break
                 @unknown default:
@@ -2754,7 +2853,17 @@ extension AudioPlayerViewModel {
     }
 
     func handleAppDidEnterBackground() {
-        endPlaybackStartupMonitoring()
+        if !isPlaying {
+            endPlaybackStartupMonitoring()
+        }
+
+        #if os(iOS)
+        if isPlaying {
+            activateAudioSessionForPlayback()
+            beginPlaybackStartupBackgroundTaskIfNeeded()
+            resumePlaybackIfStalled()
+        }
+        #endif
 
         #if canImport(MobileVLCKit)
         // Avoid keeping a high-frequency timer alive while app is idle in background.
@@ -2805,6 +2914,13 @@ extension AudioPlayerViewModel {
 #endif
 
     func handleAppDidBecomeActive() {
+        #if os(iOS)
+        if isPlaying {
+            activateAudioSessionForPlayback()
+            resumePlaybackIfStalled()
+        }
+        #endif
+
         #if canImport(MobileVLCKit)
         if usingVLCAudio && isPlaying {
             startVLCTimeUpdateTimer()
