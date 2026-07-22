@@ -530,68 +530,74 @@ struct CollectionDetailView: View {
 
     private func listContent(_ collection: AudiobookCollection) -> some View {
         ScrollViewReader { proxy in
-            ZStack(alignment: .top) {
-                List {
-                    summarySection(collection)
-                        .id("summary-section")
-                    tracksSection(collection)
-                }
-                .listStyle(.insetGrouped)
-                .onAppear {
-                    viewModel.prepareAutoFocusTargetIfNeeded(for: collection)
-                    viewModel.initChapterExpandState(for: collection)
+            List {
+                summarySection(collection)
+                    .id("summary-section")
+                tracksSection(collection)
+            }
+            .listStyle(.insetGrouped)
+            .onAppear {
+                viewModel.prepareAutoFocusTargetIfNeeded(for: collection)
+                viewModel.initChapterExpandState(for: collection)
+                attemptAutoFocusIfNeeded(using: proxy)
+            }
+            .onChange(of: viewModel.pendingAutoFocusTrackId) {
+                attemptAutoFocusIfNeeded(using: proxy)
+            }
+            .onChange(of: viewModel.filteredTracks.map(\.id)) {
+                attemptAutoFocusIfNeeded(using: proxy)
+                viewModel.isLastTrackVisible = false
+            }
+            .onChange(of: viewModel.isListLoading) { loading in
+                // When loading finishes, try auto-focus since data is now ready
+                if !loading {
                     attemptAutoFocusIfNeeded(using: proxy)
-                }
-                .onChange(of: viewModel.pendingAutoFocusTrackId) {
-                    attemptAutoFocusIfNeeded(using: proxy)
-                }
-                .onChange(of: viewModel.filteredTracks.map(\.id)) {
-                    attemptAutoFocusIfNeeded(using: proxy)
-                    viewModel.isLastTrackVisible = false
-                }
-                .onChange(of: viewModel.isListLoading) { loading in
-                    // When loading finishes, try auto-focus since data is now ready
-                    if !loading {
-                        attemptAutoFocusIfNeeded(using: proxy)
-                    }
-                }
-                
-                // Scroll Buttons
-                if viewModel.filteredTracks.count > 10 && viewModel.showScrollToTopButton {
-                    VStack(spacing: 4) {
-                        Button {
-                            withAnimation {
-                                proxy.scrollTo("summary-section", anchor: .top)
-                            }
-                        } label: {
-                            Image(systemName: "chevron.up")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.secondary)
-                                .padding(10)
-                                .background(.regularMaterial, in: Circle())
-                                .shadow(color: .black.opacity(0.1), radius: 3)
-                        }
-                        .accessibilityLabel(Text("Scroll to top"))
-                        
-                        Button {
-                            withAnimation {
-                                if let lastTrack = viewModel.filteredTracks.last {
-                                    proxy.scrollTo(lastTrack.id, anchor: .bottom)
-                                }
-                            }
-                        } label: {
-                            Image(systemName: "chevron.down")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundStyle(.secondary)
-                                .padding(10)
-                                .background(.regularMaterial, in: Circle())
-                                .shadow(color: .black.opacity(0.1), radius: 3)
-                        }
-                        .accessibilityLabel(Text("Scroll to bottom"))
-                    }
-                    .padding(.top, 8)
                 }
             }
+            .overlay(alignment: .top) { scrollToTopButton(proxy) }
+            .overlay(alignment: .bottom) { scrollToBottomButton(proxy) }
+        }
+    }
+
+    @ViewBuilder
+    private func scrollToTopButton(_ proxy: ScrollViewProxy) -> some View {
+        if viewModel.filteredTracks.count > 10 && viewModel.showScrollToTopButton {
+            Button {
+                withAnimation {
+                    proxy.scrollTo("summary-section", anchor: .top)
+                }
+            } label: {
+                Image(systemName: "chevron.up")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .padding(10)
+                    .background(.regularMaterial, in: Circle())
+                    .shadow(color: .black.opacity(0.1), radius: 3)
+            }
+            .accessibilityLabel(Text("Scroll to top"))
+            .padding(.top, 8)
+        }
+    }
+
+    @ViewBuilder
+    private func scrollToBottomButton(_ proxy: ScrollViewProxy) -> some View {
+        if viewModel.filteredTracks.count > 10 && !viewModel.isLastTrackVisible {
+            Button {
+                withAnimation {
+                    if let lastTrack = viewModel.filteredTracks.last {
+                        proxy.scrollTo(lastTrack.id, anchor: .bottom)
+                    }
+                }
+            } label: {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .padding(10)
+                    .background(.regularMaterial, in: Circle())
+                    .shadow(color: .black.opacity(0.1), radius: 3)
+            }
+            .accessibilityLabel(Text("Scroll to bottom"))
+            .padding(.bottom, 8)
         }
     }
 

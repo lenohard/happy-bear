@@ -603,7 +603,8 @@ final class CollectionDetailViewModel: ObservableObject {
 
     @MainActor
     func updateLoadedPages(_ page: Int, tracks: [AudiobookTrack]) {
-        loadedPages[page] = tracks
+        // Always exclude archived tracks from main list (matches non-paged path)
+        loadedPages[page] = tracks.filter { !$0.isArchived }
         // Keep a small window to limit memory; always retain first page.
         let keep = [page - 1, page, page + 1, 0].filter { $0 >= 0 }
         loadedPages = loadedPages.filter { keep.contains($0.key) }
@@ -1099,19 +1100,26 @@ final class CollectionDetailViewModel: ObservableObject {
     func resolveAutoFocusTrackID(for collection: AudiobookCollection?) -> UUID? {
         guard let collection else { return nil }
 
+        // Active track: must exist and not be archived (archived items are filtered from list,
+        // so scrolling to their id would land at a stale position).
         if
             audioPlayer?.activeCollection?.id == collection.id,
             let activeId = audioPlayer?.currentTrack?.id,
-            collection.tracks.contains(where: { $0.id == activeId })
+            collection.tracks.contains(where: { $0.id == activeId && !$0.isArchived })
         {
             return activeId
         }
 
-        if
-            let lastPlayed = collection.lastPlayedTrackId,
-            collection.tracks.contains(where: { $0.id == lastPlayed })
+        // Last played fallback: if archived, jump to the next non-archived sibling.
+        if let lastPlayed = collection.lastPlayedTrackId,
+           let lastIndex = collection.tracks.firstIndex(where: { $0.id == lastPlayed })
         {
-            return lastPlayed
+            if !collection.tracks[lastIndex].isArchived {
+                return lastPlayed
+            }
+            if let next = collection.tracks[(lastIndex + 1)...].first(where: { !$0.isArchived }) {
+                return next.id
+            }
         }
 
         return nil
