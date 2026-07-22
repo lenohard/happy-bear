@@ -94,6 +94,9 @@ final class AudioPlayerViewModel: ObservableObject {
     private var lastVLCObservedState: VLCMediaPlayerState = .stopped
     #endif
     private var currentSessionStartTime: Date?
+    /// Most recent statistics write. Background entry awaits this task so a pause
+    /// immediately followed by suspension cannot leave the write unprotected.
+    private var listeningStatisticWriteTask: Task<Void, Never>?
     private let sessionDurationThreshold: TimeInterval = 2.0
     private weak var library: LibraryStore?
     private weak var listenQueueStore: ListenQueueStore?
@@ -1148,6 +1151,7 @@ final class AudioPlayerViewModel: ObservableObject {
             isPlaying = false
             self.currentTrack = nil
 #if os(iOS)
+            deactivateAudioSessionIfIdle()
             resetNowPlayingInfo()
 #endif
             return
@@ -1185,8 +1189,15 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
                 vlcPlayer.pause()
                 isPlaying = false
                 endPlaybackStartupMonitoring()
+#if os(iOS)
+                endPlaybackStartupBackgroundTask()
+                deactivateAudioSessionIfIdle()
+#endif
                 flushListeningSession()
             } else {
+#if os(iOS)
+                activateAudioSessionForPlayback()
+#endif
                 startVLCTimeUpdateTimer()
                 beginPlaybackStartupMonitoring()
                 vlcPlayer.play()
@@ -1210,6 +1221,10 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
             player.pause()
             isPlaying = false
             endPlaybackStartupMonitoring()
+#if os(iOS)
+            endPlaybackStartupBackgroundTask()
+            deactivateAudioSessionIfIdle()
+#endif
             flushListeningSession()
         } else {
             startPlaybackImmediately()
@@ -1705,7 +1720,15 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
     func configureAudioSession() {
 #if os(iOS)
-        activateAudioSessionForPlayback()
+        let session = AVAudioSession.sharedInstance()
+        registerInterruptionObserverIfNeeded()
+
+        do {
+            let options: AVAudioSession.CategoryOptions = [.allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
+            try session.setCategory(.playback, mode: .spokenAudio, options: options)
+        } catch {
+            AppLog.debug("Audio session configuration failed: \(error)")
+        }
 #endif
     }
 
@@ -1723,6 +1746,22 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
             try session.setActive(true, options: [])
         } catch {
             AppLog.debug("Audio session activation failed: \(error)")
+        }
+    }
+
+    /// Releases the audio runtime once playback is genuinely idle. Remote command
+    /// handlers and Now Playing metadata remain registered, so playback can still
+    /// be resumed from the lock screen without holding an active audio session.
+    private func deactivateAudioSessionIfIdle() {
+        guard !isPlaying else { return }
+
+        do {
+            try AVAudioSession.sharedInstance().setActive(
+                false,
+                options: [.notifyOthersOnDeactivation]
+            )
+        } catch {
+            AppLog.debug("Audio session deactivation failed: \(error)")
         }
     }
 
@@ -1963,6 +2002,7 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         // NOTE: intentionally NOT resetting currentTime or duration here
         pendingInitialSeek = nil
 #if os(iOS)
+        deactivateAudioSessionIfIdle()
         resetNowPlayingInfo()
 #endif
         activeCacheStatus = nil
@@ -2086,6 +2126,7 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
             statusMessage = "Finished playing \"\(collection.title)\"."
             currentTrack = nil
 #if os(iOS)
+            deactivateAudioSessionIfIdle()
             resetNowPlayingInfo()
 #endif
             return
@@ -2248,6 +2289,7 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
         duration = 0
         pendingInitialSeek = nil
 #if os(iOS)
+        deactivateAudioSessionIfIdle()
         resetNowPlayingInfo()
 #endif
 
@@ -2525,6 +2567,10 @@ private extension AudioPlayerViewModel {
         player.pause()
         isPlaying = false
         applyPlaybackRateToPlayer()
+#if os(iOS)
+        endPlaybackStartupBackgroundTask()
+        deactivateAudioSessionIfIdle()
+#endif
         flushListeningSession()
         return .success
     }
@@ -2752,7 +2798,9 @@ private extension AudioPlayerViewModel {
         guard let statistic = makeListeningStatisticForFlush() else { return }
 
         // Save asynchronously to avoid blocking playback.
-        Task {
+        let previousWrite = listeningStatisticWriteTask
+        listeningStatisticWriteTask = Task {
+            await previousWrite?.value
             await Self.persistListeningStatistic(statistic)
         }
     }
@@ -2760,6 +2808,7 @@ private extension AudioPlayerViewModel {
     /// Awaitable variant used when we must guarantee the write completes within a
     /// protected background-task window (e.g. when backgrounding while paused).
     func flushListeningSessionAwaitingCompletion() async {
+        await listeningStatisticWriteTask?.value
         guard let statistic = makeListeningStatisticForFlush() else { return }
         await Self.persistListeningStatistic(statistic)
     }
@@ -2819,6 +2868,7 @@ private extension AudioPlayerViewModel {
                         self.endPlaybackStartupMonitoring()
 #if os(iOS)
                         self.endPlaybackStartupBackgroundTask()
+                        self.deactivateAudioSessionIfIdle()
 #endif
                         self.flushListeningSession()
                         // We don't need to set rate to 0 here as pause implies it,
@@ -2845,13 +2895,6 @@ private extension AudioPlayerViewModel {
 }
 
 extension AudioPlayerViewModel {
-    func checkpointListeningSession() {
-        if isPlaying {
-            flushListeningSession()
-            startListeningSession()
-        }
-    }
-
     func handleAppDidEnterBackground() {
         if !isPlaying {
             endPlaybackStartupMonitoring()
@@ -2860,8 +2903,15 @@ extension AudioPlayerViewModel {
         #if os(iOS)
         if isPlaying {
             activateAudioSessionForPlayback()
-            beginPlaybackStartupBackgroundTaskIfNeeded()
-            resumePlaybackIfStalled()
+            // A short background task is only needed while a newly requested
+            // playback is still starting, not for an already stable player.
+            if lastPlayRequestDate != nil {
+                beginPlaybackStartupBackgroundTaskIfNeeded()
+                resumePlaybackIfStalled()
+            }
+        } else {
+            endPlaybackStartupBackgroundTask()
+            deactivateAudioSessionIfIdle()
         }
         #endif
 
@@ -2872,24 +2922,23 @@ extension AudioPlayerViewModel {
         }
         #endif
 
-        // When backgrounding while paused, iOS grants no audio runtime and will suspend
-        // the app within seconds. Any in-flight async DB write (listening session flush)
-        // can be interrupted at the suspension boundary and trip the watchdog. Wrap the
-        // flush in a protected background task so it is guaranteed a window to complete.
+        // When backgrounding while paused, iOS grants no audio runtime and may suspend
+        // the app before a pending statistics write completes. Use one short protected
+        // task to await any existing write and flush the current listening interval.
         //
-        // While *playing*, the audio background mode keeps the app alive, so this is only
-        // strictly needed when paused — but running it unconditionally is harmless and
-        // keeps the cleanup uniform.
-        flushListeningSessionInProtectedBackgroundTask()
+        // While playing, this also checkpoints the current listening interval and starts
+        // a fresh interval after the write completes.
+        flushListeningSessionInProtectedBackgroundTask(
+            restartSessionAfterFlush: isPlaying
+        )
     }
 
-    private func flushListeningSessionInProtectedBackgroundTask() {
+    private func flushListeningSessionInProtectedBackgroundTask(
+        restartSessionAfterFlush: Bool
+    ) {
 #if os(iOS)
         // Avoid stacking multiple background tasks if backgrounded repeatedly in quick succession.
-        guard backgroundTaskID == .invalid else {
-            flushListeningSession()
-            return
-        }
+        guard backgroundTaskID == .invalid else { return }
 
         backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "FlushListeningSession") { [weak self] in
             // Expiration handler: must end the task promptly to avoid termination.
@@ -2897,8 +2946,12 @@ extension AudioPlayerViewModel {
         }
 
         Task { @MainActor [weak self] in
-            await self?.flushListeningSessionAwaitingCompletion()
-            self?.endProtectedBackgroundTask()
+            guard let self else { return }
+            await self.flushListeningSessionAwaitingCompletion()
+            if restartSessionAfterFlush && self.isPlaying {
+                self.startListeningSession()
+            }
+            self.endProtectedBackgroundTask()
         }
 #else
         flushListeningSession()

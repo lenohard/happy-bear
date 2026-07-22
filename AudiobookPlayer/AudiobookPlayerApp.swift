@@ -50,17 +50,21 @@ struct AudiobookPlayerApp: App {
                 switch newPhase {
                 case .active:
                     audioPlayer.handleAppDidBecomeActive()
+                    aiGenerationManager.handleAppDidBecomeActive()
                     // App became active - check for pending jobs that may have been interrupted
                     Task {
                         await transcriptionManager.checkAndResumePendingJobs()
-                        await aiGenerationManager.refreshJobs()
                     }
                     // Check for pending Siri playback commands
                     checkSiriCommand()
-                case .background, .inactive:
-                    // App going to background - checkpoint listening session
-                    audioPlayer.checkpointListeningSession()
+                case .background:
+                    // Only perform suspension-sensitive cleanup once the scene is
+                    // actually backgrounded. `.inactive` is also used for temporary
+                    // interruptions such as Control Center and permission prompts.
                     audioPlayer.handleAppDidEnterBackground()
+                    aiGenerationManager.handleAppDidEnterBackground()
+                case .inactive:
+                    break
                 @unknown default:
                     break
                 }

@@ -10,6 +10,8 @@ final class AIGenerationManager: ObservableObject {
     private let executor: AIGenerationJobExecutor
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGenerationManager")
     private var refreshTask: Task<Void, Never>?
+    private var refreshLoopID: UUID?
+    private var isAppActive = false
 
     init(
         dbManager: GRDBDatabaseManager = .shared,
@@ -18,7 +20,6 @@ final class AIGenerationManager: ObservableObject {
         self.dbManager = dbManager
         self.executor = executor
         bootstrapJobs()
-        startRefreshLoop()
     }
 
     deinit {
@@ -213,6 +214,23 @@ final class AIGenerationManager: ObservableObject {
     }
 
     func refreshJobs() async {
+        await reloadJobs()
+        updateRefreshLoopForCurrentJobs()
+    }
+
+    func handleAppDidBecomeActive() {
+        isAppActive = true
+        Task { @MainActor [weak self] in
+            await self?.refreshJobs()
+        }
+    }
+
+    func handleAppDidEnterBackground() {
+        isAppActive = false
+        stopRefreshLoop()
+    }
+
+    private func reloadJobs() async {
         do {
             try await dbManager.initializeDatabase()
             let active = try await dbManager.loadActiveAIGenerationJobs()
@@ -224,16 +242,46 @@ final class AIGenerationManager: ObservableObject {
         }
     }
 
-    private func startRefreshLoop() {
-        refreshTask = Task { [weak self] in
-            guard let self else { return }
-            try? await self.dbManager.initializeDatabase()
-            await self.refreshJobs()
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 1_000_000_000)
-                await self.refreshJobs()
-            }
+    private func updateRefreshLoopForCurrentJobs() {
+        if isAppActive && !activeJobs.isEmpty {
+            startRefreshLoopIfNeeded()
+        } else {
+            stopRefreshLoop()
         }
+    }
+
+    private func startRefreshLoopIfNeeded() {
+        guard isAppActive, !activeJobs.isEmpty, refreshTask == nil else { return }
+
+        let loopID = UUID()
+        refreshLoopID = loopID
+        refreshTask = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                do {
+                    try await Task.sleep(nanoseconds: 1_000_000_000)
+                } catch {
+                    break
+                }
+
+                guard let self, self.isAppActive else { break }
+                await self.reloadJobs()
+                guard !self.activeJobs.isEmpty else { break }
+            }
+
+            self?.finishRefreshLoop(id: loopID)
+        }
+    }
+
+    private func stopRefreshLoop() {
+        refreshLoopID = nil
+        refreshTask?.cancel()
+        refreshTask = nil
+    }
+
+    private func finishRefreshLoop(id: UUID) {
+        guard refreshLoopID == id else { return }
+        refreshLoopID = nil
+        refreshTask = nil
     }
 
     private func bootstrapJobs() {
