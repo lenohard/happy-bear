@@ -270,15 +270,18 @@ struct TrackSummaryCard: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(summary.summaryTitle ?? track.displayName)
                     .font(.headline)
+                    .textSelection(.enabled)
                 if let body = summary.summaryBody {
                     Text(body)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                 }
                 if let generatedAt = summary.generatedAt {
                     Text(String(format: NSLocalizedString("track_summary_last_generated_format", comment: ""), generatedAt.formatted(date: .abbreviated, time: .shortened)))
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                 }
             }
 
@@ -370,6 +373,28 @@ struct TrackSummaryCard: View {
             )
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            if let title = section.title, !title.isEmpty {
+                Button {
+                    UIPasteboard.general.string = title
+                } label: {
+                    Label(NSLocalizedString("track_summary_copy_title", value: "Copy Title", comment: "Copy section title"), systemImage: "doc.on.doc")
+                }
+            }
+            if !section.summary.isEmpty {
+                Button {
+                    UIPasteboard.general.string = section.summary
+                } label: {
+                    Label(NSLocalizedString("track_summary_copy_summary", value: "Copy Summary", comment: "Copy section summary"), systemImage: "doc.on.doc")
+                }
+            }
+            Button {
+                let seconds = TimeInterval(section.startTimeMs) / 1000.0
+                seekAndPlayAction(seconds)
+            } label: {
+                Label(NSLocalizedString("track_summary_jump_to_time", value: "Jump to Time", comment: "Jump to section start time"), systemImage: "play.circle")
+            }
+        }
     }
 
     private func keywordRow(_ keywords: [String]) -> some View {
