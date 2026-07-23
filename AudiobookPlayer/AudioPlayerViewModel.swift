@@ -5,6 +5,7 @@ import CryptoKit
 #if os(iOS)
 import MediaPlayer
 import UIKit
+import ImageIO
 private let favoriteNowPlayingInfoKey = "MPNowPlayingInfoPropertyIsLiked"
 #endif
 #if canImport(MobileVLCKit)
@@ -135,6 +136,14 @@ final class AudioPlayerViewModel: ObservableObject {
     #if os(iOS)
     private var remoteCommandTargets: [(MPRemoteCommand, Any)] = []
     private var nowPlayingInfo: [String: Any] = [:]
+    /// Guards against stale artwork overwrites during rapid track switches.
+    private var artworkLoadToken: UUID?
+    /// Dedicated artwork cache (lock-screen / control-center scale, ~600 pt).
+    private let artworkCache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 30
+        return cache
+    }()
     #endif
 
     init(
@@ -2674,6 +2683,10 @@ private extension AudioPlayerViewModel {
             return
         }
 
+        // Generate a fresh token so any in-flight async artwork load is discarded.
+        let token = UUID()
+        artworkLoadToken = token
+
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: track.displayName,
             MPMediaItemPropertyAlbumTitle: collection.title,
@@ -2702,7 +2715,9 @@ private extension AudioPlayerViewModel {
         info[favoriteNowPlayingInfoKey] = NSNumber(value: track.isFavorite)
 #endif
 
-        // Add artwork based on collection cover type
+        var remoteArtworkURL: URL?
+
+        // Add artwork based on collection cover type.
         switch collection.coverAsset.kind {
         case .solid(let colorHex):
             // Create artwork from solid color
@@ -2713,24 +2728,47 @@ private extension AudioPlayerViewModel {
             }
             
         case .image(let relativePath):
-            // Load local image file
-            let documentsPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
-            let imageURL = documentsPath.appendingPathComponent(relativePath)
-            
-            if FileManager.default.fileExists(atPath: imageURL.path),
-               let imageData = try? Data(contentsOf: imageURL),
-               let image = UIImage(data: imageData) {
-                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+            // 1. Fast path: check in-memory caches synchronously (no I/O).
+            let artworkCacheKey = "local:\(relativePath)"
+            let thumbnailCacheKey = relativePath
+            if let cached = artworkCache.object(forKey: artworkCacheKey as NSString)
+                ?? CollectionCoverArtView.thumbnailCache.object(forKey: thumbnailCacheKey as NSString)
+            {
+                let artwork = MPMediaItemArtwork(boundsSize: cached.size) { _ in cached }
                 info[MPMediaItemPropertyArtwork] = artwork
+            } else {
+                // 2. Slow path: read & downsample on a background thread.
+                Task.detached(priority: .utility) { [token] in
+                    let url = CollectionCoverImageStore.fileURL(for: relativePath)
+                    guard let image = Self.downsampleArtwork(at: url, maxPixelSize: 600) else { return }
+                    // Populate both caches.
+                    await MainActor.run {
+                        self.artworkCache.setObject(image, forKey: artworkCacheKey as NSString)
+                    }
+                    CollectionCoverArtView.thumbnailCache.setObject(image, forKey: thumbnailCacheKey as NSString)
+                    guard !Task.isCancelled else { return }
+                    await MainActor.run {
+                        guard self.artworkLoadToken == token else { return }
+                        var updatedInfo = self.nowPlayingInfo
+                        let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                        updatedInfo[MPMediaItemPropertyArtwork] = artwork
+                        self.nowPlayingInfo = updatedInfo
+                        MPNowPlayingInfoCenter.default().nowPlayingInfo = updatedInfo
+                    }
+                }
             }
             
         case .remote(let url):
-            // Handle remote images asynchronously
-            loadRemoteArtwork(url: url)
+            remoteArtworkURL = url
         }
 
         nowPlayingInfo = info
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+        // Publish the base metadata first so a synchronous remote-cache hit cannot
+        // be overwritten by the metadata assignment above.
+        if let remoteArtworkURL {
+            loadRemoteArtwork(url: remoteArtworkURL)
+        }
 #if os(iOS)
         MPRemoteCommandCenter.shared().likeCommand.isActive = track.isFavorite
 #endif
@@ -2762,17 +2800,35 @@ private extension AudioPlayerViewModel {
     }
 
     func loadRemoteArtwork(url: URL) {
-        Task {
+        let token = artworkLoadToken
+        let cacheKey = "remote:\(url.absoluteString)"
+
+        // Fast path: in-memory cache hit.
+        if let cached = artworkCache.object(forKey: cacheKey as NSString) {
+            let artwork = MPMediaItemArtwork(boundsSize: cached.size) { _ in cached }
+            var updatedInfo = nowPlayingInfo
+            updatedInfo[MPMediaItemPropertyArtwork] = artwork
+            nowPlayingInfo = updatedInfo
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = updatedInfo
+            return
+        }
+
+        Task.detached(priority: .utility) { [weak self] in
             do {
                 let imageData = try await URLSession.shared.data(from: url).0
-                if let image = UIImage(data: imageData) {
-                    await MainActor.run {
-                        var updatedInfo = self.nowPlayingInfo
-                        let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
-                        updatedInfo[MPMediaItemPropertyArtwork] = artwork
-                        self.nowPlayingInfo = updatedInfo
-                        MPNowPlayingInfoCenter.default().nowPlayingInfo = updatedInfo
-                    }
+                guard let image = Self.downsampleArtwork(data: imageData, maxPixelSize: 600) else {
+                    return
+                }
+                guard !Task.isCancelled else { return }
+                await MainActor.run { [weak self] in
+                    guard let self else { return }
+                    self.artworkCache.setObject(image, forKey: cacheKey as NSString)
+                    guard self.artworkLoadToken == token else { return }
+                    var updatedInfo = self.nowPlayingInfo
+                    let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                    updatedInfo[MPMediaItemPropertyArtwork] = artwork
+                    self.nowPlayingInfo = updatedInfo
+                    MPNowPlayingInfoCenter.default().nowPlayingInfo = updatedInfo
                 }
             } catch {
                 // Silently fail - artwork is optional
@@ -2801,12 +2857,48 @@ private extension AudioPlayerViewModel {
     }
 
     func resetNowPlayingInfo() {
+        artworkLoadToken = nil  // Invalidate any in-flight async artwork loads
         nowPlayingInfo.removeAll()
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
 #if os(iOS)
         MPRemoteCommandCenter.shared().likeCommand.isActive = false
 #endif
     }
+
+#if os(iOS)
+    /// Downsamples cover artwork on a background thread for lock-screen / Now Playing use.
+    /// This is a `nonisolated` static so it can be called from `Task.detached` without
+    /// crossing actor isolation.
+    nonisolated private static func downsampleArtwork(at url: URL, maxPixelSize: CGFloat) -> UIImage? {
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, sourceOptions) else { return nil }
+
+        return downsampleArtwork(source: source, maxPixelSize: maxPixelSize)
+    }
+
+    nonisolated private static func downsampleArtwork(data: Data, maxPixelSize: CGFloat) -> UIImage? {
+        let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions) else { return nil }
+
+        return downsampleArtwork(source: source, maxPixelSize: maxPixelSize)
+    }
+
+    nonisolated private static func downsampleArtwork(
+        source: CGImageSource,
+        maxPixelSize: CGFloat
+    ) -> UIImage? {
+
+        let options = [
+            kCGImageSourceCreateThumbnailFromImageAlways: true,
+            kCGImageSourceCreateThumbnailWithTransform: true,
+            kCGImageSourceShouldCacheImmediately: true,
+            kCGImageSourceThumbnailMaxPixelSize: Int(maxPixelSize)
+        ] as CFDictionary
+
+        guard let cgImage = CGImageSourceCreateThumbnailAtIndex(source, 0, options) else { return nil }
+        return UIImage(cgImage: cgImage)
+    }
+#endif
 
     private func applyFavoriteStateChange(for trackID: UUID) {
         guard var current = currentTrack, current.id == trackID else { return }

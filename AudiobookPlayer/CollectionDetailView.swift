@@ -1032,6 +1032,7 @@ struct CollectionDetailView: View {
         .swipeActions(edge: .leading, allowsFullSwipe: false) {
             if !track.isArchived {
                 Button {
+                    hapticLight()
                     library.archiveTrack(track, in: collection.id)
                     viewModel.scheduleFilteredTracksUpdate()
                 } label: {
@@ -1044,6 +1045,7 @@ struct CollectionDetailView: View {
                 .tint(.orange)
             } else {
                 Button {
+                    hapticLight()
                     library.unarchiveTrack(track, in: collection.id)
                     viewModel.scheduleFilteredTracksUpdate()
                 } label: {
@@ -1236,6 +1238,7 @@ struct CollectionDetailView: View {
     private func addToQueueSwipeButton(for track: AudiobookTrack, in collection: AudiobookCollection) -> some View {
         let isQueued = listenQueueStore.isQueued(trackID: track.id)
         Button {
+            hapticLight()
             Task {
                 if isQueued {
                     // Find the pending item and remove it.

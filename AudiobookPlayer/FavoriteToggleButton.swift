@@ -28,7 +28,10 @@ struct FavoriteToggleButton: View {
     private var styledButton: some View {
         switch style {
         case .icon:
-            Button(action: action) {
+            Button {
+                hapticLight()
+                action()
+            } label: {
                 Image(systemName: isFavorite ? "heart.fill" : "heart")
                     .font(.title3)
                     .foregroundStyle(isFavorite ? .red : .secondary)
@@ -36,7 +39,10 @@ struct FavoriteToggleButton: View {
             .buttonStyle(.plain)
             .frame(width: 26, height: 26)
         case .bordered:
-            Button(action: action) {
+            Button {
+                hapticLight()
+                action()
+            } label: {
                 Label(
                     isFavorite
                     ? NSLocalizedString("remove_from_favorites", comment: "Remove from favorites button")

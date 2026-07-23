@@ -127,6 +127,7 @@ struct ListenQueueView: View {
                 )
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
+                        hapticLight()
                         Task { await listenQueueStore.markDone(itemID: resolved.id) }
                     } label: {
                         Label(
@@ -138,6 +139,7 @@ struct ListenQueueView: View {
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
+                        hapticLight()
                         Task { await listenQueueStore.remove(itemID: resolved.id) }
                     } label: {
                         Label(
@@ -170,6 +172,7 @@ struct ListenQueueView: View {
                 )
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
+                        hapticLight()
                         Task { await listenQueueStore.unmarkDone(itemID: resolved.id) }
                     } label: {
                         Label(
@@ -181,6 +184,7 @@ struct ListenQueueView: View {
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
+                        hapticLight()
                         Task { await listenQueueStore.remove(itemID: resolved.id) }
                     } label: {
                         Label(

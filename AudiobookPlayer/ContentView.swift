@@ -123,6 +123,9 @@ struct ContentView: View {
                         .tag(TabSelectionManager.Tab.personal)
                 }
                 .tint(themeManager.colors.isFestive ? themeManager.colors.festiveRed : .accentColor)
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    MiniPlayerBar()
+                }
 
                 PlaybackStatusOverlay()
             }
