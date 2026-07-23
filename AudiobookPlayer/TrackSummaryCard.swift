@@ -462,11 +462,14 @@ struct TrackSummaryCard: View {
 
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(items, id: \.self) { item in
-                    Text(item)
-                        .font(.caption)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    SelectableText(
+                        text: item,
+                        font: .preferredFont(forTextStyle: .caption1),
+                        textColor: .label
+                    )
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
@@ -510,6 +513,13 @@ struct TrackSummaryCard: View {
             )
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                UIPasteboard.general.string = translation.translation
+            } label: {
+                Label(NSLocalizedString("track_summary_copy_translation", value: "Copy Translation", comment: "Copy translation text"), systemImage: "doc.on.doc")
+            }
+        }
     }
 
     private func jobStatusLabel(for job: AIGenerationJob) -> String {
