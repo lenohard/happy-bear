@@ -1,5 +1,33 @@
 import SwiftUI
+import UIKit
 import Foundation
+
+/// UITextView wrapper for reliable text selection in deep SwiftUI hierarchies.
+/// SwiftUI's .textSelection(.enabled) fails inside ScrollView + Button + VStack combos.
+private struct SelectableText: UIViewRepresentable {
+    let text: String
+    let font: UIFont
+    let textColor: UIColor
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.isEditable = false
+        tv.isScrollEnabled = false
+        tv.backgroundColor = .clear
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.font = font
+        tv.textColor = textColor
+        tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        return tv
+    }
+
+    func updateUIView(_ tv: UITextView, context: Context) {
+        tv.text = text
+        tv.font = font
+        tv.textColor = textColor
+    }
+}
 
 /// Caches and sanitizes track HTML descriptions so we don't re-parse on every SwiftUI update.
 private actor TrackDescriptionSanitizer {
@@ -279,17 +307,11 @@ struct TrackSummaryCard: View {
                         }
                     }
                 if let body = summary.summaryBody {
-                    Text(body)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                        .contextMenu {
-                            Button {
-                                UIPasteboard.general.string = body
-                            } label: {
-                                Label(NSLocalizedString("track_summary_copy_summary", value: "Copy Summary", comment: "Copy summary text"), systemImage: "doc.on.doc")
-                            }
-                        }
+                    SelectableText(
+                        text: body,
+                        font: .preferredFont(forTextStyle: .subheadline),
+                        textColor: .secondaryLabel
+                    )
                 }
                 if let generatedAt = summary.generatedAt {
                     Text(String(format: NSLocalizedString("track_summary_last_generated_format", comment: ""), generatedAt.formatted(date: .abbreviated, time: .shortened)))
