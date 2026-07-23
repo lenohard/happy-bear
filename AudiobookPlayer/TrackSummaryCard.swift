@@ -271,11 +271,25 @@ struct TrackSummaryCard: View {
                 Text(summary.summaryTitle ?? track.displayName)
                     .font(.headline)
                     .textSelection(.enabled)
+                    .contextMenu {
+                        Button {
+                            UIPasteboard.general.string = summary.summaryTitle ?? track.displayName
+                        } label: {
+                            Label(NSLocalizedString("track_summary_copy_title", value: "Copy Title", comment: "Copy title text"), systemImage: "doc.on.doc")
+                        }
+                    }
                 if let body = summary.summaryBody {
                     Text(body)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .textSelection(.enabled)
+                        .contextMenu {
+                            Button {
+                                UIPasteboard.general.string = body
+                            } label: {
+                                Label(NSLocalizedString("track_summary_copy_summary", value: "Copy Summary", comment: "Copy summary text"), systemImage: "doc.on.doc")
+                            }
+                        }
                 }
                 if let generatedAt = summary.generatedAt {
                     Text(String(format: NSLocalizedString("track_summary_last_generated_format", comment: ""), generatedAt.formatted(date: .abbreviated, time: .shortened)))
