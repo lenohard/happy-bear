@@ -18,9 +18,13 @@ private struct SelectableText: UIViewRepresentable {
         tv.backgroundColor = .clear
         tv.textContainerInset = .zero
         tv.textContainer.lineFragmentPadding = 0
+        tv.textContainer.widthTracksTextView = true
+        tv.textContainer.lineBreakMode = .byWordWrapping
         tv.font = font
         tv.textColor = textColor
+        tv.text = text
         tv.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        tv.setContentCompressionResistancePriority(.required, for: .vertical)
         return tv
     }
 
@@ -30,8 +34,23 @@ private struct SelectableText: UIViewRepresentable {
         if tv.text != text {
             tv.text = text
         }
-        tv.font = font
-        tv.textColor = textColor
+        if tv.font != font {
+            tv.font = font
+        }
+        if tv.textColor != textColor {
+            tv.textColor = textColor
+        }
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        let width = proposal.width ?? uiView.bounds.width
+        guard width > 0 else { return nil }
+
+        uiView.textContainer.size = CGSize(width: width, height: .greatestFiniteMagnitude)
+        let fittingHeight = uiView.sizeThatFits(
+            CGSize(width: width, height: .greatestFiniteMagnitude)
+        ).height
+        return CGSize(width: width, height: ceil(fittingHeight))
     }
 }
 
@@ -263,6 +282,7 @@ struct TrackSummaryCard: View {
                     font: .preferredFont(forTextStyle: .footnote),
                     textColor: .label
                 )
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
 
@@ -320,6 +340,7 @@ struct TrackSummaryCard: View {
                         font: .preferredFont(forTextStyle: .subheadline),
                         textColor: .secondaryLabel
                     )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 if let generatedAt = summary.generatedAt {
                     Text(String(format: NSLocalizedString("track_summary_last_generated_format", comment: ""), generatedAt.formatted(date: .abbreviated, time: .shortened)))
