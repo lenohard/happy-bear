@@ -845,14 +845,16 @@ final class CollectionDetailViewModel: ObservableObject {
     func updatePlaybackProgress(
         trackID: UUID,
         position: TimeInterval,
-        duration: TimeInterval?
+        duration: TimeInterval?,
+        forcePersist: Bool = false
     ) {
         let now = Date()
         library?.recordPlaybackProgress(
             collectionID: collectionID,
             trackID: trackID,
             position: position,
-            duration: duration
+            duration: duration,
+            forcePersist: forcePersist
         )
 
         var state = playbackStateSnapshot[trackID] ?? TrackPlaybackState(position: position, duration: duration, updatedAt: now)

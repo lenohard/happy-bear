@@ -12,7 +12,9 @@ private struct SelectableText: UIViewRepresentable {
     func makeUIView(context: Context) -> UITextView {
         let tv = UITextView()
         tv.isEditable = false
+        tv.isSelectable = true
         tv.isScrollEnabled = false
+        tv.adjustsFontForContentSizeCategory = true
         tv.backgroundColor = .clear
         tv.textContainerInset = .zero
         tv.textContainer.lineFragmentPadding = 0
@@ -23,7 +25,11 @@ private struct SelectableText: UIViewRepresentable {
     }
 
     func updateUIView(_ tv: UITextView, context: Context) {
-        tv.text = text
+        // Reassigning `text` clears the current UITextView selection. Only
+        // update changed values so SwiftUI refreshes do not interrupt copying.
+        if tv.text != text {
+            tv.text = text
+        }
         tv.font = font
         tv.textColor = textColor
     }

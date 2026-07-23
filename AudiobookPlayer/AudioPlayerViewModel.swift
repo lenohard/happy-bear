@@ -319,6 +319,10 @@ final class AudioPlayerViewModel: ObservableObject {
     }
 
     private func handleVLCTrackEnded() {
+        // Persist the terminal position before advancing. The normal 15-second
+        // checkpoint may be too far behind to trigger auto-archive at EOF.
+        persistCurrentPlaybackProgress(position: duration > 0 ? duration : currentTime, forcePersist: true)
+
         // Notify listen queue about the finished track BEFORE clearing state / advancing.
         let finishedTrackID = currentTrack?.id
         let finishedCollectionID = activeCollection?.id
@@ -1391,7 +1395,30 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
 
         let shouldResume = resumePlaybackAfterScrub
         resumePlaybackAfterScrub = false
+        persistCurrentPlaybackProgress(position: time, forcePersist: true)
         seek(to: time, resumeAfterSeek: shouldResume)
+    }
+
+    /// Persist an explicit playback checkpoint without waiting for the automatic
+    /// 15-second threshold. Used for user seeks and lifecycle boundaries.
+    private func persistCurrentPlaybackProgress(
+        position: TimeInterval? = nil,
+        forcePersist: Bool = false
+    ) {
+        guard
+            let collection = activeCollection,
+            !collection.isEphemeral,
+            let track = currentTrack,
+            let library
+        else { return }
+
+        library.recordPlaybackProgress(
+            collectionID: collection.id,
+            trackID: track.id,
+            position: position ?? currentTime,
+            duration: duration > 0 ? duration : nil,
+            forcePersist: forcePersist
+        )
     }
 
     func cacheStatus(for track: AudiobookTrack) -> CacheStatusSnapshot? {
@@ -1956,7 +1983,8 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
                     collectionID: savedCollection.id,
                     trackID: savedTrack.id,
                     position: savedPosition,
-                    duration: savedDuration > 0 ? savedDuration : nil
+                    duration: savedDuration > 0 ? savedDuration : nil,
+                    forcePersist: true
                 )
             }
         }
@@ -2080,6 +2108,9 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
     }
 
     func handlePlaybackFinished() {
+        // The final interval is often shorter than 15 seconds. Save it before
+        // resetting the clock to zero or switching to the next track.
+        persistCurrentPlaybackProgress(position: duration > 0 ? duration : currentTime, forcePersist: true)
         flushListeningSession()
 
         // Notify listen queue about the finished track BEFORE clearing state / advancing,
@@ -2896,6 +2927,8 @@ private extension AudioPlayerViewModel {
 
 extension AudioPlayerViewModel {
     func handleAppDidEnterBackground() {
+        persistCurrentPlaybackProgress(forcePersist: true)
+
         if !isPlaying {
             endPlaybackStartupMonitoring()
         }

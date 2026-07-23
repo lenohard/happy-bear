@@ -796,7 +796,8 @@ final class LibraryStore: ObservableObject {
         collectionID: UUID,
         trackID: UUID,
         position: TimeInterval,
-        duration: TimeInterval?
+        duration: TimeInterval?,
+        forcePersist: Bool = false
     ) {
         guard let index = collections.firstIndex(where: { $0.id == collectionID }) else { return }
 
@@ -822,7 +823,9 @@ final class LibraryStore: ObservableObject {
 
         var state = collection.playbackStates[trackID] ?? TrackPlaybackState(position: 0, duration: duration, updatedAt: now)
         let clampedPosition = max(0, position)
-        let didChangePosition = abs(state.position - clampedPosition) >= 15
+        // Automatic playback checkpoints are throttled, but explicit user
+        // actions and lifecycle boundaries must be durable immediately.
+        let didChangePosition = forcePersist || abs(state.position - clampedPosition) >= 15
         let didChangeDuration: Bool
         let didChangeTrack = collection.lastPlayedTrackId != trackID
 

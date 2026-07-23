@@ -349,7 +349,6 @@ struct CollectionDetailView: View {
 
                 viewModel.prepareAutoFocusTargetIfNeeded(for: currentCollection)
             }
-            .background(CollectionPlaybackProgressObserver(collectionID: viewModel.collectionID))
 
         let viewWithStateEvents = viewWithPlaybackEvents
             .onChange(of: viewModel.trackToRename) { _, newValue in
@@ -995,14 +994,22 @@ struct CollectionDetailView: View {
                 library.toggleFavorite(for: track.id, in: collection.id)
                 audioPlayer.notifyFavoriteToggle(for: track.id)
             },
-            onSeek: { time in
-                audioPlayer.seek(to: time)
+            onBeginScrubbing: {
+                audioPlayer.beginScrubbing()
+            },
+            onEndScrubbing: { time in
+                audioPlayer.endScrubbing(at: time)
+                // AudioPlayerViewModel persists the exact seek position; refresh
+                // this view model's snapshot so the row does not snap back to
+                // the pre-seek position after the drag ends.
+                viewModel.refreshPlaybackStateSnapshot(for: viewModel.collection)
             },
             onUpdateProgress: { position, duration in
                 viewModel.updatePlaybackProgress(
                     trackID: track.id,
                     position: position,
-                    duration: duration
+                    duration: duration,
+                    forcePersist: true
                 )
             }
         )
@@ -1588,7 +1595,8 @@ private struct TrackDetailRow: View, Equatable {
     let isTranscribing: Bool
     let onSelect: () -> Void
     let onToggleFavorite: () -> Void
-    let onSeek: (TimeInterval) -> Void
+    let onBeginScrubbing: () -> Void
+    let onEndScrubbing: (TimeInterval) -> Void
     let onUpdateProgress: (TimeInterval, TimeInterval?) -> Void
 
     @State private var scrubValue: Double = 0
@@ -1797,10 +1805,13 @@ private struct TrackDetailRow: View, Equatable {
                     onEditingChanged: { editing in
                         if editing {
                             isScrubbing = true
+                            if isActive {
+                                onBeginScrubbing()
+                            }
                         } else {
                             isScrubbing = false
                             if isActive {
-                                onSeek(scrubValue)
+                                onEndScrubbing(scrubValue)
                             } else {
                                 onUpdateProgress(scrubValue, duration)
                             }
@@ -1856,76 +1867,6 @@ private struct TrackDetailRow: View, Equatable {
             return "\(formatter.string(from: NSNumber(value: thousands)) ?? "")k"
         } else {
             return "\(number)"
-        }
-    }
-}
-
-private struct CollectionPlaybackProgressObserver: View {
-    @EnvironmentObject private var playbackClock: PlaybackClock
-    @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
-    @EnvironmentObject private var library: LibraryStore
-
-    let collectionID: UUID
-
-    var body: some View {
-        Color.clear
-            .onChange(of: playbackClock.currentTime) { newValue in
-                // Check interval first to avoid unnecessary dependency tracking on library.collections
-                guard Int(newValue) % 15 == 0,
-                    audioPlayer.activeCollection?.id == collectionID,
-                    let track = audioPlayer.currentTrack,
-                    let collection = library.collections.first(where: { $0.id == collectionID })
-                else { return }
-
-                library.recordPlaybackProgress(
-                    collectionID: collection.id,
-                    trackID: track.id,
-                    position: newValue,
-                    duration: audioPlayer.duration
-                )
-            }
-    }
-}
-
-private struct PlaybackTimeline: View {
-    @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
-    @EnvironmentObject private var playbackClock: PlaybackClock
-
-    @State private var scrubValue: Double = 0
-    @State private var isScrubbing = false
-
-    private var displayedTime: Double {
-        isScrubbing ? scrubValue : playbackClock.currentTime
-    }
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Slider(
-                value: Binding(
-                    get: { displayedTime },
-                    set: { scrubValue = $0 }
-                ),
-                in: 0...(max(playbackClock.duration, 1)),
-                onEditingChanged: { editing in
-                    if editing {
-                        scrubValue = playbackClock.currentTime
-                        isScrubbing = true
-                        audioPlayer.beginScrubbing()
-                    } else {
-                        isScrubbing = false
-                        audioPlayer.endScrubbing(at: scrubValue)
-                    }
-                }
-            )
-            .tint(Color.accentColor)
-
-            HStack {
-                Text(displayedTime.formattedTimestamp)
-                Spacer()
-                Text(playbackClock.duration.formattedTimestamp)
-            }
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(.secondary)
         }
     }
 }
