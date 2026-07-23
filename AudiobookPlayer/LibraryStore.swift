@@ -822,7 +822,7 @@ final class LibraryStore: ObservableObject {
 
         var state = collection.playbackStates[trackID] ?? TrackPlaybackState(position: 0, duration: duration, updatedAt: now)
         let clampedPosition = max(0, position)
-        let didChangePosition = abs(state.position - clampedPosition) >= 5
+        let didChangePosition = abs(state.position - clampedPosition) >= 15
         let didChangeDuration: Bool
         let didChangeTrack = collection.lastPlayedTrackId != trackID
 
@@ -877,12 +877,6 @@ final class LibraryStore: ObservableObject {
             persistCurrentSnapshot()  // Fallback to JSON
         }
 
-        if let syncEngine {
-            Task(priority: .utility) {
-                try? await syncEngine.saveRemoteCollection(collection)
-            }
-        }
-        
         // Auto-archive track when played to 100% completion
         if let duration = state.duration, duration > 0, state.position >= duration * 0.99 {
             if let trackIdx = collection.tracks.firstIndex(where: { $0.id == trackID }),

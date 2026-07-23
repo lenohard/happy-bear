@@ -1791,19 +1791,20 @@ private struct TrackDetailRow: View, Equatable {
                 Slider(
                     value: Binding(
                         get: { clampedPosition },
-                        set: { newValue in
-                            scrubValue = newValue
-                            if isActive {
-                                onSeek(newValue)
-                            }
-                        }
+                        set: { scrubValue = $0 }
                     ),
                     in: 0...max(duration, 1),
                     onEditingChanged: { editing in
-                        if !editing, !isActive {
-                            onUpdateProgress(scrubValue, duration)
+                        if editing {
+                            isScrubbing = true
+                        } else {
+                            isScrubbing = false
+                            if isActive {
+                                onSeek(scrubValue)
+                            } else {
+                                onUpdateProgress(scrubValue, duration)
+                            }
                         }
-                        isScrubbing = editing
                     }
                 )
                 .tint(Color.accentColor)
@@ -1869,21 +1870,19 @@ private struct CollectionPlaybackProgressObserver: View {
     var body: some View {
         Color.clear
             .onChange(of: playbackClock.currentTime) { newValue in
-                guard
+                // Check interval first to avoid unnecessary dependency tracking on library.collections
+                guard Int(newValue) % 15 == 0,
                     audioPlayer.activeCollection?.id == collectionID,
                     let track = audioPlayer.currentTrack,
                     let collection = library.collections.first(where: { $0.id == collectionID })
                 else { return }
 
-                // Approximate 5s checkpoints (matches previous behavior).
-                if Int(newValue) % 5 == 0 {
-                    library.recordPlaybackProgress(
-                        collectionID: collection.id,
-                        trackID: track.id,
-                        position: newValue,
-                        duration: audioPlayer.duration
-                    )
-                }
+                library.recordPlaybackProgress(
+                    collectionID: collection.id,
+                    trackID: track.id,
+                    position: newValue,
+                    duration: audioPlayer.duration
+                )
             }
     }
 }
@@ -1892,19 +1891,36 @@ private struct PlaybackTimeline: View {
     @EnvironmentObject private var audioPlayer: AudioPlayerViewModel
     @EnvironmentObject private var playbackClock: PlaybackClock
 
+    @State private var scrubValue: Double = 0
+    @State private var isScrubbing = false
+
+    private var displayedTime: Double {
+        isScrubbing ? scrubValue : playbackClock.currentTime
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             Slider(
                 value: Binding(
-                    get: { playbackClock.currentTime },
-                    set: { audioPlayer.seek(to: $0) }
+                    get: { displayedTime },
+                    set: { scrubValue = $0 }
                 ),
-                in: 0...(max(playbackClock.duration, 1))
+                in: 0...(max(playbackClock.duration, 1)),
+                onEditingChanged: { editing in
+                    if editing {
+                        scrubValue = playbackClock.currentTime
+                        isScrubbing = true
+                        audioPlayer.beginScrubbing()
+                    } else {
+                        isScrubbing = false
+                        audioPlayer.endScrubbing(at: scrubValue)
+                    }
+                }
             )
             .tint(Color.accentColor)
 
             HStack {
-                Text(playbackClock.currentTime.formattedTimestamp)
+                Text(displayedTime.formattedTimestamp)
                 Spacer()
                 Text(playbackClock.duration.formattedTimestamp)
             }

@@ -252,9 +252,11 @@ struct TrackSummaryCard: View {
                     .font(.caption)
                     .fontWeight(.bold)
                     .foregroundStyle(.secondary)
-                Text(description)
-                    .font(.footnote)
-                    .foregroundStyle(.primary)
+                SelectableText(
+                    text: description,
+                    font: .preferredFont(forTextStyle: .footnote),
+                    textColor: .label
+                )
             }
         }
 

@@ -27,6 +27,7 @@ iOS audiobook player for Baidu Cloud Drive (百度云盘). Import, manage, and p
 - **Nested ScrollViews**: Avoid nesting if using `ScrollViewReader.scrollTo()`.
 - **Swipe Actions**: Use `.labelStyle(.iconOnly)` for centering.
 - **Type-Checker Timeout**: Split long modifier chains with `let` variables (≤10 modifiers each). Follow `viewWith*` naming convention. Extract large `.onChange`/`.onAppear` closures to methods.
+- **Text Selection**: `.textSelection(.enabled)` fails inside ScrollView + Button + VStack combos. Use `UITextView` wrapper (`SelectableText`) for reliable partial text selection.
 
 ## Baidu & Networking
 - **WebSocket**: Wait for `didOpenWithProtocol`. Fresh `URLSession` per request.
@@ -66,7 +67,7 @@ iOS audiobook player for Baidu Cloud Drive (百度云盘). Import, manage, and p
 - **pbxproj**: Never edit manually — use Xcode UI to add files.
 
 ## Recent Progress
-- **Jul 2026**: Background audio startup protection, scrub resume fix (seek-completion resume), build 26.
+- **Jul 2026**: Release signing fix (Manual + Apple Distribution in pbxproj), SwiftUI text selection fix (UITextView wrapper), builds 31-32.
 - **May 2026**: Global search across collections/tracks. v0.3.2 build 19.
 - **Apr 2026**: Remote STT server fix (Tailscale Serve misconfiguration).
 - **Feb 2026**: Chapter support for collections with subfolders.
