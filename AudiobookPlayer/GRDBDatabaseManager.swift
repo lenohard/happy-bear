@@ -634,6 +634,50 @@ actor GRDBDatabaseManager {
         }
     }
 
+    /// Baidu netdisk paths already stored for a collection (lightweight — no full track load).
+    func fetchBaiduTrackPaths(collectionId: UUID) throws -> Set<String> {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: """
+                SELECT location_payload FROM tracks
+                WHERE collection_id = ? AND location_type = 'baidu' AND is_archived = 0
+                """,
+                arguments: [collectionId.uuidString]
+            )
+            var paths = Set<String>()
+            paths.reserveCapacity(rows.count)
+            for row in rows {
+                guard
+                    let payload = row["location_payload"] as? String,
+                    let data = payload.data(using: .utf8),
+                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                    let path = json["path"] as? String
+                else { continue }
+                paths.insert(path)
+            }
+            return paths
+        }
+    }
+
+    /// Highest track_number in a collection (0 when empty).
+    func fetchMaxTrackNumber(collectionId: UUID) throws -> Int {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        return try db.read { db in
+            try Int.fetchOne(
+                db,
+                sql: """
+                SELECT MAX(track_number) FROM tracks
+                WHERE collection_id = ? AND is_archived = 0
+                """,
+                arguments: [collectionId.uuidString]
+            ) ?? 0
+        }
+    }
+
     /// Fetch playback states for a subset of tracks
     func fetchPlaybackStates(collectionId: UUID, trackIds: [UUID]) throws -> [UUID: TrackPlaybackState] {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }

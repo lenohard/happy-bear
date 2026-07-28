@@ -56,6 +56,13 @@ final class LibraryStore: ObservableObject {
         (filename as NSString).deletingPathExtension.lowercased()
     }
 
+    private static func descEntriesFromListing(_ entries: [BaiduNetdiskEntry]) -> [BaiduNetdiskEntry] {
+        entries.filter { entry in
+            guard !entry.isDir else { return false }
+            return (entry.serverFilename as NSString).pathExtension.lowercased() == "desc"
+        }
+    }
+
     private static func matchingDescEntry(
         for trackPath: String?,
         filename: String,
@@ -422,61 +429,56 @@ final class LibraryStore: ObservableObject {
     }
 
     func scanNewTracksForBaiduCollection(collectionId: UUID, token: BaiduOAuthToken) async throws -> [AudiobookTrack] {
-        await ensureCollectionLoaded(collectionId)
-        
         guard let index = collections.firstIndex(where: { $0.id == collectionId }) else {
             throw LibraryStoreError.collectionNotFound
         }
-        
+
         let collection = collections[index]
-        
+
         guard case let .baiduNetdisk(folderPath, _) = collection.source else {
             return []
         }
-        
+
         let client = BaiduNetdiskClient()
-        let entries = try await client.listDirectory(path: folderPath, token: token)
-        
-        let existingTrackPaths = Set(collection.tracks.compactMap { track -> String? in
-            if case let .baidu(_, path) = track.location {
-                return path
-            }
-            return nil
-        })
-        
+        async let remoteListing = client.listDirectory(path: folderPath, token: token)
+        async let existingTrackPaths = dbManager.fetchBaiduTrackPaths(collectionId: collectionId)
+        async let maxTrackNumber = dbManager.fetchMaxTrackNumber(collectionId: collectionId)
+
+        let entries = try await remoteListing
+        let paths = try await existingTrackPaths
+        let startTrackNumber = (try await maxTrackNumber) + 1
+
         let newEntries = entries.filter { entry in
             guard !entry.isDir else { return false }
             let ext = (entry.serverFilename as NSString).pathExtension.lowercased()
             guard PlayableMediaFormat.isPlayableExtension(ext) else { return false }
-            return !existingTrackPaths.contains(entry.path)
+            return !paths.contains(entry.path)
         }
-        
+
         guard !newEntries.isEmpty else { return [] }
-        
-        let startTrackNumber = (collection.tracks.map(\.trackNumber).max() ?? 0) + 1
-        let descEntries = (try? await fetchBaiduDescriptionEntries(in: folderPath, token: token, client: client)) ?? []
-        let descMap = Self.descEntriesByBaseName(from: descEntries)
-        var descCache: [String: String] = [:]
-        
+
+        // Reuse the directory listing for sibling .desc files — avoids a slow recursive search API call.
+        let descMap = Self.descEntriesByBaseName(from: Self.descEntriesFromListing(entries))
+        let descCache = await loadBaiduDescriptionTexts(
+            for: newEntries,
+            descMap: descMap,
+            client: client,
+            token: token
+        )
+
         var tracks: [AudiobookTrack] = []
+        tracks.reserveCapacity(newEntries.count)
         for (index, entry) in newEntries.enumerated() {
             var metadata: [String: String] = [:]
-            if let descEntry = Self.matchingDescEntry(for: entry.path, filename: entry.serverFilename, in: descMap) {
-                if let cached = descCache[descEntry.path] {
-                    let trimmed = cached.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        metadata["description"] = trimmed
-                    }
-                } else if let text = try? await client.downloadTextFile(path: descEntry.path, token: token) {
-                    descCache[descEntry.path] = text
-                    let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        metadata["description"] = trimmed
-                    }
+            if let descEntry = Self.matchingDescEntry(for: entry.path, filename: entry.serverFilename, in: descMap),
+               let text = descCache[descEntry.path] {
+                let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    metadata["description"] = trimmed
                 }
             }
 
-            let track = AudiobookTrack(
+            tracks.append(AudiobookTrack(
                 id: UUID(),
                 displayName: entry.serverFilename,
                 filename: entry.serverFilename,
@@ -487,11 +489,46 @@ final class LibraryStore: ObservableObject {
                 checksum: entry.md5,
                 metadata: metadata,
                 mediaKind: PlayableMediaFormat.mediaKind(forFilename: entry.serverFilename)
-            )
-            tracks.append(track)
+            ))
         }
 
         return tracks
+    }
+
+    private func loadBaiduDescriptionTexts(
+        for entries: [BaiduNetdiskEntry],
+        descMap: [String: [BaiduNetdiskEntry]],
+        client: BaiduNetdiskClient,
+        token: BaiduOAuthToken
+    ) async -> [String: String] {
+        var descPaths: [String] = []
+        var seen = Set<String>()
+        for entry in entries {
+            guard let descEntry = Self.matchingDescEntry(for: entry.path, filename: entry.serverFilename, in: descMap) else {
+                continue
+            }
+            if seen.insert(descEntry.path).inserted {
+                descPaths.append(descEntry.path)
+            }
+        }
+        guard !descPaths.isEmpty else { return [:] }
+
+        var cache: [String: String] = [:]
+        cache.reserveCapacity(descPaths.count)
+        await withTaskGroup(of: (String, String?).self) { group in
+            for path in descPaths {
+                group.addTask {
+                    let text = try? await client.downloadTextFile(path: path, token: token)
+                    return (path, text)
+                }
+            }
+            for await (path, text) in group {
+                if let text {
+                    cache[path] = text
+                }
+            }
+        }
+        return cache
     }
 
     func addTracks(to collectionId: UUID, tracks: [AudiobookTrack]) {
@@ -507,7 +544,6 @@ final class LibraryStore: ObservableObject {
     }
 
     func refreshBaiduCollection(collectionId: UUID, token: BaiduOAuthToken) async throws -> Int {
-        _ = try? await syncBaiduTrackDescriptions(collectionId: collectionId, token: token)
         let newTracks = try await scanNewTracksForBaiduCollection(collectionId: collectionId, token: token)
         addTracks(to: collectionId, tracks: newTracks)
         return newTracks.count

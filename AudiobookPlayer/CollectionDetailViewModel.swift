@@ -918,7 +918,6 @@ final class CollectionDetailViewModel: ObservableObject {
                         }
                         return
                     }
-                    _ = try? await library?.syncBaiduTrackDescriptions(collectionId: collectionID, token: token)
                     candidates = try await library?.scanNewTracksForBaiduCollection(collectionId: collectionID, token: token) ?? []
                 case .rss:
                     candidates = try await library?.scanNewTracksForRSSCollection(collectionId: collectionID) ?? []
