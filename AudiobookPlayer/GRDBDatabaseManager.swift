@@ -635,6 +635,7 @@ actor GRDBDatabaseManager {
     }
 
     /// Baidu netdisk paths already stored for a collection (lightweight — no full track load).
+    /// Includes archived tracks so refresh does not re-offer them as updates.
     func fetchBaiduTrackPaths(collectionId: UUID) throws -> Set<String> {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
@@ -643,7 +644,7 @@ actor GRDBDatabaseManager {
                 db,
                 sql: """
                 SELECT location_payload FROM tracks
-                WHERE collection_id = ? AND location_type = 'baidu' AND is_archived = 0
+                WHERE collection_id = ? AND location_type = 'baidu'
                 """,
                 arguments: [collectionId.uuidString]
             )
