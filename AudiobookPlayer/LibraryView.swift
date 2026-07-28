@@ -32,6 +32,9 @@ struct LibraryView: View {
     @State private var rssImportSummary: String?
     @State private var showHistorySheet = false
     @State private var searchQuery = ""
+    @State private var searchTrackResults: [LibraryStore.FavoriteTrackEntry] = []
+    @State private var isSearchingTracks = false
+    @State private var searchDebounceTask: Task<Void, Never>?
 
     private var selectedCollectionID: Binding<UUID?> {
         Binding(
@@ -242,16 +245,18 @@ struct LibraryView: View {
                     }
                 }
             }
-            
-            let matchedTracks = library.collections.filter { !$0.isArchived }.flatMap { collection in
-                collection.tracks
-                    .filter { $0.displayName.localizedCaseInsensitiveContains(lowerQuery) }
-                    .map { LibraryStore.FavoriteTrackEntry(collection: collection, track: $0) }
-            }
-            
-            if !matchedTracks.isEmpty {
+
+            if isSearchingTracks {
                 Section(NSLocalizedString("tracks_section", value: "Tracks", comment: "Tracks section")) {
-                    ForEach(matchedTracks) { entry in
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                        Spacer()
+                    }
+                }
+            } else if !searchTrackResults.isEmpty {
+                Section(NSLocalizedString("tracks_section", value: "Tracks", comment: "Tracks section")) {
+                    ForEach(searchTrackResults) { entry in
                         FavoriteTrackRow(
                             entry: entry,
                             isActive: audioPlayer.activeCollection?.id == entry.collection.id && audioPlayer.currentTrack?.id == entry.track.id,
@@ -266,7 +271,7 @@ struct LibraryView: View {
                 }
             }
             
-            if matchedCollections.isEmpty && matchedTracks.isEmpty {
+            if matchedCollections.isEmpty && searchTrackResults.isEmpty && !isSearchingTracks {
                 Text(String(format: NSLocalizedString("no_results_for", value: "No results found for \"%@\"", comment: "No search results message"), searchQuery))
                     .foregroundColor(.secondary)
                     .listRowBackground(Color.clear)
@@ -326,6 +331,15 @@ struct LibraryView: View {
             mainContent
                 .navigationTitle(themeManager.colors.isFestive ? "🎄 " + NSLocalizedString("library_title", comment: "Library view title") : NSLocalizedString("library_title", comment: "Library view title"))
                 .searchable(text: $searchQuery, prompt: NSLocalizedString("search_library_prompt", value: "Search collections and tracks", comment: "Search prompt in library"))
+                .onChange(of: searchQuery) {
+                    scheduleLibrarySearch()
+                }
+                .onSubmit(of: .search) {
+                    searchDebounceTask?.cancel()
+                    let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !query.isEmpty else { return }
+                    Task { await performLibrarySearch(query: query) }
+                }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         randomCollectionButton
@@ -592,6 +606,37 @@ struct LibraryView: View {
         }
 
         tabSelection.switchToPlayingTab()
+    }
+
+    private func scheduleLibrarySearch() {
+        searchDebounceTask?.cancel()
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        if query.isEmpty {
+            searchTrackResults = []
+            isSearchingTracks = false
+            return
+        }
+
+        searchDebounceTask = Task {
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            if Task.isCancelled { return }
+            await performLibrarySearch(query: query)
+        }
+    }
+
+    @MainActor
+    private func performLibrarySearch(query: String) async {
+        isSearchingTracks = true
+        defer { isSearchingTracks = false }
+
+        do {
+            let results = try await library.searchTracks(query: query)
+            guard searchQuery.trimmingCharacters(in: .whitespacesAndNewlines) == query else { return }
+            searchTrackResults = results
+        } catch {
+            AppLog.debug("[LibraryView] Track search failed: \(error)")
+            searchTrackResults = []
+        }
     }
 
     private func checkForRSSUpdates() {

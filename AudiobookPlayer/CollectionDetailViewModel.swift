@@ -530,7 +530,8 @@ final class CollectionDetailViewModel: ObservableObject {
     func scheduleFilteredTracksUpdate() {
         filterTask?.cancel()
 
-        if isPagedMode {
+        let trimmedQuery = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if isPagedMode || !trimmedQuery.isEmpty {
             Task {
                 await reloadFromDatabase(startingPage: 0, focusTarget: pendingAutoFocusTrackId)
             }

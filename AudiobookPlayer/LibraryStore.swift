@@ -1553,6 +1553,17 @@ extension LibraryStore {
         }
         .sorted { ($0.track.favoritedAt ?? .distantPast) > ($1.track.favoritedAt ?? .distantPast) }
     }
+
+    /// Search tracks across the library via SQLite (does not require lazy-loaded track arrays).
+    func searchTracks(query: String, limit: Int = 200) async throws -> [FavoriteTrackEntry] {
+        let hits = try await dbManager.searchLibraryTracks(query: query, limit: limit)
+        return hits.compactMap { hit in
+            guard let collection = collections.first(where: { $0.id == hit.collectionId && !$0.isArchived }) else {
+                return nil
+            }
+            return FavoriteTrackEntry(collection: collection, track: hit.track)
+        }
+    }
     
     func favoriteTracksByCollection() -> [FavoriteTracksGroup] {
         collections.compactMap { collection in

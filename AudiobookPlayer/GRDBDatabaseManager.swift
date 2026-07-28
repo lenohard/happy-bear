@@ -529,7 +529,7 @@ actor GRDBDatabaseManager {
         guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
 
         let trimmedQuery = (query ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        var whereClauses: [String] = ["t.collection_id = ?"]
+        var whereClauses: [String] = ["t.collection_id = ?", "t.is_archived = 0"]
         var arguments: [DatabaseValueConvertible] = [collectionId.uuidString]
 
         if !trimmedQuery.isEmpty {
@@ -587,6 +587,50 @@ actor GRDBDatabaseManager {
                 }
             }
             return (tracks, total)
+        }
+    }
+
+    struct LibraryTrackSearchHit: Sendable {
+        let collectionId: UUID
+        let track: AudiobookTrack
+    }
+
+    /// Search tracks across all non-archived collections (for Library global search).
+    func searchLibraryTracks(query: String, limit: Int = 200) throws -> [LibraryTrackSearchHit] {
+        guard let db = db else { throw DatabaseError.initializationFailed("Database not initialized") }
+
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return [] }
+
+        let pattern = "%\(trimmed)%"
+        let sql = """
+        SELECT t.*
+        FROM tracks t
+        INNER JOIN collections c ON c.id = t.collection_id
+        WHERE c.is_archived = 0
+          AND t.is_archived = 0
+          AND (t.display_name LIKE ? OR t.filename LIKE ?)
+        ORDER BY c.updated_at DESC, t.track_number ASC
+        LIMIT ?
+        """
+
+        return try db.read { db in
+            let rows = try Row.fetchAll(
+                db,
+                sql: sql,
+                arguments: [pattern, pattern, limit]
+            )
+            var hits: [LibraryTrackSearchHit] = []
+            hits.reserveCapacity(rows.count)
+            for row in rows {
+                guard
+                    let collectionIdStr = row["collection_id"] as? String,
+                    let collectionId = UUID(uuidString: collectionIdStr),
+                    let track = try reconstructTrack(row: row)
+                else { continue }
+                hits.append(LibraryTrackSearchHit(collectionId: collectionId, track: track))
+            }
+            return hits
         }
     }
 
