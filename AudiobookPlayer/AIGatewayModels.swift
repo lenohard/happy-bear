@@ -54,6 +54,52 @@ struct AIModelInfo: Identifiable, Codable, Equatable {
     }
 }
 
+// MARK: - Endpoint Configuration
+
+enum AIGatewayEndpointPreset: String, CaseIterable, Codable {
+    case opencodeGo
+    case vercelAIGateway
+    case custom
+
+    var displayName: String {
+        switch self {
+        case .opencodeGo: return "OpenCode Go"
+        case .vercelAIGateway: return "Vercel AI Gateway"
+        case .custom: return "Custom"
+        }
+    }
+
+    var defaultBaseURL: String {
+        switch self {
+        case .opencodeGo: return "https://opencode.ai/zen/go/v1"
+        case .vercelAIGateway: return "https://ai-gateway.vercel.sh/v1"
+        case .custom: return ""
+        }
+    }
+}
+
+struct AIGatewayEndpointConfig: Codable, Equatable {
+    var preset: AIGatewayEndpointPreset
+    var customURL: String
+
+    var baseURL: String {
+        if preset == .custom {
+            let trimmed = customURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.hasSuffix("/") ? String(trimmed.dropLast()) : trimmed
+        }
+        return preset.defaultBaseURL
+    }
+
+    var displayURL: String {
+        if preset == .custom && !customURL.isEmpty {
+            return customURL
+        }
+        return preset.defaultBaseURL
+    }
+
+    static let `default` = AIGatewayEndpointConfig(preset: .opencodeGo, customURL: "")
+}
+
 struct ModelsResponse: Codable {
     let data: [AIModelInfo]
 }

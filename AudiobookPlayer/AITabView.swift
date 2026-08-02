@@ -67,6 +67,10 @@ struct AITabView: View {
     // MARK: - Credentials & Status Section
     private var credentialsSection: some View {
         Section {
+            // Endpoint selector
+            endpointSelectorRow
+                .modifier(CredentialRowModifier(alignment: .leading))
+
             // API Key Row - always editable, no edit button
             gatewayKeyRow
                 .modifier(CredentialRowModifier(alignment: .leading))
@@ -167,6 +171,69 @@ struct AITabView: View {
                 .font(.headline)
         }
     }
+
+    // MARK: - Endpoint Selector
+
+    private var endpointSelectorRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Label(NSLocalizedString("ai_tab_endpoint_label", comment: "Endpoint"), systemImage: "network")
+                    .font(.subheadline)
+                Spacer()
+                Text(gateway.endpointConfig.preset.displayName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(gateway.endpointConfig.displayURL)
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+
+            HStack(spacing: 8) {
+                ForEach(AIGatewayEndpointPreset.allCases, id: \.self) { preset in
+                    if preset != .custom {
+                        Button(preset.displayName) {
+                            gateway.switchToPreset(preset)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(gateway.endpointConfig.preset == preset ? .blue : .gray)
+                    }
+                }
+
+                if gateway.endpointConfig.preset == .custom {
+                    Button("Custom") {
+                        // already custom
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.blue)
+                } else {
+                    Button("Custom") {
+                        gateway.switchToPreset(.custom)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.gray)
+                }
+            }
+
+            if gateway.endpointConfig.preset == .custom {
+                TextField("https://your-gateway.example.com/v1", text: $gateway.customEndpointURL)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.caption)
+                    .textInputAutocapitalization(.never)
+                    .disableAutocorrection(true)
+                    .onSubmit {
+                        gateway.updateCustomURL(gateway.customEndpointURL)
+                    }
+            }
+        }
+    }
+
+    // MARK: - Gateway Key Input
 
     private var shouldShowGatewayKeyInput: Bool {
         isEditingGatewayKey || !gateway.hasValidKey

@@ -7,7 +7,7 @@ struct AIGatewayRequestError: LocalizedError {
 }
 
 final class AIGatewayClient {
-    private let baseURL = URL(string: "https://ai-gateway.vercel.sh/v1")!
+    private let baseURL: URL
     private let session: URLSession
 
     private static let defaultSession: URLSession = {
@@ -17,8 +17,20 @@ final class AIGatewayClient {
         return URLSession(configuration: configuration)
     }()
 
-    init(session: URLSession = AIGatewayClient.defaultSession) {
+    init(baseURL: URL? = nil, session: URLSession = AIGatewayClient.defaultSession) {
+        self.baseURL = baseURL ?? Self.resolveConfiguredBaseURL() ?? URL(string: "https://opencode.ai/zen/go/v1")!
         self.session = session
+    }
+
+    private static func resolveConfiguredBaseURL() -> URL? {
+        let endpointConfigKey = "ai_gateway_endpoint_config"
+        guard let data = UserDefaults.standard.data(forKey: endpointConfigKey),
+              let config = try? JSONDecoder().decode(AIGatewayEndpointConfig.self, from: data),
+              !config.baseURL.isEmpty,
+              let url = URL(string: config.baseURL) else {
+            return nil
+        }
+        return url
     }
 
     func fetchModels(apiKey: String) async throws -> [AIModelInfo] {

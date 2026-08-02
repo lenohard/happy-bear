@@ -27,6 +27,11 @@ final class AIGatewayViewModel: ObservableObject {
     @Published private(set) var generationError: String?
     @Published private(set) var modelErrorMessage: String?
 
+    @Published var endpointConfig: AIGatewayEndpointConfig {
+        didSet { applyEndpointConfig() }
+    }
+    @Published var customEndpointURL: String = ""
+
     @Published var selectedModelID: String {
         didSet {
             defaults.set(selectedModelID, forKey: defaultModelKey)
@@ -37,7 +42,7 @@ final class AIGatewayViewModel: ObservableObject {
     @Published private(set) var lastCreditsRefreshDate: Date?
 
     private let keyStore: AIGatewayAPIKeyStore
-    private let client: AIGatewayClient
+    private var client: AIGatewayClient
     private let defaults: UserDefaults
     private var hasStoredKey: Bool = false
     private let logger = Logger(subsystem: "com.wdh.audiobook", category: "AIGateway")
@@ -48,6 +53,7 @@ final class AIGatewayViewModel: ObservableObject {
     private let modelsCacheTimestampKey = "ai_gateway_cached_models_timestamp"
     private let creditsCacheKey = "ai_gateway_cached_credits"
     private let creditsCacheTimestampKey = "ai_gateway_cached_credits_timestamp"
+    private let endpointConfigKey = "ai_gateway_endpoint_config"
 
     init(
         keyStore: AIGatewayAPIKeyStore = KeychainAIGatewayAPIKeyStore(),
@@ -58,6 +64,16 @@ final class AIGatewayViewModel: ObservableObject {
         self.client = client
         self.defaults = defaults
         self.selectedModelID = defaults.string(forKey: defaultModelKey) ?? defaultModelFallback
+
+        // Load endpoint config
+        if let data = defaults.data(forKey: endpointConfigKey),
+           let decoded = try? JSONDecoder().decode(AIGatewayEndpointConfig.self, from: data) {
+            self.endpointConfig = decoded
+            self.customEndpointURL = decoded.customURL
+        } else {
+            self.endpointConfig = .default
+            self.customEndpointURL = ""
+        }
 
         loadStoredKey()
         loadCachedPayloads()
@@ -263,6 +279,52 @@ final class AIGatewayViewModel: ObservableObject {
             logger.error("Failed fetching generation \(trimmedID): \(error.localizedDescription)")
             generationError = error.localizedDescription
         }
+    }
+
+    // MARK: - Endpoint Management
+
+    func switchToPreset(_ preset: AIGatewayEndpointPreset) {
+        var config = endpointConfig
+        config.preset = preset
+        config.customURL = preset == .custom ? customEndpointURL : ""
+        endpointConfig = config
+    }
+
+    func updateCustomURL(_ url: String) {
+        customEndpointURL = url
+        var config = endpointConfig
+        config.customURL = url
+        persistEndpointConfig(config)
+        updateClient(config)
+    }
+
+    private func applyEndpointConfig() {
+        persistEndpointConfig(endpointConfig)
+        updateClient(endpointConfig)
+        clearCache()
+    }
+
+    private func updateClient(_ config: AIGatewayEndpointConfig) {
+        let urlString = config.baseURL
+        guard !urlString.isEmpty,
+              let url = URL(string: urlString) else {
+            return
+        }
+        client = AIGatewayClient(baseURL: url)
+    }
+
+    private func persistEndpointConfig(_ config: AIGatewayEndpointConfig) {
+        if let data = try? JSONEncoder().encode(config) {
+            defaults.set(data, forKey: endpointConfigKey)
+        }
+    }
+
+    private func clearCache() {
+        models = []
+        credits = nil
+        modelErrorMessage = nil
+        defaults.removeObject(forKey: modelsCacheKey)
+        defaults.removeObject(forKey: creditsCacheKey)
     }
 
 }
