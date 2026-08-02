@@ -123,7 +123,7 @@ struct ContentView: View {
                         .tag(TabSelectionManager.Tab.personal)
                 }
                 .tint(themeManager.colors.isFestive ? themeManager.colors.festiveRed : .accentColor)
-                .safeAreaInset(edge: .bottom, spacing: 0) {
+                .tabMiniPlayerAccessory(isEnabled: shouldShowTabMiniPlayer) {
                     MiniPlayerBar()
                 }
 
@@ -274,6 +274,13 @@ private extension ContentView {
             get: { tabSelection.selectedTab },
             set: { tabSelection.selectedTab = $0 }
         )
+    }
+
+    /// Mini-player above tab bar on Library / Smart / Personal (Playing tab uses full player).
+    var shouldShowTabMiniPlayer: Bool {
+        audioPlayer.currentTrack != nil
+            && audioPlayer.activeCollection != nil
+            && tabSelection.selectedTab != .playing
     }
 }
 

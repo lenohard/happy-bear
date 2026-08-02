@@ -18,8 +18,7 @@ struct MiniPlayerBar: View {
 
     var body: some View {
         if let track = audioPlayer.currentTrack,
-           let collection = audioPlayer.activeCollection,
-           tabSelection.selectedTab != .playing
+           let collection = audioPlayer.activeCollection
         {
             miniPlayerContent(track: track, collection: collection)
         }
@@ -32,37 +31,38 @@ struct MiniPlayerBar: View {
         track: AudiobookTrack,
         collection: AudiobookCollection
     ) -> some View {
-        VStack(spacing: 0) {
-            dividerLine
-            HStack(spacing: 12) {
-                Button {
-                    tapBar()
-                } label: {
-                    HStack(spacing: 12) {
-                        coverThumbnail(collection: collection)
-                        trackInfo(track: track, collection: collection)
-                    }
+        HStack(spacing: 12) {
+            Button {
+                tapBar()
+            } label: {
+                HStack(spacing: 12) {
+                    coverThumbnail(collection: collection)
+                    trackInfo(track: track, collection: collection)
                 }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                playPauseButton
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .frame(height: 56)
-            .background(.regularMaterial)
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 20) {
+                playPauseButton
+                skipForwardButton
+            }
         }
+        .padding(.leading, 12)
+        .padding(.trailing, 16)
+        .padding(.vertical, 8)
+        .frame(height: 52)
+        .background {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(.regularMaterial)
+                .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 3)
+        }
+        .padding(.horizontal, 10)
         .onAppear { refreshCover(for: collection) }
         .onChange(of: collection.coverAsset) { refreshCover(for: collection) }
     }
 
     // MARK: - Subviews
-
-    private var dividerLine: some View {
-        Rectangle()
-            .fill(Color.primary.opacity(0.12))
-            .frame(height: 0.5)
-    }
 
     private func coverThumbnail(collection: AudiobookCollection) -> some View {
         Group {
@@ -148,6 +148,20 @@ struct MiniPlayerBar: View {
                 .font(.title3)
                 .foregroundStyle(themeManager.colors.isFestive
                     ? themeManager.colors.festiveRed : .accentColor)
+                .frame(width: 36, height: 36)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var skipForwardButton: some View {
+        Button {
+            hapticLight()
+            audioPlayer.skipForward()
+        } label: {
+            Image(systemName: "goforward.30")
+                .font(.title3)
+                .foregroundStyle(.primary)
                 .frame(width: 36, height: 36)
                 .contentShape(Rectangle())
         }

@@ -144,6 +144,7 @@
 		A1B2C3D72FEB123400000002 /* FavoriteTracksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */; };
 		A1B2C3D82FEB123400000003 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D92FEB123400000003 /* Haptics.swift */; };
 		A1B2C3DA2FEB123400000004 /* MiniPlayerBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3DB2FEB123400000004 /* MiniPlayerBar.swift */; };
+		A1B2C3DC2FEB123400000005 /* TabMiniPlayerAccessory.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3DD2FEB123400000005 /* TabMiniPlayerAccessory.swift */; };
 		B1C5E0A22F12300000AAA001 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = B1C5E09F2F12300000AAA001 /* InfoPlist.strings */; };
 		B6E1C0032F10B4B900C2ABF1 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = B6E1C0022F10B4B900C2ABF1 /* ZIPFoundation */; };
 		C5E631AC2F1B000100AA0001 /* AIGenerationDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5E631A42F1B000100AA0001 /* AIGenerationDatabaseSchema.swift */; };
@@ -309,6 +310,7 @@
 		A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FavoriteTracksView.swift; sourceTree = "<group>"; };
 		A1B2C3D92FEB123400000003 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		A1B2C3DB2FEB123400000004 /* MiniPlayerBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniPlayerBar.swift; sourceTree = "<group>"; };
+		A1B2C3DD2FEB123400000005 /* TabMiniPlayerAccessory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TabMiniPlayerAccessory.swift; sourceTree = "<group>"; };
 		B1C5E0A02F12300000AAA001 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		B1C5E0A12F12300000AAA001 /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		C5E631A42F1B000100AA0001 /* AIGenerationDatabaseSchema.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGenerationDatabaseSchema.swift; sourceTree = "<group>"; };
@@ -532,6 +534,7 @@
 				A1B2C3D62FEB123400000002 /* FavoriteTracksView.swift */,
 				A1B2C3D92FEB123400000003 /* Haptics.swift */,
 				A1B2C3DB2FEB123400000004 /* MiniPlayerBar.swift */,
+				A1B2C3DD2FEB123400000005 /* TabMiniPlayerAccessory.swift */,
 				DAFADB082A384DC9ACA621D5 /* SelectionListView.swift */,
 				D0C0FFEA2F4B8A1A00C0FF01 /* CollectionRefreshReviewView.swift */,
 				2B0FA3F1E49445F18F94583C /* CreateCollectionView.swift */,
@@ -721,6 +724,7 @@
 				A1B2C3D72FEB123400000002 /* FavoriteTracksView.swift in Sources */,
 				A1B2C3D82FEB123400000003 /* Haptics.swift in Sources */,
 				A1B2C3DA2FEB123400000004 /* MiniPlayerBar.swift in Sources */,
+				A1B2C3DC2FEB123400000005 /* TabMiniPlayerAccessory.swift in Sources */,
 				8C82E0B6952141999D8C4DC4 /* SelectionListView.swift in Sources */,
 				D0C0FFEB2F4B8A1A00C0FF01 /* CollectionRefreshReviewView.swift in Sources */,
 				6FC010052C5B0C0000AA00AA /* LibraryView.swift in Sources */,
