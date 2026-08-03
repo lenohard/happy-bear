@@ -9,6 +9,7 @@ struct AIGatewayRequestError: LocalizedError {
 final class AIGatewayClient {
     private let baseURL: URL
     private let session: URLSession
+    let endpointPreset: AIGatewayEndpointPreset
 
     private static let defaultSession: URLSession = {
         let configuration = URLSessionConfiguration.default
@@ -17,8 +18,9 @@ final class AIGatewayClient {
         return URLSession(configuration: configuration)
     }()
 
-    init(baseURL: URL? = nil, session: URLSession = AIGatewayClient.defaultSession) {
+    init(baseURL: URL? = nil, endpointPreset: AIGatewayEndpointPreset = .opencodeGo, session: URLSession = AIGatewayClient.defaultSession) {
         self.baseURL = baseURL ?? Self.resolveConfiguredBaseURL() ?? URL(string: "https://opencode.ai/zen/go/v1")!
+        self.endpointPreset = endpointPreset
         self.session = session
     }
 
@@ -90,18 +92,32 @@ final class AIGatewayClient {
         onStreamDelta: ((StreamDelta) -> Void)? = nil,
         onStreamFallback: (() -> Void)? = nil
     ) async throws -> ChatCompletionsResponse {
-        var payload: [String: Any] = [
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "stream": true
-        ]
+        let protocol_ = AIModelCatalog.chatAPIProtocol(model: model, endpoint: endpointPreset)
+        let resolvedModel = AIModelCatalog.resolvedModelID(model, endpoint: endpointPreset)
 
-        if let reasoning {
-            payload["reasoning"] = try encodeReasoningPayload(reasoning)
+        switch protocol_ {
+        case .anthropicMessages:
+            return try await streamAnthropicMessages(
+                apiKey: apiKey, model: resolvedModel, messages: messages,
+                temperature: temperature, onDelta: onStreamDelta
+            )
+        case .openAIResponses:
+            return try await streamOpenAIResponses(
+                apiKey: apiKey, model: resolvedModel, messages: messages,
+                temperature: temperature, onDelta: onStreamDelta
+            )
+        case .chatCompletions:
+            var payload: [String: Any] = [
+                "model": resolvedModel,
+                "messages": messages,
+                "temperature": temperature,
+                "stream": true
+            ]
+            if let reasoning {
+                payload["reasoning"] = try encodeReasoningPayload(reasoning)
+            }
+            return try await streamChatCompletion(apiKey: apiKey, payload: payload, onDelta: onStreamDelta)
         }
-
-        return try await streamChatCompletion(apiKey: apiKey, payload: payload, onDelta: onStreamDelta)
     }
 
     private struct ChatStreamChunk: Decodable {
@@ -122,6 +138,226 @@ final class AIGatewayClient {
         let choices: [Choice]
         let usage: ChatCompletionsResponse.Usage?
     }
+
+    // MARK: - Anthropic Messages Protocol
+
+    private func streamAnthropicMessages(
+        apiKey: String,
+        model: String,
+        messages: [[String: Any]],
+        temperature: Double,
+        onDelta: ((StreamDelta) -> Void)?
+    ) async throws -> ChatCompletionsResponse {
+        // Extract system message; remaining messages become the messages array
+        var systemText: String?
+        var apiMessages: [[String: Any]] = []
+        for msg in messages {
+            if (msg["role"] as? String) == "system" {
+                systemText = msg["content"] as? String
+            } else {
+                apiMessages.append(msg)
+            }
+        }
+
+        var payload: [String: Any] = [
+            "model": model,
+            "messages": apiMessages,
+            "max_tokens": 8192,
+            "temperature": temperature,
+            "stream": true
+        ]
+        if let systemText, !systemText.isEmpty {
+            payload["system"] = systemText
+        }
+
+        let url = baseURL.appendingPathComponent("messages")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+
+        let (bytes, response) = try await session.bytes(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AIGatewayRequestError(message: "Invalid server response.")
+        }
+        guard 200..<300 ~= httpResponse.statusCode else {
+            var body = Data()
+            for try await chunk in bytes { body.append(chunk) }
+            let msg = String(data: body, encoding: .utf8) ?? "HTTP status \(httpResponse.statusCode)"
+            throw AIGatewayRequestError(message: msg)
+        }
+
+        var accumulatedText = ""
+        var accumulatedReasoning = ""
+        var responseID = ""
+        var responseModel = model
+        var inputTokens = 0
+        var outputTokens = 0
+
+        for try await line in bytes.lines {
+            guard line.hasPrefix("data:") else { continue }
+            let payloadString = line.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !payloadString.isEmpty, payloadString != "[DONE]" else { continue }
+            guard let data = payloadString.data(using: .utf8) else { continue }
+
+            guard let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+            let type = event["type"] as? String ?? ""
+
+            switch type {
+            case "message_start":
+                if let message = event["message"] as? [String: Any] {
+                    responseID = message["id"] as? String ?? ""
+                    responseModel = message["model"] as? String ?? model
+                    if let usage = message["usage"] as? [String: Any] {
+                        inputTokens = usage["input_tokens"] as? Int ?? 0
+                    }
+                }
+
+            case "content_block_delta":
+                if let delta = event["delta"] as? [String: Any] {
+                    let deltaType = delta["type"] as? String ?? ""
+                    if deltaType == "text_delta", let text = delta["text"] as? String {
+                        accumulatedText.append(text)
+                        onDelta?(.content(text))
+                    } else if deltaType == "thinking_delta", let thinking = delta["thinking"] as? String {
+                        accumulatedReasoning.append(thinking)
+                        onDelta?(.reasoning(thinking))
+                    }
+                }
+
+            case "message_delta":
+                if let usage = event["usage"] as? [String: Any] {
+                    outputTokens = usage["output_tokens"] as? Int ?? outputTokens
+                }
+
+            default:
+                break
+            }
+        }
+
+        let message = AIGatewayChatChoice.ChoiceMessage(
+            role: "assistant",
+            content: accumulatedText,
+            reasoning: accumulatedReasoning.isEmpty ? nil : accumulatedReasoning,
+            reasoningDetails: nil
+        )
+        let choice = AIGatewayChatChoice(index: 0, message: message)
+        let usage = ChatCompletionsResponse.Usage(
+            promptTokens: inputTokens,
+            completionTokens: outputTokens,
+            totalTokens: inputTokens + outputTokens,
+            cost: nil, marketCost: nil, isByok: nil, completionTokensDetails: nil
+        )
+        return ChatCompletionsResponse(id: responseID, model: responseModel, choices: [choice], usage: usage)
+    }
+
+    // MARK: - OpenAI Responses Protocol
+
+    private func streamOpenAIResponses(
+        apiKey: String,
+        model: String,
+        messages: [[String: Any]],
+        temperature: Double,
+        onDelta: ((StreamDelta) -> Void)?
+    ) async throws -> ChatCompletionsResponse {
+        // Extract system message → instructions; remaining → input
+        var instructions: String?
+        var inputItems: [[String: Any]] = []
+        for msg in messages {
+            if (msg["role"] as? String) == "system" {
+                instructions = msg["content"] as? String
+            } else {
+                inputItems.append(msg)
+            }
+        }
+
+        var payload: [String: Any] = [
+            "model": model,
+            "input": inputItems,
+            "stream": true,
+            "temperature": temperature
+        ]
+        if let instructions, !instructions.isEmpty {
+            payload["instructions"] = instructions
+        }
+
+        let url = baseURL.appendingPathComponent("responses")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload, options: [])
+
+        let (bytes, response) = try await session.bytes(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw AIGatewayRequestError(message: "Invalid server response.")
+        }
+        guard 200..<300 ~= httpResponse.statusCode else {
+            var body = Data()
+            for try await chunk in bytes { body.append(chunk) }
+            let msg = String(data: body, encoding: .utf8) ?? "HTTP status \(httpResponse.statusCode)"
+            throw AIGatewayRequestError(message: msg)
+        }
+
+        var accumulatedText = ""
+        var responseID = ""
+        var responseModel = model
+        var usage: ChatCompletionsResponse.Usage?
+
+        for try await line in bytes.lines {
+            guard line.hasPrefix("data:") else { continue }
+            let payloadString = line.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !payloadString.isEmpty, payloadString != "[DONE]" else { continue }
+            guard let data = payloadString.data(using: .utf8) else { continue }
+
+            guard let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
+            let type = event["type"] as? String ?? ""
+
+            switch type {
+            case "response.created":
+                if let resp = event["response"] as? [String: Any] {
+                    responseID = resp["id"] as? String ?? ""
+                    responseModel = resp["model"] as? String ?? model
+                }
+
+            case "response.output_text.delta":
+                if let delta = event["delta"] as? String {
+                    accumulatedText.append(delta)
+                    onDelta?(.content(delta))
+                }
+
+            case "response.completed":
+                if let resp = event["response"] as? [String: Any],
+                   let usageDict = resp["usage"] as? [String: Any] {
+                    let promptTokens = usageDict["input_tokens"] as? Int ?? usageDict["prompt_tokens"] as? Int
+                    let completionTokens = usageDict["output_tokens"] as? Int ?? usageDict["completion_tokens"] as? Int
+                    let total = (promptTokens ?? 0) + (completionTokens ?? 0)
+                    usage = ChatCompletionsResponse.Usage(
+                        promptTokens: promptTokens,
+                        completionTokens: completionTokens,
+                        totalTokens: total,
+                        cost: nil, marketCost: nil, isByok: nil, completionTokensDetails: nil
+                    )
+                }
+
+            default:
+                break
+            }
+        }
+
+        let message = AIGatewayChatChoice.ChoiceMessage(
+            role: "assistant",
+            content: accumulatedText,
+            reasoning: nil,
+            reasoningDetails: nil
+        )
+        let choice = AIGatewayChatChoice(index: 0, message: message)
+        return ChatCompletionsResponse(id: responseID, model: responseModel, choices: [choice], usage: usage)
+    }
+
+    // MARK: - Chat Completions Protocol
 
     private func streamChatCompletion(
         apiKey: String,

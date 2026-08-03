@@ -110,7 +110,7 @@ struct AITabView: View {
     private var defaultModelSection: some View {
         Section {
             if let model = gateway.models.first(where: { $0.id == gateway.selectedModelID }) {
-                let providerName = model.id.split(separator: "/").first.map(String.init) ?? model.id
+                let providerName = AIModelCatalog.groupingProviderKey(for: model.id)
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 12) {
                         ProviderIconView(providerId: providerName)
@@ -167,7 +167,7 @@ struct AITabView: View {
                 Label(NSLocalizedString("ai_tab_models_section", comment: "AI Models section"), systemImage: "cpu")
             }
         } header: {
-            Text("Quick Access")
+            Text(NSLocalizedString("ai_tab_quick_access_section", comment: "Quick access section"))
                 .font(.headline)
         }
     }
@@ -176,14 +176,19 @@ struct AITabView: View {
 
     private var endpointSelectorRow: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            Picker(
+                selection: Binding(
+                    get: { gateway.endpointConfig.preset },
+                    set: { gateway.switchToPreset($0) }
+                )
+            ) {
+                ForEach(AIGatewayEndpointPreset.allCases, id: \.self) { preset in
+                    Text(preset.localizedDisplayName).tag(preset)
+                }
+            } label: {
                 Label(NSLocalizedString("ai_tab_endpoint_label", comment: "Endpoint"), systemImage: "network")
-                    .font(.subheadline)
-                Spacer()
-                Text(gateway.endpointConfig.preset.displayName)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
+            .pickerStyle(.menu)
 
             Text(gateway.endpointConfig.displayURL)
                 .font(.caption2)
@@ -191,37 +196,11 @@ struct AITabView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
 
-            HStack(spacing: 8) {
-                ForEach(AIGatewayEndpointPreset.allCases, id: \.self) { preset in
-                    if preset != .custom {
-                        Button(preset.displayName) {
-                            gateway.switchToPreset(preset)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(gateway.endpointConfig.preset == preset ? .blue : .gray)
-                    }
-                }
-
-                if gateway.endpointConfig.preset == .custom {
-                    Button("Custom") {
-                        // already custom
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(.blue)
-                } else {
-                    Button("Custom") {
-                        gateway.switchToPreset(.custom)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(.gray)
-                }
-            }
-
             if gateway.endpointConfig.preset == .custom {
-                TextField("https://your-gateway.example.com/v1", text: $gateway.customEndpointURL)
+                TextField(
+                    NSLocalizedString("ai_tab_endpoint_custom_url_placeholder", comment: "Custom gateway URL placeholder"),
+                    text: $gateway.customEndpointURL
+                )
                     .textFieldStyle(.roundedBorder)
                     .font(.caption)
                     .textInputAutocapitalization(.never)

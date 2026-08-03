@@ -53,6 +53,7 @@
 		860B8B282F1A21AB00C2DB5C /* RSSUpdatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 860B8B272F1A21AB00C2DB5C /* RSSUpdatesView.swift */; };
 		8617DDE82EBE0A26006E7CA7 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 8617DDE22EBE0A26006E7CA7 /* Localizable.xcstrings */; };
 		8617DDE92EBE0A26006E7CA7 /* DatabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDF2EBE0A26006E7CA7 /* DatabaseConfig.swift */; };
+		D2F5E0A22F1C000100AA0001 /* AIModelCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F5E0A12F1C000100AA0001 /* AIModelCatalog.swift */; };
 		8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */; };
 		8617DDEB2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDDE2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift */; };
 		8617DDEC2EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8617DDE42EBE0A26006E7CA7 /* TranscriptionDatabaseSchema.swift */; };
@@ -215,6 +216,7 @@
 		8603AC192EDDF0D100889565 /* TTSJobProgressSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSJobProgressSheet.swift; sourceTree = "<group>"; };
 		86056E572EFEAE2E00A427F7 /* Logging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logging.swift; sourceTree = "<group>"; };
 		860B8B272F1A21AB00C2DB5C /* RSSUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RSSUpdatesView.swift; sourceTree = "<group>"; };
+		D2F5E0A12F1C000100AA0001 /* AIModelCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIModelCatalog.swift; sourceTree = "<group>"; };
 		8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayClient.swift; sourceTree = "<group>"; };
 		8617DDDA2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayKeychainStore.swift; sourceTree = "<group>"; };
 		8617DDDB2EBE0A26006E7CA7 /* AIGatewayModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIGatewayModels.swift; sourceTree = "<group>"; };
@@ -441,6 +443,7 @@
 				86B633522ED94E8100A04510 /* AboutView.swift */,
 				86B633532ED94E8100A04510 /* AppInfo.swift */,
 				8617DDD92EBE0A26006E7CA7 /* AIGatewayClient.swift */,
+				D2F5E0A12F1C000100AA0001 /* AIModelCatalog.swift */,
 				8617DDDA2EBE0A26006E7CA7 /* AIGatewayKeychainStore.swift */,
 				8617DDDB2EBE0A26006E7CA7 /* AIGatewayModels.swift */,
 				8617DDDC2EBE0A26006E7CA7 /* AIGatewayViewModel.swift */,
@@ -757,6 +760,7 @@
 				86FE17602EC2531500027E93 /* ProviderIconView.swift in Sources */,
 				86E5CFF62ECEB8CA00CE62A1 /* Color+Hex.swift in Sources */,
 				8617DDEA2EBE0A26006E7CA7 /* AIGatewayClient.swift in Sources */,
+				D2F5E0A22F1C000100AA0001 /* AIModelCatalog.swift in Sources */,
 				864C25A12EFBE15A005ECA64 /* ThemeSelectionView.swift in Sources */,
 				864C25A22EFBE15A005ECA64 /* ThemeManager.swift in Sources */,
 				8617DDEB2EBE0A26006E7CA7 /* BackgroundTranscriptionManager.swift in Sources */,

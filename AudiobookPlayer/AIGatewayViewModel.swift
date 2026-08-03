@@ -310,7 +310,7 @@ final class AIGatewayViewModel: ObservableObject {
               let url = URL(string: urlString) else {
             return
         }
-        client = AIGatewayClient(baseURL: url)
+        client = AIGatewayClient(baseURL: url, endpointPreset: config.preset)
     }
 
     private func persistEndpointConfig(_ config: AIGatewayEndpointConfig) {

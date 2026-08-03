@@ -393,10 +393,7 @@ struct AIDetailView: View {
     }
 
     private func providerName(for modelID: String) -> String {
-        if let prefix = modelID.split(separator: "/").first, !prefix.isEmpty {
-            return String(prefix)
-        }
-        return NSLocalizedString("ai_tab_model_group_other", comment: "")
+        AIModelCatalog.groupingProviderKey(for: modelID)
     }
 
     private func providerDisplayName(for model: AIModelInfo) -> String? {

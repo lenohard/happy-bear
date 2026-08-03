@@ -62,10 +62,17 @@ enum AIGatewayEndpointPreset: String, CaseIterable, Codable {
     case custom
 
     var displayName: String {
+        localizedDisplayName
+    }
+
+    var localizedDisplayName: String {
         switch self {
-        case .opencodeGo: return "OpenCode Go"
-        case .vercelAIGateway: return "Vercel AI Gateway"
-        case .custom: return "Custom"
+        case .opencodeGo:
+            return NSLocalizedString("ai_tab_endpoint_preset_opencode_go", comment: "OpenCode Go endpoint preset")
+        case .vercelAIGateway:
+            return NSLocalizedString("ai_tab_endpoint_preset_vercel_ai_gateway", comment: "Vercel AI Gateway endpoint preset")
+        case .custom:
+            return NSLocalizedString("ai_tab_endpoint_preset_custom", comment: "Custom endpoint preset")
         }
     }
 

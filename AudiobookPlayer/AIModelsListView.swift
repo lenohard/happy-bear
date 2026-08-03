@@ -117,12 +117,9 @@ struct AIModelsListView: View {
         let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         
         calculationTask = Task.detached(priority: .userInitiated) {
-            // 1. Group by provider
+            // 1. Group by provider (using catalog for bare id inference)
             let grouped = Dictionary(grouping: currentModels) { model -> String in
-                if let prefix = model.id.split(separator: "/").first, !prefix.isEmpty {
-                    return String(prefix)
-                }
-                return NSLocalizedString("ai_tab_model_group_other", comment: "")
+                AIModelCatalog.groupingProviderKey(for: model.id)
             }
             
             // 2. Sort groups and models within groups
