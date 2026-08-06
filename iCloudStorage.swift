@@ -45,7 +45,7 @@ struct iCloudStorage {
     /// Searches ~/Library/Mobile Documents/ for a matching iCloud container.
     /// iCloud Drive maps `iCloud.com.foo.bar` → `iCloud~com~foo~bar`.
     private static func findLocalCloudDocsContainer() -> URL? {
-        let mobileDocs = FileManager.default.homeDirectoryForCurrentUser
+        let mobileDocs = URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
             .appendingPathComponent("Library/Mobile Documents", isDirectory: true)
         let fm = FileManager.default
 
