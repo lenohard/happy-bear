@@ -27,10 +27,20 @@ mac:
   target:
     - dmg
     - zip
-artifactName: polarbear-${version}-mac-${arch}.${ext}
+  artifactName: polarbear-${version}-mac-${arch}.${ext}
 dmg:
   sign: false
   writeUpdateInfo: false
+win:
+  target:
+    - nsis
+  artifactName: polarbear-${version}-win-${arch}.${ext}
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Audio
+  artifactName: polarbear-${version}-linux-${arch}.${ext}
 publish:
   provider: github
   owner: lenohard

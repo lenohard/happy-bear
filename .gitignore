@@ -17,6 +17,9 @@ build/
 !desktop/build/
 desktop/build/*
 !desktop/build/entitlements.mac.plist
+!desktop/build/icon.png
+!desktop/build/icons/
+!desktop/build/icons/*
 
 # Xcode scheme management (user-specific)
 xcschememanagement.plist
