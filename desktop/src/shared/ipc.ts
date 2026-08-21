@@ -1,8 +1,9 @@
 export const IPC_CHANNELS = {
-  getStatus: 'library:getStatus', refresh: 'library:refresh', getFolders: 'library:getFolders', getFavorites: 'library:getFavorites', getCollections: 'library:getCollections', getTracks: 'library:getTracks', getContinue: 'library:getContinueListening', search: 'library:search', getTrackDetail: 'library:getTrackDetail', getText: 'track:getTextContent', resolvePlayback: 'track:getPlayback', baiduStatus: 'baidu:getStatus', baiduLogin: 'baidu:login', baiduLogout: 'baidu:logout', playbackPushState: 'playback:pushState', playbackAckCommand: 'playback:ackCommand'
+  getStatus: 'library:getStatus', refresh: 'library:refresh', getFolders: 'library:getFolders', getFavorites: 'library:getFavorites', getCollections: 'library:getCollections', getTracks: 'library:getTracks', getContinue: 'library:getContinueListening', search: 'library:search', getTrackDetail: 'library:getTrackDetail', getText: 'track:getTextContent', resolvePlayback: 'track:getPlayback', baiduStatus: 'baidu:getStatus', baiduLogin: 'baidu:login', baiduLogout: 'baidu:logout', playbackPushState: 'playback:pushState', playbackAckCommand: 'playback:ackCommand', getVersion: 'app:getVersion', updateGetState: 'update:getState', updateCheck: 'update:check', updateInstall: 'update:install'
 } as const
 
 export const PLAYBACK_REMOTE_COMMAND_CHANNEL = 'playback:remoteCommand'
+export const UPDATE_STATE_CHANNEL = 'update:state'
 
 export type RemoteCommand = (
   | { action: 'play'; tracks: Track[] }
@@ -42,8 +43,9 @@ export interface TrackPage { tracks: Track[]; total: number; page: number; pageS
 export interface ContinueItem extends Track { collectionTitle: string; collectionAuthor: string | null }
 export interface PlaybackSource { kind: 'baidu' | 'external'; value: string }
 export interface BaiduAuthStatus { configured: boolean; connected: boolean; expiresAt: number | null }
+export interface UpdateState { checking: boolean; updateAvailable: boolean; downloading: boolean; readyToInstall: boolean; latestVersion: string | null; error: string | null }
 export interface IPCApi {
-  libraryGetStatus(): Promise<LibraryStatus>; libraryRefresh(): Promise<LibraryStatus>; libraryGetFolders(): Promise<Folder[]>; libraryGetFavorites(): Promise<Track[]>; libraryGetCollections(folderId: string | null, includeArchived?: boolean): Promise<Collection[]>; libraryGetTracks(collectionId: string, page?: number, pageSize?: number): Promise<TrackPage>; libraryGetContinue(limit?: number): Promise<ContinueItem[]>; librarySearch(query: string, limit?: number): Promise<Track[]>; libraryGetTrackDetail(trackId: string): Promise<TrackDetail | null>; trackGetTextContent(trackId: string): Promise<string | null>; trackGetPlayback(trackId: string): Promise<PlaybackSource | null>; baiduGetStatus(): Promise<BaiduAuthStatus>; baiduLogin(): Promise<BaiduAuthStatus>; baiduLogout(): Promise<BaiduAuthStatus>; pushPlaybackState(state: PlaybackState): Promise<void>; ackRemoteCommand(commandId: string): Promise<void>; onRemoteCommand(listener: (command: RemoteCommand) => void): () => void
+  libraryGetStatus(): Promise<LibraryStatus>; libraryRefresh(): Promise<LibraryStatus>; libraryGetFolders(): Promise<Folder[]>; libraryGetFavorites(): Promise<Track[]>; libraryGetCollections(folderId: string | null, includeArchived?: boolean): Promise<Collection[]>; libraryGetTracks(collectionId: string, page?: number, pageSize?: number): Promise<TrackPage>; libraryGetContinue(limit?: number): Promise<ContinueItem[]>; librarySearch(query: string, limit?: number): Promise<Track[]>; libraryGetTrackDetail(trackId: string): Promise<TrackDetail | null>; trackGetTextContent(trackId: string): Promise<string | null>; trackGetPlayback(trackId: string): Promise<PlaybackSource | null>; baiduGetStatus(): Promise<BaiduAuthStatus>; baiduLogin(): Promise<BaiduAuthStatus>; baiduLogout(): Promise<BaiduAuthStatus>; pushPlaybackState(state: PlaybackState): Promise<void>; ackRemoteCommand(commandId: string): Promise<void>; onRemoteCommand(listener: (command: RemoteCommand) => void): () => void; appGetVersion(): Promise<string>; updateGetState(): Promise<UpdateState>; updateCheck(): Promise<UpdateState>; updateInstall(): Promise<void>; onUpdateState(listener: (state: UpdateState) => void): () => void
 }
 
 declare global { interface Window { api: IPCApi } }
