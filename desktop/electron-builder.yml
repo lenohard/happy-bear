@@ -15,6 +15,9 @@ files:
   - '!tsconfig*.json'
   - '!electron-builder.yml'
   - '!**/{.DS_Store,Thumbs.db}'
+extraResources:
+  - from: scripts/polarbear-cli.mjs
+    to: polarbear-cli.mjs
 mac:
   category: public.app-category.music
   entitlementsInherit: build/entitlements.mac.plist

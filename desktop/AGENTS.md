@@ -10,6 +10,37 @@ npm run build     # electron-vite 生产构建
 npm run dist      # macOS dmg + zip（本地不签名/不公证）
 ```
 
+## CLI（命令行控制）
+
+PolarBear 内置一个命令行接口，让 agent/终端查询信息并控制播放，架构移植自 corner（HTTP 服务端仅监听 `127.0.0.1`，随机端口写入 `userData/cli-port`，Bearer token 写入 `userData/cli-token`，防误触发）。
+
+- 服务端：`src/main/cli-server.ts`；`whenReady` 启动，`before-quit` 停止（接线见 `src/main/index.ts`）。
+- 客户端：`scripts/polarbear-cli.mjs`。开发时用 `node scripts/polarbear-cli.mjs`；打包版经 `electron-builder.yml` 的 `extraResources` 打进 app（`Contents/Resources/polarbear-cli.mjs`），并可用 `npm install -g`（package.json `bin` 字段）装成 `polarbear` 命令。所有命令加 `--json` 输出 JSON。
+- 查询走 app 内已有的 `LibraryService`（只读，CLI 绝不直接写 sqlite）；播放命令经 IPC 发到 renderer 控制 HTMLAudio。
+
+常用命令：
+
+```bash
+# 状态
+polarbear status                                   # 当前播放 + 库状态
+polarbear baidu-status                             # 百度登录状态
+# 库查询（只读）
+polarbear folders
+polarbear collections [--folder-id <id>] [--archived]
+polarbear tracks <collectionId> [--page N] [--page-size N]
+polarbear search <query>
+polarbear favorites
+polarbear continue [limit]
+# 播放控制
+polarbear play --track-id <id>
+polarbear play --collection-id <id>
+polarbear play --query <query>
+polarbear toggle | pause | resume
+polarbear next | prev
+polarbear volume <0..1>
+polarbear seek <sec> | +<sec> | -<sec>
+```
+
 ## 架构
 
 - `src/main/index.ts` 注册 `hb-media`、`hb-cover` privileged protocol，创建 sandbox BrowserWindow，并注册 IPC。

@@ -4,6 +4,9 @@
   "private": true,
   "description": "PolarBear read-only audiobook player",
   "main": "./out/main/index.js",
+  "bin": {
+    "polarbear": "scripts/polarbear-cli.mjs"
+  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
