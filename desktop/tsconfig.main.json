@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.base.json","compilerOptions":{"composite":true,"outDir":"out/main","lib":["ES2022","DOM"],"types":["node"]},"include":["src/main/**/*.ts","src/shared/**/*.ts"]}

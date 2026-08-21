@@ -1,0 +1,21 @@
+appId: com.wdh.happybear.desktop
+productName: HappyBear
+directories:
+  output: dist
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.map'
+mac:
+  category: public.app-category.music
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  identity: null
+  target:
+    - dmg
+    - zip
+artifactName: happybear-${version}-mac-${arch}.${ext}
+dmg:
+  sign: false
+  writeUpdateInfo: false
+publish: []

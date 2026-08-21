@@ -1,0 +1,1 @@
+{"extends":"./tsconfig.base.json","compilerOptions":{"composite":true,"outDir":"out/renderer","lib":["ES2022","DOM"],"types":["node","react","react-dom"]},"include":["src/renderer/**/*.tsx","src/renderer/**/*.ts","src/shared/**/*.ts"]}
