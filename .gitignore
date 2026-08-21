@@ -13,6 +13,11 @@ local/
 # Build output
 build/
 
+# electron-builder build resources (desktop) — keep entitlements committed
+!desktop/build/
+desktop/build/*
+!desktop/build/entitlements.mac.plist
+
 # Xcode scheme management (user-specific)
 xcschememanagement.plist
 

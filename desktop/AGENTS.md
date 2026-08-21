@@ -27,3 +27,42 @@ iOS 数据库含 8 个 folder、collections、tracks、playback_states 等表；
 ## 安全和经验
 
 renderer 必须保持 `contextIsolation:true`、`nodeIntegration:false`、`sandbox:true`。不要读取或提交 `.env`（vite `loadEnv` 负责百度配置注入）。不要在 renderer 接触 token；不要持久化签名下载 URL。`hb-cover` 必须限制在 iCloud Documents 根目录内。Phase 1 严格只读：不要在任何 `DatabaseSync` 实例上调用 INSERT/UPDATE/DELETE/PRAGMA 写操作。
+
+## 发布流程（tag → CI 构建签名公证 → 应用内热更新）
+
+流程参考 corner 仓库（`lenohard/macos-player`），已移植到本仓库 `.github/workflows/release.yml` + `desktop/electron-builder.yml` + `desktop/src/main/updater.ts`（electron-updater provider github）。
+
+```bash
+# 在 desktop/ 下
+npm install          # 首次，拉取 electron-updater
+npm run dist         # 本地：出 unsigned dmg/zip（CSC_IDENTITY_AUTO_DISCOVERY=false，不签名/不公证/不发布）
+```
+
+发布一个版本：
+
+1. 改 `desktop/package.json` 的 `version`（如 `0.1.0` → `0.1.1`）。
+2. commit 改动并 push：`git add -A && git commit -m "chore(desktop): release v0.1.1" && git push`。
+3. 打 tag（必须匹配 `v*.*.*`）触发 `.github/workflows/release.yml`：
+   ```bash
+   git tag v0.1.1
+   git push origin v0.1.1
+   ```
+4. CI 在 `macos-latest` 上 `npm run release`：electron-builder 用 CSC_LINK 签名 + APPLE_API_* 公证，产出 `polarbear-{version}-mac-{arch}.{ext}`（dmg+zip），用 GH_TOKEN 发布到当前 tag 的 GitHub Release。
+5. 已安装用户启动/每小时检查更新，electron-updater 自动下载并在退出时安装。
+
+CI 需要在这个 GitHub 仓库（`lenohard/happy-bear`）配以下 secrets（corner 仓库 `lenohard/macos-player` 已有同名 secrets，可直接复制值）：
+
+| secret | 含义 |
+|---|---|
+| `GH_TOKEN` | 用 `secrets.GITHUB_TOKEN`（自动注入，无需手动配） |
+| `CSC_LINK` | Developer ID 证书 p12（base64），用于签名 |
+| `CSC_KEY_PASSWORD` | p12 密码 |
+| `APPLE_API_KEY` | App Store Connect API p8 的 base64（Prepare 步骤解码到 `/tmp/asc/AuthKey_3474G52856.p8`） |
+| `APPLE_API_KEY_ID` | p8 key id（如 3474G52856） |
+| `APPLE_API_ISSUER` | App Store Connect issuer id |
+| `BAIDU_CLIENT_ID` | 百度网盘 OAuth client id（构建时 `loadEnv` 注入 renderer/main） |
+| `BAIDU_CLIENT_SECRET` | 百度网盘 OAuth client secret |
+| `BAIDU_REDIRECT_URI` | 百度网盘 OAuth 回调 uri |
+| `BAIDU_SCOPE` | 百度网盘 OAuth scope |
+
+注意：CI 环境不会读取本地 `.env`，百度配置全部来自上述 secrets 注入的 `process.env`。

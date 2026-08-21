@@ -1,16 +1,26 @@
 appId: com.wdh.polarbear.desktop
 productName: PolarBear
 directories:
+  buildResources: build
   output: dist
 files:
   - out/**/*
   - package.json
   - '!**/*.map'
+  - '!**/.env'
+  - '!**/.env.*'
+  - '!**/*.tsbuildinfo'
+  - '!src/**'
+  - '!electron.vite.config.js'
+  - '!tsconfig*.json'
+  - '!electron-builder.yml'
+  - '!**/{.DS_Store,Thumbs.db}'
 mac:
   category: public.app-category.music
-  hardenedRuntime: false
+  entitlementsInherit: build/entitlements.mac.plist
+  hardenedRuntime: true
   gatekeeperAssess: false
-  identity: null
+  notarize: true
   target:
     - dmg
     - zip
@@ -18,4 +28,7 @@ artifactName: polarbear-${version}-mac-${arch}.${ext}
 dmg:
   sign: false
   writeUpdateInfo: false
-publish: []
+publish:
+  provider: github
+  owner: lenohard
+  repo: happy-bear
