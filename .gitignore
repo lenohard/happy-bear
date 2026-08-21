@@ -29,3 +29,6 @@ xcschememanagement.plist
 # CocoaPods
 Pods/
 *.xcworkspace
+
+# Local overrides (contains secrets, never commit)
+AGENTS.override.md
