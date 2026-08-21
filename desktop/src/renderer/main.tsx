@@ -4,7 +4,7 @@ import type { Collection, ContinueItem, Folder, LibraryStatus, Track } from '../
 import './style.css'
 
 const fmt=(seconds:number|null)=>{if(seconds==null||!Number.isFinite(seconds))return '--:--';const s=Math.max(0,Math.floor(seconds));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`}
-const coverUrl=(item:{cover:{kind:string|null;data:Record<string,unknown>|null;dominantColor:string|null}})=>{const c=item.cover;if(c.kind==='image'&&typeof c.data?.relativePath==='string')return `hb-cover://${encodeURI(c.data.relativePath)}`;if(c.kind==='remote'&&typeof c.data?.url==='string')return c.data.url;return null}
+const coverUrl=(item:{cover:{kind:string|null;data:Record<string,unknown>|null;dominantColor:string|null}})=>{const c=item.cover;if(c.kind==='image'&&typeof c.data?.relativePath==='string')return `hb-cover://cover/${encodeURI(c.data.relativePath)}`;if(c.kind==='remote'&&typeof c.data?.url==='string')return c.data.url;return null}
 function Cover({item,small=false}:{item:{cover:{kind:string|null;data:Record<string,unknown>|null;dominantColor:string|null}};small?:boolean}){const url=coverUrl(item);const color=item.cover.dominantColor||'#30343b';return url?<img className={small?'cover small':'cover'} src={url} style={{backgroundColor:color}}/>:<div className={small?'cover small placeholder':'cover placeholder'} style={{backgroundColor:color}}><span>🐻</span></div>}
 
 type View='all'|'continue'|'favorites'|'search'
