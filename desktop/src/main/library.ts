@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { Collection, ContinueItem, Cover, Folder, LibraryStatus, Playback, PlaybackSource, Track, TrackDetail, TrackPage } from '../shared/ipc'
+import type { Collection, ContinueItem, Cover, Folder, LibraryStatus, Playback, PlaybackSource, Track, TrackDetail, TrackPage, TrackSummary, TrackTranscript } from '../shared/ipc'
 import { SnapshotDatabase } from './library-db'
 
 type Row = Record<string, any>
@@ -56,7 +56,26 @@ export class LibraryService {
     const collection = row.c_id ? { id: String(row.c_id), title: String(row.c_title || '未命名合集'), author: row.c_author ?? null, description: row.c_description ?? null, cover: cover(row.c_cover_kind, row.c_cover_data, row.c_cover_dominant_color), folderId: row.c_folder_id ?? null, trackCount: Number(row.c_track_count) || 0 } : null
     const listeningRow = this.db().prepare(`SELECT COUNT(*) AS sessions, MAX(end_time) AS last_listened FROM listening_statistics WHERE track_id = ?`).get(trackId) as Row | undefined
     const listening = { sessions: Number(listeningRow?.sessions) || 0, totalSec: 0, lastListenedAt: listeningRow?.last_listened ?? null }
-    return { track: { ...base, fileSize: row.file_size == null ? null : Number(row.file_size), characterCount: row.character_count == null ? null : Number(row.character_count), checksum: typeof row.checksum === 'string' ? row.checksum : null, description, metadata, isArchived: Number(row.is_archived) === 1 }, collection, playback: playback(row), listening }
+    const transcriptRow = this.db().prepare(`SELECT tr.language, (SELECT COUNT(*) FROM transcript_segments s WHERE s.transcript_id = tr.id) AS cnt FROM transcripts tr WHERE tr.track_id = ? AND tr.job_status = 'complete' ORDER BY tr.updated_at DESC LIMIT 1`).get(trackId) as Row | undefined
+    const transcript = transcriptRow && Number(transcriptRow.cnt) > 0 ? { segmentsCount: Number(transcriptRow.cnt), language: String(transcriptRow.language || '') } : null
+    return { track: { ...base, fileSize: row.file_size == null ? null : Number(row.file_size), characterCount: row.character_count == null ? null : Number(row.character_count), checksum: typeof row.checksum === 'string' ? row.checksum : null, description, metadata, isArchived: Number(row.is_archived) === 1 }, collection, playback: playback(row), listening, transcript, summary: this.summary(trackId) }
+  }
+  private summary(trackId: string): TrackSummary | null {
+    const db = this.db()
+    const row = db.prepare(`SELECT id, summary_title, summary_body, keywords_json FROM track_summaries WHERE track_id = ? AND status = 'complete' ORDER BY updated_at DESC LIMIT 1`).get(trackId) as Row | undefined
+    if (!row) return null
+    let keywords: string[] = []
+    const parsed = json(row.keywords_json)?.keywords ?? json(row.keywords_json)
+    if (Array.isArray(parsed)) keywords = parsed.filter((k): k is string => typeof k === 'string')
+    const sections = (db.prepare(`SELECT title, summary, start_time_ms FROM track_summary_sections WHERE track_summary_id = ? ORDER BY order_index`).all(String(row.id)) as Row[]).map(s => ({ title: s.title ?? null, summary: String(s.summary || ''), startMs: Number(s.start_time_ms) || 0 }))
+    return { title: row.summary_title ?? null, body: row.summary_body ?? null, keywords, sections }
+  }
+  getTranscript(trackId: string, includeFullText: boolean): TrackTranscript | null {
+    const db = this.db()
+    const row = db.prepare(`SELECT id, language, full_text FROM transcripts WHERE track_id = ? AND job_status = 'complete' ORDER BY updated_at DESC LIMIT 1`).get(trackId) as Row | undefined
+    if (!row) return null
+    const segments = (db.prepare(`SELECT text, start_time_ms, end_time_ms, speaker FROM transcript_segments WHERE transcript_id = ? ORDER BY start_time_ms`).all(String(row.id)) as Row[]).map(s => ({ startMs: Number(s.start_time_ms) || 0, endMs: Number(s.end_time_ms) || 0, text: String(s.text || ''), speaker: s.speaker ?? null }))
+    return { language: String(row.language || ''), segments, fullText: includeFullText ? (typeof row.full_text === 'string' ? row.full_text : '') : null }
   }
   textContent(trackId: string): string | null { const row = this.db().prepare('SELECT location_type, location_payload FROM tracks WHERE id=?').get(trackId) as Row | undefined; if (!row || !['text', 'cachedText'].includes(row.location_type)) return null; const data = json(row.location_payload); return typeof data?.content === 'string' ? data.content : null }
   media(trackId: string): PlaybackSource | null { const row = this.db().prepare('SELECT location_type, location_payload FROM tracks WHERE id=?').get(trackId) as Row | undefined; if (!row) return null; const data = json(row.location_payload); if (row.location_type === 'baidu' && typeof data?.path === 'string') return { kind: 'baidu', value: data.path }; if (row.location_type === 'external' && typeof data?.url === 'string') return { kind: 'external', value: data.url }; return null }
