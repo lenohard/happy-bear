@@ -1,8 +1,8 @@
 {
-  "name": "happybear-desktop",
+  "name": "polarbear-desktop",
   "version": "0.1.0",
   "private": true,
-  "description": "HappyBear read-only audiobook player",
+  "description": "PolarBear read-only audiobook player",
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev",

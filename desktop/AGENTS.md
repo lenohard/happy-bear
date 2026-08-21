@@ -1,4 +1,4 @@
-# HappyBear Desktop
+# PolarBear Desktop
 
 ## 命令
 

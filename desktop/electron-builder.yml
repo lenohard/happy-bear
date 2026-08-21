@@ -1,5 +1,5 @@
-appId: com.wdh.happybear.desktop
-productName: HappyBear
+appId: com.wdh.polarbear.desktop
+productName: PolarBear
 directories:
   output: dist
 files:
@@ -14,7 +14,7 @@ mac:
   target:
     - dmg
     - zip
-artifactName: happybear-${version}-mac-${arch}.${ext}
+artifactName: polarbear-${version}-mac-${arch}.${ext}
 dmg:
   sign: false
   writeUpdateInfo: false

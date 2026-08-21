@@ -12,7 +12,7 @@ protocol.registerSchemesAsPrivileged([
   { scheme:'hb-media', privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true,corsEnabled:true} },
   { scheme:'hb-cover', privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true} }
 ])
-app.setName('HappyBear')
+app.setName('PolarBear')
 let mainWindow:BrowserWindow|null=null
 let library:LibraryService
 const snapshot = new SnapshotDatabase()
