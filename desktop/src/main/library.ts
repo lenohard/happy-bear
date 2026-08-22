@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { Collection, ContinueItem, Cover, Folder, LibraryStatus, Playback, PlaybackSource, Track, TrackDetail, TrackPage, TrackSummary, TrackTranscript } from '../shared/ipc'
+import type { Collection, ContinueItem, Cover, Folder, LibraryStatus, Playback, PlaybackSource, SearchResult, Track, TrackDetail, TrackPage, TrackSummary, TrackTranscript } from '../shared/ipc'
 import { SnapshotDatabase } from './library-db'
 
 type Row = Record<string, any>
@@ -18,12 +18,14 @@ export class LibraryService {
   collections(folderId: string | null, includeArchived = false): Collection[] {
     const condition = folderId ? 'c.folder_id = ?' : '1=1'
     const archive = includeArchived ? '' : 'AND c.is_archived = 0'
-    const rows = this.db().prepare(`SELECT c.*, COUNT(t.id) AS track_count, SUM(CASE WHEN ps.track_id IS NOT NULL AND ps.position > 0 THEN 1 ELSE 0 END) AS listened_count, MAX(ps.updated_at) AS last_played FROM collections c LEFT JOIN tracks t ON t.collection_id=c.id AND COALESCE(t.is_archived,0)=0 LEFT JOIN playback_states ps ON ps.collection_id=c.id WHERE ${condition} ${archive} GROUP BY c.id ORDER BY c.title COLLATE NOCASE`).all(...(folderId ? [folderId] : [])) as Row[]
-    return rows.map(row => { const count = Number(row.track_count) || 0; const listened = Number(row.listened_count) || 0; return { id: String(row.id), title: String(row.title || '未命名合集'), author: row.author ?? null, description: row.description ?? null, folderId: row.folder_id ?? null, sourceType: String(row.source_type || ''), trackCount: count, listenedCount: listened, progress: count ? listened / count : 0, lastPlayed: row.last_played ?? null, cover: cover(row.cover_kind, row.cover_data, row.cover_dominant_color) } })
+    const trackArchive = includeArchived ? '' : ' AND COALESCE(t.is_archived,0)=0'
+    const rows = this.db().prepare(`SELECT c.*, COUNT(t.id) AS track_count, SUM(CASE WHEN ps.track_id IS NOT NULL AND ps.position > 0 THEN 1 ELSE 0 END) AS listened_count, MAX(ps.updated_at) AS last_played FROM collections c LEFT JOIN tracks t ON t.collection_id=c.id${trackArchive} LEFT JOIN playback_states ps ON ps.collection_id=c.id WHERE ${condition} ${archive} GROUP BY c.id ORDER BY c.title COLLATE NOCASE`).all(...(folderId ? [folderId] : [])) as Row[]
+    return rows.map(row => { const count = Number(row.track_count) || 0; const listened = Number(row.listened_count) || 0; return { id: String(row.id), title: String(row.title || '未命名合集'), author: row.author ?? null, description: row.description ?? null, folderId: row.folder_id ?? null, sourceType: String(row.source_type || ''), trackCount: count, listenedCount: listened, progress: count ? listened / count : 0, lastPlayed: row.last_played ?? null, isArchived: Number(row.is_archived) === 1, cover: cover(row.cover_kind, row.cover_data, row.cover_dominant_color) } })
   }
-  tracks(collectionId: string, page = 0, pageSize = 200): TrackPage {
+  tracks(collectionId: string, page = 0, pageSize = 200, includeArchived = false): TrackPage {
     const offset = Math.max(0, page) * Math.min(Math.max(1, pageSize), 500); const limit = Math.min(Math.max(1, pageSize), 500)
-    const base = `FROM tracks t LEFT JOIN playback_states ps ON ps.track_id=t.id WHERE t.collection_id = ? AND COALESCE(t.is_archived,0)=0`
+    const archive = includeArchived ? '' : ' AND COALESCE(t.is_archived,0)=0'
+    const base = `FROM tracks t LEFT JOIN playback_states ps ON ps.track_id=t.id WHERE t.collection_id = ?${archive}`
     const db = this.db(); const total = Number((db.prepare(`SELECT COUNT(*) AS n ${base}`).get(collectionId) as Row).n) || 0
     const rows = db.prepare(`SELECT t.*, ps.position AS playback_position, ps.duration AS playback_duration, ps.updated_at AS playback_updated_at ${base} ORDER BY CASE WHEN t.track_number IS NULL THEN 1 ELSE 0 END, t.track_number, t.display_name COLLATE NOCASE LIMIT ? OFFSET ?`).all(collectionId, limit, offset) as Row[]
     return { tracks: rows.map(row => this.track(row)), total, page, pageSize: limit }
@@ -33,10 +35,17 @@ export class LibraryService {
     return rows.map(row => ({ ...this.track(row), collectionTitle: String(row.collection_title || ''), collectionAuthor: row.collection_author ?? null }))
   }
   favorites(limit = 500): Track[] { const rows = this.db().prepare(`SELECT t.*, ps.position AS playback_position, ps.duration AS playback_duration, ps.updated_at AS playback_updated_at FROM tracks t LEFT JOIN playback_states ps ON ps.track_id=t.id WHERE t.is_favorite=1 AND COALESCE(t.is_archived,0)=0 ORDER BY t.display_name COLLATE NOCASE LIMIT ?`).all(limit) as Row[]; return rows.map(row => this.track(row)) }
-  search(query: string, limit = 50): Track[] {
-    const q = `%${query.trim()}%`; if (!query.trim()) return []
-    const rows = this.db().prepare(`SELECT t.*, ps.position AS playback_position, ps.duration AS playback_duration, ps.updated_at AS playback_updated_at FROM tracks t JOIN collections c ON c.id=t.collection_id LEFT JOIN playback_states ps ON ps.track_id=t.id WHERE COALESCE(t.is_archived,0)=0 AND COALESCE(c.is_archived,0)=0 AND (t.display_name LIKE ? OR t.filename LIKE ? OR c.title LIKE ? OR c.author LIKE ?) ORDER BY c.title COLLATE NOCASE, t.track_number LIMIT ?`).all(q, q, q, q, Math.min(Math.max(limit, 1), 200)) as Row[]
-    return rows.map(row => this.track(row))
+  search(query: string, limit = 50): SearchResult[] {
+    const trimmed = query.trim()
+    if (!trimmed) return []
+    const q = `%${trimmed}%`
+    const trackLimit = Math.min(Math.max(limit, 1), 200)
+    const collectionLimit = Math.min(Math.max(Math.floor(limit / 4), 5), 50)
+    const trackRows = this.db().prepare(`SELECT t.*, ps.position AS playback_position, ps.duration AS playback_duration, ps.updated_at AS playback_updated_at FROM tracks t JOIN collections c ON c.id=t.collection_id LEFT JOIN playback_states ps ON ps.track_id=t.id WHERE COALESCE(t.is_archived,0)=0 AND COALESCE(c.is_archived,0)=0 AND (t.display_name LIKE ? OR t.filename LIKE ? OR c.title LIKE ? OR c.author LIKE ?) ORDER BY c.title COLLATE NOCASE, t.track_number LIMIT ?`).all(q, q, q, q, trackLimit) as Row[]
+    const collectionRows = this.db().prepare(`SELECT c.*, COUNT(t.id) AS track_count, SUM(CASE WHEN ps.track_id IS NOT NULL AND ps.position > 0 THEN 1 ELSE 0 END) AS listened_count, MAX(ps.updated_at) AS last_played FROM collections c LEFT JOIN tracks t ON t.collection_id=c.id LEFT JOIN playback_states ps ON ps.collection_id=c.id WHERE COALESCE(c.is_archived,0)=0 AND (c.title LIKE ? OR c.author LIKE ? OR c.description LIKE ?) GROUP BY c.id ORDER BY c.title COLLATE NOCASE LIMIT ?`).all(q, q, q, collectionLimit) as Row[]
+    const tracks: SearchResult[] = trackRows.map(row => ({ type: 'track', data: this.track(row) }))
+    const collections: SearchResult[] = collectionRows.map(row => { const count = Number(row.track_count) || 0; const listened = Number(row.listened_count) || 0; return { type: 'collection', data: { id: String(row.id), title: String(row.title || '未命名合集'), author: row.author ?? null, description: row.description ?? null, folderId: row.folder_id ?? null, sourceType: String(row.source_type || ''), trackCount: count, listenedCount: listened, progress: count ? listened / count : 0, lastPlayed: row.last_played ?? null, isArchived: Number(row.is_archived) === 1, cover: cover(row.cover_kind, row.cover_data, row.cover_dominant_color) } } })
+    return [...collections, ...tracks]
   }
   getTrack(trackId: string): Track | null { const row = this.db().prepare(`SELECT t.*, ps.position AS playback_position, ps.duration AS playback_duration, ps.updated_at AS playback_updated_at FROM tracks t LEFT JOIN playback_states ps ON ps.track_id=t.id WHERE t.id=?`).get(trackId) as Row | undefined; return row ? this.track(row) : null }
   getTrackDetail(trackId: string): TrackDetail | null {
@@ -59,6 +68,9 @@ export class LibraryService {
     const transcriptRow = this.db().prepare(`SELECT tr.language, (SELECT COUNT(*) FROM transcript_segments s WHERE s.transcript_id = tr.id) AS cnt FROM transcripts tr WHERE tr.track_id = ? AND tr.job_status = 'complete' ORDER BY tr.updated_at DESC LIMIT 1`).get(trackId) as Row | undefined
     const transcript = transcriptRow && Number(transcriptRow.cnt) > 0 ? { segmentsCount: Number(transcriptRow.cnt), language: String(transcriptRow.language || '') } : null
     return { track: { ...base, fileSize: row.file_size == null ? null : Number(row.file_size), characterCount: row.character_count == null ? null : Number(row.character_count), checksum: typeof row.checksum === 'string' ? row.checksum : null, description, metadata, isArchived: Number(row.is_archived) === 1 }, collection, playback: playback(row), listening, transcript, summary: this.summary(trackId) }
+  }
+  getSummary(trackId: string): TrackSummary | null {
+    return this.summary(trackId)
   }
   private summary(trackId: string): TrackSummary | null {
     const db = this.db()

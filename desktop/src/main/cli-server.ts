@@ -253,10 +253,11 @@ async function handleRequest(
       }
 
       if (body.query) {
-        const tracks = ctx.library.search(String(body.query), 1)
-        if (tracks.length === 0) return jsonReply(res, 404, { error: 'No tracks found' })
-        const sent = await sendRemoteCommand(ctx, { action: 'playSingle', track: tracks[0] })
-        return jsonReply(res, 200, { ok: sent, track: tracks[0] })
+        const results = ctx.library.search(String(body.query), 1)
+        const firstTrack = results.find(r => r.type === 'track')
+        if (!firstTrack) return jsonReply(res, 404, { error: 'No tracks found' })
+        const sent = await sendRemoteCommand(ctx, { action: 'playSingle', track: firstTrack.data })
+        return jsonReply(res, 200, { ok: sent, track: firstTrack.data })
       }
 
       return jsonReply(res, 400, { error: 'Provide trackId, collectionId, or query' })
