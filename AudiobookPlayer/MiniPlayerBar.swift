@@ -52,12 +52,6 @@ struct MiniPlayerBar: View {
         .padding(.trailing, 16)
         .padding(.vertical, 8)
         .frame(height: 52)
-        .background {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.18), radius: 8, x: 0, y: 3)
-        }
-        .padding(.horizontal, 10)
         .onAppear { refreshCover(for: collection) }
         .onChange(of: collection.coverAsset) { refreshCover(for: collection) }
     }
