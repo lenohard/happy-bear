@@ -27,6 +27,22 @@ type Row = Record<string, unknown>
 
 const sqliteDate = (date = new Date()): string => date.toISOString().replace('T', ' ').replace('Z', '')
 
+export function readGuardState(dbPath: string, trackId: string): { transcriptId: string; transcriptUpdatedAt: string; existingSummaryUpdatedAt: string | null } {
+  const db = new DatabaseSync(dbPath, { readOnly: true })
+  try {
+    const transcript = db.prepare(`SELECT id, updated_at FROM transcripts WHERE track_id = ? AND job_status = 'complete' ORDER BY updated_at DESC LIMIT 1`).get(trackId) as Row | undefined
+    if (!transcript) throw new Error('该曲目无完整转录，无法生成摘要。')
+    const summary = db.prepare('SELECT updated_at FROM track_summaries WHERE track_id = ?').get(trackId) as Row | undefined
+    return {
+      transcriptId: String(transcript.id),
+      transcriptUpdatedAt: String(transcript.updated_at),
+      existingSummaryUpdatedAt: summary ? String(summary.updated_at) : null
+    }
+  } finally {
+    db.close()
+  }
+}
+
 export function writeTrackSummary(dbPath: string, payload: SummaryWritePayload): void {
   const db = new DatabaseSync(dbPath)
   try {
