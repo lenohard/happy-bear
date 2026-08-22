@@ -223,7 +223,7 @@ async function handleRequest(
     if (method === 'GET' && path === '/search') {
       const query = url.searchParams.get('q') ?? ''
       const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10) || 50, 200)
-      return jsonReply(res, 200, { tracks: ctx.library.search(query, limit) })
+      return jsonReply(res, 200, ctx.library.search(query, limit))
     }
 
     // GET /baidu-status

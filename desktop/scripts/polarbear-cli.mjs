@@ -126,6 +126,30 @@ function print(data, useJson) {
   }
 }
 
+function printSearch(data, useJson) {
+  if (useJson) {
+    console.log(JSON.stringify(data, null, 2))
+    return
+  }
+  if (!Array.isArray(data) || data.length === 0) {
+    console.log('No results')
+    return
+  }
+  const collections = data.filter(r => r.type === 'collection')
+  const tracks = data.filter(r => r.type === 'track')
+  if (collections.length > 0) {
+    console.log(`Collections (${collections.length}):`)
+    collections.forEach((r, i) => {
+      const c = r.data
+      console.log(`  ${i + 1}. ${c.title} — ${c.author || 'unknown'} [${c.trackCount} tracks] (id: ${c.id})`)
+    })
+  }
+  if (tracks.length > 0) {
+    console.log(`Tracks (${tracks.length}):`)
+    tracks.forEach((r, i) => console.log(`  ${i + 1}. ${trackLine(r.data, 0)}`))
+  }
+}
+
 function formatTime(seconds) {
   if (!Number.isFinite(seconds) || seconds <= 0) return '0:00'
   const minutes = Math.floor(seconds / 60)
@@ -311,7 +335,7 @@ async function main() {
         }
         const query = flags.join(' ')
         const data = await request(`/search?q=${encodeURIComponent(query)}&limit=50`)
-        print(data, useJson)
+        printSearch(data, useJson)
         break
       }
       case 'baidu-status': {
