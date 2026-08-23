@@ -916,8 +916,8 @@ final class LibraryStore: ObservableObject {
             persistCurrentSnapshot()  // Fallback to JSON
         }
 
-        // Auto-archive track when played to 100% completion
-        if let duration = state.duration, duration > 0, state.position >= duration * 0.99 {
+        // Auto-archive track when played to 100% completion (only for non-music collections)
+        if !collection.isMusic, let duration = state.duration, duration > 0, state.position >= duration * 0.99 {
             if let trackIdx = collection.tracks.firstIndex(where: { $0.id == trackID }),
                !collection.tracks[trackIdx].isArchived {
                 AppLog.debug("[AUTO-ARCHIVE] Track fully played: \(collection.tracks[trackIdx].displayName)")

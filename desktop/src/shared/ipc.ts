@@ -34,9 +34,9 @@ export interface Cover { kind: string | null; data: Record<string, unknown> | nu
 export interface Folder { id: string; name: string; cover: Cover }
 export interface Collection { id: string; title: string; author: string | null; description: string | null; folderId: string | null; sourceType: string; trackCount: number; listenedCount: number; progress: number; lastPlayed: string | null; isArchived: boolean; cover: Cover }
 export interface Playback { position: number; duration: number | null; updatedAt: string | null }
-export interface Track { id: string; collectionId: string; displayName: string; filename: string; locationType: string; duration: number | null; trackNumber: number; chapter: string | null; mediaKind: string; isFavorite: boolean; playback: Playback | null; playable: boolean }
+export interface Track { id: string; collectionId: string; displayName: string; filename: string; locationType: string; duration: number | null; trackNumber: number; chapter: string | null; mediaKind: string; isFavorite: boolean; isArchived: boolean; playback: Playback | null; playable: boolean }
 export interface TrackDetail {
-  track: Track & { fileSize: number | null; characterCount: number | null; checksum: string | null; description: string | null; metadata: Record<string, string> | null; isArchived: boolean }
+  track: Track & { fileSize: number | null; characterCount: number | null; checksum: string | null; description: string | null; metadata: Record<string, string> | null }
   collection: { id: string; title: string; author: string | null; description: string | null; cover: Cover; folderId: string | null; trackCount: number } | null
   playback: Playback | null
   listening: { sessions: number; totalSec: number; lastListenedAt: string | null }

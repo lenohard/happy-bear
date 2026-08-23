@@ -11,7 +11,7 @@ let lastPlaying = false
 
 const sqliteDate = (): string => new Date().toISOString().replace('T', ' ').replace('Z', '')
 
-export function persistPlaybackState(state: PlaybackState): void {
+export function persistPlaybackState(state: PlaybackState, onTrackArchived?: () => void): void {
   const track = state.currentTrack
   const wasPlaying = lastPlaying
   lastPlaying = state.isPlaying
@@ -25,6 +25,7 @@ export function persistPlaybackState(state: PlaybackState): void {
   if (!existsSync(SOURCE_DB)) return
 
   const db = new DatabaseSync(SOURCE_DB)
+  let archived = false
   try {
     db.exec('PRAGMA busy_timeout = 5000')
     db.exec('BEGIN IMMEDIATE')
@@ -41,6 +42,22 @@ export function persistPlaybackState(state: PlaybackState): void {
     db.prepare(`UPDATE collections
       SET last_played_track_id = ?, updated_at = ?
       WHERE id = ?`).run(track.id, updatedAt, track.collectionId)
+
+    // Auto-archive track if played to >=99% of duration and collection is NOT music
+    const duration = Number.isFinite(state.durationSec) && state.durationSec > 0 ? state.durationSec : (track.duration || 0)
+    if (duration > 0 && state.positionSec >= duration * 0.99) {
+      const colRow = db.prepare(`SELECT is_music FROM collections WHERE id = ?`).get(track.collectionId) as { is_music?: number } | undefined
+      const isMusic = colRow && Number(colRow.is_music) === 1
+      if (!isMusic) {
+        const updateResult = db.prepare(`UPDATE tracks
+          SET is_archived = 1, updated_at = ?
+          WHERE id = ? AND COALESCE(is_archived, 0) = 0`).run(updatedAt, track.id)
+        if (Number(updateResult.changes) > 0) {
+          archived = true
+        }
+      }
+    }
+
     db.exec('COMMIT')
     lastTrackId = track.id
     lastWriteAt = now
@@ -48,5 +65,9 @@ export function persistPlaybackState(state: PlaybackState): void {
     try { db.exec('ROLLBACK') } catch { /* transaction may not have started */ }
   } finally {
     db.close()
+  }
+
+  if (archived && onTrackArchived) {
+    try { onTrackArchived() } catch { /* ignore notification errors */ }
   }
 }

@@ -25,7 +25,6 @@ function App(){
  useEffect(()=>{void window.api.appGetVersion().then(setAppVersion).catch(()=>{})},[])
  useEffect(()=>{void window.api.updateGetState().then(setUpdateState).catch(()=>{});return window.api.onUpdateState(setUpdateState)},[])
  useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if((e.metaKey||e.ctrlKey)&&e.key===','){e.preventDefault();setSettingsOpen(true)}else if(e.key==='Escape')setSettingsOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[])
- useEffect(()=>{if(!selected)return;window.api.libraryGetTracks(selected.id,0,300,selected.isArchived).then(p=>setTracks(p.tracks)).catch(e=>setError(String(e)))},[selected])
  useEffect(()=>{if(view==='favorites')window.api.libraryGetFavorites().then(setFavoriteItems).catch(e=>setError(String(e)));},[view])
  const play=async(track:Track)=>{if(track.locationType==='text'){setText(await window.api.trackGetTextContent(track.id));return}if(!track.playable){setError('此曲目仅在 iOS 设备上可用，桌面暂不支持。');return}setCurrent(track);setPlaying(true);setError('')}
  const playTrackAt=(list:Track[],i:number)=>{if(list[i]){setQueue(list);void play(list[i])}}
@@ -129,7 +128,7 @@ function App(){
       ) : view === 'search' ? (
         <SearchView results={results} query={query} onPlay={play} onInfo={openTrack} onOpenCollection={c => { setSelected(c); setView('all') }} onBack={() => { setView('continue'); setQuery(''); setResults([]) }} />
       ) : selected ? (
-        <Detail collection={selected} tracks={tracks} onBack={() => setSelected(null)} onPlay={play} onInfo={openTrack} />
+        <Detail collection={selected} onBack={() => setSelected(null)} onPlay={play} onInfo={openTrack} onTracksChange={setTracks} />
       ) : (
         <TrackView title={view === 'continue' ? '继续收听' : '收藏曲目'} tracks={displayed} onPlay={play} onInfo={openTrack} />
       )}</main><Player track={current} playing={playing} setPlaying={setPlaying} audio={audio} speed={speed} setSpeed={setSpeed} onNext={nextTrack} onPrev={prevTrack} onOpen={()=>setNowPlayingOpen(true)}/><audio ref={audio} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>{setPlaying(false)}}/> {text!==null&&<div className="modal" onClick={()=>setText(null)}><article onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setText(null)}>×</button><pre>{text}</pre></article></div>}{settingsOpen&&<Settings version={appVersion} update={updateState} onClose={()=>setSettingsOpen(false)} onCheck={()=>{void window.api.updateCheck().then(setUpdateState).catch(()=>{})}} onInstall={()=>{void window.api.updateInstall()}}/>}</div>
@@ -137,9 +136,83 @@ function App(){
 function Empty({status,onRefresh}:{status:LibraryStatus|null;onRefresh:()=>void}){return <div className="empty"><div className="empty-bear">🐻‍❄️</div><h2>还没有找到 PolarBear 音频库</h2><p>{status?.error||'请在 iOS 端开启 iCloud 同步，然后点击刷新库。'}</p><button onClick={onRefresh}>刷新库</button></div>}
 function CollectionCard({item,onClick}:{item:Collection;onClick:()=>void}){return <button className="card" onClick={onClick}><Cover item={item}/><div className="card-body"><h3>{item.title}</h3><p>{item.author||'未知作者'}</p><div className="meta"><span>{item.trackCount} 曲目</span>{item.progress>0&&<span>{Math.round(item.progress*100)}%</span>}</div>{item.progress>0&&<div className="progress"><i style={{width:`${item.progress*100}%`}}/></div>}</div></button>}
 function SearchView({results,query,onPlay,onInfo,onOpenCollection,onBack}:{results:SearchResult[];query:string;onPlay:(t:Track)=>void;onInfo:(id:string)=>void;onOpenCollection:(c:Collection)=>void;onBack:()=>void}){const collections=results.filter((r):r is Extract<SearchResult,{type:'collection'}>=>r.type==='collection').map(r=>r.data);const tracks=results.filter((r):r is Extract<SearchResult,{type:'track'}>=>r.type==='track').map(r=>r.data);const total=results.length;return <div className="search-view"><div className="search-head"><button className="back back-sticky" onClick={onBack}>‹ 返回</button><div className="heading"><div className="eyebrow">搜索 <span>/</span> 关键词</div><h1>“{query}”</h1><p>{total.toLocaleString()} 个结果 · {collections.length} 个合集 · {tracks.length} 个曲目</p></div></div>{collections.length>0&&<section className="search-section"><h2>合集</h2><div className="grid">{collections.map(c=><CollectionCard key={c.id} item={c} onClick={()=>onOpenCollection(c)}/>)}</div></section>}{tracks.length>0&&<section className="search-section"><h2>曲目</h2><div className="track-list">{tracks.map((t,i)=><TrackRow key={t.id} track={t} index={i+1} onPlay={onPlay} onInfo={onInfo}/>)}</div></section>}{total===0&&<div className="empty compact"><h2>未找到结果</h2><p>换个关键词试试。</p></div>}</div>}
-function Detail({collection,tracks,onBack,onPlay,onInfo}:{collection:Collection;tracks:Track[];onBack:()=>void;onPlay:(t:Track)=>void;onInfo:(id:string)=>void}){return <><div className="detail-head"><button className="back back-sticky" onClick={onBack}>‹ 返回</button><div className="detail-cover"><Cover item={collection} small/></div><div><h1>{collection.title}</h1><p>{collection.author||'未知作者'} · {tracks.length}/{collection.trackCount} 曲目</p><p className="description">{collection.description}</p></div></div><div className="track-list">{tracks.map((t,i)=><TrackRow key={t.id} track={t} index={i+1} onPlay={onPlay} onInfo={onInfo}/>)}</div></>}
+function Detail({collection,onBack,onPlay,onInfo,onTracksChange}:{collection:Collection;onBack:()=>void;onPlay:(t:Track)=>void;onInfo:(id:string)=>void;onTracksChange?:(tracks:Track[])=>void}){
+  const [activeTracks,setActiveTracks]=useState<Track[]>([])
+  const [archivedTracks,setArchivedTracks]=useState<Track[]>([])
+  const [tab,setTab]=useState<'active'|'archived'>(collection.isArchived?'archived':'active')
+  const [loading,setLoading]=useState(true)
+  const [error,setError]=useState('')
+
+  const load=()=>{
+    setLoading(true)
+    Promise.all([
+      window.api.libraryGetTracks(collection.id,0,500,false),
+      window.api.libraryGetTracks(collection.id,0,500,true)
+    ]).then(([activePage,allPage])=>{
+      setActiveTracks(activePage.tracks)
+      setArchivedTracks(allPage.tracks.filter(t=>t.isArchived))
+      setLoading(false)
+    }).catch(e=>{
+      setError(String(e))
+      setLoading(false)
+    })
+  }
+
+  useEffect(()=>{
+    setTab(collection.isArchived?'archived':'active')
+    load()
+  },[collection.id])
+
+  const displayedTracks=tab==='active'?activeTracks:archivedTracks
+  useEffect(()=>{
+    onTracksChange?.(displayedTracks)
+  },[displayedTracks,onTracksChange])
+
+  const totalCount=collection.trackCount||(activeTracks.length+archivedTracks.length)
+  const hasArchived=archivedTracks.length>0
+
+  return (
+    <div className="detail-view">
+      <div className="detail-head">
+        <button className="back back-sticky" onClick={onBack}>‹ 返回</button>
+        <div className="detail-cover"><Cover item={collection} small/></div>
+        <div className="detail-info">
+          <h1>{collection.title}</h1>
+          <p className="detail-meta">
+            {collection.author||'未知作者'} · {activeTracks.length}/{totalCount} 首待听
+            {hasArchived&&` · ${archivedTracks.length} 首已归档`}
+          </p>
+          {collection.description&&<p className="description">{collection.description}</p>}
+          {(hasArchived||collection.isArchived)&&(
+            <div className="detail-tabs">
+              <button className={`detail-tab ${tab==='active'?'active':''}`} onClick={()=>setTab('active')}>
+                待听曲目 ({activeTracks.length})
+              </button>
+              <button className={`detail-tab ${tab==='archived'?'active':''}`} onClick={()=>setTab('archived')}>
+                已归档 ({archivedTracks.length})
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      {error&&<div className="notice">{error}</div>}
+      {loading?(
+        <div className="track-detail-loading">正在加载曲目…</div>
+      ):displayedTracks.length===0?(
+        <div className="empty compact">
+          <h2>{tab==='active'?'所有曲目均已归档':'暂无已归档曲目'}</h2>
+          <p>{tab==='active'?'可以在「已归档」标签中查看或重播已听完的曲目。':'播完 99% 的非音乐曲目会自动移至已归档。'}</p>
+        </div>
+      ):(
+        <div className="track-list">
+          {displayedTracks.map((t,i)=><TrackRow key={t.id} track={t} index={i+1} onPlay={onPlay} onInfo={onInfo}/>)}
+        </div>
+      )}
+    </div>
+  )
+}
 function TrackView({title,tracks,onPlay,onInfo}:{title:string;tracks:Track[];onPlay:(t:Track)=>void;onInfo:(id:string)=>void}){return <><div className="heading"><h1>{title}</h1><p>{tracks.length} 个结果</p></div><div className="track-list">{tracks.map((t,i)=><TrackRow key={t.id} track={t} index={i+1} onPlay={onPlay} onInfo={onInfo}/>)}</div></>}
-function TrackRow({track,index,onPlay,onInfo}:{track:Track;index:number;onPlay:(t:Track)=>void;onInfo:(id:string)=>void}){const pct=track.playback&&track.playback.duration?Math.min(100,track.playback.position/track.playback.duration*100):0;return <div className={`track-row ${!track.playable?'disabled':''}`}><span className="track-num">{index}</span><button className="play-btn" onClick={()=>onPlay(track)}>{track.locationType==='text'?'▤':'▶'}</button><div className="track-info"><strong>{track.displayName}</strong><small>{track.chapter||track.locationType}</small>{pct>0&&<div className="progress"><i style={{width:`${pct}%`}}/></div>}</div><span className="track-duration">{fmt(track.duration)}</span><span className="favorite">{track.isFavorite?'★':'☆'}</span><button className="info-btn" onClick={()=>onInfo(track.id)} title="曲目详情">ⓘ</button></div>}
+function TrackRow({track,index,onPlay,onInfo}:{track:Track;index:number;onPlay:(t:Track)=>void;onInfo:(id:string)=>void}){const pct=track.playback&&track.playback.duration?Math.min(100,track.playback.position/track.playback.duration*100):0;return <div className={`track-row ${!track.playable?'disabled':''} ${track.isArchived?'archived':''}`}><span className="track-num">{index}</span><button className="play-btn" onClick={()=>onPlay(track)}>{track.locationType==='text'?'▤':'▶'}</button><div className="track-info"><strong>{track.displayName}</strong><small>{track.chapter||track.locationType}</small>{pct>0&&<div className="progress"><i style={{width:`${pct}%`}}/></div>}</div>{track.isArchived&&<span className="badge archived">已归档</span>}<span className="track-duration">{fmt(track.duration)}</span><span className="favorite">{track.isFavorite?'★':'☆'}</span><button className="info-btn" onClick={()=>onInfo(track.id)} title="曲目详情">ⓘ</button></div>}
 const META_DESCRIPTION_KEYS=['description','summary','subtitle','note','abstract']
 function TrackDetail({detail,loading,onBack,onPlay,onOpenCollection,onSummaryDone}:{detail:TrackDetail|null;loading:boolean;onBack:()=>void;onPlay:(t:Track)=>void;onOpenCollection:(col:NonNullable<TrackDetail['collection']>)=>void;onSummaryDone:()=>void}){if(loading)return <div className="track-detail"><button className="back back-inline" onClick={onBack}>‹ 返回</button><div className="track-detail-loading">正在加载曲目详情…</div></div>;if(!detail)return <div className="track-detail"><button className="back back-inline" onClick={onBack}>‹ 返回</button><div className="track-detail-empty">未找到该曲目。</div></div>;const{track,collection,playback,listening,transcript,summary}=detail;const pct=playback&&playback.duration&&playback.duration>0?Math.min(100,playback.position/playback.duration*100):0;const metaEntries=track.metadata?Object.entries(track.metadata).filter(([k])=>!META_DESCRIPTION_KEYS.includes(k)):[];const subParts:string[]=[];if(track.chapter)subParts.push(`第 ${track.chapter} 章`);if(track.trackNumber>0)subParts.push(`音轨 ${track.trackNumber}`);return <div className="track-detail"><button className="back back-inline" onClick={onBack}>‹ 返回</button><div className="detail-breadcrumb">曲目详情 <span>/</span> {collection?.title||'独立曲目'}</div><header className="track-detail-head">{collection&&<div className="track-detail-cover"><Cover item={collection} small/></div>}<div className="track-detail-info"><div className="eyebrow">正在查看曲目</div><h1 title={track.displayName}>{track.displayName}</h1>{subParts.length>0&&<p className="track-detail-sub">{subParts.join(' · ')}</p>}<div className="track-detail-badges"><span className="badge">{mediaLabel(track.mediaKind)}</span><span className="badge">{locationLabel(track.locationType)}</span>{track.isFavorite&&<span className="badge star">★ 收藏</span>}{track.isArchived&&<span className="badge archived">已归档</span>}</div><div className="detail-actions"><button className="play-btn-large" onClick={()=>onPlay(track)} disabled={!track.playable}>{track.locationType==='text'?'▤ 阅读文本':'▶ 播放'}</button></div></div></header>{collection&&<section className="detail-section"><h2>所属合集</h2><button className="collection-card" onClick={()=>onOpenCollection(collection)}><Cover item={collection} small/><div className="collection-card-info"><strong>{collection.title}</strong><p>{collection.author||'未知作者'}</p>{collection.description&&<small className="collection-card-desc">{collection.description}</small>}<small>{collection.trackCount} 曲目</small></div></button></section>}<section className="detail-section"><h2>曲目信息</h2><div className="info-grid"><div className="info-item"><label>文件名</label><span className="ellipsis" title={track.filename}>{track.filename}</span></div><div className="info-item"><label>位置</label><span>{locationLabel(track.locationType)}</span></div><div className="info-item"><label>类型</label><span>{mediaLabel(track.mediaKind)}</span></div><div className="info-item"><label>时长</label><span>{fmt(track.duration)}</span></div>{track.fileSize!=null&&<div className="info-item"><label>大小</label><span>{fmtBytes(track.fileSize)}</span></div>}{track.characterCount!=null&&<div className="info-item"><label>字数</label><span>{fmtNumber(track.characterCount)}</span></div>}{track.chapter!=null&&<div className="info-item"><label>章节</label><span>{track.chapter}</span></div>}{track.trackNumber>0&&<div className="info-item"><label>音轨</label><span>{track.trackNumber}</span></div>}{track.checksum&&<div className="info-item"><label>校验</label><span className="ellipsis mono" title={track.checksum}>{track.checksum}</span></div>}</div></section>{playback&&playback.duration!=null&&playback.duration>0&&<section className="detail-section"><h2>播放进度</h2><div className="progress large"><i style={{width:`${pct}%`}}/></div><p className="meta-text">{fmt(playback.position)} / {fmt(playback.duration)}{playback.updatedAt&&` · 上次播放 ${fmtDateTime(playback.updatedAt)}`}</p></section>}{(listening.sessions>0||listening.lastListenedAt)&&<section className="detail-section"><h2>收听记录</h2><div className="info-grid"><div className="info-item"><label>收听次数</label><span>{listening.sessions} 次</span></div>{listening.lastListenedAt&&<div className="info-item"><label>最后收听</label><span>{fmtDateTime(listening.lastListenedAt)}</span></div>}</div></section>}{track.description&&<section className="detail-section"><h2>曲目描述</h2><p className="track-description">{track.description}</p></section>}{metaEntries.length>0&&<section className="detail-section"><h2>元数据</h2><dl className="meta-list">{metaEntries.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{String(v)}</dd></div>)}</dl></section>}<section className="detail-section"><h2>AI 摘要</h2>{summary&&<SummaryBlock summary={summary}/>}<SummaryAction trackId={track.id} hasSummary={!!summary} hasTranscript={!!transcript} onDone={onSummaryDone}/></section><section className="detail-section"><h2>转录</h2><TranscriptBlock trackId={track.id} meta={transcript}/></section></div>}
 function SummaryBlock({summary}:{summary:TrackSummary}){return <div className="summary-block">{summary.title&&<h3 className="summary-title">{summary.title}</h3>}{summary.body&&<p className="summary-body">{summary.body}</p>}{summary.keywords.length>0&&<div className="keyword-chips">{summary.keywords.map(k=><span key={k}>{k}</span>)}</div>}{summary.sections.length>0&&<details className="summary-sections"><summary>{summary.sections.length} 个章节摘要</summary>{summary.sections.map((s,i)=><div key={i} className="summary-section"><b>{s.title||fmtMs(s.startMs)}</b><p>{s.summary}</p></div>)}</details>}</div>}

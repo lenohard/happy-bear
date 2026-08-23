@@ -1,6 +1,6 @@
 {
   "name": "polarbear-desktop",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "private": true,
   "description": "PolarBear read-only audiobook player",
   "main": "./out/main/index.js",
