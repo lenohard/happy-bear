@@ -31,7 +31,18 @@ export class LibraryService {
     return { tracks: rows.map(row => this.track(row)), total, page, pageSize: limit }
   }
   continueListening(limit = 20): ContinueItem[] {
-    const rows = this.db().prepare(`SELECT t.*, c.title AS collection_title, c.author AS collection_author, ps.position AS playback_position, ps.duration AS playback_duration, ps.updated_at AS playback_updated_at FROM playback_states ps JOIN tracks t ON t.id=ps.track_id JOIN collections c ON c.id=t.collection_id WHERE ps.position > 0 AND COALESCE(t.is_archived,0)=0 AND COALESCE(c.is_archived,0)=0 ORDER BY ps.updated_at DESC LIMIT ?`).all(Math.min(Math.max(limit, 1), 100)) as Row[]
+    const rows = this.db().prepare(`
+      WITH ranked AS (
+        SELECT t.*, c.title AS collection_title, c.author AS collection_author,
+               ps.position AS playback_position, ps.duration AS playback_duration, ps.updated_at AS playback_updated_at,
+               ROW_NUMBER() OVER(PARTITION BY t.collection_id ORDER BY ps.updated_at DESC) AS rn
+        FROM playback_states ps
+        JOIN tracks t ON t.id=ps.track_id
+        JOIN collections c ON c.id=t.collection_id
+        WHERE ps.position > 0 AND COALESCE(t.is_archived,0)=0 AND COALESCE(c.is_archived,0)=0
+      )
+      SELECT * FROM ranked WHERE rn = 1 ORDER BY playback_updated_at DESC LIMIT ?
+    `).all(Math.min(Math.max(limit, 1), 100)) as Row[]
     return rows.map(row => ({ ...this.track(row), collectionTitle: String(row.collection_title || ''), collectionAuthor: row.collection_author ?? null }))
   }
   favorites(limit = 500): Track[] { const rows = this.db().prepare(`SELECT t.*, ps.position AS playback_position, ps.duration AS playback_duration, ps.updated_at AS playback_updated_at FROM tracks t LEFT JOIN playback_states ps ON ps.track_id=t.id WHERE t.is_favorite=1 AND COALESCE(t.is_archived,0)=0 ORDER BY t.display_name COLLATE NOCASE LIMIT ?`).all(limit) as Row[]; return rows.map(row => this.track(row)) }
