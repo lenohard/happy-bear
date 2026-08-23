@@ -15,7 +15,7 @@ function Cover({item,small=false}:{item:{cover:{kind:string|null;data:Record<str
 
 type View='all'|'continue'|'favorites'|'archived'|'search'
 function App(){
- const [status,setStatus]=useState<LibraryStatus|null>(null),[folders,setFolders]=useState<Folder[]>([]),[collections,setCollections]=useState<Collection[]>([]),[allCollections,setAllCollections]=useState<Collection[]>([]),[archivedCollections,setArchivedCollections]=useState<Collection[]>([]),[expandedFolders,setExpandedFolders]=useState<Set<string>>(new Set()),[view,setView]=useState<View>('continue'),[folderId,setFolderId]=useState<string|null>(null),[selected,setSelected]=useState<Collection|null>(null),[tracks,setTracks]=useState<Track[]>([]),[continueItems,setContinueItems]=useState<ContinueItem[]>([]),[favoriteItems,setFavoriteItems]=useState<Track[]>([]),[query,setQuery]=useState(''),[results,setResults]=useState<SearchResult[]>([]),[text,setText]=useState<string|null>(null),[current,setCurrent]=useState<Track|null>(null),[playing,setPlaying]=useState(false),[speed,setSpeed]=useState(1),[error,setError]=useState(''),[baidu,setBaidu]=useState({configured:false,connected:false,expiresAt:null as number|null}),[queue,setQueue]=useState<Track[]>([]),[volume,setVolume]=useState(1),[selectedTrackId,setSelectedTrackId]=useState<string|null>(null),[trackDetail,setTrackDetail]=useState<TrackDetail|null>(null),[trackDetailLoading,setTrackDetailLoading]=useState(false),[settingsOpen,setSettingsOpen]=useState(false),[appVersion,setAppVersion]=useState(''),[updateState,setUpdateState]=useState<UpdateState>({checking:false,updateAvailable:false,downloading:false,readyToInstall:false,latestVersion:null,error:null}),[nowPlayingOpen,setNowPlayingOpen]=useState(false),[libFilter,setLibFilter]=useState(''),[refreshing,setRefreshing]=useState(false)
+ const [status,setStatus]=useState<LibraryStatus|null>(null),[folders,setFolders]=useState<Folder[]>([]),[collections,setCollections]=useState<Collection[]>([]),[allCollections,setAllCollections]=useState<Collection[]>([]),[archivedCollections,setArchivedCollections]=useState<Collection[]>([]),[expandedFolders,setExpandedFolders]=useState<Set<string>>(new Set()),[view,setView]=useState<View>('continue'),[folderId,setFolderId]=useState<string|null>(null),[selected,setSelected]=useState<Collection|null>(null),[tracks,setTracks]=useState<Track[]>([]),[continueItems,setContinueItems]=useState<ContinueItem[]>([]),[favoriteItems,setFavoriteItems]=useState<Track[]>([]),[query,setQuery]=useState(''),[results,setResults]=useState<SearchResult[]>([]),[text,setText]=useState<string|null>(null),[current,setCurrent]=useState<Track|null>(null),[playing,setPlaying]=useState(false),[speed,setSpeed]=useState(1),[error,setError]=useState(''),[baidu,setBaidu]=useState({configured:false,connected:false,expiresAt:null as number|null}),[queue,setQueue]=useState<Track[]>([]),[volume,setVolume]=useState(1),[selectedTrackId,setSelectedTrackId]=useState<string|null>(null),[trackDetail,setTrackDetail]=useState<TrackDetail|null>(null),[trackDetailLoading,setTrackDetailLoading]=useState(false),[settingsOpen,setSettingsOpen]=useState(false),[appVersion,setAppVersion]=useState(''),[updateState,setUpdateState]=useState<UpdateState>({checking:false,updateAvailable:false,downloading:false,readyToInstall:false,latestVersion:null,error:null}),[nowPlayingOpen,setNowPlayingOpen]=useState(false),[libFilter,setLibFilter]=useState(''),[refreshing,setRefreshing]=useState(false),[collectionViewMode,setCollectionViewMode]=useState<'grid'|'list'>('grid')
  const openTrack=(id:string)=>{setSelectedTrackId(id);setTrackDetail(null);setTrackDetailLoading(true);window.api.libraryGetTrackDetail(id).then(d=>{setTrackDetail(d);setTrackDetailLoading(false)}).catch(e=>{setError(String(e));setTrackDetailLoading(false)})}
  const closeTrack=()=>{setSelectedTrackId(null);setTrackDetail(null)}
  const openCollection=(col:NonNullable<TrackDetail['collection']>)=>{setSelectedTrackId(null);setTrackDetail(null);setView('all');setSelected(col as unknown as Collection)}
@@ -52,10 +52,87 @@ function App(){
  const libList=useMemo(()=>{const q=libFilter.trim().toLowerCase();return q?allCollections.filter(c=>c.title.toLowerCase().includes(q)||(c.author||'').toLowerCase().includes(q)):allCollections},[allCollections,libFilter])
  const archivedList=useMemo(()=>{const q=libFilter.trim().toLowerCase();return q?archivedCollections.filter(c=>c.title.toLowerCase().includes(q)||(c.author||'').toLowerCase().includes(q)):archivedCollections},[archivedCollections,libFilter])
  const folderList=useMemo(()=>{const q=libFilter.trim().toLowerCase();return q?folders.filter(f=>f.name.toLowerCase().includes(q)):folders},[folders,libFilter])
+ const otherCount=useMemo(()=>allCollections.filter(c=>!c.folderId).length,[allCollections])
+ const displayCollections=useMemo(()=>folderId==='__other__'?allCollections.filter(c=>!c.folderId):collections,[folderId,collections,allCollections])
  const recentCollections=useMemo(()=>[...allCollections].filter(c=>c.lastPlayed).sort((a,b)=>new Date(b.lastPlayed!).getTime()-new Date(a.lastPlayed!).getTime()).slice(0,5),[allCollections])
  const search=async()=>{if(!query.trim())return;setView('search');setResults(await window.api.librarySearch(query,100))}
  const refresh=async()=>{if(refreshing)return;setRefreshing(true);try{await window.api.libraryRefresh();await load();setError('')}catch(e){setError(String(e))}finally{setRefreshing(false)}}
- return <div className="app"><aside><div className="brand"><span className="brand-mark">🐻‍❄️</span><div><strong>PolarBear</strong><small>DESKTOP</small></div></div><nav className="primary-nav"><span className="nav-label">浏览</span><button className={view==='all'?'active':''} onClick={()=>{setFolderId(null);setView('all');setSelected(null)}}><span className="nav-icon">⌂</span><span>书库</span></button><button className={view==='continue'?'active':''} onClick={()=>setView('continue')}><span className="nav-icon">◷</span><span>继续收听</span></button><button className={view==='favorites'?'active':''} onClick={()=>setView('favorites')}><span className="nav-icon">☆</span><span>收藏</span></button><button className={view==='archived'?'active':''} onClick={()=>{setFolderId(null);setSelected(null);setView('archived')}}><span className="nav-icon">▣</span><span>归档</span>{archivedCollections.length>0&&<small className="nav-count">{archivedCollections.length}</small>}</button></nav><div className="lib-section"><div className="lib-title"><label>我的书库</label><small>{status?.collections?.toLocaleString()||0} 个合集</small></div><div className="lib-search"><span>⌕</span><input value={libFilter} placeholder="过滤合集或文件夹" aria-label="过滤书库" onChange={e=>setLibFilter(e.target.value)}/>{libFilter&&<button aria-label="清除过滤" onClick={()=>setLibFilter('')}>×</button>}</div><div className="lib-list">{folderList.map(f=><button key={f.id} className={`lib-item folder-item ${folderId===f.id?'active':''}`} onClick={()=>{setFolderId(f.id);setView('all');setSelected(null)}}><span className="folder-dot"/><span>{f.name}</span></button>)}{libList.length>0&&folderList.length>0&&<div className="lib-sep"/>}{libList.map(c=><button key={c.id} className={`lib-item ${selected?.id===c.id?'active':''}`} title={c.title} onClick={()=>{setView('all');setSelected(c)}}><span>{c.title}</span><small>{c.trackCount}</small></button>)}{folderList.length===0&&libList.length===0&&<p className="lib-empty">{collections.length===0?'暂无合集':'无匹配合集'}</p>}</div></div><div className="sidebar-foot"><button className="refresh-library" onClick={refresh} disabled={refreshing}><span>↻</span> {refreshing?'同步中…':'刷新书库'}</button><span className="readonly">只读同步 · 不会修改 iOS 数据</span></div></aside><main><header className="app-header"><div className="search"><span>⌕</span><input value={query} placeholder="搜索合集、作者或曲目" onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&void search()}/>{query&&<button onClick={()=>{setQuery('');setView('all')}}>×</button>}</div><button className="gear" onClick={()=>setSettingsOpen(true)} title="设置 (⌘,)">⚙</button><button className="settings" onClick={async()=>{const next=baidu.connected?await window.api.baiduLogout():await window.api.baiduLogin();setBaidu(next)}}>{baidu.connected?'百度已登录':'百度网盘登录'}</button></header>{error&&<div className="notice">{error}<button onClick={()=>setError('')}>×</button></div>}{nowPlayingOpen&&current?<NowPlaying track={current} onClose={()=>setNowPlayingOpen(false)} onOpenCollection={openCollection}/>:selectedTrackId?<TrackDetail detail={trackDetail} loading={trackDetailLoading} onBack={closeTrack} onPlay={play} onOpenCollection={openCollection} onSummaryDone={()=>{if(selectedTrackId)openTrack(selectedTrackId)}}/>:!status?.dbReady?<Empty status={status} onRefresh={refresh}/>:view==='all'&&!selected?<><div className="heading"><div><div className="eyebrow">{folderId?'文件夹':'全部内容'}</div><h1>{folderId?folders.find(f=>f.id===folderId)?.name:'我的书库'}</h1><p>{collections.length.toLocaleString()} 个合集 <span className="heading-dot">·</span> 全库 {status.tracks.toLocaleString()} 个曲目</p></div><button className="heading-action" onClick={refresh} disabled={refreshing}>↻ {refreshing?'同步中…':'刷新'}</button></div><div className="grid">{collections.map(c=><CollectionCard key={c.id} item={c} onClick={()=>setSelected(c)}/>)}</div></>:view==='archived'&&!selected?<div className="archive-view"><div className="heading"><div><div className="eyebrow">书库 <span>/</span> 已归档</div><h1>归档</h1><p>{archivedList.length.toLocaleString()} 个合集</p></div><button className="heading-action" onClick={refresh} disabled={refreshing}>↻ {refreshing?'同步中…':'刷新'}</button></div>{archivedList.length>0?<div className="grid">{archivedList.map(c=><CollectionCard key={c.id} item={c} onClick={()=>setSelected(c)}/>)}</div>:<div className="empty compact"><h2>暂无归档内容</h2><p>已归档的合集会显示在这里。</p></div>}</div>:view==='search'?<SearchView results={results} query={query} onPlay={play} onInfo={openTrack} onOpenCollection={c=>{setSelected(c);setView('all')}} onBack={()=>{setView('continue');setQuery('');setResults([])}}/>:selected?<Detail collection={selected} tracks={tracks} onBack={()=>setSelected(null)} onPlay={play} onInfo={openTrack}/>:<TrackView title={view==='continue'?'继续收听':'收藏曲目'} tracks={displayed} onPlay={play} onInfo={openTrack}/>}</main><Player track={current} playing={playing} setPlaying={setPlaying} audio={audio} speed={speed} setSpeed={setSpeed} onNext={nextTrack} onPrev={prevTrack} onOpen={()=>setNowPlayingOpen(true)}/><audio ref={audio} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>{setPlaying(false)}}/> {text!==null&&<div className="modal" onClick={()=>setText(null)}><article onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setText(null)}>×</button><pre>{text}</pre></article></div>}{settingsOpen&&<Settings version={appVersion} update={updateState} onClose={()=>setSettingsOpen(false)} onCheck={()=>{void window.api.updateCheck().then(setUpdateState).catch(()=>{})}} onInstall={()=>{void window.api.updateInstall()}}/>}</div>
+ return <div className="app"><aside><div className="brand"><span className="brand-mark">🐻‍❄️</span><div><strong>PolarBear</strong><small>DESKTOP</small></div></div><nav className="primary-nav"><span className="nav-label">浏览</span><button className={view==='all'?'active':''} onClick={()=>{setFolderId(null);setView('all');setSelected(null)}}><span className="nav-icon">⌂</span><span>书库</span></button><button className={view==='continue'?'active':''} onClick={()=>setView('continue')}><span className="nav-icon">◷</span><span>继续收听</span></button><button className={view==='favorites'?'active':''} onClick={()=>setView('favorites')}><span className="nav-icon">☆</span><span>收藏</span></button><button className={view==='archived'?'active':''} onClick={()=>{setFolderId(null);setSelected(null);setView('archived')}}><span className="nav-icon">▣</span><span>归档</span>{archivedCollections.length>0&&<small className="nav-count">{archivedCollections.length}</small>}</button></nav><div className="lib-section"><div className="lib-title"><label>我的书库</label><small>{status?.collections?.toLocaleString()||0} 个合集</small></div><div className="lib-search"><span>⌕</span><input value={libFilter} placeholder="过滤合集或文件夹" aria-label="过滤书库" onChange={e=>setLibFilter(e.target.value)}/>{libFilter&&<button aria-label="清除过滤" onClick={()=>setLibFilter('')}>×</button>}</div><div className="lib-list">{folderList.map(f=><button key={f.id} className={`lib-item folder-item ${folderId===f.id?'active':''}`} onClick={()=>{setFolderId(f.id);setView('all');setSelected(null)}}><span className="folder-dot"/><span>{f.name}</span></button>)}{otherCount>0&&<button className={`lib-item folder-item ${folderId==='__other__'?'active':''}`} onClick={()=>{setFolderId('__other__');setView('all');setSelected(null)}}><span className="folder-dot" style={{background:'#9e8a5b'}}/><span>其它</span><small>{otherCount}</small></button>}{folderList.length===0&&otherCount===0&&libList.length===0&&<p className="lib-empty">{collections.length===0?'暂无合集':'无匹配合集'}</p>}</div></div></aside><main><header className="app-header"><div className="search"><span>⌕</span><input value={query} placeholder="搜索合集、作者或曲目" onChange={e=>setQuery(e.target.value)} onKeyDown={e=>e.key==='Enter'&&void search()}/>{query&&<button onClick={()=>{setQuery('');setView('all')}}>×</button>}</div><button className="gear" onClick={()=>setSettingsOpen(true)} title="设置 (⌘,)">⚙</button><button className="settings" onClick={async()=>{const next=baidu.connected?await window.api.baiduLogout():await window.api.baiduLogin();setBaidu(next)}}>{baidu.connected?'百度已登录':'百度网盘登录'}</button></header>      {error && <div className="notice">{error}<button onClick={() => setError('')}>×</button></div>}
+      {nowPlayingOpen && current ? (
+        <NowPlaying track={current} onClose={() => setNowPlayingOpen(false)} onOpenCollection={openCollection} />
+      ) : selectedTrackId ? (
+        <TrackDetail
+          detail={trackDetail}
+          loading={trackDetailLoading}
+          onBack={closeTrack}
+          onPlay={play}
+          onOpenCollection={openCollection}
+          onSummaryDone={() => { if (selectedTrackId) openTrack(selectedTrackId) }}
+        />
+      ) : !status?.dbReady ? (
+        <Empty status={status} onRefresh={refresh} />
+      ) : view === 'all' && !selected ? (
+        <>
+          <div className="heading">
+            <div>
+              <div className="eyebrow">{folderId ? '文件夹' : '全部内容'}</div>
+              <h1>{folderId === '__other__' ? '其它' : folderId ? folders.find(f => f.id === folderId)?.name : '我的书库'}</h1>
+              <p>{displayCollections.length.toLocaleString()} 个合集 <span className="heading-dot">·</span> 全库 {status.tracks.toLocaleString()} 个曲目</p>
+            </div>
+            <div className="heading-actions">
+              <div className="view-toggle">
+                <button className={collectionViewMode === 'grid' ? 'active' : ''} onClick={() => setCollectionViewMode('grid')} title="卡片视图">▦</button>
+                <button className={collectionViewMode === 'list' ? 'active' : ''} onClick={() => setCollectionViewMode('list')} title="列表视图">☰</button>
+              </div>
+              <button className="heading-action" onClick={refresh} disabled={refreshing}>↻ {refreshing ? '同步中…' : '刷新'}</button>
+            </div>
+          </div>
+          {displayCollections.length === 0 ? (
+            <div className="empty compact"><h2>暂无合集</h2><p>该分类下没有合集。</p></div>
+          ) : collectionViewMode === 'grid' ? (
+            <div className="grid">
+              {displayCollections.map(c => <CollectionCard key={c.id} item={c} onClick={() => setSelected(c)} />)}
+            </div>
+          ) : (
+            <div className="collection-list">
+              {displayCollections.map(c => (
+                <button key={c.id} className="collection-list-item" onClick={() => setSelected(c)}>
+                  <Cover item={c} small />
+                  <div className="collection-list-info">
+                    <strong>{c.title}</strong>
+                    <span>{c.author || '未知作者'} · {c.trackCount} 曲目 {c.progress > 0 ? `· ${Math.round(c.progress * 100)}%` : ''}</span>
+                  </div>
+                  <span className="collection-list-arrow">›</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      ) : view === 'archived' && !selected ? (
+        <div className="archive-view">
+          <div className="heading">
+            <div>
+              <div className="eyebrow">书库 <span>/</span> 已归档</div>
+              <h1>归档</h1>
+              <p>{archivedList.length.toLocaleString()} 个合集</p>
+            </div>
+            <button className="heading-action" onClick={refresh} disabled={refreshing}>↻ {refreshing ? '同步中…' : '刷新'}</button>
+          </div>
+          {archivedList.length > 0 ? (
+            <div className="grid">
+              {archivedList.map(c => <CollectionCard key={c.id} item={c} onClick={() => setSelected(c)} />)}
+            </div>
+          ) : (
+            <div className="empty compact"><h2>暂无归档内容</h2><p>已归档的合集会显示在这里。</p></div>
+          )}
+        </div>
+      ) : view === 'search' ? (
+        <SearchView results={results} query={query} onPlay={play} onInfo={openTrack} onOpenCollection={c => { setSelected(c); setView('all') }} onBack={() => { setView('continue'); setQuery(''); setResults([]) }} />
+      ) : selected ? (
+        <Detail collection={selected} tracks={tracks} onBack={() => setSelected(null)} onPlay={play} onInfo={openTrack} />
+      ) : (
+        <TrackView title={view === 'continue' ? '继续收听' : '收藏曲目'} tracks={displayed} onPlay={play} onInfo={openTrack} />
+      )}</main><Player track={current} playing={playing} setPlaying={setPlaying} audio={audio} speed={speed} setSpeed={setSpeed} onNext={nextTrack} onPrev={prevTrack} onOpen={()=>setNowPlayingOpen(true)}/><audio ref={audio} onPlay={()=>setPlaying(true)} onPause={()=>setPlaying(false)} onEnded={()=>{setPlaying(false)}}/> {text!==null&&<div className="modal" onClick={()=>setText(null)}><article onClick={e=>e.stopPropagation()}><button className="close" onClick={()=>setText(null)}>×</button><pre>{text}</pre></article></div>}{settingsOpen&&<Settings version={appVersion} update={updateState} onClose={()=>setSettingsOpen(false)} onCheck={()=>{void window.api.updateCheck().then(setUpdateState).catch(()=>{})}} onInstall={()=>{void window.api.updateInstall()}}/>}</div>
 }
 function Empty({status,onRefresh}:{status:LibraryStatus|null;onRefresh:()=>void}){return <div className="empty"><div className="empty-bear">🐻‍❄️</div><h2>还没有找到 PolarBear 音频库</h2><p>{status?.error||'请在 iOS 端开启 iCloud 同步，然后点击刷新库。'}</p><button onClick={onRefresh}>刷新库</button></div>}
 function CollectionCard({item,onClick}:{item:Collection;onClick:()=>void}){return <button className="card" onClick={onClick}><Cover item={item}/><div className="card-body"><h3>{item.title}</h3><p>{item.author||'未知作者'}</p><div className="meta"><span>{item.trackCount} 曲目</span>{item.progress>0&&<span>{Math.round(item.progress*100)}%</span>}</div>{item.progress>0&&<div className="progress"><i style={{width:`${item.progress*100}%`}}/></div>}</div></button>}
