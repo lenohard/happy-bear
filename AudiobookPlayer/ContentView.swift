@@ -206,7 +206,17 @@ struct PlaybackStatusOverlay: View {
     @State private var hideTask: Task<Void, Never>?
 
     var body: some View {
-        VStack {
+        ZStack(alignment: .top) {
+            // Transparent, non-interactive base to host lifecycle modifiers.
+            // The previous VStack+Spacer filled the entire ZStack and relied on
+            // allowsHitTesting(false) to pass through touches, which is unreliable
+            // across SwiftUI versions.  An explicit Color.clear with
+            // allowsHitTesting(false) + conditional banner rendering ensures no
+            // phantom hit area remains when the status message is nil.
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(false)
+
             if let activeMessage {
                 HStack(spacing: 10) {
                     Image(systemName: "info.circle.fill")
@@ -236,8 +246,6 @@ struct PlaybackStatusOverlay: View {
                 .padding(.top, 10)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
-
-            Spacer()
         }
         .onChange(of: audioPlayer.statusMessage) { _, newValue in
             guard let newValue else { return }
@@ -249,7 +257,6 @@ struct PlaybackStatusOverlay: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: activeMessage)
-        .allowsHitTesting(activeMessage != nil)
     }
 
     private func show(_ message: String) {
