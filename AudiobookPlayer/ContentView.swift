@@ -249,6 +249,7 @@ struct PlaybackStatusOverlay: View {
             }
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: activeMessage)
+        .allowsHitTesting(activeMessage != nil)
     }
 
     private func show(_ message: String) {
