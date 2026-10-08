@@ -350,6 +350,39 @@ struct PlayingView: View {
             return currentPlayback
         }
 
+        // Find the most recently updated playback state across all collections
+        var bestTrack: AudiobookTrack?
+        var bestCollection: AudiobookCollection?
+        var bestState: TrackPlaybackState?
+        var bestDate: Date = .distantPast
+
+        for collection in library.collections {
+            if collection.isMusic {
+                // Music collections don't write playbackStates (only lastPlayedTrackId + updatedAt)
+                guard let lastTrackId = collection.lastPlayedTrackId,
+                      collection.updatedAt > bestDate,
+                      let track = collection.tracks.first(where: { $0.id == lastTrackId }) else { continue }
+                bestDate = collection.updatedAt
+                bestTrack = track
+                bestCollection = collection
+                bestState = TrackPlaybackState(position: 0, duration: nil, updatedAt: collection.updatedAt)
+            } else {
+                for (trackID, state) in collection.playbackStates {
+                    guard state.updatedAt > bestDate,
+                          let track = collection.tracks.first(where: { $0.id == trackID }) else { continue }
+                    bestDate = state.updatedAt
+                    bestTrack = track
+                    bestCollection = collection
+                    bestState = state
+                }
+            }
+        }
+
+        if let collection = bestCollection, let track = bestTrack, let state = bestState {
+            return PlaybackSnapshot(collection: collection, track: track, state: state, isLive: false)
+        }
+
+        // Fallback: first collection with a resume track
         for collection in library.collections {
             if let track = collection.resumeTrack() {
                 let state = collection.playbackState(for: track.id)
