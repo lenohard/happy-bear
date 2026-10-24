@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite'
-import type { Collection, ContinueItem, Cover, Folder, LibraryStatus, Playback, PlaybackSource, SearchResult, Track, TrackDetail, TrackPage, TrackSummary, TrackTranscript } from '../shared/ipc'
+import type { Collection, ContinueItem, Cover, Folder, LibraryProvider, LibraryStatus, Playback, PlaybackSource, SearchResult, Track, TrackDetail, TrackPage, TrackSummary, TrackTranscript } from '../shared/ipc'
 import { SnapshotDatabase } from './library-db'
 
 type Row = Record<string, any>
@@ -103,4 +103,22 @@ export class LibraryService {
   textContent(trackId: string): string | null { const row = this.db().prepare('SELECT location_type, location_payload FROM tracks WHERE id=?').get(trackId) as Row | undefined; if (!row || !['text', 'cachedText'].includes(row.location_type)) return null; const data = json(row.location_payload); return typeof data?.content === 'string' ? data.content : null }
   media(trackId: string): PlaybackSource | null { const row = this.db().prepare('SELECT location_type, location_payload FROM tracks WHERE id=?').get(trackId) as Row | undefined; if (!row) return null; const data = json(row.location_payload); if (row.location_type === 'baidu' && typeof data?.path === 'string') return { kind: 'baidu', value: data.path }; if (row.location_type === 'external' && typeof data?.url === 'string') return { kind: 'external', value: data.url }; return null }
   private track(row: Row): Track { const type = String(row.location_type || ''); return { id: String(row.id), collectionId: String(row.collection_id), displayName: String(row.display_name || row.filename || '未命名'), filename: String(row.filename || ''), locationType: type, duration: row.duration == null ? null : Number(row.duration), trackNumber: Number(row.track_number) || 0, chapter: row.chapter ?? null, mediaKind: String(row.media_kind || 'audio'), isFavorite: Number(row.is_favorite) === 1, isArchived: Number(row.is_archived) === 1, playback: playback(row), playable: type === 'baidu' || type === 'external' || type === 'text' } }
+}
+
+/** Adapts the synchronous local snapshot service to the async library provider contract. */
+export class LocalLibraryProvider implements LibraryProvider {
+  constructor(private readonly local: LibraryService) {}
+  async status(): Promise<LibraryStatus> { return this.local.status() }
+  async refresh(): Promise<LibraryStatus> { return this.local.refresh() }
+  async folders(): Promise<Folder[]> { return this.local.folders() }
+  async favorites(): Promise<Track[]> { return this.local.favorites() }
+  async collections(folderId: string | null, includeArchived = false): Promise<Collection[]> { return this.local.collections(folderId, includeArchived) }
+  async tracks(collectionId: string, page = 0, pageSize = 200, includeArchived = false): Promise<TrackPage> { return this.local.tracks(collectionId, page, pageSize, includeArchived) }
+  async continueListening(limit = 20): Promise<ContinueItem[]> { return this.local.continueListening(limit) }
+  async search(query: string, limit = 50): Promise<SearchResult[]> { return this.local.search(query, limit) }
+  async getTrack(trackId: string): Promise<Track | null> { return this.local.getTrack(trackId) }
+  async getTrackDetail(trackId: string): Promise<TrackDetail | null> { return this.local.getTrackDetail(trackId) }
+  async getTranscript(trackId: string, includeFullText = false): Promise<TrackTranscript | null> { return this.local.getTranscript(trackId, includeFullText) }
+  async textContent(trackId: string): Promise<string | null> { return this.local.textContent(trackId) }
+  async media(trackId: string): Promise<PlaybackSource | null> { return this.local.media(trackId) }
 }

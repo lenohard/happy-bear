@@ -8,13 +8,13 @@ import {
   type PlaybackState,
   type RemoteCommand
 } from '../shared/ipc'
-import type { LibraryService } from './library'
+import type { LibraryProvider } from '../shared/ipc'
 import type { BaiduService } from './baidu'
 
 const COMMAND_ACK_TIMEOUT_MS = 3000
 
 interface CliServerContext {
-  library: LibraryService
+  library: LibraryProvider
   baidu: BaiduService
   getMainWindow: () => BrowserWindow | null
 }
@@ -183,20 +183,20 @@ async function handleRequest(
         ok: true,
         running: true,
         playback: playbackState,
-        library: ctx.library.status()
+        library: await ctx.library.status()
       })
     }
 
     // GET /folders
     if (method === 'GET' && path === '/folders') {
-      return jsonReply(res, 200, { folders: ctx.library.folders() })
+      return jsonReply(res, 200, { folders: await ctx.library.folders() })
     }
 
     // GET /collections?folderId=...&archived=1
     if (method === 'GET' && path === '/collections') {
       const folderId = url.searchParams.get('folderId')
       const includeArchived = url.searchParams.get('archived') === '1'
-      return jsonReply(res, 200, { collections: ctx.library.collections(folderId, includeArchived) })
+      return jsonReply(res, 200, { collections: await ctx.library.collections(folderId, includeArchived) })
     }
 
     // GET /tracks?collectionId=...&page=...&pageSize=...
@@ -205,25 +205,25 @@ async function handleRequest(
       if (!collectionId) return jsonReply(res, 400, { error: 'Missing collectionId' })
       const page = parseInt(url.searchParams.get('page') ?? '0', 10) || 0
       const pageSize = parseInt(url.searchParams.get('pageSize') ?? '200', 10) || 200
-      return jsonReply(res, 200, ctx.library.tracks(collectionId, page, pageSize))
+      return jsonReply(res, 200, await ctx.library.tracks(collectionId, page, pageSize))
     }
 
     // GET /continue?limit=20
     if (method === 'GET' && path === '/continue') {
       const limit = parseInt(url.searchParams.get('limit') ?? '20', 10) || 20
-      return jsonReply(res, 200, { entries: ctx.library.continueListening(limit) })
+      return jsonReply(res, 200, { entries: await ctx.library.continueListening(limit) })
     }
 
     // GET /favorites
     if (method === 'GET' && path === '/favorites') {
-      return jsonReply(res, 200, { tracks: ctx.library.favorites() })
+      return jsonReply(res, 200, { tracks: await ctx.library.favorites() })
     }
 
     // GET /search?q=...&limit=50
     if (method === 'GET' && path === '/search') {
       const query = url.searchParams.get('q') ?? ''
       const limit = Math.min(parseInt(url.searchParams.get('limit') ?? '50', 10) || 50, 200)
-      return jsonReply(res, 200, ctx.library.search(query, limit))
+      return jsonReply(res, 200, await ctx.library.search(query, limit))
     }
 
     // GET /baidu-status
@@ -237,14 +237,14 @@ async function handleRequest(
       if (!body) return jsonReply(res, 400, { error: 'Missing request body' })
 
       if (body.trackId) {
-        const track = ctx.library.getTrack(String(body.trackId))
+        const track = await ctx.library.getTrack(String(body.trackId))
         if (!track) return jsonReply(res, 404, { error: 'Track not found' })
         const sent = await sendRemoteCommand(ctx, { action: 'playSingle', track })
         return jsonReply(res, 200, { ok: sent, track })
       }
 
       if (body.collectionId) {
-        const page = ctx.library.tracks(String(body.collectionId), 0, 500)
+        const page = await ctx.library.tracks(String(body.collectionId), 0, 500)
         if (page.tracks.length === 0) {
           return jsonReply(res, 404, { error: 'Collection not found or empty' })
         }
@@ -253,7 +253,7 @@ async function handleRequest(
       }
 
       if (body.query) {
-        const results = ctx.library.search(String(body.query), 1)
+        const results = await ctx.library.search(String(body.query), 1)
         const firstTrack = results.find(r => r.type === 'track')
         if (!firstTrack) return jsonReply(res, 404, { error: 'No tracks found' })
         const sent = await sendRemoteCommand(ctx, { action: 'playSingle', track: firstTrack.data })
@@ -318,7 +318,7 @@ async function handleRequest(
   }
 }
 
-export function startCliServer(library: LibraryService, baidu: BaiduService, getMainWindow: () => BrowserWindow | null): void {
+export function startCliServer(library: LibraryProvider, baidu: BaiduService, getMainWindow: () => BrowserWindow | null): void {
   const ctx: CliServerContext = { library, baidu, getMainWindow }
 
   authToken = randomBytes(16).toString('hex')

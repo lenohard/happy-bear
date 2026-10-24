@@ -53,6 +53,21 @@ export interface PlaybackSource { kind: 'baidu' | 'external'; value: string }
 export interface BaiduAuthStatus { configured: boolean; connected: boolean; expiresAt: number | null }
 export interface RemoteSummaryConfig { configured: boolean; baseUrl: string; model: string }
 export interface UpdateState { checking: boolean; checked: boolean; updateAvailable: boolean; downloading: boolean; readyToInstall: boolean; latestVersion: string | null; error: string | null }
+export interface LibraryProvider {
+  status(): Promise<LibraryStatus>
+  refresh(): Promise<LibraryStatus>
+  folders(): Promise<Folder[]>
+  favorites(): Promise<Track[]>
+  collections(folderId: string | null, includeArchived?: boolean): Promise<Collection[]>
+  tracks(collectionId: string, page?: number, pageSize?: number, includeArchived?: boolean): Promise<TrackPage>
+  continueListening(limit?: number): Promise<ContinueItem[]>
+  search(query: string, limit?: number): Promise<SearchResult[]>
+  getTrack(trackId: string): Promise<Track | null>
+  getTrackDetail(trackId: string): Promise<TrackDetail | null>
+  getTranscript(trackId: string, includeFullText?: boolean): Promise<TrackTranscript | null>
+  textContent(trackId: string): Promise<string | null>
+  media(trackId: string): Promise<PlaybackSource | null>
+}
 export interface IPCApi {
   libraryGetStatus(): Promise<LibraryStatus>; libraryRefresh(): Promise<LibraryStatus>; libraryGetFolders(): Promise<Folder[]>; libraryGetFavorites(): Promise<Track[]>; libraryGetCollections(folderId: string | null, includeArchived?: boolean): Promise<Collection[]>; libraryGetTracks(collectionId: string, page?: number, pageSize?: number, includeArchived?: boolean): Promise<TrackPage>; libraryGetContinue(limit?: number): Promise<ContinueItem[]>; librarySearch(query: string, limit?: number): Promise<SearchResult[]>; libraryGetTrackDetail(trackId: string): Promise<TrackDetail | null>; trackGetTranscript(trackId: string, includeFullText?: boolean): Promise<TrackTranscript | null>; trackGetTextContent(trackId: string): Promise<string | null>; trackGetPlayback(trackId: string): Promise<PlaybackSource | null>; baiduGetStatus(): Promise<BaiduAuthStatus>; baiduLogin(): Promise<BaiduAuthStatus>; baiduLogout(): Promise<BaiduAuthStatus>; pushPlaybackState(state: PlaybackState): Promise<void>; ackRemoteCommand(commandId: string): Promise<void>; onRemoteCommand(listener: (command: RemoteCommand) => void): () => void; appGetVersion(): Promise<string>; updateGetState(): Promise<UpdateState>; updateCheck(): Promise<UpdateState>; updateInstall(): Promise<void>; onUpdateState(listener: (state: UpdateState) => void): () => void; summaryConfigured(): Promise<RemoteSummaryConfig>; summaryGenerate(trackId: string): Promise<TrackSummary>
 }
