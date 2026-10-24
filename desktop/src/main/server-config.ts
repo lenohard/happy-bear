@@ -30,9 +30,11 @@ export function readServerSettings(): ServerSettings {
   let baseUrl = ''
   let token = ''
   let enabled = false
+  let hasFile = false
   if (existsSync(file)) {
     try {
       const parsed = JSON.parse(readFileSync(file, 'utf8')) as ServerConfigFile
+      hasFile = true
       baseUrl = parsed.baseUrl?.trim() ?? ''
       token = parsed.token?.trim() ?? ''
       enabled = parsed.enabled === true
@@ -40,8 +42,15 @@ export function readServerSettings(): ServerSettings {
       // invalid config file: fall back to environment variables
     }
   }
-  if (!baseUrl) baseUrl = process.env.POLARBEAR_SERVER_URL?.trim() ?? ''
-  if (!token) token = process.env.POLARBEAR_SERVER_TOKEN?.trim() ?? ''
+  if (!baseUrl || !token) {
+    const envUrl = process.env.POLARBEAR_SERVER_URL?.trim() ?? ''
+    const envToken = process.env.POLARBEAR_SERVER_TOKEN?.trim() ?? ''
+    if (!hasFile && envUrl && envToken) {
+      baseUrl = envUrl
+      token = envToken
+      enabled = true
+    }
+  }
   if (!baseUrl || !token) enabled = false
   return { enabled, baseUrl, token }
 }
