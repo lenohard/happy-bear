@@ -1,6 +1,7 @@
 import { app } from 'electron'
-import { existsSync, readFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import type { ServerSettings } from '../shared/ipc'
 
 export interface ServerConfig {
   baseUrl: string
@@ -13,28 +14,44 @@ interface ServerConfigFile {
   enabled?: boolean
 }
 
-/**
- * Optional Mac mini / library server connection.
- * Disabled by default: without a configured base URL and token the desktop
- * keeps reading the local iCloud snapshot.
- */
+function configPath(): string {
+  return join(app.getPath('userData'), 'server.json')
+}
+
+/** Optional Mac mini / library server connection. Disabled by default. */
 export function readServerConfig(): ServerConfig | null {
-  let fileUrl = ''
-  let fileToken = ''
-  const file = join(app.getPath('userData'), 'server.json')
+  const settings = readServerSettings()
+  if (!settings.enabled || !settings.baseUrl || !settings.token) return null
+  return { baseUrl: settings.baseUrl.replace(/\/+$/, ''), token: settings.token }
+}
+
+export function readServerSettings(): ServerSettings {
+  const file = configPath()
+  let baseUrl = ''
+  let token = ''
+  let enabled = false
   if (existsSync(file)) {
     try {
       const parsed = JSON.parse(readFileSync(file, 'utf8')) as ServerConfigFile
-      if (parsed.enabled !== false) {
-        fileUrl = parsed.baseUrl?.trim() ?? ''
-        fileToken = parsed.token?.trim() ?? ''
-      }
+      baseUrl = parsed.baseUrl?.trim() ?? ''
+      token = parsed.token?.trim() ?? ''
+      enabled = parsed.enabled === true
     } catch {
       // invalid config file: fall back to environment variables
     }
   }
-  const baseUrl = (fileUrl || process.env.POLARBEAR_SERVER_URL?.trim() || '').replace(/\/+$/, '')
-  const token = fileToken || process.env.POLARBEAR_SERVER_TOKEN?.trim() || ''
-  if (!baseUrl || !token) return null
-  return { baseUrl, token }
+  if (!baseUrl) baseUrl = process.env.POLARBEAR_SERVER_URL?.trim() ?? ''
+  if (!token) token = process.env.POLARBEAR_SERVER_TOKEN?.trim() ?? ''
+  if (!baseUrl || !token) enabled = false
+  return { enabled, baseUrl, token }
+}
+
+export function saveServerSettings(settings: ServerSettings): ServerSettings {
+  const next: ServerSettings = {
+    enabled: settings.enabled && !!settings.baseUrl && !!settings.token,
+    baseUrl: settings.baseUrl.trim().replace(/\/+$/, ''),
+    token: settings.token.trim()
+  }
+  writeFileSync(configPath(), JSON.stringify(next, null, 2), { mode: 0o600 })
+  return next
 }
