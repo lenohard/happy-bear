@@ -44,7 +44,7 @@ polarbear seek <sec> | +<sec> | -<sec>
 ## 架构
 
 - `src/main/index.ts` 注册 `hb-media`、`hb-cover` privileged protocol，创建 sandbox BrowserWindow，并注册 IPC。
-- `src/main/library-db.ts` 将 iCloud `library.sqlite`（及 wal/shm）复制到 `app.getPath('userData')/library-snapshot.sqlite`，验证后以 `node:sqlite` `readOnly` 打开。源库和快照绝不执行写操作；每 30 秒、窗口聚焦或手动刷新检查 mtime+size。
+- `src/main/library-db.ts` 将 iCloud `library.sqlite`（及 wal/shm）复制到 `app.getPath('userData')/library-snapshot.sqlite`，验证后以 `node:sqlite` `readOnly` 打开；可用 `POLARBEAR_LIBRARY_DB` 指向显式数据库。源 mtime/size 写入快照旁的 `.meta.json`，未变化时启动复用快照；每 30 秒、窗口聚焦或手动刷新检查 mtime+size。
 - `src/main/library.ts` 只读分页查询合集、曲目、搜索、继续收听、收藏和播放 payload。
 - `src/main/baidu.ts` 移植 corner OAuth；凭据仅在 main 中由 Electron `safeStorage` 加密到 userData，播放使用带 Range 的 dlink 代理，不保存签名 URL。
 - `src/main/media-net.ts` 使用 Electron `net.request` 转发外部媒体，避免把 renderer 请求头转发到上游。

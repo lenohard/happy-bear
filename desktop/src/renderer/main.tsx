@@ -20,12 +20,22 @@ function App(){
  const closeTrack=()=>{setSelectedTrackId(null);setTrackDetail(null)}
  const openCollection=(col:NonNullable<TrackDetail['collection']>)=>{setSelectedTrackId(null);setTrackDetail(null);setView('all');setSelected(col as unknown as Collection)}
  const audio=useRef<HTMLAudioElement>(null)
- const load=async()=>{try{const [s,f,c,allC,archivedC,cont,b]=await Promise.all([window.api.libraryGetStatus(),window.api.libraryGetFolders(),window.api.libraryGetCollections(folderId),window.api.libraryGetCollections(null),window.api.libraryGetCollections(null,true),window.api.libraryGetContinue(20),window.api.baiduGetStatus()]);setStatus(s);setFolders(f);setCollections(c);setAllCollections(allC);setArchivedCollections(archivedC.filter(item=>!allC.some(current=>current.id===item.id)));setContinueItems(cont);setBaidu(b)}catch(e){setError(String(e))}}
+ const load=async()=>{
+  try{
+   const [s,f,c,cont,b]=await Promise.all([window.api.libraryGetStatus(),window.api.libraryGetFolders(),window.api.libraryGetCollections(folderId),window.api.libraryGetContinue(20),window.api.baiduGetStatus()])
+   const allC=folderId===null?c:await window.api.libraryGetCollections(null)
+   setStatus(s);setFolders(f);setCollections(c);setAllCollections(allC);setContinueItems(cont);setBaidu(b)
+  }catch(e){setError(String(e))}
+ }
  useEffect(()=>{void load()},[folderId])
  useEffect(()=>{void window.api.appGetVersion().then(setAppVersion).catch(()=>{})},[])
  useEffect(()=>{void window.api.updateGetState().then(setUpdateState).catch(()=>{});return window.api.onUpdateState(setUpdateState)},[])
  useEffect(()=>{const onKey=(e:KeyboardEvent)=>{if((e.metaKey||e.ctrlKey)&&e.key===','){e.preventDefault();setSettingsOpen(true)}else if(e.key==='Escape')setSettingsOpen(false)};window.addEventListener('keydown',onKey);return()=>window.removeEventListener('keydown',onKey)},[])
  useEffect(()=>{if(view==='favorites')window.api.libraryGetFavorites().then(setFavoriteItems).catch(e=>setError(String(e)));},[view])
+ useEffect(()=>{
+  if(view!=='archived')return
+  window.api.libraryGetCollections(null,true).then(items=>setArchivedCollections(items.filter(item=>!allCollections.some(current=>current.id===item.id)))).catch(e=>setError(String(e)))
+ },[view,allCollections])
  const play=async(track:Track)=>{if(track.locationType==='text'){setText(await window.api.trackGetTextContent(track.id));return}if(!track.playable){setError('此曲目仅在 iOS 设备上可用，桌面暂不支持。');return}setCurrent(track);setPlaying(true);setError('')}
  const playTrackAt=(list:Track[],i:number)=>{if(list[i]){setQueue(list);void play(list[i])}}
  const nextTrack=()=>{const q=queue.length?queue:tracks;const i=q.findIndex(t=>t.id===current?.id);if(i>=0&&i+1<q.length)playTrackAt(q,i+1)}
