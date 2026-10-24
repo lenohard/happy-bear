@@ -16,15 +16,18 @@ export class SnapshotDatabase {
   private db: DatabaseSync | null = null
   private sourceMtime: number | null = null
   private sourceSize: number | null = null
+  private sourceFingerprint: string | null = null
   private snapshotTime: number | null = null
   private error: string | undefined
 
   initialize(): void {
+    let openedSnapshot = false
     if (existsSync(this.path)) {
       try {
         const db = new DatabaseSync(this.path, { readOnly: true })
         db.prepare('SELECT count(*) FROM collections').get()
         this.db = db
+        openedSnapshot = true
         this.snapshotTime = statSync(this.path).mtimeMs
         this.loadSourceMetadata()
         this.updateCounts()
@@ -32,14 +35,17 @@ export class SnapshotDatabase {
         this.db = null
         this.sourceMtime = null
         this.sourceSize = null
+        this.sourceFingerprint = null
       }
     }
-    this.refresh(false)
+    if (openedSnapshot) setTimeout(() => this.refresh(false), 1000)
+    else this.refresh(false)
   }
   refresh(force = true): LibraryStatus {
     let source
     try { source = statSync(SOURCE_DB) } catch { this.error = `未找到 iCloud 数据库：${SOURCE_DB}`; return this.status() }
-    if (!force && this.db && this.sourceMtime === source.mtimeMs && this.sourceSize === source.size) return this.status()
+    const fingerprint = this.currentSourceFingerprint()
+    if (!force && this.db && this.sourceFingerprint === fingerprint) return this.status()
     const destination = `${this.path}.part`
     try {
       for (const suffix of ['', '-wal', '-shm']) {
@@ -61,10 +67,11 @@ export class SnapshotDatabase {
       this.db = new DatabaseSync(this.path, { readOnly: true })
       this.sourceMtime = source.mtimeMs
       this.sourceSize = source.size
+      this.sourceFingerprint = fingerprint
       this.snapshotTime = Date.now()
       this.error = undefined
       this.updateCounts()
-      writeFileSync(this.metadataPath, JSON.stringify({ sourceMtime: this.sourceMtime, sourceSize: this.sourceSize }), { mode: 0o600 })
+      writeFileSync(this.metadataPath, JSON.stringify({ sourceMtime: this.sourceMtime, sourceSize: this.sourceSize, sourceFingerprint: this.sourceFingerprint }), { mode: 0o600 })
     } catch (error) {
       try { unlinkSync(destination) } catch { /* no temporary snapshot */ }
       this.error = `数据库快照失败：${String(error)}`
@@ -72,12 +79,24 @@ export class SnapshotDatabase {
     return this.status()
   }
   getDatabase(): DatabaseSync | null { return this.db }
+  private currentSourceFingerprint(): string {
+    return ['', '-wal', '-shm'].map(suffix => {
+      try {
+        const value = statSync(`${SOURCE_DB}${suffix}`)
+        return `${suffix}:${value.mtimeMs}:${value.size}`
+      } catch {
+        return `${suffix}:missing`
+      }
+    }).join('|')
+  }
+
   private loadSourceMetadata(): void {
     try {
-      const value = JSON.parse(readFileSync(this.metadataPath, 'utf8')) as { sourceMtime?: unknown; sourceSize?: unknown }
-      if (typeof value.sourceMtime === 'number' && typeof value.sourceSize === 'number') {
+      const value = JSON.parse(readFileSync(this.metadataPath, 'utf8')) as { sourceMtime?: unknown; sourceSize?: unknown; sourceFingerprint?: unknown }
+      if (typeof value.sourceMtime === 'number' && typeof value.sourceSize === 'number' && typeof value.sourceFingerprint === 'string') {
         this.sourceMtime = value.sourceMtime
         this.sourceSize = value.sourceSize
+        this.sourceFingerprint = value.sourceFingerprint
       }
     } catch { /* metadata is optional; refresh will rebuild it */ }
   }

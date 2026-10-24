@@ -5,7 +5,7 @@ import type { UpdateState } from '../shared/ipc'
 const STARTUP_DELAY_MS = 8_000
 const CHECK_INTERVAL_MS = 60 * 60 * 1000 // 每小时
 
-let state: UpdateState = { checking: false, updateAvailable: false, downloading: false, readyToInstall: false, latestVersion: null, error: null }
+let state: UpdateState = { checking: false, checked: false, updateAvailable: false, downloading: false, readyToInstall: false, latestVersion: null, error: null }
 const listeners = new Set<(s: UpdateState) => void>()
 function setState(patch: Partial<UpdateState>): void { state = { ...state, ...patch }; for (const fn of listeners) fn(state) }
 export function getUpdateState(): UpdateState { return state }
@@ -17,10 +17,10 @@ export function initUpdater(): void {
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.on('checking-for-update', () => setState({ checking: true, error: null }))
-  autoUpdater.on('update-available', info => setState({ checking: false, updateAvailable: true, downloading: true, latestVersion: info.version }))
-  autoUpdater.on('update-not-available', () => setState({ checking: false, updateAvailable: false, downloading: false }))
-  autoUpdater.on('update-downloaded', info => setState({ downloading: false, readyToInstall: true, latestVersion: info.version }))
-  autoUpdater.on('error', err => setState({ checking: false, downloading: false, error: err.message }))
+  autoUpdater.on('update-available', info => setState({ checking: false, checked: true, updateAvailable: true, downloading: true, latestVersion: info.version }))
+  autoUpdater.on('update-not-available', () => setState({ checking: false, checked: true, updateAvailable: false, downloading: false, error: null }))
+  autoUpdater.on('update-downloaded', info => setState({ checking: false, checked: true, downloading: false, readyToInstall: true, latestVersion: info.version }))
+  autoUpdater.on('error', err => setState({ checking: false, checked: true, downloading: false, error: err.message }))
   const check = (): void => {
     try {
       void autoUpdater.checkForUpdates()
