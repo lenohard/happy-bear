@@ -1550,10 +1550,11 @@ func handlePlayPauseRequest(forcePlay: Bool = false) {
     }
 
     private func makePlaylist(from tracks: [AudiobookTrack], startingWith anchor: AudiobookTrack?) -> [AudiobookTrack] {
-        guard !tracks.isEmpty else { return [] }
-        guard isShuffleEnabled else { return tracks }
-        guard let anchor else { return tracks.shuffled() }
-        var remaining = tracks.filter { $0.id != anchor.id }
+        let unarchived = tracks.filter { !$0.isArchived }
+        guard !unarchived.isEmpty else { return [] }
+        guard isShuffleEnabled else { return unarchived }
+        guard let anchor else { return unarchived.shuffled() }
+        var remaining = unarchived.filter { $0.id != anchor.id }
         remaining.shuffle()
         return [anchor] + remaining
     }

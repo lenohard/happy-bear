@@ -126,8 +126,9 @@ struct ContentView: View {
                 .tabMiniPlayerAccessory(isEnabled: shouldShowTabMiniPlayer) {
                     MiniPlayerBar()
                 }
-
-                PlaybackStatusOverlay()
+                .overlay(alignment: .top) {
+                    PlaybackStatusOverlay()
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: .resumePlaybackShortcut)) { _ in
                 if library.isLoading {
@@ -206,17 +207,13 @@ struct PlaybackStatusOverlay: View {
     @State private var hideTask: Task<Void, Never>?
 
     var body: some View {
-        ZStack(alignment: .top) {
-            // Transparent, non-interactive base to host lifecycle modifiers.
-            // The previous VStack+Spacer filled the entire ZStack and relied on
-            // allowsHitTesting(false) to pass through touches, which is unreliable
-            // across SwiftUI versions.  An explicit Color.clear with
-            // allowsHitTesting(false) + conditional banner rendering ensures no
-            // phantom hit area remains when the status message is nil.
-            Color.clear
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .allowsHitTesting(false)
-
+        // No full-screen container, no ZStack + Color.clear — the overlay is mounted
+        // as a .overlay(alignment: .top) on the TabView itself, so its hosting view
+        // is a child of the TabView layer, not a sibling. Its frame matches its
+        // content: zero size when no message, banner height when visible.
+        // This completely avoids the UIKit-level hit-test interference that a
+        // ZStack-sibling hosting view can cause on iOS 17.6 (back button tap failure).
+        Group {
             if let activeMessage {
                 HStack(spacing: 10) {
                     Image(systemName: "info.circle.fill")
