@@ -5,27 +5,24 @@ import UIKit
 private class PassThroughWindow: UIWindow {
     var shouldHandleTouch: ((CGPoint) -> Bool)?
 
+    // UIKit asks the window whether a point is inside before resolving a hit view.
+    // Returning false here is what makes the event continue to windows below this
+    // one; returning nil only from hitTest can still leave a transparent overlay
+    // window in the event routing path on some iOS versions.
+    override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
+        shouldHandleTouch?(point) ?? false
+    }
+
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        // Get the hit view from the normal hit test
-        guard let hitView = super.hitTest(point, with: event) else {
+        guard shouldHandleTouch?(point) ?? false else {
             return nil
         }
-        
-        // If we have a custom handler, check if we should handle this touch
-        if let shouldHandle = shouldHandleTouch {
-            if !shouldHandle(point) {
-                return nil
-            }
-        } else {
-            // Fallback: If the hit view is the root view (the hosting controller's view),
-            // it means the touch is on the transparent background, so pass through.
-            // Note: This fallback might be too aggressive if UIHostingController collapses hierarchy,
-            // but the closure-based approach above is preferred.
-            if hitView == rootViewController?.view {
-                return nil
-            }
+
+        guard let hitView = super.hitTest(point, with: event),
+              hitView != rootViewController?.view else {
+            return nil
         }
-        
+
         return hitView
     }
 }
@@ -54,9 +51,10 @@ class FloatingBubbleWindowManager: ObservableObject {
             return
         }
 
-        // Create a new pass-through window at a higher level
+        // Keep the bubble above the app's sheets while leaving system alerts and
+        // navigation interaction in their normal UIKit window hierarchy.
         let window = PassThroughWindow(windowScene: windowScene)
-        window.windowLevel = .alert + 1 // Above sheets and alerts
+        window.windowLevel = .normal + 1
         window.backgroundColor = .clear
         window.isUserInteractionEnabled = true
 
