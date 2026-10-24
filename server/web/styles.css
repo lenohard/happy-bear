@@ -612,6 +612,8 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 
 .inline-error .btn { margin-left: auto; }
 
+.notice-host { flex: none; }
+
 .notice {
   display: flex;
   flex-wrap: wrap;
