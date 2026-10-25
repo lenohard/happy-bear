@@ -47,6 +47,7 @@ polarbear seek <sec> | +<sec> | -<sec>
 - `src/main/library-db.ts` 将 iCloud `library.sqlite`（及 wal/shm）复制到 `app.getPath('userData')/library-snapshot.sqlite`，验证后以 `node:sqlite` `readOnly` 打开；可用 `POLARBEAR_LIBRARY_DB` 指向显式数据库。源库及 wal/shm 的 fingerprint 写入快照旁的 `.meta.json`，有有效快照时先启动并在后台刷新；每 30 秒、窗口聚焦或手动刷新检查 fingerprint。
 - `src/main/library.ts` 只读分页查询合集、曲目、搜索、继续收听、收藏和播放 payload；`LocalLibraryProvider` 把同步查询包装成 `LibraryProvider` 异步契约。
 - `src/main/remote-library.ts` 实现同一 `LibraryProvider` 契约的 HTTP 客户端（`server/app/library_app.py`，**无鉴权**）；`src/main/server-config.ts` 读取 `userData/server.json` 的 `{enabled, baseUrl}`（或环境变量 `POLARBEAR_SERVER_URL`），设置界面「书库来源」可读写该文件。**未配置时保持本地 iCloud 快照行为不变**；服务器模式下封面走 `/v1/library/cover`，摘要生成因需要写本地库而禁用。
+- **书库来源可热切换**：`applyLibrarySource()`（`src/main/index.ts`）在保存设置后重建 `library` provider（本地 `LocalLibraryProvider` ↔ 远程 `RemoteLibrary`）并通过 `LIBRARY_SOURCE_CHANNEL` 通知 renderer 重载数据，**无需重启应用**。本地快照刷新定时器随之启停；`startCliServer(() => library, …)` 用 getter 取当前 provider，CLI 端口也立即反映切换结果。
 - `src/main/baidu.ts` 移植 corner OAuth；凭据仅在 main 中由 Electron `safeStorage` 加密到 userData，播放使用带 Range 的 dlink 代理，不保存签名 URL。
 - `src/main/media-net.ts` 使用 Electron `net.request` 转发外部媒体，避免把 renderer 请求头转发到上游。
 - `src/shared/ipc.ts` 是 main/preload/renderer 的唯一 DTO/IPC 合约；preload 仅暴露类型化 API。
