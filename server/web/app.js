@@ -1086,6 +1086,10 @@
   /* ---------------- boot ---------------- */
 
   function boot() {
+    // The app container may still carry a stale `hidden` attribute from a
+    // cached index.html. Clear it here so the client never renders blank.
+    const app = $('#app');
+    if (app) app.hidden = false;
     apiGet('/v1/library/status')
       .then((status) => {
         state.status = status;

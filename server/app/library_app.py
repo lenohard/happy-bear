@@ -135,4 +135,18 @@ def on_startup() -> None:
     logger.info("library snapshot ready: %s", store.status().to_dict())
 
 
-app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")
+class NoCacheStaticFiles(StaticFiles):
+    """Serve the web client without caching.
+
+    index.html and app.js are shipped together; a cached index.html combined
+    with a fresh app.js (or the other way round) breaks the client. Always
+    revalidate so both files always come from the same deploy.
+    """
+
+    def file_response(self, *args, **kwargs):  # type: ignore[override]
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+        return response
+
+
+app.mount("/", NoCacheStaticFiles(directory=WEB_DIR, html=True), name="web")
