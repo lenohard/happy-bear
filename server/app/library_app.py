@@ -12,12 +12,14 @@ through Tailscale Serve — never on 0.0.0.0.
 
 from __future__ import annotations
 
+import hashlib
 import logging
+import mimetypes
 from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from .library import LibraryStore
@@ -27,6 +29,8 @@ logger = logging.getLogger(__name__)
 WEB_DIR = Path(__file__).parent.parent / "web"
 WEB_DIR.mkdir(parents=True, exist_ok=True)
 store = LibraryStore()
+
+NO_STORE = {"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
 
 router = APIRouter(prefix="/v1/library")
 
@@ -135,18 +139,44 @@ def on_startup() -> None:
     logger.info("library snapshot ready: %s", store.status().to_dict())
 
 
-class NoCacheStaticFiles(StaticFiles):
-    """Serve the web client without caching.
+class WebClient(StaticFiles):
+    """Serve the web client so a cached copy can never break it.
 
-    index.html and app.js are shipped together; a cached index.html combined
-    with a fresh app.js (or the other way round) breaks the client. Always
-    revalidate so both files always come from the same deploy.
+    index.html and app.js are one unit: a stale index.html paired with a fresh
+    app.js (or the reverse) leaves the client half-initialised. Three layers
+    prevent that:
+
+    1. ``Cache-Control: no-store`` on every file, so nothing is reused.
+    2. No ``ETag``/``Last-Modified``, so conditional requests can never answer
+       "304 Not Modified" and keep an old body alive in the browser cache.
+    3. index.html references the assets with a ``?v=<hash>`` query derived
+       from their contents, so a changed asset always has a new URL and can
+       never be served from a stale cache entry.
     """
 
-    def file_response(self, *args, **kwargs):  # type: ignore[override]
-        response = super().file_response(*args, **kwargs)
-        response.headers["Cache-Control"] = "no-store, must-revalidate"
-        return response
+    def asset_version(self) -> str:
+        digest = hashlib.sha256()
+        for name in ("app.js", "styles.css"):
+            path = WEB_DIR / name
+            digest.update(name.encode())
+            digest.update(path.read_bytes() if path.exists() else b"")
+        return digest.hexdigest()[:12]
+
+    def file_response(self, full_path, stat_result, scope, status_code: int = 200) -> Response:
+        path = Path(full_path)
+        media_type = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+        if path.name == "index.html":
+            version = self.asset_version()
+            html = path.read_text(encoding="utf-8")
+            html = html.replace("./app.js", f"./app.js?v={version}")
+            html = html.replace("./styles.css", f"./styles.css?v={version}")
+            headers = dict(NO_STORE)
+            # One-shot cleanup of any copy an older deploy left in the browser
+            # cache. Chrome honours this; Safari ignores it harmlessly.
+            headers["Clear-Site-Data"] = '"cache"'
+            return Response(content=html, media_type="text/html", headers=headers)
+        content = path.read_bytes()
+        return Response(content=content, media_type=media_type, headers=NO_STORE)
 
 
-app.mount("/", NoCacheStaticFiles(directory=WEB_DIR, html=True), name="web")
+app.mount("/", WebClient(directory=WEB_DIR, html=True), name="web")

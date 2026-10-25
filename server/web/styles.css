@@ -540,6 +540,22 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 .error-box p { margin: 0; font-size: 15px; line-height: 1.55; }
 .error-box .btn { align-self: flex-start; background: var(--surface-2); border-color: var(--danger-border); }
 
+.fatal-error {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 52ch;
+  padding: 20px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius);
+  color: #ffd9d9;
+}
+
+.fatal-error h1 { margin: 0; font-size: 20px; }
+.fatal-error p { margin: 0; font-size: 15px; line-height: 1.55; }
+.fatal-hint { color: var(--muted); }
+
 .inline-error {
   display: flex;
   flex-wrap: wrap;
