@@ -2,7 +2,6 @@
 'use strict';
 
 (function () {
-  const TOKEN_KEY = 'polarbear-token';
   const RESUME_KEY = 'polarbear-resume';
   const PAGE_SIZE = 100;
 
@@ -59,7 +58,6 @@
   /* ---------------- state ---------------- */
 
   const state = {
-    token: '',
     status: null,
     folders: [],
     collectionCache: new Map(),
@@ -103,13 +101,9 @@
     const url = buildUrl(path, params);
     return fetch(url, {
       method: 'GET',
-      headers: { Authorization: `Bearer ${state.token}`, Accept: 'application/json' },
+      headers: { Accept: 'application/json' },
       cache: 'no-store'
     }).then(async (res) => {
-      if (res.status === 401) {
-        handleUnauthorized();
-        throw new ApiError('令牌无效（401），请重新输入访问令牌。', 401, 'AUTH_INVALID');
-      }
       if (!res.ok) {
         let message = `请求失败（HTTP ${res.status}）`;
         let code = 'HTTP_ERROR';
@@ -125,12 +119,6 @@
     }, () => {
       throw new ApiError('无法连接到服务器，请检查网络或服务是否在运行。', 0, 'NETWORK');
     });
-  }
-
-  function handleUnauthorized() {
-    state.token = '';
-    try { localStorage.removeItem(TOKEN_KEY); } catch (err) { /* ignore */ }
-    showTokenScreen('令牌无效，请重新输入访问令牌。');
   }
 
   /* ---------------- local storage ---------------- */
@@ -168,73 +156,6 @@
     if (dur > 0 && pos >= dur - 5) return 0; // 已听完 → 从头开始
     return pos;
   }
-
-  /* ---------------- token gate ---------------- */
-
-  const tokenScreen = $('#token-screen');
-  const tokenForm = $('#token-form');
-  const tokenInput = $('#token-input');
-  const tokenError = $('#token-error');
-  const tokenSubmit = $('#token-submit');
-  const app = $('#app');
-
-  function showTokenScreen(message) {
-    tokenScreen.hidden = false;
-    app.hidden = true;
-    closeModal();
-    if (message) {
-      tokenError.textContent = message;
-      tokenError.hidden = false;
-    } else {
-      tokenError.textContent = '';
-      tokenError.hidden = true;
-    }
-    tokenInput.focus();
-  }
-
-  function showApp() {
-    tokenScreen.hidden = true;
-    tokenError.hidden = true;
-    app.hidden = false;
-  }
-
-  tokenForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const token = tokenInput.value.trim();
-    if (!token) {
-      tokenError.textContent = '请输入访问令牌。';
-      tokenError.hidden = false;
-      return;
-    }
-    tokenSubmit.disabled = true;
-    tokenSubmit.textContent = '验证中…';
-    state.token = token;
-    apiGet('/v1/library/status')
-      .then((status) => {
-        try { localStorage.setItem(TOKEN_KEY, token); } catch (err) { /* ignore */ }
-        state.status = status;
-        showApp();
-        return bootstrap();
-      })
-      .catch((err) => {
-        state.token = '';
-        tokenError.textContent = err instanceof ApiError && err.status === 401
-          ? '令牌无效，请检查后重试。'
-          : err.message || '验证失败，请重试。';
-        tokenError.hidden = false;
-        tokenInput.focus();
-        tokenInput.select();
-      })
-      .finally(() => {
-        tokenSubmit.disabled = false;
-        tokenSubmit.textContent = '连接';
-      });
-  });
-
-  $('#token-button').addEventListener('click', () => {
-    showTokenScreen('请输入新的访问令牌。');
-    tokenInput.value = '';
-  });
 
   /* ---------------- routing ---------------- */
 
@@ -359,7 +280,6 @@
     try {
       state.status = await apiGet('/v1/library/status');
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) return;
       state.status = { dbReady: false, snapshotTime: null, sourceMtime: null, tracks: 0, collections: 0, error: err.message };
     }
     renderStatus();
@@ -395,19 +315,14 @@
     node.parentNode.replaceChild(img, node);
   }
 
-  /* The cover endpoint needs the bearer token, which an <img> tag cannot send,
-     so covers are fetched with fetch() and handed to the DOM as blob URLs. */
+  /* Covers are plain same-origin GETs, so a plain <img src> works. */
   async function loadCover(node) {
     const id = node.dataset.cover;
     const title = node.dataset.coverTitle || '封面';
     const cached = state.coverUrls.get(id);
     if (cached) { replaceCover(node, cached, title); return; }
     try {
-      const res = await fetch(`/v1/library/covers/${encodeURIComponent(id)}`, {
-        headers: { Authorization: `Bearer ${state.token}` },
-        cache: 'no-store'
-      });
-      if (res.status === 401) { handleUnauthorized(); return; }
+      const res = await fetch(`/v1/library/covers/${encodeURIComponent(id)}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(String(res.status));
       const type = res.headers.get('content-type') || '';
       if (type && !type.startsWith('image/')) throw new Error('unexpected content type');
@@ -1148,7 +1063,6 @@
       await views[route.name](route);
     } catch (err) {
       if (token !== state.renderToken) return;
-      if (err instanceof ApiError && err.status === 401) return;
       root.innerHTML = errorBoxHtml(err);
     }
   }
@@ -1164,7 +1078,6 @@
     try {
       state.folders = await apiGet('/v1/library/folders') || [];
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) return;
       state.folders = [];
     }
     renderSidebar();
@@ -1173,41 +1086,19 @@
   /* ---------------- boot ---------------- */
 
   function boot() {
-    const stored = (() => {
-      try { return (localStorage.getItem(TOKEN_KEY) || '').trim(); } catch (err) { return ''; }
-    })();
-    if (!stored) {
-      showTokenScreen();
-      return;
-    }
-    state.token = stored;
-    tokenInput.value = stored;
-    tokenSubmit.disabled = true;
-    tokenSubmit.textContent = '验证中…';
     apiGet('/v1/library/status')
       .then((status) => {
         state.status = status;
-        showApp();
         return bootstrap();
       })
       .catch((err) => {
-        if (err instanceof ApiError && err.status === 401) {
-          showTokenScreen('令牌无效，请重新输入访问令牌。');
-          tokenInput.select();
-          return;
-        }
         state.status = { dbReady: false, snapshotTime: null, sourceMtime: null, tracks: 0, collections: 0, error: err.message };
-        showApp();
         bootstrap();
-      })
-      .finally(() => {
-        tokenSubmit.disabled = false;
-        tokenSubmit.textContent = '连接';
       });
   }
 
   setInterval(() => {
-    if (!state.token || app.hidden) return;
+    if (document.hidden) return;
     loadStatus();
   }, 60000);
 

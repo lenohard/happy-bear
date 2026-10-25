@@ -19,9 +19,7 @@ export class RemoteLibrary implements LibraryProvider {
   constructor(private readonly config: ServerConfig) {}
 
   private async request<T>(path: string): Promise<T> {
-    const response = await net.fetch(`${this.config.baseUrl}${path}`, {
-      headers: { Authorization: `Bearer ${this.config.token}` }
-    })
+    const response = await net.fetch(`${this.config.baseUrl}${path}`)
     if (!response.ok) {
       const body = await response.text().catch(() => '')
       throw new Error(`服务器返回 ${response.status}${body ? `：${body.slice(0, 200)}` : ''}`)
@@ -31,10 +29,7 @@ export class RemoteLibrary implements LibraryProvider {
 
   async status(): Promise<LibraryStatus> { return this.request<LibraryStatus>('/v1/library/status') }
   async refresh(): Promise<LibraryStatus> {
-    const response = await net.fetch(`${this.config.baseUrl}/v1/library/refresh`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${this.config.token}` }
-    })
+    const response = await net.fetch(`${this.config.baseUrl}/v1/library/refresh`, { method: 'POST' })
     if (!response.ok) throw new Error(`服务器返回 ${response.status}`)
     return await response.json() as LibraryStatus
   }
@@ -63,9 +58,7 @@ export class RemoteLibrary implements LibraryProvider {
     return detail ? detail.track : null
   }
   async getTrackDetail(trackId: string): Promise<TrackDetail | null> {
-    const response = await net.fetch(`${this.config.baseUrl}/v1/library/tracks/${encodeURIComponent(trackId)}`, {
-      headers: { Authorization: `Bearer ${this.config.token}` }
-    })
+    const response = await net.fetch(`${this.config.baseUrl}/v1/library/tracks/${encodeURIComponent(trackId)}`)
     if (response.status === 404) return null
     if (!response.ok) throw new Error(`服务器返回 ${response.status}`)
     return await response.json() as TrackDetail
@@ -78,9 +71,7 @@ export class RemoteLibrary implements LibraryProvider {
     return body.content
   }
   async media(trackId: string): Promise<PlaybackSource | null> {
-    const response = await net.fetch(`${this.config.baseUrl}/v1/library/tracks/${encodeURIComponent(trackId)}/playback`, {
-      headers: { Authorization: `Bearer ${this.config.token}` }
-    })
+    const response = await net.fetch(`${this.config.baseUrl}/v1/library/tracks/${encodeURIComponent(trackId)}/playback`)
     if (response.status === 404) return null
     if (!response.ok) throw new Error(`服务器返回 ${response.status}`)
     return await response.json() as PlaybackSource

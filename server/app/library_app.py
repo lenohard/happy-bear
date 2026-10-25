@@ -3,17 +3,20 @@
 Runs standalone (no PostgreSQL required) so a Mac mini can serve the library
 and the web client:
 
-    POLARBEAR_LIBRARY_TOKEN=... uvicorn app.library_app:app --host 0.0.0.0 --port 8082
+    uvicorn app.library_app:app --host 127.0.0.1 --port 8082
+
+There is no token check: the service is meant to stay on the tailnet
+(`tailscale serve`, tailnet-only). Bind it to 127.0.0.1 and expose it
+through Tailscale Serve — never on 0.0.0.0.
 """
 
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Any
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -25,31 +28,7 @@ WEB_DIR = Path(__file__).parent.parent / "web"
 WEB_DIR.mkdir(parents=True, exist_ok=True)
 store = LibraryStore()
 
-
-def library_token() -> str:
-    token = os.environ.get("POLARBEAR_LIBRARY_TOKEN") or os.environ.get("REMOTE_JOBS_TOKEN")
-    if not token:
-        raise RuntimeError("POLARBEAR_LIBRARY_TOKEN is required")
-    return token
-
-
-def require_auth(request: Request) -> None:
-    header = request.headers.get("Authorization", "")
-    if not header.startswith("Bearer "):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "AUTH_INVALID", "message": "Missing bearer token"},
-        )
-    if header.removeprefix("Bearer ").strip() != library_token():
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "AUTH_INVALID", "message": "Invalid token"},
-        )
-
-
-AuthDep = Annotated[None, Depends(require_auth)]
-
-router = APIRouter(prefix="/v1/library", dependencies=[Depends(require_auth)])
+router = APIRouter(prefix="/v1/library")
 
 
 @router.get("/status")

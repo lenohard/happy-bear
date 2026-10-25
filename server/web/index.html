@@ -11,22 +11,7 @@
 </head>
 <body>
 
-<!-- 令牌闸门：没有令牌时显示，且不发起任何 API 请求 -->
-<div id="token-screen" class="token-screen" hidden>
-  <form id="token-form" class="token-card" autocomplete="off">
-    <div class="token-logo" aria-hidden="true">🐻‍❄️</div>
-    <h1>PolarBear</h1>
-    <p class="token-sub">输入访问令牌以连接本机书库。</p>
-    <label class="token-label" for="token-input">访问令牌</label>
-    <input id="token-input" class="token-input" type="password" name="token" placeholder="Bearer token"
-           autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required>
-    <p id="token-error" class="token-error" role="alert" hidden></p>
-    <button id="token-submit" class="btn btn-primary token-submit" type="submit">连接</button>
-    <p class="token-hint">令牌保存在本机 localStorage（键名 <code>polarbear-token</code>），仅用于同源 API 请求。</p>
-  </form>
-</div>
-
-<div id="app" class="app" hidden>
+<div id="app" class="app">
   <header class="topbar">
     <button id="menu-button" class="icon-btn" type="button" aria-label="打开导航菜单" aria-expanded="false" aria-controls="sidebar">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
@@ -36,9 +21,6 @@
       <input id="search-input" type="search" placeholder="搜索合集、作者或曲目" aria-label="搜索合集、作者或曲目"
              autocomplete="off" autocapitalize="off" spellcheck="false">
     </form>
-    <button id="token-button" class="icon-btn" type="button" aria-label="更换访问令牌" title="更换访问令牌">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3M15 12v2"/></svg>
-    </button>
   </header>
 
   <div id="scrim" class="scrim" hidden></div>

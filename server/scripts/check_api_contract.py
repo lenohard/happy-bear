@@ -9,7 +9,6 @@ import json
 import os
 import urllib.request
 
-TOKEN = os.environ.get("POLARBEAR_LIBRARY_TOKEN", "smoke-token")
 BASE = os.environ.get("POLARBEAR_LIBRARY_BASE", "http://127.0.0.1:8082")
 
 COVER = {"kind", "data", "dominantColor"}
@@ -29,7 +28,6 @@ STATUS = {"dbReady", "snapshotTime", "sourceMtime", "tracks", "collections"}
 
 def get(path: str):
     request = urllib.request.Request(f"{BASE}{path}")
-    request.add_header("Authorization", f"Bearer {TOKEN}")
     with urllib.request.urlopen(request, timeout=20) as response:
         return json.loads(response.read())
 

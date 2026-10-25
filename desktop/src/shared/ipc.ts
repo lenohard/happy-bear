@@ -52,7 +52,7 @@ export interface ContinueItem extends Track { collectionTitle: string; collectio
 export interface PlaybackSource { kind: 'baidu' | 'external'; value: string }
 export interface BaiduAuthStatus { configured: boolean; connected: boolean; expiresAt: number | null }
 export interface RemoteSummaryConfig { configured: boolean; baseUrl: string; model: string }
-export interface ServerSettings { enabled: boolean; baseUrl: string; token: string }
+export interface ServerSettings { enabled: boolean; baseUrl: string }
 export interface UpdateState { checking: boolean; checked: boolean; updateAvailable: boolean; downloading: boolean; readyToInstall: boolean; latestVersion: string | null; error: string | null }
 export interface LibraryProvider {
   status(): Promise<LibraryStatus>

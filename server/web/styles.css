@@ -67,62 +67,6 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; }
 
-/* ---------- Token gate ---------- */
-
-.token-screen {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: radial-gradient(120% 90% at 50% 0%, #1c212b 0%, var(--bg) 62%);
-  overflow-y: auto;
-}
-
-.token-card {
-  width: min(420px, 100%);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 30px 26px 24px;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.token-logo { font-size: 40px; line-height: 1; }
-.token-card h1 { margin: 0; font-size: 24px; letter-spacing: -.2px; }
-.token-sub { margin: 0 0 6px; color: var(--muted); }
-.token-label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-
-.token-input {
-  width: 100%;
-  min-height: var(--tap);
-  padding: 10px 13px;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 16px;
-}
-
-.token-input:focus { border-color: var(--accent); outline: none; }
-
-.token-error {
-  margin: 0;
-  color: var(--danger);
-  background: var(--danger-bg);
-  border: 1px solid var(--danger-border);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  font-size: 15px;
-}
-
-.token-submit { width: 100%; margin-top: 4px; }
-.token-hint { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
-
 /* ---------- Buttons ---------- */
 
 .btn {

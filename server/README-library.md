@@ -7,13 +7,13 @@ Runs standalone — no PostgreSQL, no remote-jobs service required.
 
 ```bash
 cd server
-POLARBEAR_LIBRARY_TOKEN=your-token \
 POLARBEAR_LIBRARY_DB="$HOME/Library/Mobile Documents/iCloud~com~senaca~audiobookplayer/Documents/library.sqlite" \
-.venv/bin/python -m uvicorn app.library_app:app --host 0.0.0.0 --port 8082
+.venv/bin/python -m uvicorn app.library_app:app --host 127.0.0.1 --port 8082
 ```
 
-- `POLARBEAR_LIBRARY_TOKEN` (required): bearer token for every `/v1/library/*` call.
-  Falls back to `REMOTE_JOBS_TOKEN` when unset.
+- **No token.** The API is unauthenticated, so it must stay reachable only from
+  your own devices: bind it to `127.0.0.1` and expose it through
+  `tailscale serve` (tailnet-only). Never bind it to `0.0.0.0`.
 - `POLARBEAR_LIBRARY_DB` (default): path to the iOS database. The server never
   writes to it — it copies the database (plus `-wal`/`-shm`) into a snapshot and
   opens that snapshot read-only.
@@ -23,7 +23,7 @@ The web client is served from the same process at `/` (files in `server/web`).
 
 ## Endpoints
 
-All under `/v1/library`, all require `Authorization: Bearer <token>`:
+All under `/v1/library`:
 
 | Endpoint | Purpose |
 |---|---|
@@ -41,21 +41,20 @@ All under `/v1/library`, all require `Authorization: Bearer <token>`:
 | `GET /covers/{collectionId}` | cover image bytes |
 | `GET /cover?path=CollectionCovers/…` | cover image bytes by relative path |
 
-Errors are JSON: `{"error":{"code":"…","message":"…"}}`; `401` for a missing or
-wrong token.
+Errors are JSON: `{"error":{"code":"…","message":"…"}}`.
 
 ## Web client
 
-`server/web` is a dependency-free, responsive client (phone + desktop). It asks
-for the bearer token on first load and keeps it in `localStorage` under
-`polarbear-token`.
+`server/web` is a dependency-free, responsive client (phone + desktop). It talks
+to the API on the same origin — no token, no login screen.
 
 ## Smoke test
 
 ```bash
 cd server
-POLARBEAR_LIBRARY_TOKEN=smoke-token .venv/bin/python -m uvicorn app.library_app:app --port 8082 &
+.venv/bin/python -m uvicorn app.library_app:app --port 8082 &
 .venv/bin/python scripts/smoke_library_api.py
+.venv/bin/python scripts/check_api_contract.py
 ```
 
 ## Desktop client in server mode
@@ -64,10 +63,18 @@ The Electron app reads the same API when configured; otherwise it keeps using
 the local iCloud snapshot. Configuration file `userData/server.json`:
 
 ```json
-{ "enabled": true, "baseUrl": "http://mac-mini.local:8082", "token": "your-token" }
+{ "enabled": true, "baseUrl": "http://mac-mini.local:8082" }
 ```
 
-Environment overrides: `POLARBEAR_SERVER_URL`, `POLARBEAR_SERVER_TOKEN`.
+Environment override: `POLARBEAR_SERVER_URL`.
+
+## Deployment (WonderTree)
+
+```bash
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.happybear.library-server.plist
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.happybear.library-server.plist
+tailscale serve --bg --https=8444 http://127.0.0.1:8082
+```
 
 ## Limits
 

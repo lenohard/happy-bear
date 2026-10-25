@@ -9,11 +9,10 @@ import sys
 import urllib.error
 import urllib.request
 
-TOKEN = os.environ.get("POLARBEAR_LIBRARY_TOKEN", "smoke-token")
 BASE = os.environ.get("POLARBEAR_LIBRARY_BASE", "http://127.0.0.1:8082")
 
 
-def get(path: str, token: str | None = TOKEN) -> tuple[int, object]:
+def get(path: str, token: str | None = None) -> tuple[int, object]:
     request = urllib.request.Request(f"{BASE}{path}")
     if token is not None:
         request.add_header("Authorization", f"Bearer {token}")
@@ -93,9 +92,7 @@ def main() -> None:
     check("cover 200 or 404", status in (200, 404), str(cover)[:160])
 
     status, body = get("/v1/library/status", token=None)
-    check("missing token 401", status == 401, str(body)[:160])
-    status, body = get("/v1/library/status", token="wrong")
-    check("bad token 401", status == 401, str(body)[:160])
+    check("no token 200", status == 200, str(body)[:160])
 
     print("\nall library API smoke checks passed")
 
